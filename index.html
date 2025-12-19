@@ -10,9 +10,14 @@
 <body>
     <nav>
         <div class="container">
-            <a href="index.html" class="active">Habits</a>
-            <a href="goals.html">Goals</a>
-            <a href="planner.html">Week Planner</a>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <a href="index.html" class="active">Habits</a>
+                    <a href="goals.html">Goals</a>
+                    <a href="planner.html">Week Planner</a>
+                </div>
+                <div id="navClock" style="font-size:0.9rem; font-weight:normal;"></div>
+            </div>
         </div>
     </nav>
 
@@ -29,7 +34,15 @@
                     <label>Start: <input type="time" id="habitStart" required></label>
                     <label>End: <input type="time" id="habitEnd" required></label>
                 </div>
-                <button onclick="saveHabit()">Add Habit</button>
+                <div style="margin-top:10px;">
+                    <label style="display:block; margin-bottom:5px;">Starting Day (YYYY-WW-D format, e.g., 2025-51-1 for Monday of week 51):</label>
+                    <input type="text" id="habitStartDay" placeholder="e.g., 2025-51-1" style="max-width:200px;">
+                    <button type="button" onclick="setCurrentDay()" style="width:auto; padding:8px 12px; margin-left:10px;">Use Today</button>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button onclick="saveHabit()" style="flex:1;">Add Habit</button>
+                    <button type="button" onclick="cancelEdit()" style="flex:1; background:#666;">Cancel</button>
+                </div>
             </div>
         </div>
 
@@ -39,6 +52,7 @@
         </div>
     </div>
 
+    <script src="js/weekUtils.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/habits.js"></script>
 </body>

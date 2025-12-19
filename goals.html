@@ -10,9 +10,14 @@
 <body>
     <nav>
         <div class="container">
-            <a href="index.html">Habits</a>
-            <a href="goals.html" class="active">Goals</a>
-            <a href="planner.html">Week Planner</a>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <a href="index.html">Habits</a>
+                    <a href="goals.html" class="active">Goals</a>
+                    <a href="planner.html">Week Planner</a>
+                </div>
+                <div id="navClock" style="font-size:0.9rem; font-weight:normal;"></div>
+            </div>
         </div>
     </nav>
 
@@ -23,13 +28,24 @@
             <h3>Define New Goal</h3>
             <input type="text" id="goalTitle" placeholder="Main Goal (e.g. 1000 Followers)">
             <input type="number" id="goalDuration" placeholder="Total Weeks (e.g. 48)">
-            <button onclick="initializeGoalInput()">Next: Plan Weeks</button>
+            <div style="margin-top:10px;">
+                <label style="display:block; margin-bottom:5px;">Starting Week (YYYY-WW format, e.g., 2025-51):</label>
+                <input type="text" id="goalStartWeek" placeholder="e.g., 2025-51" style="max-width:200px;">
+                <button type="button" onclick="setCurrentWeek()" style="width:auto; padding:8px 12px; margin-left:10px;">Use This Week</button>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button onclick="initializeGoalInput()" style="flex:1;">Next: Plan Weeks</button>
+                <button type="button" onclick="cancelEditGoal()" style="flex:1; background:#666;">Cancel</button>
+            </div>
         </div>
 
         <div id="weeksContainer" class="hidden">
             <h4>Breakdown by Week</h4>
             <div id="weeksInputs"></div>
-            <button onclick="saveFinalGoal()" style="margin-top:20px; width:100%;">Save Goal</button>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button onclick="saveFinalGoal()" style="flex:1;">Save Goal</button>
+                <button type="button" onclick="cancelEditGoal()" style="flex:1; background:#666;">Cancel</button>
+            </div>
         </div>
 
         <hr>
@@ -38,6 +54,7 @@
         <div id="activeGoalsList"></div>
     </div>
 
+    <script src="js/weekUtils.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/goals.js"></script>
 </body>

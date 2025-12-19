@@ -10,9 +10,14 @@
 <body>
     <nav>
         <div class="container">
-            <a href="index.html">Habits</a>
-            <a href="goals.html">Goals</a>
-            <a href="planner.html" class="active">Week Planner</a>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <a href="index.html">Habits</a>
+                    <a href="goals.html">Goals</a>
+                    <a href="planner.html" class="active">Week Planner</a>
+                </div>
+                <div id="navClock" style="font-size:0.9rem; font-weight:normal;"></div>
+            </div>
         </div>
     </nav>
 
@@ -20,7 +25,13 @@
         <div class="planner-layout">
             
             <div class="sidebar">
-                <h3>1. Select Week</h3>
+                <div class="week-navigator">
+                    <button onclick="changeWeek(-1)" style="width:auto; padding:8px 12px;">← Prev Week</button>
+                    <div id="currentWeekDisplay" style="text-align:center; font-weight:bold; margin:10px 0;">Week 2025-51</div>
+                    <button onclick="changeWeek(1)" style="width:auto; padding:8px 12px;">Next Week →</button>
+                </div>
+                <hr style="margin:15px 0;">
+                <h3>1. Select Goal</h3>
                 <select id="activeGoalSelector" onchange="loadGoalStats()">
                     <option value="">-- Select a Goal --</option>
                 </select>
@@ -53,6 +64,7 @@
         </div>
     </div>
 
+    <script src="js/weekUtils.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/planner.js"></script>
 </body>

@@ -4,13 +4,48 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 let currentTool = 'erase'; 
 let allocatedHours = 0;
 let gridState = {}; // Key: "dayIndex-hour", Value: { type, name }
+let currentWeek = WeekUtils.getCurrentWeek(); // Track current viewing week
 
 document.addEventListener('DOMContentLoaded', () => {
     initGrid();
+    updateWeekDisplay();
     loadHabitsIntoGrid();
     populateGoalSelect();
-    loadSavedPlan(); // Load local storage plan if exists
+    loadSavedPlan();
+    updateClock();
+    setInterval(updateClock, 1000);
 });
+
+function updateClock() {
+    const now = new Date();
+    const options = { 
+        weekday: 'short', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    };
+    document.getElementById('navClock').textContent = now.toLocaleDateString('en-US', options);
+}
+
+function updateWeekDisplay() {
+    const display = document.getElementById('currentWeekDisplay');
+    display.innerText = WeekUtils.formatWeekDisplay(currentWeek);
+}
+
+function changeWeek(delta) {
+    currentWeek = WeekUtils.addWeeks(currentWeek, delta);
+    updateWeekDisplay();
+    
+    // Clear and reload grid for new week
+    initGrid();
+    loadHabitsIntoGrid();
+    populateGoalSelect(); // Refresh goal dropdown for new week
+    loadSavedPlan();
+    loadGoalStats(); // Refresh goal stats for new week
+}
 
 function initGrid() {
     const grid = document.getElementById('gridContainer');
@@ -87,6 +122,16 @@ function loadHabitsIntoGrid() {
     const habits = StorageManager.getHabits();
     
     habits.forEach(habit => {
+        // Check if habit should be visible in current week
+        const habitStartDay = habit.startDay || WeekUtils.getCurrentDay();
+        const { year: hYear, week: hWeek } = WeekUtils.parseDay(habitStartDay);
+        const { year: cYear, week: cWeek } = WeekUtils.parseWeek(currentWeek);
+        
+        // Only show habit if current week is >= habit's start week
+        if (cYear < hYear || (cYear === hYear && cWeek < hWeek)) {
+            return; // Skip this habit - it hasn't started yet
+        }
+
         // Parse time: "05:00" -> 5
         const startH = parseInt(habit.startTime.split(':')[0]);
         const endH = parseInt(habit.endTime.split(':')[0]); // Simplified: Hour granularity
@@ -107,31 +152,69 @@ function loadHabitsIntoGrid() {
 
 function populateGoalSelect() {
     const sel = document.getElementById('activeGoalSelector');
+    sel.innerHTML = '<option value="">-- Select a Goal --</option>';
+    
     const goals = StorageManager.getGoals();
+    
+    // Normalize current week for consistent comparison
+    const normalizedCurrentWeek = WeekUtils.normalizeWeek(currentWeek);
+    
+    // Filter goals that are active in current week or will be active
     goals.forEach(g => {
-        const opt = document.createElement('option');
-        opt.value = g.id;
-        opt.innerText = g.title;
-        sel.appendChild(opt);
+        const goalStartWeek = WeekUtils.normalizeWeek(g.startWeek || WeekUtils.getCurrentWeek());
+        const goalEndWeek = WeekUtils.addWeeks(goalStartWeek, g.totalWeeks - 1);
+        
+        // Check if current week falls within goal's timeline (started and not finished)
+        const hasStarted = WeekUtils.compareWeeks(normalizedCurrentWeek, goalStartWeek) >= 0;
+        const notFinished = WeekUtils.compareWeeks(normalizedCurrentWeek, goalEndWeek) <= 0;
+        
+        // Show goal if it's active in current week
+        if (hasStarted && notFinished) {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.innerText = g.title;
+            sel.appendChild(opt);
+        }
     });
 }
 
 function loadGoalStats() {
     const id = document.getElementById('activeGoalSelector').value;
-    if(!id) return;
+    if(!id) {
+        document.getElementById('goalStats').innerText = '';
+        return;
+    }
 
     const goal = StorageManager.getGoals().find(g => g.id === id);
-    // For MVP, we assume we are planning "Week 1" or the first unpaused week.
-    // In a full version, you'd select "Which week are you planning?".
-    // Let's grab the first week that isn't paused.
-    const activeWeek = goal.weeks.find(w => !w.isPaused); 
+    if(!goal) return;
+
+    const goalStartWeek = goal.startWeek || WeekUtils.getCurrentWeek();
+    
+    // Calculate which week of the goal we're viewing
+    const weeksSinceStart = WeekUtils.compareWeeks(currentWeek, goalStartWeek);
+    
+    if (weeksSinceStart < 0) {
+        document.getElementById('goalStats').innerText = "This goal hasn't started yet.";
+        return;
+    }
+    
+    // Find the corresponding week in the goal's weeks array
+    const goalWeekIndex = weeksSinceStart;
+    
+    if (goalWeekIndex >= goal.weeks.length) {
+        document.getElementById('goalStats').innerText = "Goal completed or beyond planned weeks.";
+        return;
+    }
+    
+    const activeWeek = goal.weeks[goalWeekIndex];
     
     if(activeWeek) {
         document.getElementById('goalStats').innerHTML = `
+            <strong>Week ${goalWeekIndex + 1} of ${goal.totalWeeks}</strong><br>
             Target: <b>${activeWeek.hours}h</b> for "${activeWeek.subGoal}"
         `;
     } else {
-        document.getElementById('goalStats').innerText = "All weeks paused or completed.";
+        document.getElementById('goalStats').innerText = "No data for this week.";
     }
 }
 
@@ -147,12 +230,15 @@ function updateStats() {
 // --- SAVING ---
 
 function saveWeekPlan() {
-    localStorage.setItem('ppm_saved_plan', JSON.stringify(gridState));
-    alert("Week Plan Saved!");
+    // Save plan with week identifier
+    const weekKey = `ppm_plan_${currentWeek}`;
+    localStorage.setItem(weekKey, JSON.stringify(gridState));
+    alert(`Week Plan Saved for ${WeekUtils.formatWeekDisplay(currentWeek)}!`);
 }
 
 function loadSavedPlan() {
-    const saved = localStorage.getItem('ppm_saved_plan');
+    const weekKey = `ppm_plan_${currentWeek}`;
+    const saved = localStorage.getItem(weekKey);
     if(saved) {
         gridState = JSON.parse(saved);
         Object.keys(gridState).forEach(key => {
@@ -170,9 +256,10 @@ function loadSavedPlan() {
 }
 
 function clearPlan() {
-    if(confirm("Clear all planned blocks?")) {
+    if(confirm("Clear all planned blocks for this week?")) {
         gridState = {};
-        localStorage.removeItem('ppm_saved_plan');
+        const weekKey = `ppm_plan_${currentWeek}`;
+        localStorage.removeItem(weekKey);
         location.reload();
     }
 }

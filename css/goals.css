@@ -7,6 +7,53 @@
     margin-bottom: 5px;
 }
 
+/* Collapsible Year/Month Structure */
+.year-group, .month-group {
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.year-group > summary {
+    padding: 12px;
+    background: #2196F3;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    border-radius: 4px;
+    user-select: none;
+}
+
+.year-group > summary:hover {
+    background: #1976D2;
+}
+
+.month-group {
+    margin: 10px;
+    background: white;
+}
+
+.month-group > summary {
+    padding: 10px;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: 3px;
+    user-select: none;
+}
+
+.month-group > summary:hover {
+    background: #45a049;
+}
+
+.month-content {
+    padding: 10px;
+}
+
 .goal-card {
     border: 1px solid #333;
     padding: 20px;
@@ -22,12 +69,26 @@
 }
 
 .mini-week {
-    min-width: 60px;
+    min-width: 120px;
+    max-width: 150px;
     background: #eee;
-    padding: 5px;
+    padding: 8px;
     text-align: center;
     font-size: 0.8rem;
     border: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mini-week .sub-goal-text {
+    font-size: 0.7rem;
+    color: #555;
+    font-style: italic;
+    margin-top: 4px;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .shift-controls {
