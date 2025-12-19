@@ -129,47 +129,112 @@ input, select, textarea {
         font-size: 0.9rem;
     }
 
+    .container {
+        padding: 0 5px;
+    }
+
     nav {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
 
     nav a {
-        margin-right: 10px;
-        font-size: 0.85rem;
+        margin-right: 8px;
+        font-size: 0.8rem;
         display: inline-block;
         margin-bottom: 5px;
     }
 
     .nav-clock {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
+        padding-top: 3px;
     }
 
     h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+    }
+
+    h2 {
+        font-size: 1.2rem;
     }
 
     h3 {
-        font-size: 1.1rem;
+        font-size: 1rem;
+    }
+
+    p {
+        font-size: 0.9rem;
     }
 
     input, select, textarea {
         max-width: 100%;
         font-size: 14px;
+        padding: 10px;
     }
 
     button {
         width: 100%;
+        font-size: 0.85rem;
+        padding: 10px;
+    }
+
+    .collapsible-header {
+        padding: 10px;
         font-size: 0.9rem;
+    }
+
+    .collapsible-content {
         padding: 12px;
+    }
+
+    .toggle-icon {
         font-size: 1rem;
-        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    body {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    nav a {
+        font-size: 0.75rem;
+        margin-right: 6px;
+    }
+
+    .nav-clock {
+        font-size: 0.65rem;
     }
 
     h1 {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
+    }
+
+    h2 {
+        font-size: 1.1rem;
     }
 
     h3 {
-        font-size: 1.2rem;
+        font-size: 0.95rem;
+    }
+
+    input, select, textarea {
+        font-size: 14px;
+        padding: 8px;
+    }
+
+    button {
+        font-size: 0.8rem;
+        padding: 9px;
+    }
+
+    .collapsible-header {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    .collapsible-content {
+        padding: 10px;
     }
 }

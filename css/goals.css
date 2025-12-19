@@ -100,29 +100,105 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .week-input-row {
-        grid-template-columns: 60px 80px 1fr;
+        grid-template-columns: 50px 70px 1fr;
         gap: 5px;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
 
     .week-input-row input {
         font-size: 14px;
+        padding: 6px;
     }
 
     .goal-card {
-        padding: 15px;
+        padding: 12px;
+    }
+
+    .goal-card h3 {
+        font-size: 1.1rem;
+        word-wrap: break-word;
+    }
+
+    .week-scroll {
+        gap: 8px;
+        margin: 10px 0;
     }
 
     .mini-week {
-        min-width: 50px;
+        min-width: 85px;
+        max-width: 95px;
         font-size: 0.7rem;
+        padding: 6px;
+    }
+
+    .mini-week .sub-goal-text {
+        font-size: 0.65rem;
+        line-height: 1.1;
     }
 
     .shift-controls {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
+        padding: 8px;
     }
+
+    .shift-controls label {
+        font-size: 0.85rem;
+    }
+
+    .shift-controls input {
+        width: 100% !important;
+        max-width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .shift-controls button {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    .year-group > summary,
+    .month-group > summary {
+        font-size: 0.85rem;
+        padding: 8px;
+    }
+
+    .month-content {
+        padding: 8px;
+    }
+}
+
+@media (max-width: 576px) {
+    .week-input-row {
+        grid-template-columns: 1fr;
+        gap: 5px;
+    }
+
+    .week-input-row span {
+        font-size: 0.8rem;
+        margin-bottom: 3px;
+    }
+
+    .mini-week {
+        min-width: 75px;
+        max-width: 85px;
+        font-size: 0.65rem;
+        padding: 5px;
+    }
+
+    .mini-week b {
+        font-size: 0.7rem;
+    }
+
+    .mini-week small {
+        font-size: 0.6rem;
+    }
+
+    .mini-week .sub-goal-text {
+        font-size: 0.6rem;
+    }
+}
 
     .shift-controls label {
         font-size: 0.9rem;
