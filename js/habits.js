@@ -32,18 +32,20 @@ function saveHabit() {
     const name = document.getElementById('habitName').value;
     const desc = document.getElementById('habitDesc').value;
     const start = document.getElementById('habitStart').value;
-    const end = document.getElementById('habitEnd').value;
+    const packs = parseInt(document.getElementById('habitPacks').value);
     const startDay = document.getElementById('habitStartDay').value.trim();
 
-    if(!name || !start || !end) {
-        alert("Please fill in Name and Times");
+    if(!name || !start || !packs) {
+        alert("Please fill in Name, Start Time, and Duration (packs)");
         return;
     }
 
-    if(start >= end) {
-        alert("Start time must be before End time.");
-        return;
-    }
+    // Calculate end time from start time + packs
+    const [startHour, startMinute] = start.split(':').map(Number);
+    const totalMinutes = startHour * 60 + startMinute + (packs * 30);
+    const endHour = Math.floor(totalMinutes / 60) % 24;
+    const endMinute = totalMinutes % 60;
+    const end = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
 
     // Validate startDay format (YYYY-WW-D)
     if(startDay && !startDay.match(/^\d{4}-\d{1,2}-[1-7]$/)) {
@@ -53,13 +55,13 @@ function saveHabit() {
 
     // Check for time slot conflicts with existing habits
     const existingHabits = StorageManager.getHabits();
-    const startHour = parseInt(start.split(':')[0]);
-    const startMinute = parseInt(start.split(':')[1]);
-    const endHour = parseInt(end.split(':')[0]);
-    const endMinute = parseInt(end.split(':')[1]);
+    const startHourNum = parseInt(start.split(':')[0]);
+    const startMinuteNum = parseInt(start.split(':')[1]);
+    const endHourNum = parseInt(end.split(':')[0]);
+    const endMinuteNum = parseInt(end.split(':')[1]);
     
-    const startTime = startHour + startMinute / 60;
-    const endTime = endHour + endMinute / 60;
+    const startTime = startHourNum + startMinuteNum / 60;
+    const endTime = endHourNum + endMinuteNum / 60;
     
     const conflicts = [];
     
@@ -94,6 +96,7 @@ function saveHabit() {
         description: desc, 
         startTime: start, 
         endTime: end,
+        packs: packs,
         startDay: startDay || WeekUtils.getCurrentDay()
     };
     
@@ -119,7 +122,7 @@ function saveHabit() {
     document.getElementById('habitName').value = '';
     document.getElementById('habitDesc').value = '';
     document.getElementById('habitStart').value = '';
-    document.getElementById('habitEnd').value = '';
+    document.getElementById('habitPacks').value = '';
     document.getElementById('habitStartDay').value = WeekUtils.getCurrentDay();
     renderHabitList();
 }
@@ -132,9 +135,10 @@ function renderHabitList() {
     habits.forEach(h => {
         const div = document.createElement('div');
         div.className = 'item-card';
+        const packsText = h.packs ? ` • ${h.packs} packs` : '';
         div.innerHTML = `
             <div>
-                <strong>${h.name}</strong> (${h.startTime} - ${h.endTime})
+                <strong>${h.name}</strong> (${h.startTime} - ${h.endTime}${packsText})
                 <br><small>${h.description}</small>
                 <br><small style="color:#888;">Starts: ${h.startDay || 'Not set'}</small>
             </div>
@@ -156,7 +160,7 @@ function editHabit(id) {
     document.getElementById('habitName').value = habit.name;
     document.getElementById('habitDesc').value = habit.description;
     document.getElementById('habitStart').value = habit.startTime;
-    document.getElementById('habitEnd').value = habit.endTime;
+    document.getElementById('habitPacks').value = habit.packs || '';
     document.getElementById('habitStartDay').value = habit.startDay || '';
     
     document.querySelector('.collapsible-header span').textContent = 'Edit Habit';
@@ -177,7 +181,7 @@ function cancelEdit() {
     document.getElementById('habitName').value = '';
     document.getElementById('habitDesc').value = '';
     document.getElementById('habitStart').value = '';
-    document.getElementById('habitEnd').value = '';
+    document.getElementById('habitPacks').value = '';
     document.getElementById('habitStartDay').value = WeekUtils.getCurrentDay();
     document.querySelector('.collapsible-header span').textContent = 'Add New Habit';
     const saveBtn = document.querySelector('.collapsible-content button');

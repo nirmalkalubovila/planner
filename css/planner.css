@@ -92,7 +92,7 @@
 .time-grid {
     display: grid;
     grid-template-columns: 50px repeat(7, 1fr); /* Time Label + 7 Days */
-    grid-auto-rows: 50px; /* Height of one hour slot */
+    grid-auto-rows: 35px; /* Height of one 30-minute slot */
     border-left: 1px solid #ddd;
 }
 
@@ -227,7 +227,7 @@
     .time-grid {
         display: grid;
         grid-template-columns: 55px repeat(7, 85px);
-        grid-auto-rows: 50px;
+        grid-auto-rows: 35px;
         min-width: max-content;
     }
 
@@ -245,7 +245,7 @@
         align-items: center;
         justify-content: center;
         word-break: break-word;
-        min-height: 50px;
+        min-height: 35px;
     }
 
     .grid-cell:active {
@@ -288,14 +288,14 @@
     .time-grid {
         display: grid;
         grid-template-columns: 50px repeat(7, 75px);
-        grid-auto-rows: 45px;
+        grid-auto-rows: 30px;
         min-width: max-content;
     }
 
     .grid-cell {
         font-size: 0.65rem;
         padding: 2px 1px;
-        min-height: 45px;
+        min-height: 30px;
     }
 
     .time-label {

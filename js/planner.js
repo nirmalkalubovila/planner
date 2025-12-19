@@ -51,12 +51,15 @@ function initGrid() {
     const grid = document.getElementById('gridContainer');
     grid.innerHTML = '';
 
-    // Create 24 hours * 7 days
-    for(let h=0; h<24; h++) {
+    // Create 48 half-hour slots (24 hours * 2) * 7 days
+    for(let slot=0; slot<48; slot++) {
+        const hour = Math.floor(slot / 2);
+        const minutes = (slot % 2) * 30;
+        
         // Time Label
         const timeLabel = document.createElement('div');
         timeLabel.className = 'time-label';
-        timeLabel.innerText = `${h}:00`;
+        timeLabel.innerText = `${hour}:${minutes.toString().padStart(2, '0')}`;
         grid.appendChild(timeLabel);
 
         // 7 Days columns
@@ -64,9 +67,9 @@ function initGrid() {
             const cell = document.createElement('div');
             cell.className = 'grid-cell';
             cell.dataset.day = d;
-            cell.dataset.hour = h;
-            cell.id = `c-${d}-${h}`;
-            cell.onclick = () => handleCellClick(d, h);
+            cell.dataset.slot = slot;
+            cell.id = `c-${d}-${slot}`;
+            cell.onclick = () => handleCellClick(d, slot);
             grid.appendChild(cell);
         }
     }
@@ -86,8 +89,8 @@ function setTool(tool) {
     }
 }
 
-function handleCellClick(day, hour) {
-    const cell = document.getElementById(`c-${day}-${hour}`);
+function handleCellClick(day, slot) {
+    const cell = document.getElementById(`c-${day}-${slot}`);
     
     // Check if locked by Habit (Habits cannot be erased by paint tool here ideally, or warn user)
     if(cell.classList.contains('locked-habit')) {
@@ -95,7 +98,7 @@ function handleCellClick(day, hour) {
         return;
     }
 
-    const key = `${day}-${hour}`;
+    const key = `${day}-${slot}`;
 
     if(currentTool === 'erase') {
         cell.className = 'grid-cell';
@@ -132,14 +135,18 @@ function loadHabitsIntoGrid() {
             return; // Skip this habit - it hasn't started yet
         }
 
-        // Parse time: "05:00" -> 5
-        const startH = parseInt(habit.startTime.split(':')[0]);
-        const endH = parseInt(habit.endTime.split(':')[0]); // Simplified: Hour granularity
+        // Parse time with 30-minute granularity
+        const [startHour, startMin] = habit.startTime.split(':').map(Number);
+        const [endHour, endMin] = habit.endTime.split(':').map(Number);
+        
+        // Convert to slot numbers (2 slots per hour)
+        const startSlot = startHour * 2 + (startMin >= 30 ? 1 : 0);
+        const endSlot = endHour * 2 + (endMin >= 30 ? 1 : 0);
 
         // Habits apply to ALL days (0-6)
         for(let d=0; d<7; d++) {
-            for(let h=startH; h<endH; h++) {
-                const cell = document.getElementById(`c-${d}-${h}`);
+            for(let slot=startSlot; slot<endSlot; slot++) {
+                const cell = document.getElementById(`c-${d}-${slot}`);
                 if(cell) {
                     cell.classList.add('locked-habit');
                     cell.innerText = habit.name;
@@ -209,9 +216,11 @@ function loadGoalStats() {
     const activeWeek = goal.weeks[goalWeekIndex];
     
     if(activeWeek) {
+        const requiredSlots = activeWeek.hours * 2; // 2 slots per hour
         document.getElementById('goalStats').innerHTML = `
             <strong>Week ${goalWeekIndex + 1} of ${goal.totalWeeks}</strong><br>
-            Target: <b>${activeWeek.hours}h</b> for "${activeWeek.subGoal}"
+            Target: <b>${activeWeek.hours}h (${requiredSlots} slots)</b><br>
+            Sub-goal: "${activeWeek.subGoal}"
         `;
     } else {
         document.getElementById('goalStats').innerText = "No data for this week.";
@@ -219,12 +228,13 @@ function loadGoalStats() {
 }
 
 function updateStats() {
-    // Count goal cells
-    let count = 0;
+    // Count goal cells (each cell = 30 minutes)
+    let slotCount = 0;
     Object.values(gridState).forEach(v => {
-        if(v.type === 'goal') count++;
+        if(v.type === 'goal') slotCount++;
     });
-    document.getElementById('allocatedCount').innerText = count;
+    const hours = slotCount * 0.5; // Each slot is 30 minutes = 0.5 hours
+    document.getElementById('allocatedCount').innerText = `${slotCount} slots (${hours}h)`;
 }
 
 // --- SAVING ---
@@ -242,9 +252,9 @@ function loadSavedPlan() {
     if(saved) {
         gridState = JSON.parse(saved);
         Object.keys(gridState).forEach(key => {
-            const [d, h] = key.split('-');
+            const [d, slot] = key.split('-');
             const data = gridState[key];
-            const cell = document.getElementById(`c-${d}-${h}`);
+            const cell = document.getElementById(`c-${d}-${slot}`);
             if(cell && !cell.classList.contains('locked-habit')) {
                 cell.innerText = data.name;
                 if(data.type === 'goal') cell.classList.add('cell-goal');

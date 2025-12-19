@@ -35,8 +35,21 @@
                     <input type="text" id="habitName" placeholder="Habit Name (e.g., Read Book)" required>
                     <input type="text" id="habitDesc" placeholder="Description" required>
                     <div class="time-inputs">
-                        <label>Start: <input type="time" id="habitStart" required></label>
-                        <label>End: <input type="time" id="habitEnd" required></label>
+                        <label>Start Time: <input type="time" id="habitStart" required></label>
+                        <label>Duration (30-min packs): 
+                            <select id="habitPacks" required>
+                                <option value="">Select packs</option>
+                                <option value="1">1 pack (30 min)</option>
+                                <option value="2">2 packs (1 hour)</option>
+                                <option value="3">3 packs (1.5 hours)</option>
+                                <option value="4">4 packs (2 hours)</option>
+                                <option value="5">5 packs (2.5 hours)</option>
+                                <option value="6">6 packs (3 hours)</option>
+                                <option value="8">8 packs (4 hours)</option>
+                                <option value="10">10 packs (5 hours)</option>
+                                <option value="12">12 packs (6 hours)</option>
+                            </select>
+                        </label>
                     </div>
                     <div style="margin-top:10px;">
                         <label style="display:block; margin-bottom:5px;">Starting Day (YYYY-WW-D format, e.g., 2025-51-1 for Monday of week 51):</label>
