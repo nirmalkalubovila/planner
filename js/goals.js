@@ -247,7 +247,7 @@ function editGoal(id) {
     });
     
     // Update UI text
-    document.querySelector('.goal-creator h3').textContent = 'Edit Goal';
+    document.querySelector('.collapsible-header span').textContent = 'Edit Goal';
     const saveButton = document.querySelector('#weeksContainer button');
     if(saveButton) saveButton.textContent = 'Update Goal';
     
@@ -261,5 +261,12 @@ function cancelEditGoal() {
     document.getElementById('goalStartWeek').value = WeekUtils.getCurrentWeek();
     document.getElementById('weeksContainer').classList.add('hidden');
     document.getElementById('weeksInputs').innerHTML = '';
-    document.querySelector('.goal-creator h3').textContent = 'Define New Goal';
+    document.querySelector('.collapsible-header span').textContent = 'Define New Goal';
+}
+
+function toggleSection(header) {
+    const content = header.nextElementSibling;
+    const icon = header.querySelector('.toggle-icon');
+    content.classList.toggle('collapsed');
+    icon.classList.toggle('collapsed');
 }

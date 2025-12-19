@@ -12,6 +12,22 @@
     background: #f4f4f4;
     padding: 20px;
     height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar .collapsible-section {
+    margin-bottom: 10px;
+    background: white;
+}
+
+.sidebar .collapsible-header {
+    background: white;
+    padding: 10px;
+    font-size: 0.95rem;
+}
+
+.sidebar .collapsible-content {
+    padding: 15px 10px;
 }
 
 .week-navigator {

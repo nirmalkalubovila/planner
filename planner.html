@@ -10,15 +10,14 @@
 <body>
     <nav>
         <div class="container">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <a href="landing.html">Home</a>
-                    <a href="index.html">Habits</a>
-                    <a href="goals.html">Goals</a>
-                    <a href="planner.html" class="active">Week Planner</a>
-                </div>
-                <div id="navClock" style="font-size:0.9rem; font-weight:normal;"></div>
+            <div class="nav-links">
+                <a href="landing.html">Home</a>
+                <a href="index.html">Habits</a>
+                <a href="goals.html">Goals</a>
+                <a href="planner.html" class="active">Week Planner</a>
             </div>
+            <div class="nav-separator"></div>
+            <div class="nav-clock" id="navClock"></div>
         </div>
     </nav>
 
@@ -32,26 +31,48 @@
                     <button onclick="changeWeek(1)" style="width:auto; padding:8px 12px;">Next Week →</button>
                 </div>
                 <hr style="margin:15px 0;">
-                <h3>1. Select Goal</h3>
-                <select id="activeGoalSelector" onchange="loadGoalStats()">
-                    <option value="">-- Select a Goal --</option>
-                </select>
-                <div id="goalStats" style="margin-bottom:20px; font-size:0.9rem; color:#555;"></div>
-
-                <h3>2. Paint Tool</h3>
-                <div class="tools">
-                    <button class="tool-btn active-tool" id="t-erase" onclick="setTool('erase')">Erase</button>
-                    <button class="tool-btn" id="t-goal" onclick="setTool('goal')">Goal Work</button>
-                    <button class="tool-btn" id="t-custom" onclick="setTool('custom')">Custom Event</button>
-                </div>
-                <div id="customInput" class="hidden" style="margin-top:10px;">
-                    <input type="text" id="customEventName" placeholder="Event Name">
+                
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <span>1. Select Goal</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <select id="activeGoalSelector" onchange="loadGoalStats()">
+                            <option value="">-- Select a Goal --</option>
+                        </select>
+                        <div id="goalStats" style="margin-top:10px; font-size:0.9rem; color:#555;"></div>
+                    </div>
                 </div>
 
-                <h3>3. Status</h3>
-                <p>Goal Hours Allocated: <span id="allocatedCount">0</span>h</p>
-                <button onclick="saveWeekPlan()" style="margin-top:20px; background:#222;">Save Plan</button>
-                <button onclick="clearPlan()" style="margin-top:10px; background:#888;">Clear All</button>
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <span>2. Paint Tool</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="tools">
+                            <button class="tool-btn active-tool" id="t-erase" onclick="setTool('erase')">Erase</button>
+                            <button class="tool-btn" id="t-goal" onclick="setTool('goal')">Goal Work</button>
+                            <button class="tool-btn" id="t-custom" onclick="setTool('custom')">Custom Event</button>
+                        </div>
+                        <div id="customInput" class="hidden" style="margin-top:10px;">
+                            <input type="text" id="customEventName" placeholder="Event Name">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection(this)">
+                        <span>3. Status</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <p>Goal Hours Allocated: <span id="allocatedCount">0</span>h</p>
+                        <button onclick="saveWeekPlan()" style="margin-top:10px; background:#222;">Save Plan</button>
+                        <button onclick="clearPlan()" style="margin-top:10px; background:#888;">Clear All</button>
+                    </div>
+                </div>
             </div>
 
             <div class="timetable-wrapper">

@@ -107,8 +107,9 @@ function saveHabit() {
             localStorage.setItem('ppm_habits', JSON.stringify(habits));
         }
         editingHabitId = null;
-        document.querySelector('.habit-form-section h3').textContent = 'Add New Habit';
-        document.querySelector('.habit-form-section button').textContent = 'Add Habit';
+        document.querySelector('.collapsible-header span').textContent = 'Add New Habit';
+        const saveBtn = document.querySelector('.collapsible-content button');
+        if(saveBtn) saveBtn.textContent = 'Add Habit';
     } else {
         // Add new habit
         StorageManager.addHabit(habit);
@@ -158,8 +159,9 @@ function editHabit(id) {
     document.getElementById('habitEnd').value = habit.endTime;
     document.getElementById('habitStartDay').value = habit.startDay || '';
     
-    document.querySelector('.habit-form-section h3').textContent = 'Edit Habit';
-    document.querySelector('.habit-form-section button').textContent = 'Update Habit';
+    document.querySelector('.collapsible-header span').textContent = 'Edit Habit';
+    const saveBtn = document.querySelector('.collapsible-content button');
+    if(saveBtn) saveBtn.textContent = 'Update Habit';
     window.scrollTo(0, 0);
 }
 
@@ -177,6 +179,14 @@ function cancelEdit() {
     document.getElementById('habitStart').value = '';
     document.getElementById('habitEnd').value = '';
     document.getElementById('habitStartDay').value = WeekUtils.getCurrentDay();
-    document.querySelector('.habit-form-section h3').textContent = 'Add New Habit';
-    document.querySelector('.habit-form-section button').textContent = 'Add Habit';
+    document.querySelector('.collapsible-header span').textContent = 'Add New Habit';
+    const saveBtn = document.querySelector('.collapsible-content button');
+    if(saveBtn) saveBtn.textContent = 'Add Habit';
+}
+
+function toggleSection(header) {
+    const content = header.nextElementSibling;
+    const icon = header.querySelector('.toggle-icon');
+    content.classList.toggle('collapsed');
+    icon.classList.toggle('collapsed');
 }

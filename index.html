@@ -10,15 +10,14 @@
 <body>
     <nav>
         <div class="container">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <a href="landing.html">Home</a>
-                    <a href="index.html" class="active">Habits</a>
-                    <a href="goals.html">Goals</a>
-                    <a href="planner.html">Week Planner</a>
-                </div>
-                <div id="navClock" style="font-size:0.9rem; font-weight:normal;"></div>
+            <div class="nav-links">
+                <a href="landing.html">Home</a>
+                <a href="index.html" class="active">Habits</a>
+                <a href="goals.html">Goals</a>
+                <a href="planner.html">Week Planner</a>
             </div>
+            <div class="nav-separator"></div>
+            <div class="nav-clock" id="navClock"></div>
         </div>
     </nav>
 
@@ -26,23 +25,28 @@
         <h1>Habit Tracker</h1>
         <p>Define daily habits. These will lock into your Weekly Planner.</p>
         
-        <div class="habit-form-section">
-            <h3>Add New Habit</h3>
-            <div id="habitForm">
-                <input type="text" id="habitName" placeholder="Habit Name (e.g., Read Book)" required>
-                <input type="text" id="habitDesc" placeholder="Description" required>
-                <div class="time-inputs">
-                    <label>Start: <input type="time" id="habitStart" required></label>
-                    <label>End: <input type="time" id="habitEnd" required></label>
-                </div>
-                <div style="margin-top:10px;">
-                    <label style="display:block; margin-bottom:5px;">Starting Day (YYYY-WW-D format, e.g., 2025-51-1 for Monday of week 51):</label>
-                    <input type="text" id="habitStartDay" placeholder="e.g., 2025-51-1" style="max-width:200px;">
-                    <button type="button" onclick="setCurrentDay()" style="width:auto; padding:8px 12px; margin-left:10px;">Use Today</button>
-                </div>
-                <div style="display:flex; gap:10px; margin-top:10px;">
-                    <button onclick="saveHabit()" style="flex:1;">Add Habit</button>
-                    <button type="button" onclick="cancelEdit()" style="flex:1; background:#666;">Cancel</button>
+        <div class="collapsible-section">
+            <div class="collapsible-header" onclick="toggleSection(this)">
+                <span>Add New Habit</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div id="habitForm">
+                    <input type="text" id="habitName" placeholder="Habit Name (e.g., Read Book)" required>
+                    <input type="text" id="habitDesc" placeholder="Description" required>
+                    <div class="time-inputs">
+                        <label>Start: <input type="time" id="habitStart" required></label>
+                        <label>End: <input type="time" id="habitEnd" required></label>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label style="display:block; margin-bottom:5px;">Starting Day (YYYY-WW-D format, e.g., 2025-51-1 for Monday of week 51):</label>
+                        <input type="text" id="habitStartDay" placeholder="e.g., 2025-51-1" style="max-width:200px;">
+                        <button type="button" onclick="setCurrentDay()" style="width:auto; padding:8px 12px; margin-left:10px;">Use Today</button>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button onclick="saveHabit()" style="flex:1;">Add Habit</button>
+                        <button type="button" onclick="cancelEdit()" style="flex:1; background:#666;">Cancel</button>
+                    </div>
                 </div>
             </div>
         </div>
