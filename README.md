@@ -154,6 +154,16 @@ Works on all modern browsers:
 
 MIT License - Free to use and modify
 
+## Contributing
+
+Contributions are welcome! Feel free to:
+- Report bugs and issues
+- Suggest new features
+- Submit pull requests
+- Improve documentation
+
+Please ensure your contributions maintain the project's minimalist philosophy and vanilla JavaScript approach.
+
 ## Support
 
 For issues or feature requests, please open an issue on the repository.
