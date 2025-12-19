@@ -1,0 +1,244 @@
+/* Landing Page Styles */
+
+.hero {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--primary-color);
+    color: white;
+    margin: -20px -20px 40px -20px;
+    border-bottom: 2px solid #222;
+}
+
+.hero h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.hero p {
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.cta-btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.cta-btn-primary {
+    background: white;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.cta-btn-secondary {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.cta-btn:hover {
+    opacity: 0.9;
+}
+
+.features h2 {
+    font-size: 1.5rem;
+    margin-bottom: 30px;
+    color: var(--text-color);
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.feature-card {
+    background: white;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--primary-color);
+}
+
+.feature-card h3 {
+    color: var(--primary-color);
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.feature-card p {
+    color: var(--text-color);
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+.privacy-section {
+    background: var(--highlight-color);
+    padding: 40px 20px;
+    text-align: center;
+    margin: 40px -20px;
+}
+
+.privacy-section h2 {
+    color: var(--text-color);
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+.privacy-section p {
+    max-width: 700px;
+    margin: 0 auto 20px auto;
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+.privacy-badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    max-width: 800px;
+    margin: 20px auto;
+}
+
+.privacy-badge {
+    background: white;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    font-weight: bold;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+}
+
+.tech-section {
+    max-width: 900px;
+    margin: 40px auto;
+    text-align: center;
+}
+
+.tech-section h2 {
+    color: var(--text-color);
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+.tech-section p {
+    color: var(--text-color);
+    line-height: 1.6;
+    margin-bottom: 15px;
+    font-size: 0.95rem;
+}
+
+.tech-highlights {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.tech-item {
+    text-align: center;
+    padding: 15px;
+    background: white;
+    border: 1px solid var(--border-color);
+}
+
+.tech-item h4 {
+    color: var(--primary-color);
+    margin-bottom: 5px;
+    font-size: 1rem;
+}
+
+.tech-item p {
+    color: var(--text-color);
+    font-size: 0.85rem;
+}
+
+footer {
+    background: var(--primary-color);
+    color: white;
+    text-align: center;
+    padding: 30px 20px;
+    margin: 40px -20px -20px -20px;
+}
+
+footer h3 {
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+footer p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+
+footer .cta-btn {
+    margin-bottom: 25px;
+}
+
+.copyright {
+    opacity: 0.8;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .hero {
+        margin: -10px -10px 30px -10px;
+        padding: 40px 15px;
+    }
+    
+    .hero h1 {
+        font-size: 1.5rem;
+    }
+    
+    .hero p {
+        font-size: 1rem;
+    }
+    
+    .features h2,
+    .privacy-section h2,
+    .tech-section h2 {
+        font-size: 1.3rem;
+    }
+    
+    .feature-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .privacy-section {
+        margin: 30px -10px;
+    }
+    
+    .privacy-badges {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    
+    footer {
+        margin: 30px -10px -10px -10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .cta-buttons {
+        flex-direction: column;
+    }
+    
+    .cta-btn {
+        width: 100%;
+    }
+    
+    .privacy-badges {
+        grid-template-columns: 1fr;
+    }
+}
