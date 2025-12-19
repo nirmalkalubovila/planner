@@ -46,6 +46,11 @@
     text-align: center;
     font-weight: bold;
     padding: 10px 0;
+    align-items: center;
+}
+
+.header-row > div {
+    padding: 0;
 }
 
 .time-grid {
@@ -103,139 +108,152 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .container-fluid {
-        padding: 5px;
+        padding: 0;
+        margin: 0;
     }
 
     .planner-layout {
         grid-template-columns: 1fr;
-        gap: 10px;
+        gap: 0;
     }
 
     .sidebar {
         height: auto;
-        padding: 15px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
+        padding: 12px;
+        position: relative;
+        background: #f9f9f9;
+        border-bottom: 2px solid #ddd;
     }
 
     .sidebar h3 {
-        font-size: 1rem;
-        margin-top: 10px;
+        font-size: 0.95rem;
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+
+    .sidebar p {
+        font-size: 0.85rem;
     }
 
     .tools {
         flex-direction: row;
         flex-wrap: wrap;
+        gap: 8px;
     }
 
     .tool-btn {
         flex: 1;
-        min-width: 80px;
-        font-size: 0.85rem;
-        padding: 10px 8px;
+        min-width: 90px;
+        font-size: 0.8rem;
+        padding: 10px 6px;
     }
 
     .timetable-wrapper {
-        overflow-x: auto;
+        overflow-x: scroll;
+        overflow-y: visible;
         -webkit-overflow-scrolling: touch;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        position: relative;
     }
 
     .header-row {
-        grid-template-columns: 45px repeat(7, 70px);
-        font-size: 0.85rem;
-        padding: 8px 0;
+        display: grid;
+        grid-template-columns: 55px repeat(7, 85px);
+        font-size: 0.8rem;
+        padding: 10px 0;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        min-width: max-content;
+    }
+
+    .header-row > div {
+        padding: 4px 2px;
+        white-space: nowrap;
     }
 
     .time-grid {
-        grid-template-columns: 45px repeat(7, 70px);
-        grid-auto-rows: 45px;
+        display: grid;
+        grid-template-columns: 55px repeat(7, 85px);
+        grid-auto-rows: 50px;
+        min-width: max-content;
     }
 
     .time-label {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
+        padding: 4px 2px;
+        font-weight: 500;
     }
 
     .grid-cell {
-        font-size: 0.65rem;
-        padding: 1px;
+        font-size: 0.7rem;
+        padding: 4px 2px;
+        line-height: 1.2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        word-break: break-word;
+        min-height: 50px;
+    }
+
+    .grid-cell:active {
+        background: #e8e8e8;
     }
 
     #customInput input {
-        font-size: 14px;
+        font-size: 16px;
+        padding: 10px;
     }
 
     #activeGoalSelector {
-        font-size: 14px;
+        font-size: 16px;
+        padding: 10px;
+    }
+
+    #goalStats {
+        font-size: 0.85rem !important;
+        padding: 8px;
+        background: white;
+        border-radius: 4px;
+        margin-top: 8px;
+    }
+
+    button {
+        font-size: 0.9rem;
+        padding: 10px;
     }
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .container-fluid {
-        padding: 5px;
-    }
-
-    .planner-layout {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-
-    .sidebar {
-        height: auto;
-        padding: 15px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .sidebar h3 {
-        font-size: 1rem;
-        margin-top: 10px;
-    }
-
-    .tools {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-
-    .tool-btn {
-        flex: 1;
-        min-width: 80px;
-        font-size: 0.85rem;
-        padding: 10px 8px;
-    }
-
-    .timetable-wrapper {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
+/* Extra small devices (phones in portrait, less than 576px) */
+@media (max-width: 576px) {
     .header-row {
-        grid-template-columns: 45px repeat(7, 70px);
-        font-size: 0.85rem;
-        padding: 8px 0;
+        display: grid;
+        grid-template-columns: 50px repeat(7, 75px);
+        font-size: 0.75rem;
+        min-width: max-content;
     }
 
     .time-grid {
-        grid-template-columns: 45px repeat(7, 70px);
+        display: grid;
+        grid-template-columns: 50px repeat(7, 75px);
         grid-auto-rows: 45px;
+        min-width: max-content;
+    }
+
+    .grid-cell {
+        font-size: 0.65rem;
+        padding: 2px 1px;
+        min-height: 45px;
     }
 
     .time-label {
         font-size: 0.7rem;
     }
 
-    .grid-cell {
-        font-size: 0.65rem;
-        padding: 1px;
-    }
-
-    #customInput input {
-        font-size: 14px;
-    }
-
-    #activeGoalSelector {
-        font-size: 14px;
+    .tool-btn {
+        font-size: 0.75rem;
+        padding: 8px 4px;
     }
 }
