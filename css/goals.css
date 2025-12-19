@@ -1,0 +1,78 @@
+.hidden { display: none; }
+
+.week-input-row {
+    display: grid;
+    grid-template-columns: 80px 120px 1fr;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.goal-card {
+    border: 1px solid #333;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.week-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 5px;
+    margin: 15px 0;
+    padding-bottom: 10px;
+}
+
+.mini-week {
+    min-width: 60px;
+    background: #eee;
+    padding: 5px;
+    text-align: center;
+    font-size: 0.8rem;
+    border: 1px solid #ddd;
+}
+
+.shift-controls {
+    background: #f9f9f9;
+    padding: 10px;
+    border-top: 1px dashed #ccc;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .week-input-row {
+        grid-template-columns: 60px 80px 1fr;
+        gap: 5px;
+        font-size: 0.9rem;
+    }
+
+    .week-input-row input {
+        font-size: 14px;
+    }
+
+    .goal-card {
+        padding: 15px;
+    }
+
+    .mini-week {
+        min-width: 50px;
+        font-size: 0.7rem;
+    }
+
+    .shift-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .shift-controls label {
+        font-size: 0.9rem;
+    }
+
+    .shift-controls input {
+        width: 100% !important;
+    }
+
+    .shift-controls button {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Habit Tracker | Plan Maker</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/habits.css">
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="index.html" class="active">Habits</a>
+            <a href="goals.html">Goals</a>
+            <a href="planner.html">Week Planner</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Habit Tracker</h1>
+        <p>Define daily habits. These will lock into your Weekly Planner.</p>
+        
+        <div class="habit-form-section">
+            <h3>Add New Habit</h3>
+            <div id="habitForm">
+                <input type="text" id="habitName" placeholder="Habit Name (e.g., Read Book)" required>
+                <input type="text" id="habitDesc" placeholder="Description" required>
+                <div class="time-inputs">
+                    <label>Start: <input type="time" id="habitStart" required></label>
+                    <label>End: <input type="time" id="habitEnd" required></label>
+                </div>
+                <button onclick="saveHabit()">Add Habit</button>
+            </div>
+        </div>
+
+        <hr style="margin: 20px 0;">
+
+        <div id="habitList">
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/habits.js"></script>
+</body>
+</html>

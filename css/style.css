@@ -1,0 +1,107 @@
+:root {
+    --bg-color: #ffffff;
+    --text-color: #1a1a1a;
+    --primary-color: #333333;
+    --border-color: #dddddd;
+    --highlight-color: #f0f0f0;
+    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    padding: 20px;
+}
+
+/* Simple Navigation */
+nav {
+    margin-bottom: 30px;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+}
+
+nav a {
+    text-decoration: none;
+    color: var(--text-color);
+    margin-right: 20px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+}
+
+nav a:hover, nav a.active {
+    text-decoration: underline;
+}
+
+/* Utility Classes */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+button {
+    cursor: pointer;
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    font-size: 1rem;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+input, select, textarea {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 10px;
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    nav {
+        margin-bottom: 20px;
+    }
+
+    nav a {
+        margin-right: 10px;
+        font-size: 0.9rem;
+        display: inline-block;
+        margin-bottom: 5px;
+    }
+
+    input, select, textarea {
+        max-width: 100%;
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        margin-bottom: 10px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.2rem;
+    }
+}

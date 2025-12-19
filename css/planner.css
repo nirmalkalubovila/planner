@@ -1,0 +1,241 @@
+.container-fluid {
+    padding: 20px;
+}
+
+.planner-layout {
+    display: grid;
+    grid-template-columns: 250px 1fr; /* Sidebar | Grid */
+    gap: 20px;
+}
+
+.sidebar {
+    background: #f4f4f4;
+    padding: 20px;
+    height: 100vh;
+}
+
+.tools {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tool-btn {
+    text-align: left;
+    background: white;
+    color: black;
+    border: 1px solid #ccc;
+}
+
+.active-tool {
+    background: #333;
+    color: white;
+    border-color: #333;
+}
+
+/* TIMETABLE GRID */
+.timetable-wrapper {
+    overflow-x: auto;
+}
+
+.header-row {
+    display: grid;
+    grid-template-columns: 50px repeat(7, 1fr);
+    background: #333;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    padding: 10px 0;
+}
+
+.time-grid {
+    display: grid;
+    grid-template-columns: 50px repeat(7, 1fr); /* Time Label + 7 Days */
+    grid-auto-rows: 50px; /* Height of one hour slot */
+    border-left: 1px solid #ddd;
+}
+
+.time-label {
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
+    border-right: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.grid-cell {
+    border-bottom: 1px solid #eee;
+    border-right: 1px solid #eee;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 2px;
+    overflow: hidden;
+    transition: background 0.1s;
+}
+
+.grid-cell:hover {
+    background: #f9f9f9;
+}
+
+/* CELL TYPES */
+.locked-habit {
+    background-color: #e0e0e0;
+    color: #555;
+    cursor: not-allowed;
+    border-left: 4px solid #999;
+}
+
+.cell-goal {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border-left: 4px solid #0f5132;
+}
+
+.cell-custom {
+    background-color: #fff3cd;
+    color: #664d03;
+    border-left: 4px solid #664d03;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 5px;
+    }
+
+    .planner-layout {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .sidebar {
+        height: auto;
+        padding: 15px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .sidebar h3 {
+        font-size: 1rem;
+        margin-top: 10px;
+    }
+
+    .tools {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .tool-btn {
+        flex: 1;
+        min-width: 80px;
+        font-size: 0.85rem;
+        padding: 10px 8px;
+    }
+
+    .timetable-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .header-row {
+        grid-template-columns: 45px repeat(7, 70px);
+        font-size: 0.85rem;
+        padding: 8px 0;
+    }
+
+    .time-grid {
+        grid-template-columns: 45px repeat(7, 70px);
+        grid-auto-rows: 45px;
+    }
+
+    .time-label {
+        font-size: 0.7rem;
+    }
+
+    .grid-cell {
+        font-size: 0.65rem;
+        padding: 1px;
+    }
+
+    #customInput input {
+        font-size: 14px;
+    }
+
+    #activeGoalSelector {
+        font-size: 14px;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 5px;
+    }
+
+    .planner-layout {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .sidebar {
+        height: auto;
+        padding: 15px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .sidebar h3 {
+        font-size: 1rem;
+        margin-top: 10px;
+    }
+
+    .tools {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .tool-btn {
+        flex: 1;
+        min-width: 80px;
+        font-size: 0.85rem;
+        padding: 10px 8px;
+    }
+
+    .timetable-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .header-row {
+        grid-template-columns: 45px repeat(7, 70px);
+        font-size: 0.85rem;
+        padding: 8px 0;
+    }
+
+    .time-grid {
+        grid-template-columns: 45px repeat(7, 70px);
+        grid-auto-rows: 45px;
+    }
+
+    .time-label {
+        font-size: 0.7rem;
+    }
+
+    .grid-cell {
+        font-size: 0.65rem;
+        padding: 1px;
+    }
+
+    #customInput input {
+        font-size: 14px;
+    }
+
+    #activeGoalSelector {
+        font-size: 14px;
+    }
+}

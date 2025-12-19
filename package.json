@@ -1,0 +1,17 @@
+{
+  "name": "personal-plan-maker",
+  "version": "1.0.0",
+  "description": "Lightning Fast Personal Plan Maker - A minimalist weekly planner with habits, goals, and shift management",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "start": "python -m http.server 8000"
+  },
+  "keywords": [
+    "planner",
+    "goals",
+    "habits",
+    "productivity"
+  ],
+  "author": "",
+  "license": "MIT"
+}

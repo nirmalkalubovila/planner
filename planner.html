@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Week Planner | Plan Maker</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/planner.css">
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="index.html">Habits</a>
+            <a href="goals.html">Goals</a>
+            <a href="planner.html" class="active">Week Planner</a>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="planner-layout">
+            
+            <div class="sidebar">
+                <h3>1. Select Week</h3>
+                <select id="activeGoalSelector" onchange="loadGoalStats()">
+                    <option value="">-- Select a Goal --</option>
+                </select>
+                <div id="goalStats" style="margin-bottom:20px; font-size:0.9rem; color:#555;"></div>
+
+                <h3>2. Paint Tool</h3>
+                <div class="tools">
+                    <button class="tool-btn active-tool" id="t-erase" onclick="setTool('erase')">Erase</button>
+                    <button class="tool-btn" id="t-goal" onclick="setTool('goal')">Goal Work</button>
+                    <button class="tool-btn" id="t-custom" onclick="setTool('custom')">Custom Event</button>
+                </div>
+                <div id="customInput" class="hidden" style="margin-top:10px;">
+                    <input type="text" id="customEventName" placeholder="Event Name">
+                </div>
+
+                <h3>3. Status</h3>
+                <p>Goal Hours Allocated: <span id="allocatedCount">0</span>h</p>
+                <button onclick="saveWeekPlan()" style="margin-top:20px; background:#222;">Save Plan</button>
+                <button onclick="clearPlan()" style="margin-top:10px; background:#888;">Clear All</button>
+            </div>
+
+            <div class="timetable-wrapper">
+                <div class="header-row">
+                    <div class="corner"></div>
+                    <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+                </div>
+                <div id="gridContainer" class="time-grid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/planner.js"></script>
+</body>
+</html>

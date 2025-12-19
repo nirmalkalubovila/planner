@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Goal Tracker | Plan Maker</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/goals.css">
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="index.html">Habits</a>
+            <a href="goals.html" class="active">Goals</a>
+            <a href="planner.html">Week Planner</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Goal Tracker</h1>
+        
+        <div class="goal-creator">
+            <h3>Define New Goal</h3>
+            <input type="text" id="goalTitle" placeholder="Main Goal (e.g. 1000 Followers)">
+            <input type="number" id="goalDuration" placeholder="Total Weeks (e.g. 48)">
+            <button onclick="initializeGoalInput()">Next: Plan Weeks</button>
+        </div>
+
+        <div id="weeksContainer" class="hidden">
+            <h4>Breakdown by Week</h4>
+            <div id="weeksInputs"></div>
+            <button onclick="saveFinalGoal()" style="margin-top:20px; width:100%;">Save Goal</button>
+        </div>
+
+        <hr>
+
+        <h3>Your Active Goals</h3>
+        <div id="activeGoalsList"></div>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="js/goals.js"></script>
+</body>
+</html>
