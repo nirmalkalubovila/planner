@@ -113,5 +113,23 @@
         </div>
     </footer>
 
+    <script>
+        // Reset All Data Function
+        function resetAllData() {
+            const firstConfirm = confirm('⚠️ WARNING: This will delete ALL your habits, goals, and planner data!\n\nAre you sure you want to continue?');
+            
+            if(!firstConfirm) return;
+            
+            const secondConfirm = confirm('⚠️ FINAL WARNING: This action cannot be undone!\n\nClick OK to permanently delete all data.');
+            
+            if(!secondConfirm) return;
+            
+            // Clear all localStorage
+            localStorage.clear();
+            
+            alert('✅ All data has been reset!');
+            location.reload();
+        }
+    </script>
 </body>
 </html>
