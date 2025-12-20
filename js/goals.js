@@ -180,9 +180,9 @@ function renderGoals() {
             <div class="shift-controls">
                 <label>Unexpected Event? Shift Goal Start by Weeks:</label>
                 <input type="number" id="shift-${g.id}" placeholder="Weeks to delay" style="width:100px;">
-                <button onclick="shiftGoal('${g.id}')">Shift</button>
-                <button onclick="editGoal('${g.id}')" style="background:#4CAF50; margin-left:10px;">Edit</button>
-                <button onclick="deleteGoal('${g.id}')" style="background:red; margin-left:10px;">Delete</button>
+                <button onclick="shiftGoal('${g.id}')" style="margin-bottom:8px;">Shift</button>
+                <button onclick="editGoal('${g.id}')" style="background:#4CAF50; margin-bottom:8px;">Edit</button>
+                <button onclick="deleteGoal('${g.id}')" style="background:red; margin-bottom:8px;">Delete</button>
             </div>
         `;
         
@@ -200,10 +200,18 @@ function shiftGoal(id) {
     if(goalIndex === -1) return;
 
     const goal = goals[goalIndex];
+    
+    console.log(`[SHIFT GOAL] Goal ID: ${id}`);
+    console.log(`[SHIFT GOAL] Current start week: ${goal.startWeek}`);
+    console.log(`[SHIFT GOAL] Total weeks: ${goal.totalWeeks}`);
+    console.log(`[SHIFT GOAL] Shifting by: ${shiftVal} weeks`);
 
     // Shift the starting week forward by N weeks
     const oldStartWeek = goal.startWeek || WeekUtils.getCurrentWeek();
     const newStartWeek = WeekUtils.addWeeks(oldStartWeek, shiftVal);
+    
+    console.log(`[SHIFT GOAL] Old start: ${oldStartWeek}, New start: ${newStartWeek}`);
+    
     goal.startWeek = newStartWeek;
 
     // Update all week labels
@@ -212,8 +220,12 @@ function shiftGoal(id) {
     });
 
     StorageManager.saveData('ppm_goals', goals);
+    
+    // Shift the planner slots for this goal
+    shiftGoalPlannerSlots(id, oldStartWeek, newStartWeek, goal.totalWeeks);
+    
     renderGoals();
-    alert(`Goal "${goal.title}" shifted forward by ${shiftVal} week(s). New start: ${WeekUtils.formatWeekDisplay(newStartWeek)}`);
+    alert(`Goal "${goal.title}" shifted forward by ${shiftVal} week(s). New start: ${WeekUtils.formatWeekDisplay(newStartWeek)}\n\nPlanner time slots have been moved to the new weeks.`);
 }
 
 function deleteGoal(id) {
@@ -269,4 +281,102 @@ function toggleSection(header) {
     const icon = header.querySelector('.toggle-icon');
     content.classList.toggle('collapsed');
     icon.classList.toggle('collapsed');
+}
+
+function resetAllData() {
+    const confirmMsg = "⚠️ WARNING: This will permanently delete ALL data!\n\nThis includes:\n• All habits\n• All goals\n• All week plans\n• All custom events\n\nThis action CANNOT be undone!\n\nAre you absolutely sure you want to continue?";
+    
+    if(confirm(confirmMsg)) {
+        const doubleCheck = confirm("Final confirmation: Delete everything and start fresh?");
+        if(doubleCheck) {
+            localStorage.clear();
+            alert("All data has been reset. The application will reload.");
+            location.href = 'landing.html';
+        }
+    }
+}
+
+// Shift planner slots when goal is shifted
+function shiftGoalPlannerSlots(goalId, oldStartWeek, newStartWeek, totalWeeks) {
+    // Normalize week formats
+    oldStartWeek = WeekUtils.normalizeWeek(oldStartWeek);
+    newStartWeek = WeekUtils.normalizeWeek(newStartWeek);
+    
+    console.log(`[SHIFT] Goal ${goalId}: ${oldStartWeek} -> ${newStartWeek} (${totalWeeks} weeks)`);
+    
+    // STEP 1: Collect all data from old weeks first (before modifying anything)
+    const weeksToMove = [];
+    
+    for(let i = 0; i < totalWeeks; i++) {
+        const oldWeek = WeekUtils.normalizeWeek(WeekUtils.addWeeks(oldStartWeek, i));
+        const oldWeekKey = `ppm_plan_${oldWeek}`;
+        
+        const oldPlanData = localStorage.getItem(oldWeekKey);
+        if(!oldPlanData) continue;
+        
+        try {
+            const oldPlan = JSON.parse(oldPlanData);
+            
+            // Filter slots that belong to this goal
+            const goalSlots = {};
+            const remainingSlots = {};
+            
+            Object.keys(oldPlan).forEach(key => {
+                const slot = oldPlan[key];
+                if(slot.type === 'goal' && slot.goalId === goalId) {
+                    goalSlots[key] = slot;
+                } else {
+                    remainingSlots[key] = slot;
+                }
+            });
+            
+            if(Object.keys(goalSlots).length > 0) {
+                weeksToMove.push({
+                    weekIndex: i,
+                    oldWeek: oldWeek,
+                    oldWeekKey: oldWeekKey,
+                    goalSlots: goalSlots,
+                    remainingSlots: remainingSlots
+                });
+            }
+        } catch(e) {
+            console.error(`[SHIFT] Error parsing ${oldWeekKey}:`, e);
+        }
+    }
+    
+    console.log(`[SHIFT] Found ${weeksToMove.length} weeks with data to move`);
+    
+    // STEP 2: Write all new week data FIRST (before deleting old weeks)
+    weeksToMove.forEach(weekData => {
+        const newWeek = WeekUtils.normalizeWeek(WeekUtils.addWeeks(newStartWeek, weekData.weekIndex));
+        const newWeekKey = `ppm_plan_${newWeek}`;
+        
+        console.log(`[SHIFT] Moving week ${weekData.weekIndex + 1}: ${weekData.oldWeek} -> ${newWeek} (${Object.keys(weekData.goalSlots).length} slots)`);
+        
+        // Add goal slots to new week
+        const newPlanData = localStorage.getItem(newWeekKey);
+        const newPlan = newPlanData ? JSON.parse(newPlanData) : {};
+        
+        Object.keys(weekData.goalSlots).forEach(key => {
+            newPlan[key] = weekData.goalSlots[key];
+        });
+        
+        localStorage.setItem(newWeekKey, JSON.stringify(newPlan));
+    });
+    
+    // STEP 3: Now remove goal slots from old weeks (after all new data is written)
+    weeksToMove.forEach(weekData => {
+        const newWeek = WeekUtils.normalizeWeek(WeekUtils.addWeeks(newStartWeek, weekData.weekIndex));
+        
+        // Only delete from old week if it's different from new week
+        if(weekData.oldWeek !== newWeek) {
+            if(Object.keys(weekData.remainingSlots).length > 0) {
+                localStorage.setItem(weekData.oldWeekKey, JSON.stringify(weekData.remainingSlots));
+            } else {
+                localStorage.removeItem(weekData.oldWeekKey);
+            }
+        }
+    });
+    
+    console.log('[SHIFT] Complete!');
 }

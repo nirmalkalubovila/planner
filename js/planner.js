@@ -4,9 +4,10 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 let currentTool = 'erase'; 
 let allocatedHours = 0;
 let gridState = {}; // Key: "dayIndex-hour", Value: { type, name }
-let currentWeek = WeekUtils.getCurrentWeek(); // Track current viewing week
+let currentWeek = WeekUtils.normalizeWeek(WeekUtils.getCurrentWeek()); // Track current viewing week
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log(`[INIT] Starting planner for week ${currentWeek}`);
     initGrid();
     updateWeekDisplay();
     loadHabitsIntoGrid();
@@ -36,7 +37,7 @@ function updateWeekDisplay() {
 }
 
 function changeWeek(delta) {
-    currentWeek = WeekUtils.addWeeks(currentWeek, delta);
+    currentWeek = WeekUtils.normalizeWeek(WeekUtils.addWeeks(currentWeek, delta));
     updateWeekDisplay();
     
     // Clear and reload grid for new week
@@ -106,9 +107,14 @@ function handleCellClick(day, slot) {
         delete gridState[key];
     } 
     else if (currentTool === 'goal') {
+        const activeGoalId = document.getElementById('activeGoalSelector').value;
+        if(!activeGoalId) {
+            alert('Please select a goal first before painting goal slots.');
+            return;
+        }
         cell.className = 'grid-cell cell-goal';
         cell.innerText = 'GOAL';
-        gridState[key] = { type: 'goal', name: 'Goal Work' };
+        gridState[key] = { type: 'goal', name: 'Goal Work', goalId: activeGoalId };
     }
     else if (currentTool === 'custom') {
         const name = document.getElementById('customEventName').value || 'Event';
@@ -240,35 +246,59 @@ function updateStats() {
 // --- SAVING ---
 
 function saveWeekPlan() {
-    // Save plan with week identifier
-    const weekKey = `ppm_plan_${currentWeek}`;
+    // Normalize and save plan with week identifier
+    const normalizedWeek = WeekUtils.normalizeWeek(currentWeek);
+    const weekKey = `ppm_plan_${normalizedWeek}`;
+    
+    console.log(`[SAVE] Saving plan for ${normalizedWeek}`);
+    console.log(`[SAVE] Grid state has ${Object.keys(gridState).length} slots`);
+    console.log(`[SAVE] Key: ${weekKey}`);
+    console.log(`[SAVE] Data:`, gridState);
+    
     localStorage.setItem(weekKey, JSON.stringify(gridState));
-    alert(`Week Plan Saved for ${WeekUtils.formatWeekDisplay(currentWeek)}!`);
+    alert(`Week Plan Saved for ${WeekUtils.formatWeekDisplay(normalizedWeek)}!`);
 }
 
 function loadSavedPlan() {
-    const weekKey = `ppm_plan_${currentWeek}`;
+    // Reset grid state first
+    gridState = {};
+    
+    const normalizedWeek = WeekUtils.normalizeWeek(currentWeek);
+    const weekKey = `ppm_plan_${normalizedWeek}`;
+    console.log(`[LOAD] Loading plan for ${normalizedWeek}, key: ${weekKey}`);
+    
     const saved = localStorage.getItem(weekKey);
     if(saved) {
-        gridState = JSON.parse(saved);
-        Object.keys(gridState).forEach(key => {
-            const [d, slot] = key.split('-');
-            const data = gridState[key];
-            const cell = document.getElementById(`c-${d}-${slot}`);
-            if(cell && !cell.classList.contains('locked-habit')) {
-                cell.innerText = data.name;
-                if(data.type === 'goal') cell.classList.add('cell-goal');
-                if(data.type === 'custom') cell.classList.add('cell-custom');
-            }
-        });
-        updateStats();
+        try {
+            gridState = JSON.parse(saved);
+            console.log(`[LOAD] Found ${Object.keys(gridState).length} slots in ${normalizedWeek}`);
+            console.log(`[LOAD] Data:`, gridState);
+            
+            Object.keys(gridState).forEach(key => {
+                const [d, slot] = key.split('-');
+                const data = gridState[key];
+                const cell = document.getElementById(`c-${d}-${slot}`);
+                if(cell && !cell.classList.contains('locked-habit')) {
+                    cell.innerText = data.name;
+                    if(data.type === 'goal') cell.classList.add('cell-goal');
+                    if(data.type === 'custom') cell.classList.add('cell-custom');
+                }
+            });
+            updateStats();
+        } catch(e) {
+            console.error(`[LOAD] Error loading plan for ${normalizedWeek}:`, e);
+            gridState = {};
+        }
+    } else {
+        console.log(`[LOAD] No saved plan for ${normalizedWeek}`);
     }
 }
 
 function clearPlan() {
     if(confirm("Clear all planned blocks for this week?")) {
         gridState = {};
-        const weekKey = `ppm_plan_${currentWeek}`;
+        const normalizedWeek = WeekUtils.normalizeWeek(currentWeek);
+        const weekKey = `ppm_plan_${normalizedWeek}`;
         localStorage.removeItem(weekKey);
         location.reload();
     }
@@ -280,3 +310,106 @@ function toggleSection(header) {
     content.classList.toggle('collapsed');
     icon.classList.toggle('collapsed');
 }
+
+// Function to shift planner slots when a goal is shifted
+function shiftPlannerSlots(goalId, oldStartWeek, newStartWeek, totalWeeks) {
+    // Normalize week formats
+    oldStartWeek = WeekUtils.normalizeWeek(oldStartWeek);
+    newStartWeek = WeekUtils.normalizeWeek(newStartWeek);
+    
+    // Calculate the shift amount
+    const shiftAmount = WeekUtils.compareWeeks(newStartWeek, oldStartWeek);
+    
+    if(shiftAmount === 0) return; // No shift needed
+    
+    console.log(`Shifting goal ${goalId} from ${oldStartWeek} to ${newStartWeek} (${totalWeeks} weeks)`);
+    
+    // Process each week in the goal's range
+    for(let i = 0; i < totalWeeks; i++) {
+        const oldWeek = WeekUtils.normalizeWeek(WeekUtils.addWeeks(oldStartWeek, i));
+        const newWeek = WeekUtils.normalizeWeek(WeekUtils.addWeeks(newStartWeek, i));
+        
+        const oldWeekKey = `ppm_plan_${oldWeek}`;
+        const newWeekKey = `ppm_plan_${newWeek}`;
+        
+        console.log(`Processing week ${i + 1}: ${oldWeek} -> ${newWeek}`);
+        
+        // Load old week plan
+        const oldPlanData = localStorage.getItem(oldWeekKey);
+        if(!oldPlanData) {
+            console.log(`  No plan found for ${oldWeek}`);
+            continue;
+        }
+        
+        const oldPlan = JSON.parse(oldPlanData);
+        
+        // Filter slots that belong to this goal
+        const goalSlots = {};
+        const remainingSlots = {};
+        
+        Object.keys(oldPlan).forEach(key => {
+            const slot = oldPlan[key];
+            if(slot.type === 'goal' && slot.goalId === goalId) {
+                goalSlots[key] = slot;
+            } else {
+                remainingSlots[key] = slot;
+            }
+        });
+        
+        console.log(`  Found ${Object.keys(goalSlots).length} goal slots to move`);
+        
+        // Save remaining slots back to old week (removes goal slots)
+        if(Object.keys(remainingSlots).length > 0) {
+            localStorage.setItem(oldWeekKey, JSON.stringify(remainingSlots));
+        } else {
+            localStorage.removeItem(oldWeekKey);
+        }
+        
+        // Load new week plan or create empty
+        const newPlanData = localStorage.getItem(newWeekKey);
+        const newPlan = newPlanData ? JSON.parse(newPlanData) : {};
+        
+        // Add goal slots to new week (overwrite if exists)
+        Object.keys(goalSlots).forEach(key => {
+            newPlan[key] = goalSlots[key];
+        });
+        
+        // Save new week plan
+        if(Object.keys(newPlan).length > 0) {
+            localStorage.setItem(newWeekKey, JSON.stringify(newPlan));
+            console.log(`  Saved ${Object.keys(goalSlots).length} slots to ${newWeek}`);
+        }
+    }
+    
+    console.log('Shift complete!');
+}
+
+function resetAllData() {
+    const confirmMsg = "⚠️ WARNING: This will permanently delete ALL data!\n\nThis includes:\n• All habits\n• All goals\n• All week plans\n• All custom events\n\nThis action CANNOT be undone!\n\nAre you absolutely sure you want to continue?";
+    
+    if(confirm(confirmMsg)) {
+        const doubleCheck = confirm("Final confirmation: Delete everything and start fresh?");
+        if(doubleCheck) {
+            localStorage.clear();
+            alert("All data has been reset. The application will reload.");
+            location.href = 'landing.html';
+        }
+    }
+}
+
+// Debug function to inspect localStorage
+function debugLocalStorage() {
+    console.log('=== LOCALSTORAGE DEBUG ===');
+    const planKeys = Object.keys(localStorage).filter(k => k.startsWith('ppm_plan_'));
+    console.log(`Found ${planKeys.length} plan keys:`);
+    planKeys.forEach(key => {
+        const data = JSON.parse(localStorage.getItem(key));
+        console.log(`  ${key}: ${Object.keys(data).length} slots`, data);
+    });
+    console.log('=== END DEBUG ===');
+}
+
+// Call debug on page load
+window.addEventListener('load', () => {
+    setTimeout(debugLocalStorage, 1000);
+});

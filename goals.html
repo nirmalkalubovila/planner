@@ -10,11 +10,16 @@
 <body>
     <nav>
         <div class="container">
-            <div class="nav-links">
-                <a href="landing.html">Home</a>
-                <a href="index.html">Habits</a>
-                <a href="goals.html" class="active">Goals</a>
-                <a href="planner.html">Week Planner</a>
+            <div class="nav-top-row">
+                <div class="nav-links">
+                    <a href="landing.html">Home</a>
+                    <a href="index.html">Habits</a>
+                    <a href="goals.html" class="active">Goals</a>
+                    <a href="planner.html">Week Planner</a>
+                </div>
+                <button onclick="resetAllData()" class="nav-reset-btn">
+                    ⚠️ Reset
+                </button>
             </div>
             <div class="nav-separator"></div>
             <div class="nav-clock" id="navClock"></div>
@@ -61,6 +66,7 @@
 
     <script src="js/weekUtils.js"></script>
     <script src="js/storage.js"></script>
+    <script src="js/planner.js"></script>
     <script src="js/goals.js"></script>
 </body>
 </html>

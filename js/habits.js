@@ -194,3 +194,16 @@ function toggleSection(header) {
     content.classList.toggle('collapsed');
     icon.classList.toggle('collapsed');
 }
+
+function resetAllData() {
+    const confirmMsg = "⚠️ WARNING: This will permanently delete ALL data!\n\nThis includes:\n• All habits\n• All goals\n• All week plans\n• All custom events\n\nThis action CANNOT be undone!\n\nAre you absolutely sure you want to continue?";
+    
+    if(confirm(confirmMsg)) {
+        const doubleCheck = confirm("Final confirmation: Delete everything and start fresh?");
+        if(doubleCheck) {
+            localStorage.clear();
+            alert("All data has been reset. The application will reload.");
+            location.href = 'landing.html';
+        }
+    }
+}
