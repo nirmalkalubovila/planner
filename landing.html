@@ -9,8 +9,6 @@
 </head>
 <body>
     
-   
-    
     <!-- Hero Section -->
     <div class="hero">
         <h1>Lightning Fast Personal Planner</h1>
@@ -94,17 +92,17 @@
         
     </div>
 
-    <!-- Reset Button -->   
-     <p>Click this if need to clear all your data</p>
-
-    <button onclick="resetAllData()" class="nav-reset-btn">
-        RESET
-    </button>
-
     <!-- Footer -->
     <footer>
         <h3 style="margin-bottom: 15px;">Ready to Plan Smarter?</h3>
         <a href="index.html" class="cta-btn cta-btn-primary">Start Planning Now</a>
+        
+        <div style="margin: 30px 0 20px 0; text-align: center;">
+            <button onclick="resetAllData()" class="nav-reset-btn" style="font-size: 0.9rem; padding: 10px 20px;">
+                ⚠️ Reset All Data
+            </button>
+            <p style="margin-top: 10px; font-size: 0.85rem; color: #999;">Clear all habits, goals, and planner data</p>
+        </div>
         
         <div class="copyright">
             <p>Created by <strong>Nirmal Kalubovila</strong></p>
@@ -114,8 +112,6 @@
             </p>
         </div>
     </footer>
-
-    <script src="js/utils.js"></script>
 
 </body>
 </html>
