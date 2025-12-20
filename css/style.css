@@ -152,11 +152,14 @@ input, select, textarea {
     }
 
     .nav-top-row {
-        align-items: flex-start;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
     }
 
     .nav-links {
         flex-wrap: wrap;
+        justify-content: center;
     }
 
     nav a {
@@ -167,8 +170,11 @@ input, select, textarea {
     }
 
     .nav-reset-btn {
-        font-size: 0.65rem;
-        padding: 5px 8px;
+        font-size: 0.7rem;
+        padding: 8px 12px;
+        width: auto;
+        max-width: 120px;
+        margin: 0 auto;
     }
 
     .nav-clock {
