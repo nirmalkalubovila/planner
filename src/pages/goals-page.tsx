@@ -141,75 +141,53 @@ Each object must have exactly these keys:
 }
 `;
 
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAvlwFdalm7HUhrYtu_ivf4OJBwQ_BLigA';
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
             const requestBody = {
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.7,
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        description: "List of daily task slots",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                date: { type: "STRING", description: "Format: YYYY-MM-DD" },
-                                fromTime: { type: "STRING", description: "Format: HH:mm (24 hour)" },
-                                toTime: { type: "STRING", description: "Format: HH:mm (24 hour)" },
-                                dayTask: { type: "STRING", description: "Very short title" },
-                                description: { type: "STRING", description: "1 sentence description" }
-                            },
-                            required: ["date", "fromTime", "toTime", "dayTask", "description"]
-                        }
+                model: "arcee-ai/trinity-large-preview:free",
+                messages: [
+                    {
+                        role: "user",
+                        content: prompt
                     }
-                }
+                ]
             };
 
             let response;
             try {
-                // Try gemini-2.5-flash first
-                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                // Call OpenRouter API
+                response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': 'Legacy Life Builder Planner'
+                    },
                     body: JSON.stringify(requestBody)
                 });
             } catch (networkErr: any) {
-                console.warn("Network error on 2.5-flash. This might be blocked by Brave Shields or AdBlock. Error:", networkErr);
+                console.warn("Network error with OpenRouter. Error:", networkErr);
                 throw new Error("Network blocked. Please disable Brave Shields/Adblockers or check your connection.");
-            }
-
-            // Fallback for CORS or model-not-found issues that return 404/403
-            if (!response.ok) {
-                console.warn("Primary model failed, trying fallback to 1.5-flash...");
-                try {
-                    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestBody)
-                    });
-                } catch (fallbackErr) {
-                    throw new Error("Network blocked (Fallback). Please disable Brave Shields/Adblockers.");
-                }
             }
 
             const rawResult = await response.json();
 
             if (!response.ok || rawResult.error) {
-                throw new Error(rawResult.error?.message || `API Error: ${response.statusText}`);
+                throw new Error(rawResult.error?.message || `OpenRouter API Error: ${response.statusText}`);
             }
 
-            if (!rawResult.candidates || rawResult.candidates.length === 0) {
-                console.error("Full Gemini Response:", rawResult);
-                throw new Error("No response generated. Safety filters might have blocked it.");
+            if (!rawResult.choices || rawResult.choices.length === 0) {
+                console.error("Full OpenRouter Response:", rawResult);
+                throw new Error("No response generated. Please try again.");
             }
 
-            const content = rawResult.candidates[0]?.content;
-            if (!content || !content.parts || content.parts.length === 0) {
+            const contentMessage = rawResult.choices[0]?.message;
+            if (!contentMessage || !contentMessage.content) {
                 console.error("Invalid content payload:", rawResult);
                 throw new Error("Response structure was invalid.");
             }
 
-            const textResponse = content.parts[0].text;
+            const textResponse = contentMessage.content;
 
             // Cleanup markdown if it accidentally added it
             let cleanJson = textResponse.replace(/^```json\n?/gm, '').replace(/```$/gm, '').trim();
