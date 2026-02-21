@@ -1,21 +1,28 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { format, parse } from 'date-fns';
+import { CustomDatePicker } from '@/components/ui/date-picker';
+import { CustomTimePicker } from '@/components/ui/time-picker';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, Edit2, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Edit2, ChevronUp, Search, Calendar as CalendarIcon, Target } from 'lucide-react';
 import { useGetHabits, useCreateHabit, useDeleteHabit, useUpdateHabit } from '@/api/services/habit-service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { WeekUtils } from '@/utils/week-utils';
 import { Habit } from '@/types/global-types';
+import { cn } from '@/lib/utils';
+
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const habitSchema = z.object({
     name: z.string().min(1, "Name is required"),
-    description: z.string().min(1, "Description is required"),
+    purpose: z.string().min(1, "Purpose is required"),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
-    packs: z.number().min(1, "Duration is required"),
-    startDay: z.string().regex(/^\d{4}-\d{1,2}-[1-7]$/, "Format: YYYY-WW-D"),
+    endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
+    startDate: z.string().min(1, "Starting date is required"),
+    endDate: z.string().min(1, "Ending date is required"),
+    daysOfWeek: z.array(z.string()).min(1, "Select at least one day"),
 });
 
 type HabitFormValues = z.infer<typeof habitSchema>;
@@ -23,6 +30,7 @@ type HabitFormValues = z.infer<typeof habitSchema>;
 export const HabitsPage: React.FC = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const { data: habits = [], isLoading } = useGetHabits();
     const createHabit = useCreateHabit();
@@ -33,24 +41,36 @@ export const HabitsPage: React.FC = () => {
         resolver: zodResolver(habitSchema),
         defaultValues: {
             name: '',
-            description: '',
-            startTime: '',
-            packs: 1,
-            startDay: WeekUtils.getCurrentDay(),
+            purpose: '',
+            startTime: '06:00',
+            endTime: '07:00',
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            daysOfWeek: DAYS_OF_WEEK,
         },
     });
 
-    const onSubmit = (values: HabitFormValues) => {
-        // Calculate end time
-        const [startHour, startMinute] = values.startTime.split(':').map(Number);
-        const totalMinutes = startHour * 60 + startMinute + (values.packs * 30);
-        const endHour = Math.floor(totalMinutes / 60) % 24;
-        const endMinute = totalMinutes % 60;
-        const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+    // Inject Defaults once loaded if empty
+    useEffect(() => {
+        if (!isLoading && habits.length === 0) {
+            const hasSeeded = localStorage.getItem('seededDefaultHabits');
+            if (!hasSeeded) {
+                const defaults: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>[] = [
+                    { name: 'Gym & Exercise', purpose: 'Build physical health and discipline', startTime: '06:00', endTime: '07:30', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] },
+                    { name: 'Breakfast', purpose: 'Fuel for the day', startTime: '08:00', endTime: '09:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
+                    { name: 'Lunch', purpose: 'Mid-day reboot', startTime: '12:00', endTime: '13:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
+                    { name: 'Dinner', purpose: 'Evening recovery', startTime: '19:00', endTime: '20:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
+                ];
 
+                defaults.forEach(d => createHabit.mutate(d as Habit));
+                localStorage.setItem('seededDefaultHabits', 'true');
+            }
+        }
+    }, [habits, isLoading, createHabit]);
+
+    const onSubmit = (values: HabitFormValues) => {
         const habitData: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } = {
             ...values,
-            endTime,
         };
 
         if (editingId) {
@@ -62,10 +82,12 @@ export const HabitsPage: React.FC = () => {
 
         form.reset({
             name: '',
-            description: '',
-            startTime: '',
-            packs: 1,
-            startDay: WeekUtils.getCurrentDay(),
+            purpose: '',
+            startTime: '06:00',
+            endTime: '07:00',
+            startDate: new Date().toISOString().split('T')[0],
+            endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            daysOfWeek: DAYS_OF_WEEK,
         });
         setIsFormOpen(false);
     };
@@ -74,13 +96,18 @@ export const HabitsPage: React.FC = () => {
         setEditingId(habit.id!);
         form.reset({
             name: habit.name,
-            description: habit.description,
+            purpose: habit.purpose || '',
             startTime: habit.startTime,
-            packs: habit.packs,
-            startDay: habit.startDay,
+            endTime: habit.endTime,
+            startDate: habit.startDate || new Date().toISOString().split('T')[0],
+            endDate: habit.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+            daysOfWeek: habit.daysOfWeek || DAYS_OF_WEEK,
         });
         setIsFormOpen(true);
     };
+
+    const filteredHabits = habits.filter((h: Habit) => h.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const totalCount = filteredHabits.length;
 
     return (
         <div className="space-y-6 pb-20">
@@ -95,6 +122,23 @@ export const HabitsPage: React.FC = () => {
                 </Button>
             </div>
 
+            {/* Search and Counts */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-card border rounded-lg p-3 w-full shadow-sm">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                        placeholder="Search habits..."
+                        className="pl-9 w-full"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <div className="flex items-center gap-2 whitespace-nowrap text-sm font-medium">
+                    <span className="text-muted-foreground">Total Habits:</span>
+                    <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">{totalCount}</span>
+                </div>
+            </div>
+
             {isFormOpen && (
                 <Card className="border-primary/20 bg-accent/5 focus-within:border-primary/40 transition-all">
                     <CardHeader>
@@ -102,40 +146,104 @@ export const HabitsPage: React.FC = () => {
                         <CardDescription>Fill in the details for your recurring daily habit.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Habit Name</label>
-                                    <Input {...form.register('name')} placeholder="e.g., Read Book" />
+                                    <label className="text-sm font-medium">Habit Name <span className="text-destructive">*</span></label>
+                                    <Input {...form.register('name')} placeholder="e.g., Gym & Exercise" />
                                     {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Description</label>
-                                    <Input {...form.register('description')} placeholder="Description" />
-                                    {form.formState.errors.description && <p className="text-xs text-destructive">{form.formState.errors.description.message}</p>}
+                                    <label className="text-sm font-medium">Habit Purpose <span className="text-destructive">*</span></label>
+                                    <Input {...form.register('purpose')} placeholder="e.g., Build strength & discipline" />
+                                    {form.formState.errors.purpose && <p className="text-xs text-destructive">{form.formState.errors.purpose.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium flex items-center gap-2"><CalendarIcon size={14} /> Starting Date <span className="text-destructive">*</span></label>
+                                    <Controller
+                                        control={form.control}
+                                        name="startDate"
+                                        render={({ field }) => (
+                                            <CustomDatePicker
+                                                selected={field.value ? new Date(field.value) : null}
+                                                onChange={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                                                placeholderText="Select start date"
+                                            />
+                                        )}
+                                    />
+                                    {form.formState.errors.startDate && <p className="text-xs text-destructive">{form.formState.errors.startDate.message}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Start Time</label>
-                                    <Input type="time" {...form.register('startTime')} />
+                                    <label className="text-sm font-medium flex items-center gap-2"><CalendarIcon size={14} /> Ending Date <span className="text-destructive">*</span></label>
+                                    <Controller
+                                        control={form.control}
+                                        name="endDate"
+                                        render={({ field }) => (
+                                            <CustomDatePicker
+                                                selected={field.value ? new Date(field.value) : null}
+                                                onChange={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                                                placeholderText="Select end date"
+                                            />
+                                        )}
+                                    />
+                                    {form.formState.errors.endDate && <p className="text-xs text-destructive">{form.formState.errors.endDate.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Start Time <span className="text-destructive">*</span></label>
+                                    <Controller
+                                        control={form.control}
+                                        name="startTime"
+                                        render={({ field }) => (
+                                            <CustomTimePicker
+                                                selected={field.value ? parse(field.value, 'HH:mm', new Date()) : null}
+                                                onChange={(date) => field.onChange(date ? format(date, 'HH:mm') : '')}
+                                                placeholderText="Select start time"
+                                            />
+                                        )}
+                                    />
                                     {form.formState.errors.startTime && <p className="text-xs text-destructive">{form.formState.errors.startTime.message}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Duration (30-min packs)</label>
-                                    <select
-                                        {...form.register('packs', { valueAsNumber: true })}
-                                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    >
-                                        {[1, 2, 3, 4, 5, 6, 8, 10, 12].map(p => (
-                                            <option key={p} value={p}>{p} pack{p > 1 ? 's' : ''} ({p * 30} min)</option>
-                                        ))}
-                                    </select>
+                                    <label className="text-sm font-medium">End Time <span className="text-destructive">*</span></label>
+                                    <Controller
+                                        control={form.control}
+                                        name="endTime"
+                                        render={({ field }) => (
+                                            <CustomTimePicker
+                                                selected={field.value ? parse(field.value, 'HH:mm', new Date()) : null}
+                                                onChange={(date) => field.onChange(date ? format(date, 'HH:mm') : '')}
+                                                placeholderText="Select end time"
+                                            />
+                                        )}
+                                    />
+                                    {form.formState.errors.endTime && <p className="text-xs text-destructive">{form.formState.errors.endTime.message}</p>}
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Starting Day (YYYY-WW-D)</label>
-                                    <div className="flex gap-2">
-                                        <Input {...form.register('startDay')} placeholder="e.g., 2025-51-1" />
-                                        <Button type="button" variant="outline" onClick={() => form.setValue('startDay', WeekUtils.getCurrentDay())}>Today</Button>
+
+                                <div className="space-y-2 md:col-span-2 border rounded-xl p-4 bg-background">
+                                    <label className="text-sm font-medium mb-3 block">Days in a Week <span className="text-destructive">*</span></label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {DAYS_OF_WEEK.map(day => {
+                                            const currentDays = form.watch('daysOfWeek') || [];
+                                            const isSelected = currentDays.includes(day);
+                                            return (
+                                                <label key={day} className={cn(
+                                                    "cursor-pointer px-4 py-2 rounded-full text-xs font-bold transition-all border select-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+                                                    isSelected ? "bg-primary text-primary-foreground border-primary shadow-md" : "bg-card text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                                                )}>
+                                                    <input
+                                                        type="checkbox"
+                                                        value={day}
+                                                        className="sr-only"
+                                                        {...form.register('daysOfWeek')}
+                                                    />
+                                                    {day}
+                                                </label>
+                                            );
+                                        })}
                                     </div>
+                                    {form.formState.errors.daysOfWeek && <p className="text-xs text-destructive mt-2">{form.formState.errors.daysOfWeek.message}</p>}
                                 </div>
                             </div>
                             <Button type="submit" className="w-full md:w-auto px-8">
@@ -150,37 +258,64 @@ export const HabitsPage: React.FC = () => {
                 {isLoading ? (
                     Array.from({ length: 3 }).map((_, i) => (
                         <Card key={i} className="animate-pulse">
-                            <CardContent className="h-32 bg-accent/20" />
+                            <CardContent className="h-40 bg-accent/20" />
                         </Card>
                     ))
+                ) : filteredHabits.length === 0 ? (
+                    <div className="col-span-full py-16 text-center bg-card rounded-xl border border-dashed">
+                        <Target className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                        <h3 className="text-lg font-semibold text-foreground">No Habits Found</h3>
+                        <p className="text-sm text-muted-foreground">There are no habits matching your search criteria.</p>
+                    </div>
                 ) : (
-                    habits.map((habit: Habit) => (
-                        <Card key={habit.id} className="group hover:border-primary/40 transition-all hover:shadow-md">
+                    filteredHabits.map((habit: Habit) => (
+                        <Card key={habit.id} className="group hover:border-primary/40 transition-all hover:shadow-md relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-primary/80"></div>
                             <CardHeader className="pb-2">
                                 <div className="flex items-start justify-between">
-                                    <CardTitle className="text-lg">{habit.name}</CardTitle>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(habit)}>
+                                    <CardTitle className="text-lg font-bold pr-2 leading-tight">{habit.name}</CardTitle>
+                                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEdit(habit)}>
                                             <Edit2 size={14} />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteHabit.mutate(habit.id!)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteHabit.mutate(habit.id!)}>
                                             <Trash2 size={14} />
                                         </Button>
                                     </div>
                                 </div>
-                                <CardDescription>{habit.description}</CardDescription>
+                                {(habit.purpose) && (
+                                    <CardDescription className="line-clamp-2 mt-1 italic text-muted-foreground/80 font-medium">
+                                        "{habit.purpose}"
+                                    </CardDescription>
+                                )}
                             </CardHeader>
                             <CardContent>
-                                <div className="flex flex-col gap-1 text-sm text-muted-foreground font-medium">
-                                    <div className="flex items-center gap-2">
-                                        <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">Time</span>
-                                        <span>{habit.startTime} - {habit.endTime}</span>
+                                <div className="flex flex-col gap-2.5 text-sm text-foreground/80 font-medium">
+                                    <div className="grid grid-cols-2 gap-2 mt-1">
+                                        <div className="flex flex-col bg-accent/30 p-2 rounded border border-border/50 col-span-2">
+                                            <span className="text-[10px] uppercase text-muted-foreground tracking-wider mb-0.5">Time Range</span>
+                                            <span className="font-semibold text-primary">{habit.startTime} - {habit.endTime}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="bg-secondary/20 text-secondary-foreground px-2 py-0.5 rounded text-xs">Packs</span>
-                                        <span>{habit.packs} ({habit.packs * 30} min)</span>
-                                    </div>
-                                    <div className="mt-2 text-xs opacity-60">Starts: {habit.startDay}</div>
+
+                                    {habit.startDate && habit.endDate && (
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1 bg-background pt-1">
+                                            <CalendarIcon size={12} className="text-primary/60" />
+                                            <span>{habit.startDate}</span>
+                                            <span className="mx-1 font-light">&rarr;</span>
+                                            <span>{habit.endDate}</span>
+                                        </div>
+                                    )}
+
+                                    {habit.daysOfWeek && habit.daysOfWeek.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {habit.daysOfWeek.map(day => (
+                                                <span key={day} className="text-[9px] uppercase font-bold tracking-widest bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-1.5 py-0.5 rounded-sm">
+                                                    {day.substring(0, 3)}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

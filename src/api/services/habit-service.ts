@@ -27,12 +27,17 @@ export function useCreateHabit() {
 
     return useMutation({
         mutationFn: async (newHabit: Habit) => {
+            const { description, ...safeHabit } = newHabit as any;
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .insert([newHabit])
+                .insert([safeHabit])
                 .select()
                 .single();
-            if (error) throw new Error(error.message);
+            if (error) {
+                console.error("Supabase Insert Error:", error);
+                alert("Failed to insert habit: " + error.message);
+                throw new Error(error.message);
+            }
             return data;
         },
         onSuccess: () => {
@@ -46,7 +51,7 @@ export function useUpdateHabit() {
 
     return useMutation({
         mutationFn: async (updatedHabit: Habit) => {
-            const { id, ...updates } = updatedHabit;
+            const { id, description, ...updates } = updatedHabit as any;
             const { data, error } = await supabase
                 .from(TABLE_NAME)
                 .update({ ...updates, updatedAt: new Date().toISOString() })

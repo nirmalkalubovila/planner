@@ -41,8 +41,15 @@ export const TodayPage: React.FC = () => {
                 const [hEndH, hEndM] = h.endTime.split(':').map(Number);
                 const startSlot = hStartH * 2 + (hStartM >= 30 ? 1 : 0);
                 const endSlot = hEndH * 2 + (hEndM >= 30 ? 1 : 0);
-                const hasStarted = WeekUtils.compareWeeks(currentWeek, h.startDay.substring(0, 7)) >= 0;
-                return hasStarted && slotIdx >= startSlot && slotIdx < endSlot;
+                const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                const currentDayName = DAYS[dayIdx];
+                const todayDate = new Date().toISOString().split('T')[0];
+
+                const isDayMatched = h.daysOfWeek?.includes(currentDayName) ?? true;
+                const hasStarted = h.startDate ? h.startDate <= todayDate : true;
+                const hasNotEnded = h.endDate ? h.endDate >= todayDate : true;
+
+                return isDayMatched && hasStarted && hasNotEnded && slotIdx >= startSlot && slotIdx < endSlot;
             });
             if (habit) return { type: 'habit', name: habit.name };
 
