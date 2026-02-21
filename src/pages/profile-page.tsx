@@ -14,10 +14,10 @@ export const ProfilePage: React.FC = () => {
         : user.email?.substring(0, 2).toUpperCase() || 'U';
 
     return (
-        <div className="flex flex-col h-full space-y-6">
+        <div className="flex flex-col h-full space-y-4 md:space-y-6 pb-20">
             <div className="flex flex-col gap-1">
-                <h1 className="text-3xl font-bold tracking-tight">Your Profile</h1>
-                <p className="text-muted-foreground">Manage your account settings</p>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Your Profile</h1>
+                <p className="text-sm md:text-base text-muted-foreground">Manage your account settings</p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">

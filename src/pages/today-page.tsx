@@ -103,10 +103,10 @@ export const TodayPage: React.FC = () => {
     const isTaskCompleted = (taskId: string) => (completedTasks || []).includes(taskId);
 
     return (
-        <div className="flex flex-col h-full space-y-6">
+        <div className="flex flex-col h-full space-y-4 md:space-y-6 pb-20">
             <div className="flex flex-col gap-1">
-                <h1 className="text-3xl font-bold tracking-tight">Today's Plan</h1>
-                <p className="text-muted-foreground">{currentDateDisplay}</p>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Today's Plan</h1>
+                <p className="text-sm md:text-base text-muted-foreground">{currentDateDisplay}</p>
             </div>
 
             <Card className="flex-1 overflow-hidden flex flex-col">

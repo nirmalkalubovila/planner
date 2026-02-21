@@ -83,13 +83,13 @@ export const HabitsPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-6 pb-20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Habit Tracker</h1>
-                    <p className="text-muted-foreground">Define daily habits. These will lock into your Weekly Planner.</p>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Habit Tracker</h1>
+                    <p className="text-sm md:text-base text-muted-foreground">Define daily habits. These will lock into your Weekly Planner.</p>
                 </div>
-                <Button onClick={() => setIsFormOpen(!isFormOpen)} className="gap-2">
+                <Button onClick={() => setIsFormOpen(!isFormOpen)} className="gap-2 w-full sm:w-auto">
                     {isFormOpen ? <ChevronUp size={16} /> : <Plus size={16} />}
                     {isFormOpen ? "Cancel" : "Add New Habit"}
                 </Button>
