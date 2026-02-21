@@ -4,10 +4,15 @@ import { supabase } from "@/lib/supabaseClient";
 const TABLE_NAME = "completed_tasks";
 
 const getCompletedTasks = async (dayStr: string): Promise<string[]> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return [];
+
     const { data, error } = await supabase
         .from(TABLE_NAME)
         .select("taskIds")
         .eq("dayStr", dayStr)
+        .eq("user_id", userId)
         .single();
 
     if (error && error.code !== "PGRST116") { // PGRST116 is the "no rows returned" error
@@ -35,11 +40,14 @@ export function useToggleCompletedTask() {
                 ? current.filter(id => id !== taskId)
                 : [...current, taskId];
 
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+
             const { error } = await supabase
                 .from(TABLE_NAME)
                 .upsert(
-                    { dayStr, taskIds: updated },
-                    { onConflict: 'dayStr' }
+                    { user_id: userId, dayStr, taskIds: updated },
+                    { onConflict: 'user_id,dayStr' }
                 );
 
             if (error) throw new Error(error.message);
