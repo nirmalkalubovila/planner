@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Trash2, Edit2, Calendar, Target, BrainCircuit, Loader2, Sparkles, Check, ChevronRight } from 'lucide-react';
+import { Trash2, Edit2, Calendar, Target, BrainCircuit, Loader2, Sparkles, Check, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { useGetGoals, useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/api/services/goal-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useAuth } from '@/contexts/auth-context';
@@ -22,12 +22,31 @@ const goalSchema = z.object({
 
 type GoalFormValues = z.infer<typeof goalSchema>;
 
+const calculateDuration = (start: string, end: string) => {
+    if (!start || !end) return '';
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+    if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) return '';
+    let diffMins = (endH * 60 + endM) - (startH * 60 + startM);
+    if (diffMins <= 0) diffMins += 24 * 60; // Handle cross midnight
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
+    if (hours > 0) return `${hours}h`;
+    return `${mins}m`;
+};
+
 export const GoalsPage: React.FC = () => {
     const { user } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [step, setStep] = useState(1); // 1: Definition, 2: Plan Gen
     const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
     const [generating, setGenerating] = useState(false);
+    const [expandedGoals, setExpandedGoals] = useState<Record<string, boolean>>({});
+
+    const toggleGoal = (id: string) => {
+        setExpandedGoals(prev => ({ ...prev, [id]: prev[id] === false ? true : false }));
+    };
 
     const { data: goals = [], isLoading } = useGetGoals();
     const { data: habits = [] } = useGetHabits();
@@ -362,7 +381,10 @@ Each object must have exactly these keys:
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2 self-end sm:self-center">
+                                    <div className="flex gap-2 self-end sm:self-center items-center">
+                                        <Button variant="ghost" size="sm" onClick={() => toggleGoal(goal.id!)}>
+                                            {expandedGoals[goal.id!] === false ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                                        </Button>
                                         <Button variant="secondary" size="sm" onClick={() => handleEdit(goal)}>
                                             <Edit2 size={14} className="mr-1" /> Edit
                                         </Button>
@@ -371,34 +393,75 @@ Each object must have exactly these keys:
                                         </Button>
                                     </div>
                                 </div>
-                                <CardContent className="p-0">
-                                    {hasPlan ? (
-                                        <div className="bg-accent/10 p-4">
-                                            <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 px-1">AI Generated Schedule</h4>
-                                            <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide">
-                                                {goal.plans!.slice().sort((a, b) => a.date.localeCompare(b.date) || a.fromTime.localeCompare(b.fromTime)).map((slot, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        className="min-w-[200px] flex-shrink-0 p-3 rounded-lg border bg-card hover:border-primary/50 transition-colors shadow-sm"
-                                                    >
-                                                        <div className="flex justify-between items-center mb-2">
-                                                            <div className="text-[10px] uppercase font-bold text-primary">
-                                                                {slot.date && !isNaN(parseISO(slot.date).getTime()) ? format(parseISO(slot.date), 'EEE, MMM d') : slot.date}
-                                                            </div>
-                                                            <div className="text-[10px] font-mono bg-accent px-1.5 py-0.5 rounded text-muted-foreground">{slot.fromTime} - {slot.toTime}</div>
-                                                        </div>
-                                                        <div className="font-semibold text-sm line-clamp-1">{slot.dayTask}</div>
-                                                        <div className="text-xs text-muted-foreground mt-1 line-clamp-2 opacity-80">{slot.description}</div>
+                                {expandedGoals[goal.id!] !== false && (
+                                    <CardContent className="p-0 border-t border-border/50">
+                                        {hasPlan ? (
+                                            <div className="bg-background pt-2 p-0 md:p-4 rounded-b-xl border-t border-border/50">
+                                                <div className="px-4 md:px-1 py-3 border-b md:border-none flex items-center justify-between">
+                                                    <h4 className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground tracking-widest">Master Action Plan</h4>
+                                                    <span className="text-[10px] font-bold py-1 px-2 rounded-md bg-accent text-accent-foreground">{goal.plans?.length || 0} Slots</span>
+                                                </div>
+
+                                                <div className="md:mt-1 md:border border-border/50 md:rounded-lg overflow-hidden bg-card/50">
+                                                    {/* Desktop Header */}
+                                                    <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 bg-accent/30 border-b border-border/50 text-[10px] font-bold uppercase text-muted-foreground tracking-wider">
+                                                        <div className="col-span-2">Date</div>
+                                                        <div className="col-span-2">Time (24h)</div>
+                                                        <div className="col-span-1 border-l pl-2 border-border/50">Size</div>
+                                                        <div className="col-span-3 border-l pl-2 border-border/50">Core Task</div>
+                                                        <div className="col-span-4 border-l pl-2 border-border/50">Description</div>
                                                     </div>
-                                                ))}
+
+                                                    {/* Rows */}
+                                                    <div className="flex flex-col mb-4 md:mb-0 divide-y divide-border/50">
+                                                        {goal.plans!.slice().sort((a, b) => a.date.localeCompare(b.date) || a.fromTime.localeCompare(b.fromTime)).map((slot, idx) => {
+                                                            const validDate = slot.date && !isNaN(parseISO(slot.date).getTime()) ? format(parseISO(slot.date), 'MMM d, yyyy') : slot.date;
+                                                            const duration = calculateDuration(slot.fromTime, slot.toTime);
+
+                                                            return (
+                                                                <div key={idx} className="group grid grid-cols-1 md:grid-cols-12 gap-y-2 md:gap-4 px-4 py-4 md:py-3 hover:bg-accent/40 transition-colors items-start md:items-center relative">
+                                                                    {/* Mobile Top Row / Desktop Col 1 */}
+                                                                    <div className="md:col-span-2 flex items-center justify-between md:justify-start">
+                                                                        <div className="text-xs font-semibold text-primary">{validDate}</div>
+                                                                        <div className="md:hidden flex items-center bg-accent/40 rounded px-1.5 py-0.5">
+                                                                            <span className="text-[10px] font-mono text-muted-foreground font-medium">{slot.fromTime} - {slot.toTime}</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Desktop Time */}
+                                                                    <div className="hidden md:flex md:col-span-2 items-center text-xs font-mono text-muted-foreground font-medium">
+                                                                        {slot.fromTime} - {slot.toTime}
+                                                                    </div>
+
+                                                                    {/* Desktop Size / Mobile Inline Size */}
+                                                                    <div className="md:col-span-1 md:border-l md:border-border/50 md:pl-2 flex items-center mt-1 md:mt-0">
+                                                                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 w-fit">
+                                                                            {duration}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {/* Task */}
+                                                                    <div className="md:col-span-3 md:border-l md:border-border/50 md:pl-2 flex items-center">
+                                                                        <span className="text-sm font-semibold text-foreground tracking-tight leading-tight">{slot.dayTask}</span>
+                                                                    </div>
+
+                                                                    {/* Description */}
+                                                                    <div className="md:col-span-4 md:border-l md:border-border/50 md:pl-2 flex items-start md:items-center mt-1 md:mt-0">
+                                                                        <span className="text-xs text-muted-foreground/80 leading-relaxed md:leading-snug">{slot.description}</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="p-6 text-center text-sm text-muted-foreground bg-accent/5">
-                                            No plan generated yet. Edit the goal to run the AI planner.
-                                        </div>
-                                    )}
-                                </CardContent>
+                                        ) : (
+                                            <div className="p-6 text-center text-sm text-muted-foreground bg-accent/5">
+                                                No plan generated yet. Edit the goal to run the AI planner.
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                )}
                             </Card>
                         );
                     })
