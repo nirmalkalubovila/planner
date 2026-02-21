@@ -101,12 +101,12 @@ export const GoalsPage: React.FC = () => {
 
     return (
         <div className="space-y-6 pb-20">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Goal Tracker</h1>
-                    <p className="text-muted-foreground">Break down long-term goals into weekly sub-goals.</p>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Goal Tracker</h1>
+                    <p className="text-sm md:text-base text-muted-foreground">Break down long-term goals into weekly sub-goals.</p>
                 </div>
-                <Button onClick={() => { setIsFormOpen(!isFormOpen); setStep(1); }} variant={isFormOpen ? "outline" : "default"}>
+                <Button onClick={() => { setIsFormOpen(!isFormOpen); setStep(1); }} variant={isFormOpen ? "outline" : "default"} className="w-full sm:w-auto">
                     {isFormOpen ? "Cancel" : "Define New Goal"}
                 </Button>
             </div>

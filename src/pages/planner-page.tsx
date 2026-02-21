@@ -108,25 +108,25 @@ export const PlannerPage: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full space-y-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center justify-between w-full md:w-auto gap-4">
                     <Button variant="outline" size="icon" onClick={() => setCurrentWeek(WeekUtils.addWeeks(currentWeek, -1))}>
                         <ChevronLeft size={20} />
                     </Button>
-                    <div className="text-center min-w-[200px]">
-                        <h2 className="text-xl font-bold">{WeekUtils.formatWeekDisplay(currentWeek)}</h2>
-                        <p className="text-xs text-muted-foreground">{WeekUtils.formatWeekRange(currentWeek)}</p>
+                    <div className="text-center min-w-[150px] md:min-w-[200px]">
+                        <h2 className="text-lg md:text-xl font-bold">{WeekUtils.formatWeekDisplay(currentWeek)}</h2>
+                        <p className="text-[10px] md:text-xs text-muted-foreground">{WeekUtils.formatWeekRange(currentWeek)}</p>
                     </div>
                     <Button variant="outline" size="icon" onClick={() => setCurrentWeek(WeekUtils.addWeeks(currentWeek, 1))}>
                         <ChevronRight size={20} />
                     </Button>
                 </div>
 
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => clearPlan.mutate(currentWeek)} className="text-destructive">
+                <div className="flex gap-2 w-full md:w-auto">
+                    <Button variant="outline" onClick={() => clearPlan.mutate(currentWeek)} className="text-destructive flex-1 md:flex-none">
                         <RotateCcw size={16} className="mr-2" /> Clear All
                     </Button>
-                    <Button onClick={() => savePlan.mutate({ week: currentWeek, state: localGridState })}>
+                    <Button onClick={() => savePlan.mutate({ week: currentWeek, state: localGridState })} className="flex-1 md:flex-none">
                         <Save size={16} className="mr-2" /> Save Plan
                     </Button>
                 </div>
@@ -217,47 +217,49 @@ export const PlannerPage: React.FC = () => {
                 </div>
 
                 {/* Timetable Grid */}
-                <div className="lg:col-span-3 bg-card border rounded-xl shadow-inner overflow-hidden flex flex-col">
-                    <div className="grid grid-cols-8 border-b bg-accent/20">
-                        <div className="h-10 border-r" />
-                        {DAYS.map(day => (
-                            <div key={day} className="h-10 flex items-center justify-center font-bold text-xs uppercase tracking-widest">{day}</div>
-                        ))}
-                    </div>
+                <div className="lg:col-span-3 bg-card border rounded-xl shadow-inner overflow-hidden flex flex-col h-[60vh] lg:h-auto min-h-[400px]">
+                    <div className="flex-1 overflow-auto">
+                        <div className="min-w-[600px] h-full">
+                            <div className="grid grid-cols-8 border-b bg-card/95 backdrop-blur z-20 sticky top-0">
+                                <div className="h-10 border-r" />
+                                {DAYS.map(day => (
+                                    <div key={day} className="h-10 flex items-center justify-center font-bold text-[10px] md:text-xs uppercase tracking-widest">{day}</div>
+                                ))}
+                            </div>
 
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                        <div className="grid grid-cols-8">
-                            {Array.from({ length: SLOTS_PER_DAY }).map((_, slotIdx) => {
-                                const hour = Math.floor(slotIdx / 2);
-                                const min = (slotIdx % 2) * 30;
-                                const timeStr = `${hour}:${min.toString().padStart(2, '0')}`;
+                            <div className="grid grid-cols-8">
+                                {Array.from({ length: SLOTS_PER_DAY }).map((_, slotIdx) => {
+                                    const hour = Math.floor(slotIdx / 2);
+                                    const min = (slotIdx % 2) * 30;
+                                    const timeStr = `${hour}:${min.toString().padStart(2, '0')}`;
 
-                                return (
-                                    <React.Fragment key={slotIdx}>
-                                        <div className="h-10 border-r border-b flex items-center justify-end pr-2 text-[10px] text-muted-foreground bg-accent/5 sticky left-0 z-10">
-                                            {min === 0 ? timeStr : ''}
-                                        </div>
-                                        {DAYS.map((_, dayIdx) => {
-                                            const content = getCellContent(dayIdx, slotIdx);
-                                            return (
-                                                <div
-                                                    key={dayIdx}
-                                                    className={cn(
-                                                        "h-10 border-r border-b transition-colors cursor-crosshair text-[8px] flex items-center justify-center text-center p-1 font-bold",
-                                                        content?.type === 'habit' && "bg-muted/50 text-muted-foreground cursor-not-allowed border-muted/20",
-                                                        content?.type === 'goal' && "bg-primary text-primary-foreground",
-                                                        content?.type === 'custom' && "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
-                                                        !content && "hover:bg-accent/50"
-                                                    )}
-                                                    onClick={() => handleCellClick(dayIdx, slotIdx)}
-                                                >
-                                                    {content?.name}
-                                                </div>
-                                            );
-                                        })}
-                                    </React.Fragment>
-                                );
-                            })}
+                                    return (
+                                        <React.Fragment key={slotIdx}>
+                                            <div className="h-10 border-r border-b flex items-center justify-end pr-2 text-[10px] text-muted-foreground bg-accent/5 sticky left-0 z-10 font-mono">
+                                                {min === 0 ? timeStr : ''}
+                                            </div>
+                                            {DAYS.map((_, dayIdx) => {
+                                                const content = getCellContent(dayIdx, slotIdx);
+                                                return (
+                                                    <div
+                                                        key={dayIdx}
+                                                        className={cn(
+                                                            "h-10 border-r border-b transition-colors cursor-crosshair text-[8px] md:text-[10px] leading-tight flex items-center justify-center text-center p-0.5 md:p-1 font-bold",
+                                                            content?.type === 'habit' && "bg-muted/50 text-muted-foreground cursor-not-allowed border-muted/20",
+                                                            content?.type === 'goal' && "bg-primary text-primary-foreground",
+                                                            content?.type === 'custom' && "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
+                                                            !content && "hover:bg-accent/50"
+                                                        )}
+                                                        onClick={() => handleCellClick(dayIdx, slotIdx)}
+                                                    >
+                                                        <span className="truncate w-full block">{content?.name}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
