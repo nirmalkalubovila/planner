@@ -13,10 +13,13 @@ export interface GlobalRecords {
 
 export interface Habit extends GlobalRecords {
     name: string;
+    description?: string;
     startTime: string; // HH:mm
     endTime: string;   // HH:mm
-    packs: number;
-    startDay: string;  // YYYY-WW-D
+    purpose?: string;
+    startDate?: string;
+    endDate?: string;
+    daysOfWeek?: string[]; // Array of selected days e.g., ['Monday', 'Tuesday']
 }
 
 export interface GoalWeek {

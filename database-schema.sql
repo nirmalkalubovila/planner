@@ -24,8 +24,10 @@ CREATE TABLE habits (
   name text NOT NULL,
   "startTime" text NOT NULL,
   "endTime" text NOT NULL,
-  packs integer NOT NULL,
-  "startDay" text NOT NULL
+  purpose text,
+  "startDate" text,
+  "endDate" text,
+  "daysOfWeek" jsonb
 );
 
 -- Create week_plans table

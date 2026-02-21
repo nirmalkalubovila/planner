@@ -1,14 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ListTodo, Target, CalendarDays, Settings } from 'lucide-react';
+import { Home, ListTodo, Target, CalendarDays, BarChart2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 const navigation = [
-    { name: 'Today', href: '/', icon: Home },
     { name: 'Habits', href: '/habits', icon: ListTodo },
     { name: 'Goals', href: '/goals', icon: Target },
+    { name: 'Today', href: '/', icon: Home },
+    { name: 'Stats', href: '/statistics', icon: BarChart2 },
     { name: 'Planner', href: '/planner', icon: CalendarDays },
-    { name: 'Profile', href: '/profile', icon: Settings },
 ];
 
 export const MobileNav: React.FC = () => {
