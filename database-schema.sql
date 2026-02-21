@@ -1,16 +1,23 @@
 -- Create goals table
+-- NOTE FOR USER: If this table already exists, you need to run these commands in the Supabase SQL Editor:
+-- ALTER TABLE goals DROP COLUMN IF EXISTS title, DROP COLUMN IF EXISTS "totalWeeks", DROP COLUMN IF EXISTS "startWeek", DROP COLUMN IF EXISTS weeks, DROP COLUMN IF EXISTS description;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS name text;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS purpose text;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS "endDate" text;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS "goalType" text;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS plans jsonb;
 CREATE TABLE goals (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
   "createdAt" timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   "updatedAt" timestamp with time zone,
   code text,
-  description text,
-  title text NOT NULL,
-  "totalWeeks" integer NOT NULL,
-  "startWeek" text NOT NULL,
-  weeks jsonb NOT NULL,
-  "startDate" text NOT NULL
+  name text NOT NULL,
+  purpose text NOT NULL,
+  "startDate" text NOT NULL,
+  "endDate" text NOT NULL,
+  "goalType" text NOT NULL,
+  plans jsonb
 );
 
 -- Create habits table

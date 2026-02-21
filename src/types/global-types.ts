@@ -22,20 +22,21 @@ export interface Habit extends GlobalRecords {
     daysOfWeek?: string[]; // Array of selected days e.g., ['Monday', 'Tuesday']
 }
 
-export interface GoalWeek {
-    weekNum: number;
-    weekLabel: string;
-    hours: number;
-    subGoal: string;
-    isPaused: boolean;
+export interface AIGeneratedPlanSlot {
+    date: string;
+    fromTime: string;
+    toTime: string;
+    dayTask: string;
+    description: string;
 }
 
 export interface Goal extends GlobalRecords {
-    title: string;
-    totalWeeks: number;
-    startWeek: string; // YYYY-WW
-    weeks: GoalWeek[];
+    name: string;
+    purpose: string;
     startDate: string;
+    endDate: string;
+    goalType: 'Week' | 'Month' | 'Year';
+    plans?: AIGeneratedPlanSlot[];
 }
 
 export interface PlanSlot {
