@@ -1,11 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mail, Calendar } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Mail, Calendar, Edit2, Check, X, User } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
     const { user, signOut } = useAuth();
+
+    // Edit mode state
+    const [isEditing, setIsEditing] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // Form state
+    const [fullName, setFullName] = useState('');
+    const [dob, setDob] = useState('');
+    const [sleepStart, setSleepStart] = useState('');
+    const [sleepDuration, setSleepDuration] = useState('');
+    const [weekStart, setWeekStart] = useState('');
+    const [planTime, setPlanTime] = useState('');
+    const [freeTime, setFreeTime] = useState('');
+
+    useEffect(() => {
+        if (user) {
+            setFullName(user.user_metadata?.full_name || '');
+            setDob(user.user_metadata?.dob || '');
+            setSleepStart(user.user_metadata?.sleepStart || '22:00');
+            setSleepDuration(user.user_metadata?.sleepDuration || '8');
+            setWeekStart(user.user_metadata?.weekStart || 'Monday');
+            setPlanTime(user.user_metadata?.planTime || 'Sunday 9PM - 10PM');
+            setFreeTime(user.user_metadata?.freeTime || '2');
+        }
+    }, [user, isEditing]);
+
+    const handleSave = async () => {
+        setLoading(true);
+        const { error } = await supabase.auth.updateUser({
+            data: {
+                full_name: fullName,
+                dob,
+                sleepStart,
+                sleepDuration,
+                weekStart,
+                planTime,
+                freeTime,
+            }
+        });
+
+        setLoading(false);
+        if (!error) {
+            setIsEditing(false);
+        } else {
+            alert('Failed to update profile: ' + error.message);
+        }
+    };
 
     if (!user) return null;
 
@@ -43,6 +92,10 @@ export const ProfilePage: React.FC = () => {
                                 <span>{user.email}</span>
                             </div>
                             <div className="flex items-center space-x-3 text-sm">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                <span>Date of Birth: {user.user_metadata?.dob || 'Not set'}</span>
+                            </div>
+                            <div className="flex items-center space-x-3 text-sm">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <span>Joined: {new Date(user.created_at).toLocaleDateString()}</span>
                             </div>
@@ -55,15 +108,98 @@ export const ProfilePage: React.FC = () => {
                 </Card>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Preferences</CardTitle>
-                        <CardDescription>Customize your planner experience</CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <div className="space-y-1">
+                            <CardTitle>Preferences</CardTitle>
+                            <CardDescription>Customize your planner experience</CardDescription>
+                        </div>
+                        {!isEditing && (
+                            <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)}>
+                                <Edit2 className="h-4 w-4" />
+                            </Button>
+                        )}
                     </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground italic mb-4">
-                            More profile and app settings will be available here soon.
-                        </p>
-                        <Button variant="outline" disabled>Edit preferences (Coming Soon)</Button>
+                    <CardContent className="space-y-4 pt-4">
+                        {isEditing ? (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Full Name</label>
+                                    <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Date of Birth</label>
+                                    <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Sleeping Time (Start)</label>
+                                    <Input type="time" value={sleepStart} onChange={(e) => setSleepStart(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Sleep Duration (hours)</label>
+                                    <Input type="number" min="1" max="24" value={sleepDuration} onChange={(e) => setSleepDuration(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">General Week Starting Date</label>
+                                    <select
+                                        value={weekStart}
+                                        onChange={(e) => setWeekStart(e.target.value)}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option value="Monday">Monday</option>
+                                        <option value="Tuesday">Tuesday</option>
+                                        <option value="Wednesday">Wednesday</option>
+                                        <option value="Thursday">Thursday</option>
+                                        <option value="Friday">Friday</option>
+                                        <option value="Saturday">Saturday</option>
+                                        <option value="Sunday">Sunday</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Next Week Planning Time</label>
+                                    <select
+                                        value={planTime}
+                                        onChange={(e) => setPlanTime(e.target.value)}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option value="Friday 4PM - 5PM">Friday 4PM - 5PM</option>
+                                        <option value="Saturday 10AM - 11AM">Saturday 10AM - 11AM</option>
+                                        <option value="Sunday 9AM - 10AM">Sunday 9AM - 10AM</option>
+                                        <option value="Sunday 8PM - 9PM">Sunday 8PM - 9PM</option>
+                                        <option value="Sunday 9PM - 10PM">Sunday 9PM - 10PM</option>
+                                        <option value="Monday 8AM - 9AM">Monday 8AM - 9AM</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Expected Free Time (hours)</label>
+                                    <Input type="number" min="0" max="24" value={freeTime} onChange={(e) => setFreeTime(e.target.value)} />
+                                </div>
+
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Button onClick={handleSave} disabled={loading} className="w-full">
+                                        <Check className="h-4 w-4 mr-2" /> Save Changes
+                                    </Button>
+                                    <Button variant="outline" onClick={() => setIsEditing(false)} disabled={loading} className="w-full">
+                                        <X className="h-4 w-4 mr-2" /> Cancel
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="text-muted-foreground">Sleeping Schedule:</div>
+                                    <div className="font-medium">{user.user_metadata?.sleepStart || '22:00'} ({user.user_metadata?.sleepDuration || '8'}h)</div>
+
+                                    <div className="text-muted-foreground">Week Starts On:</div>
+                                    <div className="font-medium">{user.user_metadata?.weekStart || 'Monday'}</div>
+
+                                    <div className="text-muted-foreground">Planning Time:</div>
+                                    <div className="font-medium">{user.user_metadata?.planTime || 'Sunday 9PM - 10PM'}</div>
+
+                                    <div className="text-muted-foreground">Est. Free Time:</div>
+                                    <div className="font-medium">{user.user_metadata?.freeTime || '2'} hours/day</div>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

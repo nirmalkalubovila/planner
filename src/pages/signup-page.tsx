@@ -4,27 +4,41 @@ import { supabase } from '@/lib/supabaseClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export const SignupPage: React.FC = () => {
     const [name, setName] = useState('');
+    const [dob, setDob] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+
+    // Use navigate to redirect on success if email confirm is not strictly required.
+    const navigate = useNavigate();
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        const { error } = await supabase.auth.signUp({
+        if (password !== confirmPassword) {
+            setError('Passwords do not match');
+            setLoading(false);
+            return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
                 data: {
                     full_name: name,
+                    dob,
                 },
             },
         });
@@ -32,7 +46,11 @@ export const SignupPage: React.FC = () => {
         if (error) {
             setError(error.message);
         } else {
-            setSuccess(true);
+            if (data.session) {
+                navigate('/personalize');
+            } else {
+                setSuccess(true);
+            }
         }
         setLoading(false);
     };
@@ -103,6 +121,17 @@ export const SignupPage: React.FC = () => {
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none">
+                                Date of Birth
+                            </label>
+                            <Input
+                                type="date"
+                                value={dob}
+                                onChange={(e) => setDob(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none">
                                 Email
                             </label>
                             <Input
@@ -117,11 +146,32 @@ export const SignupPage: React.FC = () => {
                             <label className="text-sm font-medium leading-none">
                                 Password
                             </label>
+                            <div className="relative">
+                                <Input
+                                    type={showPassword ? 'text' : 'password'}
+                                    placeholder="Create a strong password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none">
+                                Confirm Password
+                            </label>
                             <Input
-                                type="password"
-                                placeholder="Create a strong password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Confirm your password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
                             />
                         </div>
