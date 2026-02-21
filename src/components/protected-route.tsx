@@ -17,5 +17,10 @@ export const ProtectedRoute: React.FC = () => {
         return <Navigate to="/login" replace />;
     }
 
+    // Direct users to personalization form if they haven't completed it
+    if (!user.user_metadata?.isPersonalized && window.location.pathname !== '/personalize') {
+        return <Navigate to="/personalize" replace />;
+    }
+
     return <Outlet />;
 };

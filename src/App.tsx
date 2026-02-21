@@ -10,6 +10,7 @@ import { TodayPage } from './pages/today-page';
 import { LoginPage } from './pages/login-page';
 import { SignupPage } from './pages/signup-page';
 import { ProfilePage } from './pages/profile-page';
+import { PersonalizePage } from './pages/personalize-page';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ function App() {
                 <Route path="/planner" element={<PlannerPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
+              <Route path="/personalize" element={<PersonalizePage />} />
             </Route>
           </Routes>
         </BrowserRouter>
