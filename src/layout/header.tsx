@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { Clock } from 'lucide-react';
+import { Clock, UserCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const Header: React.FC = () => {
     const [time, setTime] = useState(new Date());
@@ -12,16 +13,48 @@ export const Header: React.FC = () => {
 
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="mx-auto w-full max-w-7xl flex h-14 items-center justify-between px-4 md:px-8">
-                <div className="flex items-center gap-2">
+            {/* Desktop View: Left Name, Middle Grid Time, Right Profile */}
+            <div className="hidden md:grid grid-cols-3 items-center h-14 px-8 w-full max-w-7xl mx-auto text-sm">
+
+                {/* Left: System Name */}
+                <div className="flex items-center justify-start">
                     <span className="text-xl font-bold tracking-tight text-primary">Legacy Life Builder</span>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground">
-                    <div className="flex items-center gap-2 bg-accent/50 px-3 py-1 rounded-full border border-border">
-                        <Clock size={16} />
-                        <span>{format(time, 'EEE, MMM d, yyyy HH:mm:ss')}</span>
+                {/* Middle: Time, Date, Year */}
+                <div className="flex items-center justify-center font-medium text-muted-foreground w-full">
+                    <div className="flex items-center gap-2 bg-accent/50 px-4 py-1.5 rounded-full border border-border shadow-sm">
+                        <Clock size={16} className="text-primary" />
+                        <span>{format(time, 'EEE, MMM d, yyyy HH:mm')}</span>
                     </div>
+                </div>
+
+                {/* Right: User Profile */}
+                <div className="flex items-center justify-end">
+                    <Link to="/profile" className="flex items-center gap-2 hover:text-primary transition-colors text-muted-foreground font-medium bg-secondary/50 px-3 py-1.5 rounded-full border border-border hover:bg-secondary">
+                        <UserCircle size={20} />
+                        <span>Profile</span>
+                    </Link>
+                </div>
+            </div>
+
+            {/* Mobile View: Left Time, Right Profile */}
+            <div className="flex md:hidden items-center justify-between h-14 px-4 w-full text-sm">
+
+                {/* Left: Time, Date, Year */}
+                <div className="flex items-center font-medium text-muted-foreground">
+                    <div className="flex items-center gap-2 bg-accent/50 px-3 py-1 rounded-full border border-border">
+                        <Clock size={16} className="text-primary" />
+                        <span className="text-xs">{format(time, 'MMM d, yyyy HH:mm')}</span>
+                    </div>
+                </div>
+
+                {/* Right: User Profile */}
+                <div className="flex items-center">
+                    <Link to="/profile" className="flex items-center gap-2 text-primary bg-primary/10 px-3 py-1 rounded-full">
+                        <UserCircle size={20} />
+                        <span className="text-xs font-semibold">Profile</span>
+                    </Link>
                 </div>
             </div>
         </header>
