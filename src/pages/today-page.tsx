@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Check, Clock, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Habit } from '@/types/global-types';
+import { ActiveTheme } from '@/components/today/active-theme';
 
 interface TaskItem {
     id: string;
@@ -102,6 +103,32 @@ export const TodayPage: React.FC = () => {
 
     const isTaskCompleted = (taskId: string) => (completedTasks || []).includes(taskId);
 
+    // Calculate Points based on the Endowed Progress & Duration Multiplier Math
+    const calculateTaskPoints = (task: TaskItem) => {
+        const BASE_BONUS = 15;
+        const HOURLY_WEIGHT = 20;
+
+        // Slot duration difference (1 slot = 30 minutes = 0.5 hours)
+        const durationHours = (task.endSlot - task.startSlot) * 0.5;
+
+        return BASE_BONUS + (durationHours * HOURLY_WEIGHT);
+    };
+
+    const pointsData = useMemo(() => {
+        let completedPoints = 0;
+        let totalPoints = 0;
+
+        tasks.forEach((task) => {
+            const taskPoints = calculateTaskPoints(task);
+            totalPoints += taskPoints;
+            if (isTaskCompleted(task.id)) {
+                completedPoints += taskPoints;
+            }
+        });
+
+        return { completedPoints, totalPoints };
+    }, [tasks, completedTasks]);
+
     return (
         <div className="flex flex-col h-full space-y-4 md:space-y-6 pb-20">
             <div className="flex flex-col gap-1">
@@ -112,13 +139,27 @@ export const TodayPage: React.FC = () => {
             <Card className="flex-1 overflow-hidden flex flex-col">
                 <CardHeader className="border-b bg-accent/20 pb-4">
                     <CardTitle className="text-lg flex justify-between items-center">
-                        <span>Your Tasks</span>
-                        <span className="text-sm font-normal text-muted-foreground">
-                            {(completedTasks || []).length} / {tasks.length} Completed
-                        </span>
+                        <span>Daily Focus Dashboard</span>
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-auto p-4 md:p-6 bg-card/50">
+                    {/* The Active Theme taking prime spot atop the content */}
+                    {tasks.length > 0 && (
+                        <ActiveTheme
+                            completedPoints={pointsData.completedPoints}
+                            totalPoints={pointsData.totalPoints}
+                            completedTasksCount={(completedTasks || []).length}
+                            totalTasksCount={tasks.length}
+                            currentDayStr={currentDayStr}
+                        />
+                    )}
+
+                    <div className="flex justify-between items-center pt-8 pb-4 mb-2 border-b">
+                        <h2 className="text-xl font-bold">Your Tasks</h2>
+                        <span className="text-sm font-medium text-muted-foreground bg-accent/30 px-3 py-1 rounded-full">
+                            {(completedTasks || []).length} / {tasks.length} Completed
+                        </span>
+                    </div>
                     {tasks.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
                             <div className="p-4 bg-accent/30 rounded-full">
