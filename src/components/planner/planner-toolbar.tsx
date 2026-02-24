@@ -1,35 +1,36 @@
-import { ChevronLeft, ChevronRight, Eraser, Target, Sparkles, Save, RotateCcw, Loader2, Plus, Library } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eraser, Target, Sparkles, Save, RotateCcw, Plus, Library, Check, Undo2, Redo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WeekUtils } from '@/utils/week-utils';
-import { Goal, CustomTask } from '@/types/global-types';
+import { CustomTask } from '@/types/global-types';
+import { cn } from '@/lib/utils';
 
 interface PlannerToolbarProps {
     currentWeek: string;
     setCurrentWeek: (val: string) => void;
-    selectedTool: 'erase' | 'goal';
-    setSelectedTool: (val: 'erase' | 'goal') => void;
-    selectedGoalId: string;
-    setSelectedGoalId: (val: string) => void;
-    activeGoalsForWeek: Goal[];
-    activeGoal: Goal | undefined;
-    goalStats: { title: string; allocatedSlots: number } | null;
-    isGenerating: boolean;
-    handleGenerateWeeklyPlan: () => void;
+    selectedTool: 'erase' | 'goal' | null;
+    setSelectedTool: (val: 'erase' | 'goal' | null) => void;
     onClear: () => void;
+    onUndo: () => void;
+    onRedo: () => void;
+    canUndo: boolean;
+    canRedo: boolean;
     onSave: () => void;
     onCreateCustomTask: (task?: CustomTask) => void;
     libraryTasks: CustomTask[];
+    previewPlan: any[] | null;
+    onCancelPreview: () => void;
+    commitPreviewPlan: () => void;
+    onGoalToolClick: () => void;
 }
 
 export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
     currentWeek, setCurrentWeek,
     selectedTool, setSelectedTool,
-    selectedGoalId, setSelectedGoalId,
-    activeGoalsForWeek, activeGoal, goalStats,
-    isGenerating, handleGenerateWeeklyPlan,
-    onClear, onSave,
+    onClear, onUndo, onRedo, canUndo, canRedo, onSave,
     onCreateCustomTask,
-    libraryTasks
+    libraryTasks,
+    previewPlan, onCancelPreview, commitPreviewPlan,
+    onGoalToolClick
 }) => {
     return (
         <div className="flex items-center gap-4 bg-card py-2 px-4 rounded-xl border shadow-sm w-full overflow-x-auto whitespace-nowrap mb-4 hide-scrollbar">
@@ -52,18 +53,31 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                 <Button
                     variant={selectedTool === 'erase' ? 'secondary' : 'ghost'}
                     size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setSelectedTool('erase')}
-                    title="Erase Tool"
+                    className={cn(
+                        "h-8 w-8 transition-all duration-200",
+                        selectedTool === 'erase' ? "bg-destructive/20 text-destructive scale-110 shadow-sm" : "text-muted-foreground"
+                    )}
+                    onClick={() => setSelectedTool(selectedTool === 'erase' ? null : 'erase')}
+                    title="Erase Tool (ESC to exit)"
                 >
                     <Eraser size={16} />
                 </Button>
                 <Button
                     variant={selectedTool === 'goal' ? 'secondary' : 'ghost'}
                     size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setSelectedTool('goal')}
-                    title="Goal Tool"
+                    className={cn(
+                        "h-8 w-8 transition-all duration-200",
+                        selectedTool === 'goal' ? "bg-primary/20 text-primary scale-110 shadow-sm" : "text-muted-foreground"
+                    )}
+                    onClick={() => {
+                        if (selectedTool === 'goal') {
+                            setSelectedTool(null);
+                        } else {
+                            setSelectedTool('goal');
+                            onGoalToolClick();
+                        }
+                    }}
+                    title="Goal Tool (ESC to exit)"
                 >
                     <Target size={16} />
                 </Button>
@@ -78,39 +92,59 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                 </Button>
             </div>
 
-            {/* Goal Target Group */}
-            {selectedTool === 'goal' && (
-                <div className="flex items-center gap-3 border-r border-border pr-4 shrink-0">
-                    <select
-                        value={selectedGoalId}
-                        onChange={(e) => setSelectedGoalId(e.target.value)}
-                        className="bg-transparent border border-border px-2 py-1.5 rounded-md text-xs w-40 truncate cursor-pointer hover:bg-accent focus:outline-none"
-                        title="Select Active Goal"
-                    >
-                        <option value="">-- Choose Goal --</option>
-                        {activeGoalsForWeek.map((g: Goal) => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
-                    </select>
+            {/* Undo/Redo Group */}
+            <div className="flex items-center gap-1 border-r border-border pr-4 shrink-0">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground disabled:opacity-30"
+                    onClick={onUndo}
+                    disabled={!canUndo}
+                    title="Undo (Ctrl+Z)"
+                >
+                    <Undo2 size={16} />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground disabled:opacity-30"
+                    onClick={onRedo}
+                    disabled={!canRedo}
+                    title="Redo (Ctrl+Y)"
+                >
+                    <Redo2 size={16} />
+                </Button>
+            </div>
 
-                    {goalStats && (
-                        <div className="flex items-center gap-3 text-xs">
-                            <span className="font-semibold text-primary" title="Time Scheduled This Week">
-                                {Math.round(goalStats.allocatedSlots * 0.5 * 10) / 10}h
-                            </span>
-                            <Button
-                                onClick={handleGenerateWeeklyPlan}
-                                disabled={isGenerating || !activeGoal}
-                                variant="outline"
-                                size="sm"
-                                className="h-8 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border-blue-500/30 text-blue-600 hover:from-blue-600/20 hover:to-indigo-600/20"
-                                title="AI Generate Week Plan"
-                            >
-                                {isGenerating ? <Loader2 className="animate-spin h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
-                                {isGenerating ? '' : 'Auto-Plan'}
-                            </Button>
-                        </div>
-                    )}
+            {/* AI Preview Actions */}
+            {previewPlan && (
+                <div className="flex items-center gap-2 border-r border-border pr-4 shrink-0 animate-in slide-in-from-left-2 duration-300">
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 text-blue-600 rounded-lg border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider mr-1">
+                        <Sparkles size={12} className="animate-pulse" /> AI Plan Previewing
+                    </div>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs font-semibold hover:bg-destructive/10 hover:text-destructive"
+                        onClick={onCancelPreview}
+                    >
+                        <RotateCcw size={14} className="mr-1.5" /> Cancel
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs font-semibold text-blue-600 hover:bg-blue-600/10"
+                        onClick={onGoalToolClick}
+                    >
+                        <RotateCcw size={14} className="mr-1.5" /> Re-make
+                    </Button>
+                    <Button
+                        size="sm"
+                        className="h-8 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm ring-1 ring-blue-500/50"
+                        onClick={commitPreviewPlan}
+                    >
+                        <Check size={14} className="mr-1.5" strokeWidth={3} /> Add this
+                    </Button>
                 </div>
             )}
 

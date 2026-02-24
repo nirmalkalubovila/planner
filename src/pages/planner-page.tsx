@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useGetWeekPlan, useSaveWeekPlan, useClearWeekPlan } from '@/api/services/planner-service';
+import { cn } from '@/lib/utils';
+import { useGetWeekPlan, useSaveWeekPlan } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetGoals } from '@/api/services/goal-service';
 import { useAuth } from '@/contexts/auth-context';
@@ -16,7 +17,7 @@ const SLOTS_PER_DAY = 48; // 30-min slots for 24 hours
 
 export const PlannerPage: React.FC = () => {
     const [currentWeek, setCurrentWeek] = useState(WeekUtils.getCurrentWeek());
-    const [selectedTool, setSelectedTool] = useState<'erase' | 'goal'>('erase');
+    const [selectedTool, setSelectedTool] = useState<'erase' | 'goal' | null>(null);
     const [selectedGoalId, setSelectedGoalId] = useState<string>('');
     const [localGridState, setLocalGridState] = useState<GridState>({});
 
@@ -29,6 +30,37 @@ export const PlannerPage: React.FC = () => {
     const [selectedLibraryTask, setSelectedLibraryTask] = useState<CustomTask | null>(null);
     const [isGoalToolDialogOpen, setIsGoalToolDialogOpen] = useState(false);
 
+    // History for Undo/Redo
+    const [history, setHistory] = useState<GridState[]>([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+
+    const updateGridState = (newState: GridState, skipHistory = false) => {
+        setLocalGridState(newState);
+        if (!skipHistory) {
+            const newHistory = history.slice(0, historyIndex + 1);
+            newHistory.push(newState);
+            if (newHistory.length > 50) newHistory.shift();
+            setHistory(newHistory);
+            setHistoryIndex(newHistory.length - 1);
+        }
+    };
+
+    const handleUndo = () => {
+        if (historyIndex > 0) {
+            const prevIndex = historyIndex - 1;
+            setLocalGridState(history[prevIndex]);
+            setHistoryIndex(prevIndex);
+        }
+    };
+
+    const handleRedo = () => {
+        if (historyIndex < history.length - 1) {
+            const nextIndex = historyIndex + 1;
+            setLocalGridState(history[nextIndex]);
+            setHistoryIndex(nextIndex);
+        }
+    };
+
     const { data: weekPlan } = useGetWeekPlan(currentWeek);
     const { data: habits } = useGetHabits();
     const { data: goals } = useGetGoals();
@@ -36,11 +68,33 @@ export const PlannerPage: React.FC = () => {
     const { user } = useAuth();
 
     const savePlan = useSaveWeekPlan();
-    const clearPlan = useClearWeekPlan();
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setSelectedTool(null);
+            } else if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                handleUndo();
+            } else if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+                e.preventDefault();
+                handleRedo();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [history, historyIndex]);
 
     useEffect(() => {
         if (weekPlan) {
-            setLocalGridState(weekPlan);
+            // Normalize keys (handle legacy keys with spaces)
+            const normalized: GridState = {};
+            Object.entries(weekPlan).forEach(([key, val]) => {
+                normalized[key.replace(/\s/g, '')] = val as any;
+            });
+            setLocalGridState(normalized);
+            setHistory([normalized]);
+            setHistoryIndex(0);
         }
     }, [weekPlan]);
 
@@ -52,24 +106,7 @@ export const PlannerPage: React.FC = () => {
         });
     }, [goals, currentWeek]);
 
-    const activeGoal = useMemo(() => activeGoalsForWeek.find((g: Goal) => g.id === selectedGoalId), [activeGoalsForWeek, selectedGoalId]);
 
-    const goalStats = useMemo(() => {
-        if (!activeGoal) return null;
-
-        // Calculate currently allocated slots for this goal this week
-        let allocatedSlots = 0;
-        Object.values(localGridState).forEach(slot => {
-            if (slot.type === 'goal' && slot.goalId === selectedGoalId) {
-                allocatedSlots++;
-            }
-        });
-
-        return {
-            title: activeGoal.name,
-            allocatedSlots,
-        };
-    }, [activeGoal, localGridState, selectedGoalId]);
 
     const isSleepSlot = (slotIdx: number) => {
         if (!user) return false;
@@ -106,40 +143,42 @@ export const PlannerPage: React.FC = () => {
             const sleepDuration = Number(meta.sleepDuration) || 8;
 
             const habitStr = (habits || []).map((h: Habit) => `- ${h.name}: ${h.startTime} to ${h.endTime}`).join('\n');
-            const milestonesStr = activeGoal.milestones ? activeGoal.milestones.map((m: any) => `- ${m.title}`).join('\n') : activeGoal.purpose;
+            const milestonesStr = targetGoal.milestones ? targetGoal.milestones.map((m: any) => `- ${m.title}`).join('\n') : targetGoal.purpose;
+            const goalName = targetGoal.name;
+            const goalPurpose = targetGoal.purpose;
 
             const prompt = `
 Generate a weekly structured schedule of tasks for achieving this goal.
-Goal Name: ${activeGoal.name}
-Goal Purpose: ${activeGoal.purpose}
+Goal Name: ${goalName}
+Goal Purpose: ${goalPurpose}
 Milestones/Sub-goals to target:
 ${milestonesStr}
 
 User Constraints & Preferences:
 - Minimum task block: ${meta.minTaskTime || 30} minutes
-- Maximum task block: ${meta.maxTaskTime || 2} hours
-- Sleep Schedule (UNAVAILABLE): ${sleepStartStr} (Duration: ${sleepDuration}h)
+    - Maximum task block: ${meta.maxTaskTime || 2} hours
+        - Sleep Schedule(UNAVAILABLE): ${sleepStartStr} (Duration: ${sleepDuration}h)
 - Free Time Required: ${meta.freeTimeHours ? meta.freeTimeHours + ' hours per week' : '0 hours'}
-- Habits (UNAVAILABLE):
+- Habits(UNAVAILABLE):
 ${habitStr || 'None'}
 
 Rules:
-1. Schedule tasks over 7 days (dayIdx: 0 = Monday, dayIdx: 6 = Sunday).
-2. Times MUST be in HH:00 or HH:30 increments (e.g., 09:00, 14:30).
+1. Schedule tasks over 7 days(dayIdx: 0 = Monday, dayIdx: 6 = Sunday).
+2. Times MUST be in HH:00 or HH: 30 increments(e.g., 09:00, 14: 30).
 3. DO NOT overlap with Sleep or Habits.
 4. Distribute workload realistically without overloading the user. 
 5. The JSON must return exactly an array of objects.
 
-Output format (Strict JSON array):
+Output format(Strict JSON array):
 [
-  {
-    "dayIdx": number (0 to 6),
-    "startTime": "HH:MM",
-    "endTime": "HH:MM",
-    "taskName": "string - short title",
-    "description": "string",
-    "type": "goal" | "free"
-  }
+    {
+        "dayIdx": number(0 to 6),
+        "startTime": "HH:MM",
+        "endTime": "HH:MM",
+        "taskName": "string - short title",
+        "description": "string",
+        "type": "goal" | "free"
+    }
 ]
 RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
             `;
@@ -148,7 +187,7 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${apiKey} `,
                     'Content-Type': 'application/json',
                     'HTTP-Referer': window.location.origin,
                     'X-Title': 'Legacy Life Builder Planner'
@@ -163,8 +202,8 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
             if (!response.ok || rawResult.error) throw new Error(rawResult.error?.message || 'OpenRouter API Error');
 
             const contentMessage = rawResult.choices[0]?.message?.content;
-            let cleanJson = contentMessage.replace(/^```json\n?/gm, '').replace(/```$/gm, '').trim();
-            cleanJson = cleanJson.replace(/^```\n?/gm, '').replace(/```$/gm, '').trim();
+            let cleanJson = contentMessage.replace(/^```json\n ? /gm, '').replace(/```$/gm, '').trim();
+            cleanJson = cleanJson.replace(/^```\n ? /gm, '').replace(/```$/gm, '').trim();
 
             const planSlots = JSON.parse(cleanJson);
             setPreviewPlan(planSlots);
@@ -198,7 +237,7 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
             }
         });
 
-        setLocalGridState(newState);
+        updateGridState(newState);
         setPreviewPlan(null);
     };
 
@@ -225,7 +264,7 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
             });
         }
 
-        setLocalGridState(newState);
+        updateGridState(newState);
     };
 
     const isHabitSlot = (dayIdx: number, slotIdx: number) => {
@@ -245,20 +284,45 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
 
     const handleCellClick = (dayIdx: number, slotIdx: number) => {
         const key = `${dayIdx}-${slotIdx}`;
-
         if (isSleepSlot(slotIdx) || isHabitSlot(dayIdx, slotIdx)) return;
 
         const newState = { ...localGridState };
+        const existing = newState[key];
+
         if (selectedTool === 'erase') {
             delete newState[key];
         } else if (selectedTool === 'goal') {
-            if (!selectedGoalId) {
+            // Check for AI preview content at this location
+            let previewName = '';
+            if (previewPlan) {
+                const previewSlot = previewPlan.find(slot => {
+                    if (slot.dayIdx !== dayIdx) return false;
+                    const [sH, sM] = slot.startTime.split(':').map(Number);
+                    const [eH, eM] = slot.endTime.split(':').map(Number);
+                    const startSlot = sH * 2 + (sM >= 30 ? 1 : 0);
+                    const endSlot = eH * 2 + (eM >= 30 ? 1 : 0);
+                    return slotIdx >= startSlot && slotIdx < endSlot;
+                });
+                if (previewSlot) previewName = previewSlot.taskName;
+            }
+
+            if (!selectedGoalId && (!existing || existing.type !== 'goal')) {
                 alert("Please select a goal first!");
                 return;
             }
-            newState[key] = { type: 'goal', name: 'Goal Work', goalId: selectedGoalId };
+
+            // If already a goal of the same ID, keep its original name/ID unless we want to change goalId
+            if (existing && existing.type === 'goal' && existing.name && (!selectedGoalId || existing.goalId === selectedGoalId)) {
+                return;
+            }
+
+            newState[key] = {
+                type: 'goal',
+                name: (existing && existing.name) ? existing.name : (previewName || 'Goal Work'),
+                goalId: selectedGoalId || (existing && (existing as any).goalId)
+            };
         }
-        setLocalGridState(newState);
+        updateGridState(newState);
     };
 
     const getCellContent = (dayIdx: number, slotIdx: number) => {
@@ -297,22 +361,26 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
     };
 
     return (
-        <div className="flex flex-col h-full w-full">
+        <div className={cn(
+            "flex flex-col h-full w-full",
+            selectedTool === 'erase' && "cursor-[url('https://api.iconify.design/lucide:eraser.svg?color=%23ef4444'),_auto]",
+            selectedTool === 'goal' && "cursor-crosshair"
+        )}>
             <PlannerToolbar
                 currentWeek={currentWeek}
                 setCurrentWeek={setCurrentWeek}
                 selectedTool={selectedTool}
                 setSelectedTool={setSelectedTool}
-                selectedGoalId={selectedGoalId}
-                setSelectedGoalId={setSelectedGoalId}
-                activeGoalsForWeek={activeGoalsForWeek}
-                activeGoal={activeGoal}
-                goalStats={goalStats}
-                isGenerating={isGenerating}
-                handleGenerateWeeklyPlan={handleGenerateWeeklyPlan}
-                onClear={() => clearPlan.mutate(currentWeek)}
+                onClear={() => {
+                    const empty: GridState = {};
+                    updateGridState(empty);
+                }}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                canUndo={historyIndex > 0}
+                canRedo={historyIndex < history.length - 1}
                 onSave={() => savePlan.mutate({ week: currentWeek, state: localGridState })}
-                onCreateCustomTask={(task) => {
+                onCreateCustomTask={(task: CustomTask | undefined) => {
                     setSelectedLibraryTask(task || null);
                     setIsCustomTaskDialogOpen(true);
                 }}
@@ -320,6 +388,7 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
                 previewPlan={previewPlan}
                 onCancelPreview={() => setPreviewPlan(null)}
                 commitPreviewPlan={commitPreviewPlan}
+                onGoalToolClick={() => setIsGoalToolDialogOpen(true)}
             />
 
             <GoalToolDialog
@@ -346,10 +415,7 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
                 <PlannerGrid
                     currentWeek={currentWeek}
                     localGridState={localGridState}
-                    setLocalGridState={setLocalGridState}
-                    previewPlan={previewPlan}
-                    setPreviewPlan={setPreviewPlan}
-                    commitPreviewPlan={commitPreviewPlan}
+                    setLocalGridState={updateGridState}
                     isSleepSlot={isSleepSlot}
                     isHabitSlot={isHabitSlot}
                     getCellContent={getCellContent}

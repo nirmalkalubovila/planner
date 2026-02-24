@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState } from '@/types/global-types';
 
@@ -11,9 +10,6 @@ interface PlannerGridProps {
     currentWeek: string;
     localGridState: GridState;
     setLocalGridState: (state: GridState) => void;
-    previewPlan: any[] | null;
-    setPreviewPlan: (val: any[] | null) => void;
-    commitPreviewPlan: () => void;
     isSleepSlot: (slotIdx: number) => boolean;
     isHabitSlot: (dayIdx: number, slotIdx: number) => boolean;
     getCellContent: (dayIdx: number, slotIdx: number) => any;
@@ -24,9 +20,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     currentWeek,
     localGridState,
     setLocalGridState,
-    previewPlan,
-    setPreviewPlan,
-    commitPreviewPlan,
     isSleepSlot,
     isHabitSlot,
     getCellContent,
@@ -38,19 +31,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
         <div className="flex-1 bg-card border rounded-xl shadow-inner overflow-hidden flex flex-col h-[60vh] lg:h-auto min-h-[400px]">
             <div className="flex-1 overflow-auto">
                 <div className="min-w-[700px] h-full">
-
-                    {previewPlan && (
-                        <div className="bg-blue-500/10 border border-blue-500/50 p-2 m-2 mx-4 rounded-lg flex items-center justify-between sticky left-4 animate-in fade-in z-30 shadow-md">
-                            <div>
-                                <h3 className="font-bold text-blue-700 text-sm">AI Weekly Plan Generated!</h3>
-                                <p className="text-xs text-blue-600/80">Review the dashed blue slots. Keep schedule?</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <Button size="sm" variant="outline" onClick={() => setPreviewPlan(null)}>Discard</Button>
-                                <Button size="sm" onClick={commitPreviewPlan} className="bg-blue-600 hover:bg-blue-700 text-white shadow">Accept Plan</Button>
-                            </div>
-                        </div>
-                    )}
 
                     <div className="grid grid-cols-[75px_repeat(7,minmax(0,1fr))] border-b bg-muted/30 backdrop-blur z-20 sticky top-0 shadow-sm">
                         <div className="h-10 border-r border-border" />
@@ -92,16 +72,19 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                         const prevContent = slotIdx > 0 ? getCellContent(dayIdx, slotIdx - 1) : null;
                                         const isSameAsPrev = content && prevContent && content.type === prevContent.type && content.name === prevContent.name;
 
-                                        // For goals, we might want to check goalId if available, but checking name is usually enough
-
-                                        const isInteractive = content && (content.type === 'goal' || content.type === 'custom');
+                                        const isInteractive = content && (content.type === 'goal' || content.type === 'custom' || content.type === 'preview');
 
                                         return (
                                             <div
                                                 key={dayIdx}
                                                 draggable={!!isInteractive}
                                                 onDragStart={(e) => {
-                                                    if (isInteractive) {
+                                                    if (content?.type === 'preview') {
+                                                        e.dataTransfer.setData('sourceNewTask', JSON.stringify({
+                                                            type: 'goal',
+                                                            name: content.name,
+                                                        }));
+                                                    } else if (isInteractive) {
                                                         e.dataTransfer.setData('sourceKey', `${dayIdx}-${slotIdx}`);
                                                     } else {
                                                         e.preventDefault();
@@ -117,7 +100,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
                                                     const sourceKey = e.dataTransfer.getData('sourceKey');
                                                     if (sourceKey && sourceKey !== targetKey) {
-                                                        // Move existing slot
                                                         newState[targetKey] = newState[sourceKey];
                                                         delete newState[sourceKey];
                                                         setLocalGridState(newState);
@@ -126,7 +108,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
                                                     const sourceNewTaskStr = e.dataTransfer.getData('sourceNewTask');
                                                     if (sourceNewTaskStr) {
-                                                        // Drop new task from sidebar/toolbar
                                                         newState[targetKey] = JSON.parse(sourceNewTaskStr);
                                                         setLocalGridState(newState);
                                                     }
@@ -134,7 +115,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                 className={cn(
                                                     "h-10 border-r transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group",
                                                     isHourStart ? "border-b border-border/50" : "border-b border-border/20",
-                                                    isSameAsPrev && content?.type === 'sleep' ? "border-t-0" : "",
+                                                    isSameAsPrev && (content?.type === 'sleep' || content?.type === 'habit') ? "border-t-0" : "",
                                                     content?.type === 'preview' && "bg-blue-500/10 text-blue-800 border-blue-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-blue-500/50 rounded-sm m-px",
                                                     content?.type === 'sleep' && "bg-indigo-950/40 text-indigo-300/80 cursor-not-allowed border-indigo-900/30",
                                                     content?.type === 'habit' && "bg-emerald-950/40 text-emerald-400/90 cursor-not-allowed border-emerald-900/30",
