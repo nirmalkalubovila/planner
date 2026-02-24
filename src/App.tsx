@@ -11,6 +11,7 @@ import { LoginPage } from './pages/login-page';
 import { SignupPage } from './pages/signup-page';
 import { ProfilePage } from './pages/profile-page';
 import { PersonalizePage } from './pages/personalize-page';
+import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <Toaster position="top-right" theme="dark" richColors />
           <Routes>
             <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
             <Route path="/signup" element={<AuthRoute><SignupPage /></AuthRoute>} />

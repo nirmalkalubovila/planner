@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Habit } from "@/types/global-types";
 import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 
 const TABLE_NAME = "habits";
 
@@ -50,12 +51,15 @@ export function useCreateHabit() {
                 .single();
             if (error) {
                 console.error("Supabase Insert Error:", error);
-                alert("Failed to insert habit: " + error.message);
                 throw new Error(error.message);
             }
             return data;
         },
+        onError: (err) => {
+            toast.error("Failed to create habit: " + err.message);
+        },
         onSuccess: () => {
+            toast.success("Habit created successfully!");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
     });
@@ -81,7 +85,11 @@ export function useUpdateHabit() {
             if (error) throw new Error(error.message);
             return data;
         },
+        onError: (err) => {
+            toast.error("Failed to update habit: " + err.message);
+        },
         onSuccess: () => {
+            toast.success("Habit updated successfully!");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
     });
@@ -99,7 +107,11 @@ export function useDeleteHabit() {
             const { error } = await supabase.from(TABLE_NAME).delete().eq("id", id).eq("user_id", userId);
             if (error) throw new Error(error.message);
         },
+        onError: (err) => {
+            toast.error("Failed to delete habit: " + err.message);
+        },
         onSuccess: () => {
+            toast.success("Habit deleted correctly.");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
     });

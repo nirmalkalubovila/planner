@@ -3,7 +3,7 @@ import { useGetWeekPlan } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetCompletedTasks, useToggleCompletedTask } from '@/api/services/today-service';
 import { WeekUtils } from '@/utils/week-utils';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+// Removed unused Card imports
 import { Check, Clock, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Habit } from '@/types/global-types';
@@ -137,21 +137,16 @@ export const TodayPage: React.FC = () => {
     }, [tasks, completedTasks]);
 
     return (
-        <div className="flex flex-col h-full space-y-4 md:space-y-6 pb-20">
-            <div className="flex flex-col gap-1">
+        <div className="flex flex-col h-[calc(100vh-100px)] space-y-4 md:space-y-6 pb-20 overflow-y-auto overflow-x-hidden">
+            <div className="flex flex-col gap-1 shrink-0">
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Today's Plan</h1>
                 <p className="text-sm md:text-base text-muted-foreground">{currentDateDisplay}</p>
             </div>
 
-            <Card className="flex-1 overflow-hidden flex flex-col">
-                <CardHeader className="border-b bg-accent/20 pb-4">
-                    <CardTitle className="text-lg flex justify-between items-center">
-                        <span>Daily Focus Dashboard</span>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-auto p-4 md:p-6 bg-card/50">
-                    {/* The Active Theme taking prime spot atop the content */}
-                    {tasks.length > 0 && (
+            {/* The Active Theme taking prime spot atop the content */}
+            {tasks.length > 0 && (
+                <div className="w-full shrink-0 flex justify-center mt-2 mb-6">
+                    <div className="w-full max-w-4xl">
                         <ActiveTheme
                             completedPoints={pointsData.completedPoints}
                             totalPoints={pointsData.totalPoints}
@@ -159,80 +154,82 @@ export const TodayPage: React.FC = () => {
                             totalTasksCount={tasks.length}
                             currentDayStr={currentDayStr}
                         />
-                    )}
-
-                    <div className="flex justify-between items-center pt-8 pb-4 mb-2 border-b">
-                        <h2 className="text-xl font-bold">Your Tasks</h2>
-                        <span className="text-sm font-medium text-muted-foreground bg-accent/30 px-3 py-1 rounded-full">
-                            {(completedTasks || []).length} / {tasks.length} Completed
-                        </span>
                     </div>
-                    {tasks.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
-                            <div className="p-4 bg-accent/30 rounded-full">
-                                <Clock size={32} className="text-muted-foreground" />
-                            </div>
-                            <h3 className="font-semibold text-lg">No Tasks for Today</h3>
-                            <p className="text-sm text-muted-foreground max-w-sm">
-                                You haven't scheduled any tasks or habits for today. Go to the Week Planner to set up your plan.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3 max-w-3xl mx-auto">
-                            {tasks.map((task) => {
-                                const completed = isTaskCompleted(task.id);
-                                return (
-                                    <div
-                                        key={task.id}
-                                        onClick={() => handleToggle(task.id)}
-                                        className={cn(
-                                            "group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md",
-                                            completed
-                                                ? "bg-accent/10 border-accent/20 opacity-70"
-                                                : "bg-card border-border hover:border-primary/50"
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex-shrink-0 flex items-center justify-center">
-                                                {completed ? (
-                                                    <div className="w-6 h-6 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center">
-                                                        <Check size={14} strokeWidth={3} />
-                                                    </div>
-                                                ) : (
-                                                    <Circle size={24} className="text-muted-foreground group-hover:text-primary transition-colors stroke-[1.5]" />
-                                                )}
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className={cn(
-                                                    "font-semibold text-base transition-all",
-                                                    completed && "line-through text-muted-foreground"
-                                                )}>
-                                                    {task.name}
-                                                </span>
-                                                <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground/80 mt-1 flex items-center gap-1">
-                                                    <Clock size={12} />
-                                                    {task.startTime} - {task.endTime}
-                                                </span>
-                                            </div>
-                                        </div>
+                </div>
+            )}
 
-                                        <div className="flex items-center">
+            <div className="flex-1 w-full max-w-6xl mx-auto flex flex-col">
+                <div className="flex justify-between items-center pb-4 mb-4 border-b shrink-0">
+                    <h2 className="text-xl font-bold">Your Tasks</h2>
+                    <span className="text-sm font-medium text-muted-foreground bg-accent/30 px-3 py-1 rounded-full">
+                        {(completedTasks || []).length} / {tasks.length} Completed
+                    </span>
+                </div>
+                {tasks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center flex-1 text-center space-y-3 min-h-[300px] border border-dashed rounded-xl bg-card/30">
+                        <div className="p-4 bg-accent/30 rounded-full">
+                            <Clock size={32} className="text-muted-foreground" />
+                        </div>
+                        <h3 className="font-semibold text-lg">No Tasks for Today</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm">
+                            You haven't scheduled any tasks or habits for today. Go to the Week Planner to set up your plan.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-12">
+                        {tasks.map((task) => {
+                            const completed = isTaskCompleted(task.id);
+                            return (
+                                <div
+                                    key={task.id}
+                                    onClick={() => handleToggle(task.id)}
+                                    className={cn(
+                                        "group flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md",
+                                        completed
+                                            ? "bg-accent/10 border-accent/20 opacity-70"
+                                            : "bg-card border-border hover:border-primary/50"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-shrink-0 flex items-center justify-center">
+                                            {completed ? (
+                                                <div className="w-6 h-6 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center">
+                                                    <Check size={14} strokeWidth={3} />
+                                                </div>
+                                            ) : (
+                                                <Circle size={24} className="text-muted-foreground group-hover:text-primary transition-colors stroke-[1.5]" />
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col">
                                             <span className={cn(
-                                                "text-xs px-2.5 py-1 rounded-full font-medium border",
-                                                task.type === 'habit' && "bg-muted/50 border-muted/20 text-muted-foreground",
-                                                task.type === 'goal' && "bg-primary/10 border-primary/20 text-primary",
-                                                task.type === 'custom' && "bg-yellow-500/10 border-yellow-500/20 text-yellow-500"
+                                                "font-semibold text-base transition-all",
+                                                completed && "line-through text-muted-foreground"
                                             )}>
-                                                {task.type}
+                                                {task.name}
+                                            </span>
+                                            <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground/80 mt-1 flex items-center gap-1">
+                                                <Clock size={12} />
+                                                {task.startTime} - {task.endTime}
                                             </span>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+
+                                    <div className="flex items-center">
+                                        <span className={cn(
+                                            "text-xs px-2.5 py-1 rounded-full font-medium border",
+                                            task.type === 'habit' && "bg-muted/50 border-muted/20 text-muted-foreground",
+                                            task.type === 'goal' && "bg-primary/10 border-primary/20 text-primary",
+                                            task.type === 'custom' && "bg-yellow-500/10 border-yellow-500/20 text-yellow-500"
+                                        )}>
+                                            {task.type}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
