@@ -12,6 +12,7 @@ import { AIGenerationStep } from './forms/ai-generation-step';
 import { WeekUtils } from '@/utils/week-utils';
 import { useGetWeekPlan } from '@/api/services/planner-service';
 import { useGetWeekCompletedTasks } from '@/api/services/today-service';
+import { ConfirmationDialog } from './components/confirmation-dialog';
 
 export const GoalsPage: React.FC = () => {
     const { user } = useAuth();
@@ -20,6 +21,10 @@ export const GoalsPage: React.FC = () => {
     const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
     const [generating, setGenerating] = useState(false);
     const [expandedGoals, setExpandedGoals] = useState<Record<string, boolean>>({});
+
+    // Confirmation Dialog State
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [pendingValues, setPendingValues] = useState<GoalFormValues | null>(null);
 
     const { data: goals = [], isLoading } = useGetGoals();
     const createGoal = useCreateGoal();
@@ -36,13 +41,6 @@ export const GoalsPage: React.FC = () => {
         setExpandedGoals(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const handleToggleMilestone = (goal: Goal, milestoneId: string) => {
-        const updatedMilestones = goal.milestones?.map(m =>
-            m.id === milestoneId ? { ...m, completed: !m.completed } : m
-        );
-        updateGoal.mutate({ ...goal, milestones: updatedMilestones });
-    };
-
     const handleEdit = (goal: Goal) => {
         setActiveGoal(goal);
         setStep(1);
@@ -50,6 +48,16 @@ export const GoalsPage: React.FC = () => {
     };
 
     const onDefinitionSubmit = (values: GoalFormValues) => {
+        // If we are editing, warn the user
+        if (activeGoal && activeGoal.id) {
+            setPendingValues(values);
+            setShowConfirm(true);
+        } else {
+            executeDefinitionSubmit(values);
+        }
+    };
+
+    const executeDefinitionSubmit = (values: GoalFormValues) => {
         const start = parseISO(values.startDate);
         let end = start;
         const generatedMilestones: Milestone[] = [];
@@ -226,7 +234,6 @@ Each object must have exactly these keys:
                             onToggle={toggleGoal}
                             onEdit={handleEdit}
                             onDelete={(id) => deleteGoal.mutate(id)}
-                            onToggleMilestone={handleToggleMilestone}
                             weekPlan={weekPlan || {}}
                             completedDays={completedDays || {}}
                             currentWeek={currentWeek}
@@ -234,6 +241,16 @@ Each object must have exactly these keys:
                     ))
                 )}
             </div>
+
+            <ConfirmationDialog
+                isOpen={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                onConfirm={() => pendingValues && executeDefinitionSubmit(pendingValues)}
+                title="Update Goal Definition?"
+                description="Changing your goal's definition or duration will automatically reset your current AI action plan. You will need to regenerate the plan to match your new milestones."
+                confirmText="Save & Continue"
+                cancelText="Go Back"
+            />
         </div>
     );
 };

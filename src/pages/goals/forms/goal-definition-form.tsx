@@ -12,6 +12,28 @@ const goalSchema = z.object({
     startDate: z.string().min(1, "Start Date is required"),
     goalType: z.enum(['Week', 'Month', 'Year']),
     durationValue: z.number().min(1, "Duration must be at least 1"),
+}).superRefine((data, ctx) => {
+    if (data.goalType === 'Week' && data.durationValue > 3) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Week Goal duration cannot exceed 3 weeks",
+            path: ["durationValue"],
+        });
+    }
+    if (data.goalType === 'Month' && data.durationValue > 11) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Month Goal duration cannot exceed 11 months",
+            path: ["durationValue"],
+        });
+    }
+    if (data.goalType === 'Year' && data.durationValue > 10) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Year Goal duration cannot exceed 10 years",
+            path: ["durationValue"],
+        });
+    }
 });
 
 export type GoalFormValues = z.infer<typeof goalSchema>;

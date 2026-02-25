@@ -15,7 +15,6 @@ interface GoalCardProps {
     onToggle: (id: string) => void;
     onEdit: (goal: Goal) => void;
     onDelete: (id: string) => void;
-    onToggleMilestone: (goal: Goal, milestoneId: string) => void;
     weekPlan?: GridState;
     completedDays?: Record<string, string[]>;
     currentWeek?: string;
@@ -27,7 +26,6 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     onToggle,
     onEdit,
     onDelete,
-    onToggleMilestone,
     weekPlan,
     completedDays,
     currentWeek

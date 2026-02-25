@@ -1,7 +1,6 @@
 import React from 'react';
 import { Milestone } from '@/types/global-types';
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
 
 interface GoalProgressBarProps {
     milestones: Milestone[];
