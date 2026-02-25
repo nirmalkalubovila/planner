@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useBlocker } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useGetWeekPlan, useSaveWeekPlan } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
@@ -13,6 +14,7 @@ import { PlannerToolbar } from './components/planner-toolbar';
 import { PlannerGrid } from './components/planner-grid';
 import { CustomTaskDialog } from './forms/custom-task-dialog';
 import { GoalToolDialog } from './forms/goal-tool-dialog';
+import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 
 const FULL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SLOTS_PER_DAY = 48; // 30-min slots for 24 hours
@@ -31,6 +33,9 @@ export const PlannerPage: React.FC = () => {
     const [isCustomTaskDialogOpen, setIsCustomTaskDialogOpen] = useState(false);
     const [selectedLibraryTask, setSelectedLibraryTask] = useState<CustomTask | null>(null);
     const [isGoalToolDialogOpen, setIsGoalToolDialogOpen] = useState(false);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // History for Undo/Redo
     const [history, setHistory] = useState<GridState[]>([]);
@@ -45,6 +50,7 @@ export const PlannerPage: React.FC = () => {
 
     const updateGridState = (newState: GridState, skipHistory = false) => {
         setLocalGridState(newState);
+        setHasUnsavedChanges(true);
         if (!skipHistory) {
             const newHistory = history.slice(0, historyIndex + 1);
             newHistory.push(newState);
@@ -95,6 +101,7 @@ export const PlannerPage: React.FC = () => {
             setLocalGridState(normalized);
             setHistory([normalized]);
             setHistoryIndex(0);
+            setHasUnsavedChanges(false);
         }
     }, [weekPlan]);
 
@@ -214,6 +221,29 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
         setPreviewPlan(null);
     };
 
+    const handleSave = useCallback(async () => {
+        try {
+            await savePlan.mutateAsync({ week: currentWeek, state: localGridState });
+            setHasUnsavedChanges(false);
+            return true;
+        } catch (error) {
+            console.error("Failed to auto-save:", error);
+            return false;
+        }
+    }, [savePlan, currentWeek, localGridState]);
+
+    // Navigation Blocker Logic
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
+    );
+
+    useEffect(() => {
+        if (blocker.state === "blocked") {
+            setShowUnsavedConfirm(true);
+        }
+    }, [blocker.state]);
+
     const handleCustomTaskConfirm = (data: any) => {
         const newState = { ...localGridState };
         const [sH, sM] = data.startTime.split(':').map(Number);
@@ -330,12 +360,12 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
                 setCurrentWeek={setCurrentWeek}
                 selectedTool={selectedTool}
                 setSelectedTool={setSelectedTool}
-                onClear={() => updateGridState({})}
+                onClear={() => setShowClearConfirm(true)}
                 onUndo={handleUndo}
                 onRedo={handleRedo}
                 canUndo={historyIndex > 0}
                 canRedo={historyIndex < history.length - 1}
-                onSave={() => savePlan.mutate({ week: currentWeek, state: localGridState })}
+                onSave={handleSave}
                 onCreateCustomTask={(task: CustomTask | undefined) => {
                     setSelectedLibraryTask(task || null);
                     setIsCustomTaskDialogOpen(true);
@@ -378,6 +408,43 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
                     handleCellClick={handleCellClick}
                 />
             </div>
+
+            <ConfirmationDialog
+                isOpen={showClearConfirm}
+                onClose={() => setShowClearConfirm(false)}
+                onConfirm={() => {
+                    updateGridState({});
+                    setShowClearConfirm(false);
+                }}
+                title="Clear Entire Plan?"
+                description="This will permanently erase all scheduled goal tasks and custom blocks for the current week. This action cannot be undone unless you have a previous state in history."
+                confirmText="Clear Plan"
+                cancelText="Keep Plan"
+                variant="destructive"
+            />
+
+            <ConfirmationDialog
+                isOpen={showUnsavedConfirm}
+                onClose={() => {
+                    setShowUnsavedConfirm(false);
+                    if (blocker.state === "blocked") blocker.reset();
+                }}
+                onConfirm={async () => {
+                    const success = await handleSave();
+                    if (success && blocker.state === "blocked") {
+                        blocker.proceed();
+                    }
+                    setShowUnsavedConfirm(false);
+                }}
+                title="Unsaved Planner Changes"
+                description="You have unsaved changes in your planner. Would you like to save them before leaving?"
+                confirmText="Save & Leave"
+                cancelText="Discard & Leave"
+                onCancel={() => {
+                    setShowUnsavedConfirm(false);
+                    if (blocker.state === "blocked") blocker.proceed();
+                }}
+            />
         </div>
     );
 };

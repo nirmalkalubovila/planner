@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/auth-context';
 import { ProtectedRoute } from './components/protected-route';
@@ -22,7 +22,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// A small component to redirect logged-in users away from auth pages
 const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
@@ -30,28 +29,32 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <>
+      <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+      <Route path="/signup" element={<AuthRoute><SignupPage /></AuthRoute>} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/" element={<TodayPage />} />
+          <Route path="/habits" element={<HabitsPage />} />
+          <Route path="/goals" element={<GoalsPage />} />
+          <Route path="/planner" element={<PlannerPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
+        <Route path="/personalize" element={<PersonalizePage />} />
+      </Route>
+    </>
+  )
+);
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Toaster position="top-right" theme="dark" richColors />
-          <Routes>
-            <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
-            <Route path="/signup" element={<AuthRoute><SignupPage /></AuthRoute>} />
-
-            <Route element={<ProtectedRoute />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/" element={<TodayPage />} />
-                <Route path="/habits" element={<HabitsPage />} />
-                <Route path="/goals" element={<GoalsPage />} />
-                <Route path="/planner" element={<PlannerPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-              </Route>
-              <Route path="/personalize" element={<PersonalizePage />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <Toaster position="top-right" theme="dark" richColors />
+        <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>
   );

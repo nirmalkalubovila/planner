@@ -68,6 +68,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                         <span className="font-semibold text-[9px] text-muted-foreground/80">{timeStr}</span>
                                     </div>
                                     {DAYS.map((_, dayIdx) => {
+                                        const isToday = weekDates[dayIdx].toDateString() === new Date().toDateString();
                                         const content = getCellContent(dayIdx, slotIdx);
                                         const prevContent = slotIdx > 0 ? getCellContent(dayIdx, slotIdx - 1) : null;
                                         const isSameAsPrev = content && prevContent && content.type === prevContent.type && content.name === prevContent.name;
@@ -113,18 +114,24 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     }
                                                 }}
                                                 className={cn(
-                                                    "h-10 border-r transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group",
+                                                    "h-10 border-r border-l transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group relative",
                                                     isHourStart ? "border-b border-border/50" : "border-b border-border/20",
+                                                    isToday && "bg-primary/[0.02]",
+                                                    isToday && !content && "hover:bg-primary/10",
                                                     isSameAsPrev && (content?.type === 'sleep' || content?.type === 'habit') ? "border-t-0" : "",
                                                     content?.type === 'preview' && "bg-blue-500/10 text-blue-800 border-blue-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-blue-500/50 rounded-sm m-px",
                                                     content?.type === 'sleep' && "bg-indigo-950/40 text-indigo-300/80 cursor-not-allowed border-indigo-900/30",
                                                     content?.type === 'habit' && "bg-emerald-950/40 text-emerald-400/90 cursor-not-allowed border-emerald-900/30",
                                                     content?.type === 'goal' && "bg-blue-600/90 text-white cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-blue-500",
                                                     content?.type === 'custom' && "bg-amber-500/80 text-amber-950 cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-amber-400",
-                                                    !content && "hover:bg-accent/30 text-transparent"
+                                                    !content && !isToday && "hover:bg-accent/30 text-transparent",
+                                                    !content && isToday && "text-transparent"
                                                 )}
                                                 onClick={() => handleCellClick(dayIdx, slotIdx)}
                                             >
+                                                {isToday && (
+                                                    <div className="absolute inset-y-0 left-0 w-[2px] bg-primary/20 pointer-events-none" />
+                                                )}
                                                 {content ? (
                                                     <span className={cn(
                                                         "truncate w-full block",

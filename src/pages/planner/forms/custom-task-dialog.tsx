@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useCreateCustomTask } from '@/api/services/custom-task-service';
+import { timeToMinutes, minutesToTime } from '@/utils/time-utils';
 
 interface CustomTaskDialogProps {
     isOpen: boolean;
@@ -32,9 +33,11 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [startTime, setStartTime] = useState('09:00');
-    const [endTime, setEndTime] = useState('10:00');
+    const [durationPacks, setDurationPacks] = useState(2);
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
     const [saveToLibrary, setSaveToLibrary] = useState(false);
+
+    const endTime = minutesToTime(timeToMinutes(startTime) + durationPacks * 30);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -42,14 +45,21 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 setName(initialData.name || '');
                 setDescription(initialData.description || '');
                 setStartTime(initialData.startTime || '09:00');
-                setEndTime(initialData.endTime || '10:00');
+
+                // Calculate packs from endTime
+                const startMin = timeToMinutes(initialData.startTime || '09:00');
+                const endMin = timeToMinutes(initialData.endTime || '10:00');
+                const diff = endMin < startMin ? (endMin + 1440 - startMin) : (endMin - startMin);
+                const packs = Math.max(1, Math.round(diff / 30));
+
+                setDurationPacks(packs);
                 setSelectedDays(initialData.daysOfWeek || []);
                 setSaveToLibrary(false);
             } else {
                 setName('');
                 setDescription('');
                 setStartTime('09:00');
-                setEndTime('10:00');
+                setDurationPacks(2);
                 setSelectedDays([]);
                 setSaveToLibrary(false);
             }
@@ -148,14 +158,18 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
-                                <Clock size={12} /> End Time
+                                <Clock size={12} /> Duration (30-min packs)
                             </label>
                             <Input
-                                type="time"
-                                value={endTime}
-                                onChange={(e) => setEndTime(e.target.value)}
+                                type="number"
+                                min="1"
+                                value={durationPacks}
+                                onChange={(e) => setDurationPacks(parseInt(e.target.value) || 1)}
                                 className="h-10"
                             />
+                            <p className="text-[10px] text-muted-foreground mt-1 text-right">
+                                Ends at: <span className="font-bold text-primary">{endTime}</span>
+                            </p>
                         </div>
                     </div>
 

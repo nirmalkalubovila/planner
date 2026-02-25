@@ -12,7 +12,7 @@ import { AIGenerationStep } from './forms/ai-generation-step';
 import { WeekUtils } from '@/utils/week-utils';
 import { useGetWeekPlan } from '@/api/services/planner-service';
 import { useGetWeekCompletedTasks } from '@/api/services/today-service';
-import { ConfirmationDialog } from './components/confirmation-dialog';
+import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 
 export const GoalsPage: React.FC = () => {
     const { user } = useAuth();

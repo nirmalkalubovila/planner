@@ -10,6 +10,7 @@ interface ConfirmationDialogProps {
     description: string;
     confirmText?: string;
     cancelText?: string;
+    onCancel?: () => void;
     variant?: 'default' | 'destructive';
 }
 
@@ -21,9 +22,15 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
     description,
     confirmText = "Continue",
     cancelText = "Cancel",
+    onCancel,
     variant = "default"
 }) => {
     if (!isOpen) return null;
+
+    const handleCancel = () => {
+        if (onCancel) onCancel();
+        onClose();
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -50,7 +57,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
                 {/* Footer */}
                 <div className="p-6 border-t bg-muted/10 flex gap-3 justify-end">
-                    <Button variant="ghost" onClick={onClose} className="rounded-xl">
+                    <Button variant="ghost" onClick={handleCancel} className="rounded-xl">
                         {cancelText}
                     </Button>
                     <Button
