@@ -5,7 +5,7 @@ import { ProtectedRoute } from './components/protected-route';
 import { DashboardLayout } from './layout/dashboard-layout';
 import { HabitsPage } from './pages/habits-page';
 import { GoalsPage } from './pages/goals/goals-page';
-import { PlannerPage } from './pages/planner-page';
+import { PlannerPage } from './pages/planner/planner-page';
 import { TodayPage } from './pages/today-page';
 import { LoginPage } from './pages/login-page';
 import { SignupPage } from './pages/signup-page';

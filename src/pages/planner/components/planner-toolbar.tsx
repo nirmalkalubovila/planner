@@ -1,3 +1,4 @@
+import React from 'react';
 import { ChevronLeft, ChevronRight, Eraser, Target, Sparkles, Save, RotateCcw, Plus, Library, Check, Undo2, Redo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WeekUtils } from '@/utils/week-utils';
