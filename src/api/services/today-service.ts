@@ -23,10 +23,42 @@ const getCompletedTasks = async (dayStr: string): Promise<string[]> => {
     return data?.taskIds || [];
 };
 
+export const getWeekCompletedTasks = async (dayStrs: string[]): Promise<Record<string, string[]>> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return {};
+
+    const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select("dayStr, taskIds")
+        .in("dayStr", dayStrs)
+        .eq("user_id", userId);
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    const result: Record<string, string[]> = {};
+    if (data) {
+        data.forEach((row: any) => {
+            result[row.dayStr] = row.taskIds || [];
+        });
+    }
+    return result;
+};
+
 export function useGetCompletedTasks(dayStr: string) {
     return useQuery({
         queryKey: ["completed", dayStr],
         queryFn: () => getCompletedTasks(dayStr),
+    });
+}
+
+export function useGetWeekCompletedTasks(dayStrs: string[]) {
+    return useQuery({
+        queryKey: ["completed_week", ...dayStrs],
+        queryFn: () => getWeekCompletedTasks(dayStrs),
+        enabled: dayStrs.length > 0
     });
 }
 

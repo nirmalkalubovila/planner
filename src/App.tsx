@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './contexts/auth-context';
 import { ProtectedRoute } from './components/protected-route';
 import { DashboardLayout } from './layout/dashboard-layout';
 import { HabitsPage } from './pages/habits-page';
-import { GoalsPage } from './pages/goals-page';
+import { GoalsPage } from './pages/goals/goals-page';
 import { PlannerPage } from './pages/planner-page';
 import { TodayPage } from './pages/today-page';
 import { LoginPage } from './pages/login-page';
