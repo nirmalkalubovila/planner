@@ -21,7 +21,8 @@ const SLOTS_PER_DAY = 48; // 30-min slots for 24 hours
 
 export const PlannerPage: React.FC = () => {
     const [currentWeek, setCurrentWeek] = useState(WeekUtils.getCurrentWeek());
-    const [selectedTool, setSelectedTool] = useState<'erase' | 'goal' | null>(null);
+    const [selectedTool, setSelectedTool] = useState<'erase' | 'goal' | 'duplicate' | null>(null);
+    const [copiedTask, setCopiedTask] = useState<any>(null);
     const [selectedGoalId, setSelectedGoalId] = useState<string>('');
     const [localGridState, setLocalGridState] = useState<GridState>({});
 
@@ -318,6 +319,14 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
                 name: (existing && existing.name) ? existing.name : (previewName || 'Goal Work'),
                 goalId: selectedGoalId || (existing && (existing as any).goalId)
             };
+        } else if (selectedTool === 'duplicate') {
+            if (existing) {
+                // Pick up the task
+                setCopiedTask({ ...existing });
+            } else if (copiedTask) {
+                // Paste the task
+                newState[key] = { ...copiedTask };
+            }
         }
         updateGridState(newState);
     };
@@ -353,7 +362,8 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
         <div className={cn(
             "flex flex-col h-full w-full",
             selectedTool === 'erase' && "cursor-[url('https://api.iconify.design/lucide:eraser.svg?color=%23ef4444'),_auto]",
-            selectedTool === 'goal' && "cursor-crosshair"
+            selectedTool === 'goal' && "cursor-crosshair",
+            selectedTool === 'duplicate' && (copiedTask ? "cursor-alias" : "cursor-copy")
         )}>
             <PlannerToolbar
                 currentWeek={currentWeek}

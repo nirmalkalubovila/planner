@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Eraser, Target, Sparkles, Save, RotateCcw, Plus, Library, Check, Undo2, Redo2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eraser, Target, Sparkles, Save, RotateCcw, Plus, Library, Check, Undo2, Redo2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WeekUtils } from '@/utils/week-utils';
 import { CustomTask } from '@/types/global-types';
@@ -8,8 +8,8 @@ import { cn } from '@/lib/utils';
 interface PlannerToolbarProps {
     currentWeek: string;
     setCurrentWeek: (val: string) => void;
-    selectedTool: 'erase' | 'goal' | null;
-    setSelectedTool: (val: 'erase' | 'goal' | null) => void;
+    selectedTool: 'erase' | 'goal' | 'duplicate' | null;
+    setSelectedTool: (val: 'erase' | 'goal' | 'duplicate' | null) => void;
     onClear: () => void;
     onUndo: () => void;
     onRedo: () => void;
@@ -81,6 +81,18 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     title="Goal Tool (ESC to exit)"
                 >
                     <Target size={16} />
+                </Button>
+                <Button
+                    variant={selectedTool === 'duplicate' ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className={cn(
+                        "h-8 w-8 transition-all duration-200",
+                        selectedTool === 'duplicate' ? "bg-amber-500/20 text-amber-600 scale-110 shadow-sm" : "text-muted-foreground"
+                    )}
+                    onClick={() => setSelectedTool(selectedTool === 'duplicate' ? null : 'duplicate')}
+                    title="Duplicate Tool (Stamp) - Click a task to copy, then click empty slots to paste"
+                >
+                    <Copy size={16} />
                 </Button>
                 <Button
                     onClick={() => onCreateCustomTask()}
