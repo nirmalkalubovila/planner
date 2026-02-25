@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useBlocker } from 'react-router-dom';
+import { useBlocker, useNavigate } from 'react-router-dom';
+import { Lightbulb, ExternalLink, X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGetWeekPlan, useSaveWeekPlan } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetGoals } from '@/api/services/goal-service';
 import { useAuth } from '@/contexts/auth-context';
+import { Button } from '@/components/ui/button';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState, Goal, Habit, CustomTask } from '@/types/global-types';
 import { useGetCustomTasks } from '@/api/services/custom-task-service';
@@ -23,12 +25,14 @@ export const PlannerPage: React.FC = () => {
     const [currentWeek, setCurrentWeek] = useState(WeekUtils.getCurrentWeek());
     const [selectedTool, setSelectedTool] = useState<'erase' | 'goal' | 'duplicate' | null>(null);
     const [copiedTask, setCopiedTask] = useState<any>(null);
+    const [showTipsDialog, setShowTipsDialog] = useState(false);
     const [selectedGoalId, setSelectedGoalId] = useState<string>('');
     const [localGridState, setLocalGridState] = useState<GridState>({});
 
     // AI Generate states
     const [isGenerating, setIsGenerating] = useState(false);
     const [previewPlan, setPreviewPlan] = useState<any[] | null>(null);
+    const navigate = useNavigate();
 
     // Dialog States
     const [isCustomTaskDialogOpen, setIsCustomTaskDialogOpen] = useState(false);
@@ -385,7 +389,80 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
                 onCancelPreview={() => setPreviewPlan(null)}
                 commitPreviewPlan={commitPreviewPlan}
                 onGoalToolClick={() => setIsGoalToolDialogOpen(true)}
+                onShowTips={() => setShowTipsDialog(true)}
             />
+
+            {/* Centered Tips Dialog */}
+            {showTipsDialog && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-card border shadow-2xl rounded-3xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b bg-muted/20">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-500 shadow-sm">
+                                    <Lightbulb size={24} strokeWidth={2.5} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold tracking-tight">Expert Planner Tips</h2>
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Master your schedule</p>
+                                </div>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => setShowTipsDialog(false)} className="rounded-full h-10 w-10 hover:bg-muted">
+                                <X size={20} />
+                            </Button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-8 space-y-8">
+                            <div className="flex gap-4 items-start">
+                                <div className="mt-1 p-2 bg-primary/10 rounded-lg text-primary shrink-0">
+                                    <Info size={18} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <h3 className="font-bold text-base">1. Smart Habit Overlaps</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        When building goal tasks with AI, always create your <span className="text-foreground font-semibold">Goals & recurring Habits</span> first.
+                                        The AI detects these blocks and intelligently builds your plan around them to avoid conflicts.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 items-start">
+                                <div className="mt-1 p-2 bg-blue-500/10 rounded-lg text-blue-500 shrink-0">
+                                    <ExternalLink size={18} />
+                                </div>
+                                <div className="space-y-3">
+                                    <h3 className="font-bold text-base">2. Set Your Preferences</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        Defining your unique constraints (sleep, work hours, breaks) allows the AI to craft a plan that truly reflects your lifestyle instead of a generic one.
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        className="h-10 px-6 rounded-xl font-bold border-primary/20 hover:bg-primary/5 text-primary flex items-center gap-2 group"
+                                        onClick={() => {
+                                            setShowTipsDialog(false);
+                                            navigate('/profile');
+                                        }}
+                                    >
+                                        Configure Profile <ExternalLink size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 bg-muted/5 border-t flex justify-end">
+                            <Button
+                                variant="secondary"
+                                className="px-8 rounded-xl font-bold hover:bg-muted"
+                                onClick={() => setShowTipsDialog(false)}
+                            >
+                                Got it
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <GoalToolDialog
                 isOpen={isGoalToolDialogOpen}
