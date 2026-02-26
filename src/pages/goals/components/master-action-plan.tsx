@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Check, Save, X, Edit3, ChevronRight, ChevronDown, BrainCircuit, Loader2, UserCog } from 'lucide-react';
+import { Check, Save, X, Edit3, ChevronRight, ChevronDown, BrainCircuit, Loader2, UserCog, Trash2, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
@@ -24,14 +25,18 @@ function getExpansionInfo(goalType: string, depth: number) {
     return null;
 }
 
-const deepUpdateSubPlans = (plans: AIGeneratedPlanSlot[], searchPath: number[], newSubPlans: AIGeneratedPlanSlot[]): AIGeneratedPlanSlot[] => {
+const deepUpdateSubPlans = (plans: AIGeneratedPlanSlot[], searchPath: number[], newSubPlans?: AIGeneratedPlanSlot[]): AIGeneratedPlanSlot[] => {
     const clone = JSON.parse(JSON.stringify(plans));
     let current = clone;
     for (let i = 0; i < searchPath.length - 1; i++) {
         if (!current[searchPath[i]].subPlans) current[searchPath[i]].subPlans = [];
         current = current[searchPath[i]].subPlans;
     }
-    current[searchPath[searchPath.length - 1]].subPlans = newSubPlans;
+    if (newSubPlans === undefined) {
+        delete current[searchPath[searchPath.length - 1]].subPlans;
+    } else {
+        current[searchPath[searchPath.length - 1]].subPlans = newSubPlans;
+    }
     return clone;
 };
 
@@ -53,7 +58,7 @@ const PlanRow = ({
     slot, path, depth, goal, isNext, isCompleted, milestoneTitle, onUpdateSubPlans, onSaveEdit, user
 }: {
     slot: AIGeneratedPlanSlot, path: number[], depth: number, goal: Goal, isNext: boolean, isCompleted: boolean, milestoneTitle?: string,
-    onUpdateSubPlans: (path: number[], subPlans: AIGeneratedPlanSlot[]) => void,
+    onUpdateSubPlans: (path: number[], subPlans: AIGeneratedPlanSlot[] | undefined) => void,
     onSaveEdit: (path: number[], edits: { title: string, task: string, desc: string }, date: string) => void,
     user: any
 }) => {
@@ -61,6 +66,7 @@ const PlanRow = ({
     const [editValues, setEditValues] = useState({ title: milestoneTitle || '', task: slot.dayTask, desc: slot.description });
     const [expanded, setExpanded] = useState(false);
     const [generating, setGenerating] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const expInfo = getExpansionInfo(goal.goalType, depth);
     const hasExpandable = !!expInfo;
@@ -74,10 +80,13 @@ const PlanRow = ({
             if (!expInfo) return;
             const parentLevelTasks = goal.plans?.map(p => p.dayTask).join(', ') || '';
 
+            const isWeekLevel = expInfo.type === 'Weeks';
+
             const prompt = `
 Generate a detailed hierarchical action plan breakdown for the following phase of the overall goal.
 Goal Name: ${goal.name}
 Goal Purpose: ${goal.purpose}
+Goal Start Date: ${goal.startDate}
 Phase Target Task: ${slot.dayTask}
 Phase Strategy/Description: ${slot.description}
 Phase Timeline Date/Range: ${slot.date}
@@ -87,12 +96,15 @@ User Preferences: Focus Ability: ${user?.user_metadata?.focusAbility || 'normal'
 Context - The surrounding sibling phases in the overall plan are: ${parentLevelTasks}. Ensure this new breakdown strictly stays within the current phase's boundaries.
 
 Please break this specific phase down into EXACTLY ${expInfo.count} sequential sub-milestones (representing ${expInfo.type}).
+
+${isWeekLevel ? "CRITICAL: You are generating a Weekly plan. You MUST include real-world date ranges (e.g., Jan 1 - Jan 7) for each week based on the goal's start date and this phase's timeline. You MUST also include an 'estimatedHours' integer field representing realistic hours to complete that week's core task." : "CRITICAL: You MUST include real-world date ranges or specific month names (e.g., January 2027) based on the goal's start date and this phase."}
+
 Return ONLY a JSON array with exactly ${expInfo.count} objects.
 Each object must have these exact keys:
 {
-  "date": "string - approximate completion marker (e.g. Month 1, Week 1)",
+  "date": "string - real world date range or month (e.g., 'May 1 - May 7' or 'May 2027')",
   "dayTask": "string - short clear title of this sub-milestone",
-  "description": "string - 1 to 2 sentences describing the focus and strategy for this specific period."
+  "description": "string - 1 to 2 sentences describing the focus and strategy for this specific period."${isWeekLevel ? ',\n  "estimatedHours": number - realistic estimated hours (e.g. 5)' : ''}
 }
 NO MARKDOWN. RAW JSON ONLY.
 `;
@@ -198,7 +210,14 @@ NO MARKDOWN. RAW JSON ONLY.
                             />
                         </>
                     ) : (
-                        <span className="text-sm font-semibold text-foreground tracking-tight leading-tight">{slot.dayTask}</span>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-sm font-semibold text-foreground tracking-tight leading-tight">{slot.dayTask}</span>
+                            {slot.estimatedHours && (
+                                <span className="text-[10px] text-muted-foreground flex items-center font-medium bg-secondary/50 self-start px-1.5 py-0.5 rounded-md">
+                                    <Clock size={10} className="mr-1" /> Est: {slot.estimatedHours}h
+                                </span>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -261,6 +280,25 @@ NO MARKDOWN. RAW JSON ONLY.
                         </div>
                     ) : (
                         <div className="flex flex-col border-l-2 border-border/50 ml-6 mr-4 mb-2 rounded-bl-lg">
+                            <div className="flex justify-end pt-2 pr-2">
+                                <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-destructive hover:bg-destructive/10" onClick={() => setShowDeleteConfirm(true)}>
+                                    <Trash2 size={12} className="mr-1" /> Delete {expInfo?.type} Breakdown
+                                </Button>
+                            </div>
+
+                            <ConfirmationDialog
+                                isOpen={showDeleteConfirm}
+                                onClose={() => setShowDeleteConfirm(false)}
+                                onConfirm={() => {
+                                    onUpdateSubPlans(path, undefined);
+                                    setShowDeleteConfirm(false);
+                                }}
+                                title={`Delete ${expInfo?.type} Breakdown`}
+                                description={`Are you sure you want to delete this ${expInfo?.type} breakdown? This action cannot be undone.`}
+                                confirmText="Delete Breakdown"
+                                variant="destructive"
+                            />
+
                             {slot.subPlans?.map((subSlot, idx) => (
                                 <PlanRow
                                     key={idx}
@@ -297,7 +335,7 @@ export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpda
     const sortedPlans = goal.plans?.slice().sort((a, b) => a.date.localeCompare(b.date)) || [];
     let nextFound = false;
 
-    const handleUpdateSubPlans = (path: number[], subPlans: AIGeneratedPlanSlot[]) => {
+    const handleUpdateSubPlans = (path: number[], subPlans: AIGeneratedPlanSlot[] | undefined) => {
         if (!onUpdate) return;
         const newPlans = deepUpdateSubPlans(sortedPlans, path, subPlans);
         onUpdate({ ...goal, plans: newPlans });

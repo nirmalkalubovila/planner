@@ -34,6 +34,7 @@ export interface AIGeneratedPlanSlot {
     dayTask: string;
     description: string;
     subPlans?: AIGeneratedPlanSlot[];
+    estimatedHours?: number;
 }
 
 export interface Goal extends GlobalRecords {
