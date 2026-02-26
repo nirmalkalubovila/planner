@@ -18,6 +18,7 @@ interface GoalCardProps {
     weekPlan?: GridState;
     completedDays?: Record<string, string[]>;
     currentWeek?: string;
+    onUpdateGoal?: (goal: Goal) => void;
 }
 
 export const GoalCard: React.FC<GoalCardProps> = ({
@@ -28,7 +29,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     onDelete,
     weekPlan,
     completedDays,
-    currentWeek
+    currentWeek,
+    onUpdateGoal
 }) => {
     const hasPlan = goal.plans && goal.plans.length > 0;
 
@@ -90,20 +92,18 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
                 let currentWeekProgressDays = 0;
                 if (totalWeekly > 0) {
-                    // Progress based on actual task completions! 1 week = 7 days.
+                    // Progress based on actual task completions
                     currentWeekProgressDays = 7 * (completedWeekly / totalWeekly);
+
+                    let totalPassedDays = daysToWeekStart + currentWeekProgressDays;
+                    if (totalPassedDays < 0) totalPassedDays = 0;
+                    if (totalPassedDays > totalDays) totalPassedDays = totalDays;
+
+                    progressOverride = (totalPassedDays / totalDays) * 100;
                 } else {
-                    // Natural time progression when no tasks are planned
-                    const today = new Date();
-                    const daysInCurrentWeek = Math.max(0, Math.min(7, (today.getTime() - currentWeekStart.getTime()) / (1000 * 3600 * 24)));
-                    currentWeekProgressDays = daysInCurrentWeek;
+                    // If no tasks are planned, progress is 0
+                    progressOverride = 0;
                 }
-
-                let totalPassedDays = daysToWeekStart + currentWeekProgressDays;
-                if (totalPassedDays < 0) totalPassedDays = 0;
-                if (totalPassedDays > totalDays) totalPassedDays = totalDays;
-
-                progressOverride = (totalPassedDays / totalDays) * 100;
             }
         }
 
@@ -194,7 +194,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                         </div>
                     )}
 
-                    <MasterActionPlan goal={goal} />
+                    <MasterActionPlan goal={goal} onUpdate={onUpdateGoal} />
                 </CardContent>
             )}
         </Card>

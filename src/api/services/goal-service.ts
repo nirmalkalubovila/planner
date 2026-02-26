@@ -51,7 +51,6 @@ export function useCreateGoal() {
             toast.error("Failed to create goal: " + err.message);
         },
         onSuccess: () => {
-            toast.success("Goal created successfully!");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
     });
@@ -81,7 +80,6 @@ export function useUpdateGoal() {
             toast.error("Failed to update goal: " + err.message);
         },
         onSuccess: () => {
-            toast.success("Goal updated successfully!");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
     });

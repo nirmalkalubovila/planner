@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/auth-context';
 import { ProtectedRoute } from './components/protected-route';
 import { DashboardLayout } from './layout/dashboard-layout';
-import { HabitsPage } from './pages/habits-page';
+import { HabitsPage } from './pages/habits/habits-page';
 import { GoalsPage } from './pages/goals/goals-page';
 import { PlannerPage } from './pages/planner/planner-page';
 import { TodayPage } from './pages/today-page';

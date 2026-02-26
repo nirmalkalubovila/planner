@@ -13,24 +13,24 @@ const goalSchema = z.object({
     goalType: z.enum(['Week', 'Month', 'Year']),
     durationValue: z.number().min(1, "Duration must be at least 1"),
 }).superRefine((data, ctx) => {
-    if (data.goalType === 'Week' && data.durationValue > 3) {
+    if (data.goalType === 'Week' && (data.durationValue < 1 || data.durationValue > 4)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Week Goal duration cannot exceed 3 weeks",
+            message: "Week Goal duration must be between 1 and 4 weeks",
             path: ["durationValue"],
         });
     }
-    if (data.goalType === 'Month' && data.durationValue > 11) {
+    if (data.goalType === 'Month' && (data.durationValue < 2 || data.durationValue > 12)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Month Goal duration cannot exceed 11 months",
+            message: "Month Goal duration must be between 2 and 12 months",
             path: ["durationValue"],
         });
     }
-    if (data.goalType === 'Year' && data.durationValue > 10) {
+    if (data.goalType === 'Year' && (data.durationValue < 2 || data.durationValue > 10)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Year Goal duration cannot exceed 10 years",
+            message: "Year Goal duration must be between 2 and 10 years",
             path: ["durationValue"],
         });
     }
@@ -78,9 +78,9 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
                 <div className="space-y-2 md:col-span-1">
                     <label className="text-sm font-medium">Goal Type</label>
                     <select {...form.register('goalType')} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
-                        <option value="Week">Week Goal (1-3 weeks)</option>
-                        <option value="Month">Month Goal (1-11 months)</option>
-                        <option value="Year">Year Goal (1-10 years)</option>
+                        <option value="Week">Week Goal (1-4 weeks)</option>
+                        <option value="Month">Month Goal (2-12 months)</option>
+                        <option value="Year">Year Goal (2-10 years)</option>
                     </select>
                 </div>
                 <div className="space-y-2 md:col-span-1">
@@ -88,8 +88,8 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
                     <Input
                         type="number"
                         {...form.register('durationValue', { valueAsNumber: true })}
-                        min="1"
-                        max={watchedGoalType === 'Week' ? 3 : watchedGoalType === 'Month' ? 11 : 10}
+                        min={watchedGoalType === 'Week' ? 1 : 2}
+                        max={watchedGoalType === 'Week' ? 4 : watchedGoalType === 'Month' ? 12 : 10}
                         className="bg-background"
                     />
                     {form.formState.errors.durationValue && <p className="text-xs text-destructive">{form.formState.errors.durationValue.message}</p>}
