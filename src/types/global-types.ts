@@ -33,6 +33,7 @@ export interface AIGeneratedPlanSlot {
     date: string;
     dayTask: string;
     description: string;
+    subPlans?: AIGeneratedPlanSlot[];
 }
 
 export interface Goal extends GlobalRecords {
