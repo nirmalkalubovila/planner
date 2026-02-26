@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Target, Loader2, Edit2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useGetGoals, useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/api/services/goal-service';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,10 @@ export const GoalsPage: React.FC = () => {
     // Confirmation Dialog State
     const [showConfirm, setShowConfirm] = useState(false);
     const [pendingValues, setPendingValues] = useState<GoalFormValues | null>(null);
+
+    // Goal Deletion Confirmation state
+    const [goalIdToDelete, setGoalIdToDelete] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const { data: goals = [], isLoading } = useGetGoals();
     const createGoal = useCreateGoal();
@@ -168,11 +173,11 @@ Each object must have exactly these keys:
                     setStep(1);
                     setActiveGoal(null);
                 },
-                onError: (err: any) => { alert('DB Error: ' + err.message); setGenerating(false); }
+                onError: (err: any) => { toast.error('DB Error: ' + err.message); setGenerating(false); }
             });
 
         } catch (error: any) {
-            alert('Generation Failed: ' + (error.message || 'Unknown error'));
+            toast.error('Generation Failed: ' + (error.message || 'Unknown error'));
             setGenerating(false);
         }
     };
@@ -233,7 +238,7 @@ Each object must have exactly these keys:
                             isExpanded={!!expandedGoals[goal.id!]}
                             onToggle={toggleGoal}
                             onEdit={handleEdit}
-                            onDelete={(id) => deleteGoal.mutate(id)}
+                            onDelete={(id) => { setGoalIdToDelete(id); setShowDeleteConfirm(true); }}
                             weekPlan={weekPlan || {}}
                             completedDays={completedDays || {}}
                             currentWeek={currentWeek}
@@ -250,6 +255,21 @@ Each object must have exactly these keys:
                 description="Changing your goal's definition or duration will automatically reset your current AI action plan. You will need to regenerate the plan to match your new milestones."
                 confirmText="Save & Continue"
                 cancelText="Go Back"
+            />
+            <ConfirmationDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => {
+                    if (goalIdToDelete) {
+                        deleteGoal.mutate(goalIdToDelete);
+                        setGoalIdToDelete(null);
+                        setShowDeleteConfirm(false);
+                    }
+                }}
+                title="Delete Goal?"
+                description="Deleting this goal will also permanently remove all its associated plans and milestones. This action cannot be undone."
+                confirmText="Delete Goal"
+                variant="destructive"
             />
         </div>
     );

@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
 import { timeToMinutes, minutesToTime, isTimeOverlapping, isSleepOverlapping } from '@/utils/time-utils';
 import { toast } from 'sonner';
+import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -36,6 +37,10 @@ export const HabitsPage: React.FC = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [conflictError, setConflictError] = useState<string | null>(null);
+
+    // Confirmation state
+    const [idToDelete, setIdToDelete] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const { data: habits = [], isLoading } = useGetHabits();
     const createHabit = useCreateHabit();
@@ -343,7 +348,7 @@ export const HabitsPage: React.FC = () => {
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEdit(habit)}>
                                             <Edit2 size={14} />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteHabit.mutate(habit.id!)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => { setIdToDelete(habit.id!); setShowDeleteConfirm(true); }}>
                                             <Trash2 size={14} />
                                         </Button>
                                     </div>
@@ -387,6 +392,21 @@ export const HabitsPage: React.FC = () => {
                     ))
                 )}
             </div>
+            <ConfirmationDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => {
+                    if (idToDelete) {
+                        deleteHabit.mutate(idToDelete);
+                        setIdToDelete(null);
+                        setShowDeleteConfirm(false);
+                    }
+                }}
+                title="Delete Habit?"
+                description="Are you sure you want to delete this habit? This will remove all its occurrences from your weekly planning grid."
+                confirmText="Delete Habit"
+                variant="destructive"
+            />
         </div>
     );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,8 +64,9 @@ export const ProfilePage: React.FC = () => {
         setLoading(false);
         if (!error) {
             setIsEditing(false);
+            toast.success('Profile updated successfully!');
         } else {
-            alert('Failed to update profile: ' + error.message);
+            toast.error('Failed to update profile: ' + error.message);
         }
     };
 

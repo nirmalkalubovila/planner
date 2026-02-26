@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useBlocker, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Lightbulb, ExternalLink, X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGetWeekPlan, useSaveWeekPlan } from '@/api/services/planner-service';
@@ -9,7 +10,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState, Goal, Habit, CustomTask } from '@/types/global-types';
-import { useGetCustomTasks } from '@/api/services/custom-task-service';
+import { useGetCustomTasks, useDeleteCustomTask } from '@/api/services/custom-task-service';
 
 // Modular Components
 import { PlannerToolbar } from './components/planner-toolbar';
@@ -41,6 +42,9 @@ export const PlannerPage: React.FC = () => {
     const [isGoalToolDialogOpen, setIsGoalToolDialogOpen] = useState(false);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
+    const [showTaskDeleteConfirm, setShowTaskDeleteConfirm] = useState(false);
+    const [showLibraryDeleteConfirm, setShowLibraryDeleteConfirm] = useState(false);
+    const [idToDeleteFromLibrary, setIdToDeleteFromLibrary] = useState<string | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Edit states
@@ -56,6 +60,7 @@ export const PlannerPage: React.FC = () => {
     const { data: habits } = useGetHabits();
     const { data: goals } = useGetGoals();
     const { data: libraryTasks } = useGetCustomTasks();
+    const deleteLibraryTask = useDeleteCustomTask();
     const { user } = useAuth();
     const savePlan = useSaveWeekPlan();
 
@@ -177,7 +182,7 @@ export const PlannerPage: React.FC = () => {
 
     const handleGenerateWeeklyPlan = async () => {
         if (!selectedGoalId || !user) {
-            alert("Please select a goal first!");
+            toast.error("Please select a goal first!");
             return;
         }
         const targetGoal = activeGoalsForWeek.find(g => g.id === selectedGoalId);
@@ -274,7 +279,7 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
             setIsGoalToolDialogOpen(false);
         } catch (error: any) {
             console.error('Failed to generate weekly plan', error);
-            alert('Failed to generate plan: ' + error.message);
+            toast.error('Failed to generate plan: ' + error.message);
         } finally {
             setIsGenerating(false);
         }
@@ -347,7 +352,7 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
         }
 
         if (!canAdd) {
-            alert('Cannot make it happen. The selected time block is already reserved by Sleep, Habits, or another Task.');
+            toast.error('Cannot make it happen. The selected time block is already reserved by Sleep, Habits, or another Task.');
             return;
         }
 
@@ -368,6 +373,19 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
         updateGridState(newState);
     };
 
+    const handleDeleteLibraryTask = (id: string) => {
+        setIdToDeleteFromLibrary(id);
+        setShowLibraryDeleteConfirm(true);
+    };
+
+    const executeLibraryDelete = () => {
+        if (idToDeleteFromLibrary) {
+            deleteLibraryTask.mutate(idToDeleteFromLibrary);
+            setIdToDeleteFromLibrary(null);
+            setShowLibraryDeleteConfirm(false);
+        }
+    };
+
 
     const handleTaskEditSave = (data: any) => {
         if (!editingTaskCell) return;
@@ -382,12 +400,17 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
     };
 
     const handleTaskDelete = () => {
+        setShowTaskDeleteConfirm(true);
+    };
+
+    const executeTaskDelete = () => {
         if (!editingTaskCell) return;
         const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
         const newState = { ...localGridState };
         delete newState[key];
         updateGridState(newState);
         setIsTaskEditDialogOpen(false);
+        setShowTaskDeleteConfirm(false);
     };
 
     const handleCellClick = (dayIdx: number, slotIdx: number) => {
@@ -423,7 +446,7 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
             }
 
             if (!selectedGoalId && (!existing || existing.type !== 'goal')) {
-                alert("Please select a goal first!");
+                toast.error("Please select a goal first!");
                 return;
             }
 
@@ -599,6 +622,7 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
                     setSelectedLibraryTask(null);
                 }}
                 onConfirm={handleCustomTaskConfirm}
+                onDelete={handleDeleteLibraryTask}
                 initialData={selectedLibraryTask}
             />
 
@@ -657,6 +681,26 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
                     setShowUnsavedConfirm(false);
                     if (blocker.state === "blocked") blocker.proceed();
                 }}
+            />
+
+            <ConfirmationDialog
+                isOpen={showTaskDeleteConfirm}
+                onClose={() => setShowTaskDeleteConfirm(false)}
+                onConfirm={executeTaskDelete}
+                title="Delete Task Slot?"
+                description="Are you sure you want to remove this specific task slot? This will only remove this single 30-minute block."
+                confirmText="Delete Slot"
+                variant="destructive"
+            />
+
+            <ConfirmationDialog
+                isOpen={showLibraryDeleteConfirm}
+                onClose={() => setShowLibraryDeleteConfirm(false)}
+                onConfirm={executeLibraryDelete}
+                title="Remove from Library?"
+                description="Are you sure you want to remove this task from your library? This will not remove existing tasks from your planner grid, but you won't be able to quickly schedule it again."
+                confirmText="Remove Task"
+                variant="destructive"
             />
         </div>
     );

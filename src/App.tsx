@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/auth-context';
 import { ProtectedRoute } from './components/protected-route';
@@ -29,9 +29,20 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const RootLayout = () => {
+  const location = useLocation();
+  const isTodayPage = location.pathname === '/';
+  return (
+    <>
+      {!isTodayPage && <Toaster position="top-right" theme="dark" richColors />}
+      <Outlet />
+    </>
+  );
+};
+
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <>
+    <Route element={<RootLayout />}>
       <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
       <Route path="/signup" element={<AuthRoute><SignupPage /></AuthRoute>} />
 
@@ -45,7 +56,7 @@ const router = createBrowserRouter(
         </Route>
         <Route path="/personalize" element={<PersonalizePage />} />
       </Route>
-    </>
+    </Route>
   )
 );
 
@@ -53,7 +64,6 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Toaster position="top-right" theme="dark" richColors />
         <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>

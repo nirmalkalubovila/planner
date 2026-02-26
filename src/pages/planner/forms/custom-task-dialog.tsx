@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Clock, Calendar, Check, Library } from 'lucide-react';
+import { X, Clock, Calendar, Check, Library, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,9 @@ interface CustomTaskDialogProps {
         daysOfWeek: string[];
         saveToLibrary: boolean;
     }) => void;
+    onDelete?: (id: string) => void;
     initialData?: {
+        id?: string;
         name: string;
         description?: string;
         startTime: string;
@@ -29,7 +31,7 @@ interface CustomTaskDialogProps {
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SHORT_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onClose, onConfirm, initialData }) => {
+export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onClose, onConfirm, onDelete, initialData }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [startTime, setStartTime] = useState('09:00');
@@ -107,7 +109,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-card border shadow-2xl rounded-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-card border shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b bg-muted/20">
                     <div className="flex items-center gap-2">
@@ -218,17 +220,42 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t bg-muted/10 flex gap-3">
-                    <Button variant="ghost" onClick={onClose} className="flex-1 rounded-xl h-11 h-[44px]">
-                        Cancel
-                    </Button>
-                    <Button
-                        disabled={!name}
-                        onClick={handleConfirm}
-                        className="flex-1 rounded-xl h-11 h-[44px] shadow-lg shadow-primary/20"
-                    >
-                        Add to Planner
-                    </Button>
+                <div className="p-6 border-t bg-muted/10 flex items-center justify-between gap-3">
+                    {initialData?.id && onDelete ? (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-11 w-11 rounded-xl text-destructive hover:bg-destructive/10 shrink-0"
+                            onClick={() => {
+                                if (initialData.id) {
+                                    onDelete(initialData.id);
+                                    onClose();
+                                }
+                            }}
+                            title="Remove from Library"
+                        >
+                            <Trash2 size={20} />
+                        </Button>
+                    ) : (
+                        <Button variant="ghost" onClick={onClose} className="flex-1 rounded-xl h-11">
+                            Cancel
+                        </Button>
+                    )}
+
+                    <div className="flex gap-3 flex-1">
+                        {initialData?.id && onDelete && (
+                            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl h-11">
+                                Cancel
+                            </Button>
+                        )}
+                        <Button
+                            disabled={!name}
+                            onClick={handleConfirm}
+                            className="flex-1 rounded-xl h-11 shadow-lg shadow-primary/20"
+                        >
+                            Add to Planner
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
