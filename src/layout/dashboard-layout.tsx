@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Header } from './header';
 import { DashboardSidebar } from './dashboard-sidebar';
 import { MobileNav } from './mobile-nav';
+import { WeekReflectionDialog } from '@/components/common/week-reflection/week-reflection-dialog';
 
 export const DashboardLayout: React.FC = () => {
     return (
@@ -19,6 +20,8 @@ export const DashboardLayout: React.FC = () => {
                 </main>
                 <MobileNav />
             </div>
+            {/* Week Reflection Overlay */}
+            <WeekReflectionDialog />
         </div>
     );
 };

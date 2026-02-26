@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Eraser, Target, Sparkles, Save, RotateCcw, Plus, Library, Check, Undo2, Redo2, Copy, Lightbulb } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eraser, Target, Sparkles, Save, RotateCcw, Plus, Library, Check, Undo2, Redo2, Copy, Lightbulb, BookmarkPlus, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WeekUtils } from '@/utils/week-utils';
 import { CustomTask } from '@/types/global-types';
@@ -18,6 +18,7 @@ interface PlannerToolbarProps {
     onSave: () => void;
     onCreateCustomTask: (task?: CustomTask) => void;
     libraryTasks: CustomTask[];
+    missedTasks: CustomTask[];
     previewPlan: any[] | null;
     onCancelPreview: () => void;
     commitPreviewPlan: () => void;
@@ -30,13 +31,45 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
     selectedTool, setSelectedTool,
     onClear, onUndo, onRedo, canUndo, canRedo, onSave,
     onCreateCustomTask,
-    libraryTasks,
+    libraryTasks, missedTasks,
     previewPlan, onCancelPreview, commitPreviewPlan,
     onGoalToolClick,
     onShowTips
 }) => {
 
-    // Toolbar UI remains the same, but we handle tips display via props
+    const renderLibraryItems = (tasks: CustomTask[], title: string, color: string, icon: React.ReactNode) => (
+        <div className="flex items-center gap-2 border-r border-border pr-2 shrink-0">
+            <div className={cn("flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] uppercase tracking-tighter font-bold shadow-sm", color)}>
+                {icon} {title}
+            </div>
+            <div className="flex items-center gap-1.5 max-w-[200px] overflow-x-auto hide-scrollbar">
+                {tasks.length === 0 ? (
+                    <span className="text-[8px] text-muted-foreground italic truncate">Empty</span>
+                ) : (
+                    tasks.map(task => (
+                        <div
+                            key={task.id}
+                            onClick={() => onCreateCustomTask(task)}
+                            draggable
+                            onDragStart={(e) => {
+                                e.dataTransfer.setData('sourceNewTask', JSON.stringify({
+                                    type: 'custom',
+                                    name: task.name,
+                                    startTime: task.startTime,
+                                    endTime: task.endTime,
+                                    description: task.description
+                                }));
+                            }}
+                            className={cn("px-1.5 py-0.5 border rounded text-[9px] font-bold cursor-grab active:cursor-grabbing hover:scale-105 transition-all shrink-0 shadow-sm", color)}
+                            title={`Drag onto grid or click to apply`}
+                        >
+                            {task.name}
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
 
     return (
         <div className="flex items-center gap-4 bg-card py-2 px-4 rounded-xl border shadow-sm w-full mb-4 relative z-50">
@@ -138,7 +171,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                 {/* AI Preview Actions */}
                 {previewPlan && (
                     <div className="flex items-center gap-2 border-r border-border pr-4 shrink-0 animate-in slide-in-from-left-2 duration-300">
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 text-blue-600 rounded-lg border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider mr-1">
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-lg border border-primary/20 text-[10px] font-bold uppercase tracking-wider mr-1">
                             <Sparkles size={12} className="animate-pulse" /> AI Plan Previewing
                         </div>
                         <Button
@@ -152,14 +185,14 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                         <Button
                             size="sm"
                             variant="ghost"
-                            className="h-8 text-xs font-semibold text-blue-600 hover:bg-blue-600/10"
+                            className="h-8 text-xs font-semibold text-primary hover:bg-primary/10"
                             onClick={onGoalToolClick}
                         >
                             <RotateCcw size={14} className="mr-1.5" /> Re-make
                         </Button>
                         <Button
                             size="sm"
-                            className="h-8 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm ring-1 ring-blue-500/50"
+                            className="h-8 text-xs font-bold bg-primary hover:bg-primary/90 text-white shadow-sm ring-1 ring-primary/50"
                             onClick={commitPreviewPlan}
                         >
                             <Check size={14} className="mr-1.5" strokeWidth={3} /> Add this
@@ -167,41 +200,12 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     </div>
                 )}
 
-                {/* Task Library */}
-                <div className="flex items-center gap-2 border-r border-border pr-4 shrink-0">
-                    <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded text-[10px] uppercase tracking-tighter font-bold text-muted-foreground">
-                        <Library size={10} /> Library
-                    </div>
-                    <div className="flex items-center gap-2 max-w-[300px] overflow-x-auto hide-scrollbar">
-                        {libraryTasks.length === 0 ? (
-                            <span className="text-[10px] text-muted-foreground italic">No saved tasks yet</span>
-                        ) : (
-                            libraryTasks.map(task => (
-                                <div
-                                    key={task.id}
-                                    onClick={() => onCreateCustomTask(task)}
-                                    draggable
-                                    onDragStart={(e) => {
-                                        e.dataTransfer.setData('sourceNewTask', JSON.stringify({
-                                            type: 'custom',
-                                            name: task.name,
-                                            startTime: task.startTime,
-                                            endTime: task.endTime,
-                                            description: task.description
-                                        }));
-                                    }}
-                                    className="px-2 py-1 bg-primary/5 text-primary border border-primary/20 rounded text-[10px] font-bold cursor-pointer hover:bg-primary/10 transition-colors shrink-0"
-                                    title={`Click to use or Drag onto grid`}
-                                >
-                                    {task.name}
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
+                {/* Libraries */}
+                {renderLibraryItems(libraryTasks, "Customs", "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", <BookmarkPlus size={10} />)}
+                {renderLibraryItems(missedTasks, "Missed", "bg-orange-500/10 text-orange-600 border-orange-500/20", <Layers size={10} />)}
             </div>
 
-            {/* General Actions & Save Group - Popover removed in favor of Centered Dialog */}
+            {/* General Actions & Save Group */}
             <div className="flex items-center gap-2 shrink-0 ml-auto pl-4 border-l border-border relative">
                 <Button
                     variant="ghost"
@@ -220,7 +224,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     <RotateCcw size={16} className="md:mr-2" />
                     <span className="hidden md:inline">Clear</span>
                 </Button>
-                <Button variant="default" size="sm" className="h-8 font-bold" onClick={onSave} title="Save Plan">
+                <Button variant="default" size="sm" className="h-8 font-bold shadow-lg" onClick={onSave} title="Save Plan">
                     <Save size={16} className="md:mr-2" />
                     <span className="hidden md:inline">Save</span>
                 </Button>
@@ -228,3 +232,4 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
         </div>
     );
 };
+

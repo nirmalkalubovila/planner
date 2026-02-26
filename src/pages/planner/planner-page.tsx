@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState, Goal, Habit, CustomTask } from '@/types/global-types';
 import { useGetCustomTasks, useDeleteCustomTask } from '@/api/services/custom-task-service';
+import { useGetMissedTasks, useDeleteMissedTask } from '@/api/services/missed-task-service';
 
 // Modular Components
 import { PlannerToolbar } from './components/planner-toolbar';
@@ -57,7 +58,9 @@ export const PlannerPage: React.FC = () => {
     const { data: habits } = useGetHabits();
     const { data: goals } = useGetGoals();
     const { data: libraryTasks } = useGetCustomTasks();
+    const { data: missedLibraryTasks } = useGetMissedTasks();
     const deleteLibraryTask = useDeleteCustomTask();
+    const deleteMissedTask = useDeleteMissedTask();
     const { user } = useAuth();
     const savePlan = useSaveWeekPlan();
 
@@ -275,7 +278,9 @@ export const PlannerPage: React.FC = () => {
 
     const executeLibraryDelete = () => {
         if (idToDeleteFromLibrary) {
+            // Check both libraries (simple approach)
             deleteLibraryTask.mutate(idToDeleteFromLibrary);
+            deleteMissedTask.mutate(idToDeleteFromLibrary);
             setIdToDeleteFromLibrary(null);
             setShowLibraryDeleteConfirm(false);
         }
@@ -394,6 +399,7 @@ export const PlannerPage: React.FC = () => {
                     setIsCustomTaskDialogOpen(true);
                 }}
                 libraryTasks={libraryTasks || []}
+                missedTasks={missedLibraryTasks || []}
                 previewPlan={null}
                 onCancelPreview={() => { }}
                 commitPreviewPlan={() => { }}
