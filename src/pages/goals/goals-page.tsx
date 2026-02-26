@@ -159,7 +159,14 @@ System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
 Target Milestone Dates:
 ${milestoneDatesStr}
 
+User Persona & Preferences:
+- Primary Life Focus: ${user?.user_metadata?.primaryLifeFocus || 'Not set'}
+- Current Profession: ${user?.user_metadata?.currentProfession || 'Not set'}
+- Peak Energy Time: ${user?.user_metadata?.energyPeakTime || 'Morning'}
+- Focus Ability: ${user?.user_metadata?.focusAbility || 'normal'}
+
 Based on this, break down the main goal into weighted sub-tasks/sub-goals that need to be accomplished by the end of each milestone period.
+Tailor the nature and pacing of the tasks to fit this specific person's profession, life focus, and energy capabilities.
 TIMELINE SYNC CRITICAL: Use the "System Current Date" as your reality baseline to understand the exact year and timeframe you are generating this for.
 
 Return an action plan as a JSON array of objects.

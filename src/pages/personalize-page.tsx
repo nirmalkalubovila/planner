@@ -18,7 +18,9 @@ export const PersonalizePage: React.FC = () => {
     const [sleepDuration, setSleepDuration] = useState('8');
     const [weekStart, setWeekStart] = useState('Monday');
     const [planTime, setPlanTime] = useState('Sunday 9PM - 10PM');
-    const [freeTime, setFreeTime] = useState('2');
+    const [primaryLifeFocus, setPrimaryLifeFocus] = useState('');
+    const [currentProfession, setCurrentProfession] = useState('');
+    const [energyPeakTime, setEnergyPeakTime] = useState('Morning');
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,7 +34,9 @@ export const PersonalizePage: React.FC = () => {
                     sleepDuration,
                     weekStart,
                     planTime,
-                    freeTime,
+                    primaryLifeFocus,
+                    currentProfession,
+                    energyPeakTime,
                     isPersonalized: true,
                 }
             });
@@ -130,18 +134,39 @@ export const PersonalizePage: React.FC = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none">Expected Free Time for a Day (hours)</label>
-                            <p className="text-xs text-muted-foreground pb-1">
-                                (Spend time with family, watch a movie, social media)
-                            </p>
+                            <label className="text-sm font-medium leading-none">Primary Life Focus</label>
                             <Input
-                                type="number"
-                                min="0"
-                                max="24"
-                                value={freeTime}
-                                onChange={(e) => setFreeTime(e.target.value)}
+                                type="text"
+                                value={primaryLifeFocus}
+                                onChange={(e) => setPrimaryLifeFocus(e.target.value)}
+                                placeholder="e.g., Career, Health, Business, Academics"
                                 required
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none">Current Profession / Status</label>
+                            <Input
+                                type="text"
+                                value={currentProfession}
+                                onChange={(e) => setCurrentProfession(e.target.value)}
+                                placeholder="e.g., Software Engineer, Student"
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium leading-none">Energy Peak Time</label>
+                            <select
+                                value={energyPeakTime}
+                                onChange={(e) => setEnergyPeakTime(e.target.value)}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="Morning">Morning</option>
+                                <option value="Afternoon">Afternoon</option>
+                                <option value="Evening">Evening</option>
+                                <option value="Night">Night</option>
+                            </select>
                         </div>
 
                         <Button type="submit" className="w-full mt-4" disabled={loading}>

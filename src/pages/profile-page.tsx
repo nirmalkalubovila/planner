@@ -21,9 +21,9 @@ export const ProfilePage: React.FC = () => {
     const [sleepDuration, setSleepDuration] = useState('');
     const [weekStart, setWeekStart] = useState('');
     const [planTime, setPlanTime] = useState('');
-    const [freeTime, setFreeTime] = useState('');
-    const [minTaskTime, setMinTaskTime] = useState('');
-    const [maxTaskTime, setMaxTaskTime] = useState('');
+    const [primaryLifeFocus, setPrimaryLifeFocus] = useState('');
+    const [currentProfession, setCurrentProfession] = useState('');
+    const [energyPeakTime, setEnergyPeakTime] = useState('');
     const [focusAbility, setFocusAbility] = useState('');
     const [taskShiftingAbility, setTaskShiftingAbility] = useState('');
 
@@ -35,9 +35,9 @@ export const ProfilePage: React.FC = () => {
             setSleepDuration(user.user_metadata?.sleepDuration || '8');
             setWeekStart(user.user_metadata?.weekStart || 'Monday');
             setPlanTime(user.user_metadata?.planTime || 'Sunday 9PM - 10PM');
-            setFreeTime(user.user_metadata?.freeTime || '2');
-            setMinTaskTime(user.user_metadata?.minTaskTime || '30');
-            setMaxTaskTime(user.user_metadata?.maxTaskTime || '2');
+            setPrimaryLifeFocus(user.user_metadata?.primaryLifeFocus || '');
+            setCurrentProfession(user.user_metadata?.currentProfession || '');
+            setEnergyPeakTime(user.user_metadata?.energyPeakTime || 'Morning');
             setFocusAbility(user.user_metadata?.focusAbility || 'normal');
             setTaskShiftingAbility(user.user_metadata?.taskShiftingAbility || 'normal');
         }
@@ -53,9 +53,9 @@ export const ProfilePage: React.FC = () => {
                 sleepDuration,
                 weekStart,
                 planTime,
-                freeTime,
-                minTaskTime,
-                maxTaskTime,
+                primaryLifeFocus,
+                currentProfession,
+                energyPeakTime,
                 focusAbility,
                 taskShiftingAbility,
             }
@@ -184,16 +184,25 @@ export const ProfilePage: React.FC = () => {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium leading-none">Expected Free Time (hours)</label>
-                                    <Input type="number" min="0" max="24" value={freeTime} onChange={(e) => setFreeTime(e.target.value)} />
+                                    <label className="text-sm font-medium leading-none">Primary Life Focus</label>
+                                    <Input value={primaryLifeFocus} onChange={(e) => setPrimaryLifeFocus(e.target.value)} placeholder="e.g., Career, Health, Business, Family" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium leading-none">Minimum Task Time (minutes)</label>
-                                    <Input type="number" min="1" value={minTaskTime} onChange={(e) => setMinTaskTime(e.target.value)} />
+                                    <label className="text-sm font-medium leading-none">Current Profession / Status</label>
+                                    <Input value={currentProfession} onChange={(e) => setCurrentProfession(e.target.value)} placeholder="e.g., Software Engineer, Student, Entrepreneur" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium leading-none">Maximum Task Time (hours)</label>
-                                    <Input type="number" min="1" max="24" value={maxTaskTime} onChange={(e) => setMaxTaskTime(e.target.value)} />
+                                    <label className="text-sm font-medium leading-none">Energy Peak Time</label>
+                                    <select
+                                        value={energyPeakTime}
+                                        onChange={(e) => setEnergyPeakTime(e.target.value)}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option value="Morning">Morning</option>
+                                        <option value="Afternoon">Afternoon</option>
+                                        <option value="Evening">Evening</option>
+                                        <option value="Night">Night</option>
+                                    </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium leading-none">Focus Ability</label>
@@ -245,14 +254,14 @@ export const ProfilePage: React.FC = () => {
                                     <div className="text-muted-foreground">Planning Time:</div>
                                     <div className="font-medium">{user.user_metadata?.planTime || 'Sunday 9PM - 10PM'}</div>
 
-                                    <div className="text-muted-foreground">Est. Free Time:</div>
-                                    <div className="font-medium">{user.user_metadata?.freeTime || '2'} hours/day</div>
+                                    <div className="text-muted-foreground">Primary Focus:</div>
+                                    <div className="font-medium">{user.user_metadata?.primaryLifeFocus || 'Not set'}</div>
 
-                                    <div className="text-muted-foreground">Min Task Time:</div>
-                                    <div className="font-medium">{user.user_metadata?.minTaskTime || '30'} minutes</div>
+                                    <div className="text-muted-foreground">Profession:</div>
+                                    <div className="font-medium">{user.user_metadata?.currentProfession || 'Not set'}</div>
 
-                                    <div className="text-muted-foreground">Max Task Time:</div>
-                                    <div className="font-medium">{user.user_metadata?.maxTaskTime || '2'} hours</div>
+                                    <div className="text-muted-foreground">Peak Energy:</div>
+                                    <div className="font-medium">{user.user_metadata?.energyPeakTime || 'Morning'}</div>
 
                                     <div className="text-muted-foreground">Focus Ability:</div>
                                     <div className="font-medium capitalize">{user.user_metadata?.focusAbility || 'normal'}</div>

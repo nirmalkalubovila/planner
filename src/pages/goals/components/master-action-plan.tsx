@@ -91,8 +91,9 @@ Phase Target Task: ${slot.dayTask}
 Phase Strategy/Description: ${slot.description}
 Phase Timeline Date/Range: ${slot.date}
 System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
-
 User Preferences: Focus Ability: ${user?.user_metadata?.focusAbility || 'normal'}, Task Shifting: ${user?.user_metadata?.taskShiftingAbility || 'normal'}
+User Persona: Primary Focus: ${user?.user_metadata?.primaryLifeFocus || 'Not set'}, Profession: ${user?.user_metadata?.currentProfession || 'Not set'}, Peak Energy: ${user?.user_metadata?.energyPeakTime || 'Morning'}
+Tailor tasks specifically to fit this person's profession, life focus, and energy cycles when possible.
 
 Context - The surrounding sibling phases in the overall plan are: ${parentLevelTasks}. Ensure this new breakdown strictly stays within the current phase's boundaries.
 
