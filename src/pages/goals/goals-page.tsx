@@ -154,10 +154,14 @@ Generate a detailed milestone action plan for achieving a goal.
 Goal Name: ${goalToUse.name}
 Goal Purpose: ${goalToUse.purpose}
 Goal Start Date: ${goalToUse.startDate}
+System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
+
 Target Milestone Dates:
 ${milestoneDatesStr}
 
 Based on this, break down the main goal into weighted sub-tasks/sub-goals that need to be accomplished by the end of each milestone period.
+TIMELINE SYNC CRITICAL: Use the "System Current Date" as your reality baseline to understand the exact year and timeframe you are generating this for.
+
 Return an action plan as a JSON array of objects.
 
 CRITICAL INSTRUCTION: DO NOT generate tiny, daily tasks. Instead, generate exactly ONE major SUB-GOAL or SUB-TASK to be accomplished by EACH "Target Milestone Date" listed above. If there are 3 Milestone Dates, you should only return an array with exactly 3 objects. This single sub-goal per milestone should represent the main objective for that entire period.

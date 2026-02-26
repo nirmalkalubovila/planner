@@ -36,9 +36,9 @@ export function useCreateCustomTask() {
             const userId = session?.user?.id;
             if (!userId) throw new Error("Not authenticated");
 
-            // Remove any undefined fields to allow DB defaults to kick in
+            // Remove any undefined fields and the color field to avoid schema cache errors
             const cleanTask = Object.fromEntries(
-                Object.entries(task).filter(([_, v]) => v !== undefined)
+                Object.entries(task).filter(([k, v]) => v !== undefined && k !== 'color')
             );
 
             const { data, error } = await supabase

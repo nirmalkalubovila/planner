@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useCreateCustomTask } from '@/api/services/custom-task-service';
 import { timeToMinutes, minutesToTime } from '@/utils/time-utils';
+import { CUSTOM_TASK_COLORS } from '@/utils/color-utils';
 
 interface CustomTaskDialogProps {
     isOpen: boolean;
@@ -15,6 +16,7 @@ interface CustomTaskDialogProps {
         startTime: string;
         endTime: string;
         daysOfWeek: string[];
+        color?: string;
         saveToLibrary: boolean;
     }) => void;
     onDelete?: (id: string) => void;
@@ -25,6 +27,7 @@ interface CustomTaskDialogProps {
         startTime: string;
         endTime: string;
         daysOfWeek: string[];
+        color?: string;
     } | null;
 }
 
@@ -37,6 +40,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
     const [startTime, setStartTime] = useState('09:00');
     const [durationPacks, setDurationPacks] = useState(2);
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
+    const [color, setColor] = useState(CUSTOM_TASK_COLORS[0]);
     const [saveToLibrary, setSaveToLibrary] = useState(false);
 
     const endTime = minutesToTime(timeToMinutes(startTime) + durationPacks * 30);
@@ -56,6 +60,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
 
                 setDurationPacks(packs);
                 setSelectedDays(initialData.daysOfWeek || []);
+                setColor(initialData.color || CUSTOM_TASK_COLORS[0]);
                 setSaveToLibrary(false);
             } else {
                 setName('');
@@ -63,6 +68,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 setStartTime('09:00');
                 setDurationPacks(2);
                 setSelectedDays([]);
+                setColor(CUSTOM_TASK_COLORS[0]);
                 setSaveToLibrary(false);
             }
         }
@@ -87,6 +93,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
             startTime,
             endTime,
             daysOfWeek: selectedDays,
+            color,
             saveToLibrary
         });
 
@@ -96,8 +103,9 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 description,
                 startTime,
                 endTime,
-                daysOfWeek: selectedDays
-            });
+                daysOfWeek: selectedDays,
+                color
+            } as any); // Ignoring type issue here for color if API model needs update
         }
 
         setName('');
@@ -109,7 +117,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-card border shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-card border shadow-2xl rounded-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b bg-muted/20">
                     <div className="flex items-center gap-2">
@@ -199,6 +207,24 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                                     </button>
                                 );
                             })}
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Task Color</label>
+                        <div className="flex gap-2.5">
+                            {CUSTOM_TASK_COLORS.map(c => (
+                                <button
+                                    key={c}
+                                    type="button"
+                                    onClick={() => setColor(c)}
+                                    className={cn(
+                                        "w-8 h-8 rounded-full shadow-sm border-2 transition-transform hover:scale-110",
+                                        color === c ? "border-foreground scale-110" : "border-transparent"
+                                    )}
+                                    style={{ backgroundColor: c }}
+                                />
+                            ))}
                         </div>
                     </div>
 

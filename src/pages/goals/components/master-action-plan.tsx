@@ -90,6 +90,7 @@ Goal Start Date: ${goal.startDate}
 Phase Target Task: ${slot.dayTask}
 Phase Strategy/Description: ${slot.description}
 Phase Timeline Date/Range: ${slot.date}
+System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
 
 User Preferences: Focus Ability: ${user?.user_metadata?.focusAbility || 'normal'}, Task Shifting: ${user?.user_metadata?.taskShiftingAbility || 'normal'}
 
@@ -97,7 +98,8 @@ Context - The surrounding sibling phases in the overall plan are: ${parentLevelT
 
 Please break this specific phase down into EXACTLY ${expInfo.count} sequential sub-milestones (representing ${expInfo.type}).
 
-${isWeekLevel ? "CRITICAL: You are generating a Weekly plan. You MUST include real-world date ranges (e.g., Jan 1 - Jan 7) for each week based on the goal's start date and this phase's timeline. You MUST also include an 'estimatedHours' integer field representing realistic hours to complete that week's core task." : "CRITICAL: You MUST include real-world date ranges or specific month names (e.g., January 2027) based on the goal's start date and this phase."}
+TIMELINE SYNC CRITICAL: You must use the "System Current Date" as your reality baseline. 
+${isWeekLevel ? "CRITICAL: You are generating a Weekly plan. You MUST include real-world date ranges (e.g., Jan 1 - Jan 7, 2026) for each week based on the goal's start date, this phase's timeline, and the System Current Date. You MUST also include an 'estimatedHours' integer field representing realistic hours to complete that week's core task." : "CRITICAL: You MUST include real-world date ranges or specific month names (e.g., January 2027) based on the goal's start date and this phase, anchored by the System Current Date."}
 
 Return ONLY a JSON array with exactly ${expInfo.count} objects.
 Each object must have these exact keys:

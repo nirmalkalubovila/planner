@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState } from '@/types/global-types';
+import { getGoalColor } from '@/utils/color-utils';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SLOTS_PER_DAY = 48;
@@ -128,6 +129,13 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     !content && !isToday && "hover:bg-accent/30 text-transparent",
                                                     !content && isToday && "text-transparent"
                                                 )}
+                                                style={
+                                                    content?.type === 'goal'
+                                                        ? { backgroundColor: getGoalColor(content.goalId || content.name), color: '#fff', borderColor: 'transparent' }
+                                                        : content?.type === 'custom' && content.color
+                                                            ? { backgroundColor: content.color, color: '#fff', borderColor: 'transparent' }
+                                                            : {}
+                                                }
                                                 onClick={() => handleCellClick(dayIdx, slotIdx)}
                                             >
                                                 {isToday && (
