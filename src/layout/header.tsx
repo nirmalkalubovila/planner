@@ -42,12 +42,10 @@ export const Header: React.FC = () => {
             {/* Mobile View: Left Time, Right Profile */}
             <div className="flex md:hidden items-center justify-between h-14 px-4 w-full text-sm">
 
-                {/* Left: Time, Date, Year */}
-                <div className="flex items-center font-medium text-muted-foreground">
-                    <div className="flex items-center gap-2 bg-accent/50 px-3 py-1 rounded-full border border-border">
-                        <Clock size={16} className="text-primary" />
-                        <span className="text-xs">{format(time, 'MMM d, yyyy HH:mm')}</span>
-                    </div>
+                {/* Left: System Name (Mobile) */}
+                <div className="flex items-center gap-2">
+                    <img src="/white-logo.svg" alt="Legacy Life Builder Logo" className="h-6 w-auto" />
+                    <span className="text-base font-bold tracking-tight text-primary">Legacy Life Builder</span>
                 </div>
 
                 {/* Right: User Profile */}
