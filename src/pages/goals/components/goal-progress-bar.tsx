@@ -1,6 +1,7 @@
 import React from 'react';
 import { Milestone } from '@/types/global-types';
 import { cn } from '@/lib/utils';
+import { Calendar, Target, Check } from 'lucide-react';
 
 interface GoalProgressBarProps {
     milestones: Milestone[];
@@ -12,57 +13,82 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({ milestones, pr
 
     const totalMilestones = milestones.length;
 
+    // Find active phase index
+    const activeIdx = milestones.findIndex((_, idx) => {
+        const position = ((idx + 1) / totalMilestones) * 100;
+        return progressPercentage < position;
+    });
+
     return (
-        <div className="mt-8 mb-6 relative h-2 flex items-center w-full">
-            {/* Background Line */}
-            <div className="absolute left-0 right-0 h-1.5 bg-muted/60 rounded-full" />
-
-            {/* Progress Line - Vibrant Emerald/Green */}
-            <div
-                className="absolute left-0 h-1.5 bg-gradient-to-r from-emerald-600 to-green-400 transition-all duration-1000 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                style={{ width: `${progressPercentage}%` }}
-            />
-
-            {/* Milestone Dots & Gaps */}
-            <div className="relative w-full flex justify-between h-0 items-center">
+        <div className="mt-8 mb-6 space-y-6 select-none animate-in fade-in duration-500">
+            {/* Minimalist Grid - Never overlaps, fast to render */}
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                 {milestones.map((m, idx) => {
-                    const position = ((idx + 1) / totalMilestones) * 100;
-                    const isReached = progressPercentage >= position || m.completed;
+                    const milestonePos = ((idx + 1) / totalMilestones) * 100;
+                    const isCompleted = m.completed || progressPercentage >= milestonePos;
+                    const isCurrent = idx === (activeIdx === -1 ? totalMilestones - 1 : activeIdx);
 
                     return (
-                        <div key={m.id} className="absolute flex flex-col items-center group/dot" style={{ left: `${position}%`, transform: 'translateX(-50%)' }}>
-                            <div
-                                className={cn(
-                                    "w-4 h-4 md:w-5 md:h-5 rounded-full border-2 transition-all duration-500 z-10 flex items-center justify-center bg-background",
-                                    isReached
-                                        ? "border-emerald-500 border-[5px] scale-125 shadow-[0_0_15px_rgba(16,185,129,0.5)] fill-emerald-500"
-                                        : "border-muted-foreground/30 border-[3px]"
-                                )}
-                            />
-
-                            {/* Floating Tooltip */}
-                            <div className="absolute -top-10 opacity-0 group-hover/dot:opacity-100 transition-all duration-300 transform translate-y-2 group-hover/dot:translate-y-0 pointer-events-none z-30">
-                                <div className="bg-popover text-popover-foreground text-[10px] font-bold px-2 py-1 flex flex-col items-center rounded shadow-xl border border-border/50 whitespace-nowrap backdrop-blur-sm">
-                                    <span>{m.title}</span>
-                                    <span className="text-muted-foreground text-[8px] font-normal">{m.targetDate}</span>
+                        <div
+                            key={m.id}
+                            className={cn(
+                                "relative p-3 rounded-xl border transition-all h-full",
+                                isCompleted
+                                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-500"
+                                    : isCurrent
+                                        ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]"
+                                        : "bg-muted/30 border-border/50 text-muted-foreground/60"
+                            )}
+                        >
+                            <div className="flex flex-col h-full justify-between gap-2">
+                                <div className="flex items-center justify-between">
+                                    <span className={cn(
+                                        "text-[9px] font-black tracking-widest uppercase",
+                                        isCurrent ? "text-primary-foreground/80" : "text-muted-foreground/50"
+                                    )}>Phase {idx + 1}</span>
+                                    {isCompleted && <Check size={12} className="stroke-[3]" />}
                                 </div>
-                                <div className="w-2 h-2 bg-popover border-b border-r transform rotate-45 mx-auto -mt-1 shadow-sm"></div>
-                            </div>
 
-                            {/* Label Below */}
-                            <div className="absolute top-6 flex flex-col items-center">
-                                <span className={cn(
-                                    "text-[8px] md:text-[9px] font-bold uppercase tracking-wide transition-all duration-300 whitespace-nowrap px-1 py-0.5 rounded",
-                                    isReached
-                                        ? "text-emerald-600 bg-emerald-500/10"
-                                        : "text-muted-foreground/60"
-                                )}>
+                                <span className="text-[11px] font-bold leading-none break-words">
                                     {m.title}
                                 </span>
+
+                                <div className={cn(
+                                    "flex items-center gap-1 mt-1",
+                                    isCurrent ? "text-primary-foreground/70" : "text-muted-foreground/40"
+                                )}>
+                                    <Calendar size={10} />
+                                    <span className="text-[9px] font-medium">{m.targetDate}</span>
+                                </div>
                             </div>
                         </div>
                     );
                 })}
+            </div>
+
+            {/* Performance-Friendly Stats Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-accent/5 p-4 rounded-2xl border border-border/50">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full border-2 border-emerald-500/20 flex items-center justify-center bg-emerald-500/5">
+                        <Target className="w-6 h-6 text-emerald-500" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">Total Progress</p>
+                        <h4 className="text-2xl font-black tracking-tight">{Math.round(progressPercentage)}%</h4>
+                    </div>
+                </div>
+
+                <div className="hidden sm:block h-8 w-px bg-border/50"></div>
+
+                <div className="flex items-center gap-8">
+                    <div className="text-center sm:text-right">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">Completed</p>
+                        <h4 className="text-xl font-black">
+                            {milestones.filter((m, idx) => m.completed || progressPercentage >= ((idx + 1) / totalMilestones) * 100).length}
+                            <span className="text-muted-foreground font-medium text-sm ml-1">/ {totalMilestones}</span>
+                        </h4>
+                    </div>
+                </div>
             </div>
         </div>
     );

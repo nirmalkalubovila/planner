@@ -14,6 +14,9 @@ import { WeekUtils } from '@/utils/week-utils';
 import { useGetWeekPlan } from '@/api/services/planner-service';
 import { useGetWeekCompletedTasks } from '@/api/services/today-service';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
+import { MilestoneStrategyDialog } from './components/strategy-choice-dialog';
+import { ManualPlanStep } from './forms/manual-plan-step';
+import { AILoadingPopup } from '@/components/common/ai-loading-popup';
 
 export const GoalsPage: React.FC = () => {
     const { user } = useAuth();
@@ -21,7 +24,11 @@ export const GoalsPage: React.FC = () => {
     const [step, setStep] = useState(1); // 1: Definition, 2: Plan Gen
     const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
     const [generating, setGenerating] = useState(false);
+    const [isNewRecord, setIsNewRecord] = useState(false);
     const [expandedGoals, setExpandedGoals] = useState<Record<string, boolean>>({});
+    const [tempPlan, setTempPlan] = useState<AIGeneratedPlanSlot[] | null>(null);
+    const [showStrategyDialog, setShowStrategyDialog] = useState(false);
+    const [strategyPendingData, setStrategyPendingData] = useState<Goal | null>(null);
 
     // Confirmation Dialog State
     const [showConfirm, setShowConfirm] = useState(false);
@@ -48,7 +55,9 @@ export const GoalsPage: React.FC = () => {
 
     const handleEdit = (goal: Goal) => {
         setActiveGoal(goal);
+        setIsNewRecord(false);
         setStep(1);
+        setTempPlan(null);
         setIsFormOpen(true);
     };
 
@@ -96,31 +105,55 @@ export const GoalsPage: React.FC = () => {
             plans: activeGoal?.plans || []
         };
 
-        if (activeGoal && activeGoal.id) {
-            updateGoal.mutate({ ...goalData, id: activeGoal.id }, {
-                onSuccess: (data) => { setActiveGoal(data); setStep(2); }
-            });
-        } else {
-            createGoal.mutate(goalData, {
-                onSuccess: (data) => { setActiveGoal(data); setStep(2); }
-            });
+        if (activeGoal?.id) {
+            goalData.id = activeGoal.id;
         }
+
+        setStrategyPendingData(goalData);
+        setShowStrategyDialog(true);
     };
 
-    const handleGeneratePlan = async () => {
-        if (!activeGoal || !user) return;
+    const handleStrategySelect = (type: 'ai' | 'manual') => {
+        if (!strategyPendingData) return;
+        setShowStrategyDialog(false);
+
+        if (type === 'ai') {
+            setGenerating(true);
+        }
+
+        const mutation = activeGoal?.id ? updateGoal : createGoal;
+
+        mutation.mutate(strategyPendingData, {
+            onSuccess: (data: Goal) => {
+                setActiveGoal(data);
+                if (type === 'ai') {
+                    setStep(2);
+                    handleGeneratePlan(data);
+                } else {
+                    setStep(3);
+                }
+            },
+            onError: () => {
+                setGenerating(false);
+            }
+        });
+    };
+
+    const handleGeneratePlan = async (targetGoal?: Goal) => {
+        const goalToUse = targetGoal || activeGoal;
+        if (!goalToUse || !user) return;
         setGenerating(true);
 
         try {
-            const milestoneDatesStr = activeGoal.milestones
-                ? activeGoal.milestones.map(m => `- ${m.title}: ${m.targetDate}`).join('\n')
-                : `End Date: ${activeGoal.endDate}`;
+            const milestoneDatesStr = goalToUse.milestones
+                ? goalToUse.milestones.map(m => `- ${m.title}: ${m.targetDate}`).join('\n')
+                : `End Date: ${goalToUse.endDate}`;
 
             const prompt = `
 Generate a detailed milestone action plan for achieving a goal.
-Goal Name: ${activeGoal.name}
-Goal Purpose: ${activeGoal.purpose}
-Goal Start Date: ${activeGoal.startDate}
+Goal Name: ${goalToUse.name}
+Goal Purpose: ${goalToUse.purpose}
+Goal Start Date: ${goalToUse.startDate}
 Target Milestone Dates:
 ${milestoneDatesStr}
 
@@ -164,22 +197,37 @@ Each object must have exactly these keys:
             cleanJson = cleanJson.replace(/^```\n?/gm, '').replace(/```$/gm, '').trim();
 
             const planSlots: AIGeneratedPlanSlot[] = JSON.parse(cleanJson);
-            activeGoal.plans = planSlots;
-
-            updateGoal.mutate(activeGoal, {
-                onSuccess: () => {
-                    setGenerating(false);
-                    setIsFormOpen(false);
-                    setStep(1);
-                    setActiveGoal(null);
-                },
-                onError: (err: any) => { toast.error('DB Error: ' + err.message); setGenerating(false); }
-            });
-
+            setTempPlan(planSlots);
+            setGenerating(false);
         } catch (error: any) {
             toast.error('Generation Failed: ' + (error.message || 'Unknown error'));
             setGenerating(false);
         }
+    };
+
+    const handleConfirmPlan = () => {
+        if (!activeGoal || !tempPlan) return;
+
+        const updatedGoal = {
+            ...activeGoal,
+            plans: tempPlan
+        };
+
+        updateGoal.mutate(updatedGoal, {
+            onSuccess: () => {
+                setIsFormOpen(false);
+                setStep(1);
+                setActiveGoal(null);
+                setTempPlan(null);
+                toast.success('Action plan saved!');
+            },
+            onError: (err: any) => { toast.error('DB Error: ' + err.message); }
+        });
+    };
+
+    const handleCancelPreview = () => {
+        setTempPlan(null);
+        setStep(1);
     };
 
     return (
@@ -189,20 +237,24 @@ Each object must have exactly these keys:
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Goal Tracker</h1>
                     <p className="text-sm md:text-base text-muted-foreground">Define your goals and let AI plan your journey.</p>
                 </div>
-                <Button onClick={() => { setIsFormOpen(!isFormOpen); setStep(1); setActiveGoal(null); }} variant={isFormOpen ? "outline" : "default"} className="w-full sm:w-auto">
-                    {isFormOpen ? "Cancel" : "Define New Goal"}
+                <Button onClick={() => { setIsFormOpen(!isFormOpen); setStep(1); setActiveGoal(null); setIsNewRecord(true); setTempPlan(null); }} variant={isFormOpen && isNewRecord ? "outline" : "default"} className="w-full sm:w-auto">
+                    {isFormOpen && isNewRecord ? "Cancel" : "Define New Goal"}
                 </Button>
             </div>
 
-            {isFormOpen && (
+            {isFormOpen && isNewRecord && (
                 <Card className="border-primary/20 bg-accent/5 shadow-lg relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-500"></div>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            {activeGoal && activeGoal.id ? <Edit2 size={18} /> : <Target size={18} />}
-                            {activeGoal && activeGoal.id ? "Edit Goal" : "New Goal Setup"}
+                            <Target size={18} />
+                            New Goal Setup
                         </CardTitle>
-                        <CardDescription>Step {step} of 2: {step === 1 ? "Goal Definition" : "AI Plan Generation"}</CardDescription>
+                        <CardDescription>
+                            {step === 1 && "Step 1: Goal Definition"}
+                            {step === 2 && "Step 2: AI Plan Generation"}
+                            {step === 3 && "Step 2: Manual Plan Entry"}
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         {step === 1 ? (
@@ -210,12 +262,29 @@ Each object must have exactly these keys:
                                 initialValues={activeGoal || {}}
                                 onSubmit={onDefinitionSubmit}
                             />
-                        ) : (
+                        ) : step === 2 ? (
                             <AIGenerationStep
-                                goalName={activeGoal?.name || ""}
                                 onGenerate={handleGeneratePlan}
-                                onSkip={() => { setIsFormOpen(false); setStep(1); }}
                                 generating={generating}
+                                previewPlan={tempPlan}
+                                onConfirm={handleConfirmPlan}
+                                onCancelPreview={handleCancelPreview}
+                            />
+                        ) : (
+                            <ManualPlanStep
+                                goal={activeGoal!}
+                                onBack={() => setStep(1)}
+                                onSave={(plans) => {
+                                    updateGoal.mutate({ ...activeGoal!, plans }, {
+                                        onSuccess: () => {
+                                            setIsFormOpen(false);
+                                            setActiveGoal(null);
+                                            setIsNewRecord(false);
+                                            setStep(1);
+                                            toast.success("Goal plan created manually!");
+                                        }
+                                    });
+                                }}
                             />
                         )}
                     </CardContent>
@@ -232,20 +301,81 @@ Each object must have exactly these keys:
                     </div>
                 ) : (
                     goals.map((goal: Goal) => (
-                        <GoalCard
-                            key={goal.id}
-                            goal={goal}
-                            isExpanded={!!expandedGoals[goal.id!]}
-                            onToggle={toggleGoal}
-                            onEdit={handleEdit}
-                            onDelete={(id) => { setGoalIdToDelete(id); setShowDeleteConfirm(true); }}
-                            weekPlan={weekPlan || {}}
-                            completedDays={completedDays || {}}
-                            currentWeek={currentWeek}
-                        />
+                        <div key={goal.id} className="space-y-4">
+                            <GoalCard
+                                goal={goal}
+                                isExpanded={!!expandedGoals[goal.id!]}
+                                onToggle={toggleGoal}
+                                onEdit={handleEdit}
+                                onDelete={(id) => { setGoalIdToDelete(id); setShowDeleteConfirm(true); }}
+                                weekPlan={weekPlan || {}}
+                                completedDays={completedDays || {}}
+                                currentWeek={currentWeek}
+                                onUpdateGoal={(updatedGoal) => updateGoal.mutate(updatedGoal)}
+                            />
+
+                            {isFormOpen && !isNewRecord && activeGoal?.id === goal.id && (
+                                <Card className="border-primary/20 bg-accent/5 shadow-lg relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-500"></div>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Edit2 size={18} />
+                                                Goal Editor: {goal.name}
+                                            </div>
+                                            <Button variant="ghost" size="sm" onClick={() => { setIsFormOpen(false); setActiveGoal(null); setIsNewRecord(false); setStep(1); }}>Cancel</Button>
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {step === 1 && "Step 1: Update Definition"}
+                                            {step === 2 && "Step 2: AI Plan Generation"}
+                                            {step === 3 && "Step 2: Manual Plan Entry"}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {step === 1 ? (
+                                            <GoalDefinitionForm
+                                                initialValues={activeGoal || {}}
+                                                onSubmit={onDefinitionSubmit}
+                                            />
+                                        ) : step === 2 ? (
+                                            <AIGenerationStep
+                                                onGenerate={handleGeneratePlan}
+                                                generating={generating}
+                                                previewPlan={tempPlan}
+                                                onConfirm={handleConfirmPlan}
+                                                onCancelPreview={handleCancelPreview}
+                                            />
+                                        ) : (
+                                            <ManualPlanStep
+                                                goal={activeGoal!}
+                                                onBack={() => setStep(1)}
+                                                onSave={(plans) => {
+                                                    updateGoal.mutate({ ...activeGoal!, plans }, {
+                                                        onSuccess: () => {
+                                                            setIsFormOpen(false);
+                                                            setActiveGoal(null);
+                                                            setStep(1);
+                                                            toast.success("Manual plan saved successfully!");
+                                                        }
+                                                    });
+                                                }}
+                                            />
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
                     ))
                 )}
             </div>
+
+            <MilestoneStrategyDialog
+                isOpen={showStrategyDialog}
+                onClose={() => setShowStrategyDialog(false)}
+                onSelect={handleStrategySelect}
+            />
+
+            <AILoadingPopup isOpen={generating} />
 
             <ConfirmationDialog
                 isOpen={showConfirm}
