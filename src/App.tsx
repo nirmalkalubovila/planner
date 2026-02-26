@@ -1,16 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/auth-context';
 import { ProtectedRoute } from './components/protected-route';
 import { DashboardLayout } from './layout/dashboard-layout';
 import { HabitsPage } from './pages/habits-page';
-import { GoalsPage } from './pages/goals-page';
-import { PlannerPage } from './pages/planner-page';
+import { GoalsPage } from './pages/goals/goals-page';
+import { PlannerPage } from './pages/planner/planner-page';
 import { TodayPage } from './pages/today-page';
 import { LoginPage } from './pages/login-page';
 import { SignupPage } from './pages/signup-page';
 import { ProfilePage } from './pages/profile-page';
 import { PersonalizePage } from './pages/personalize-page';
+import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,7 +22,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// A small component to redirect logged-in users away from auth pages
 const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
@@ -29,27 +29,42 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const RootLayout = () => {
+  const location = useLocation();
+  const isTodayPage = location.pathname === '/';
+  return (
+    <>
+      {!isTodayPage && <Toaster position="top-right" theme="dark" richColors />}
+      <Outlet />
+    </>
+  );
+};
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
+      <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+      <Route path="/signup" element={<AuthRoute><SignupPage /></AuthRoute>} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/" element={<TodayPage />} />
+          <Route path="/habits" element={<HabitsPage />} />
+          <Route path="/goals" element={<GoalsPage />} />
+          <Route path="/planner" element={<PlannerPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
+        <Route path="/personalize" element={<PersonalizePage />} />
+      </Route>
+    </Route>
+  )
+);
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
-            <Route path="/signup" element={<AuthRoute><SignupPage /></AuthRoute>} />
-
-            <Route element={<ProtectedRoute />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/" element={<TodayPage />} />
-                <Route path="/habits" element={<HabitsPage />} />
-                <Route path="/goals" element={<GoalsPage />} />
-                <Route path="/planner" element={<PlannerPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-              </Route>
-              <Route path="/personalize" element={<PersonalizePage />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>
   );

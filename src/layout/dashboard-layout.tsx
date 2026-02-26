@@ -13,7 +13,7 @@ export const DashboardLayout: React.FC = () => {
                     <DashboardSidebar />
                 </div>
                 <main className="flex-1 overflow-y-auto w-full">
-                    <div className="mx-auto max-w-7xl p-4 md:p-8 space-y-6">
+                    <div className="mx-auto w-full h-full p-4 md:p-8 space-y-6">
                         <Outlet />
                     </div>
                 </main>

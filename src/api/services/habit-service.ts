@@ -1,12 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Habit } from "@/types/global-types";
 import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 
 const TABLE_NAME = "habits";
 
 // Fetch from Supabase
 const getHabits = async (): Promise<Habit[]> => {
-    const { data, error } = await supabase.from(TABLE_NAME).select("*").order("createdAt", { ascending: false });
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select("*")
+        .eq("user_id", userId)
+        .order("createdAt", { ascending: false });
+
     if (error) throw new Error(error.message);
     return data || [];
 };
@@ -27,20 +37,29 @@ export function useCreateHabit() {
 
     return useMutation({
         mutationFn: async (newHabit: Habit) => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+            if (!userId) throw new Error("Not authenticated");
+
             const { description, ...safeHabit } = newHabit as any;
+            const habitData = { ...safeHabit, user_id: userId };
+
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .insert([safeHabit])
+                .insert([habitData])
                 .select()
                 .single();
             if (error) {
                 console.error("Supabase Insert Error:", error);
-                alert("Failed to insert habit: " + error.message);
                 throw new Error(error.message);
             }
             return data;
         },
+        onError: (err) => {
+            toast.error("Failed to create habit: " + err.message);
+        },
         onSuccess: () => {
+            toast.success("Habit created successfully!");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
     });
@@ -51,17 +70,26 @@ export function useUpdateHabit() {
 
     return useMutation({
         mutationFn: async (updatedHabit: Habit) => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+            if (!userId) throw new Error("Not authenticated");
+
             const { id, description, ...updates } = updatedHabit as any;
             const { data, error } = await supabase
                 .from(TABLE_NAME)
                 .update({ ...updates, updatedAt: new Date().toISOString() })
                 .eq("id", id)
+                .eq("user_id", userId)
                 .select()
                 .single();
             if (error) throw new Error(error.message);
             return data;
         },
+        onError: (err) => {
+            toast.error("Failed to update habit: " + err.message);
+        },
         onSuccess: () => {
+            toast.success("Habit updated successfully!");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
     });
@@ -72,10 +100,18 @@ export function useDeleteHabit() {
 
     return useMutation({
         mutationFn: async (id: string) => {
-            const { error } = await supabase.from(TABLE_NAME).delete().eq("id", id);
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+            if (!userId) throw new Error("Not authenticated");
+
+            const { error } = await supabase.from(TABLE_NAME).delete().eq("id", id).eq("user_id", userId);
             if (error) throw new Error(error.message);
         },
+        onError: (err) => {
+            toast.error("Failed to delete habit: " + err.message);
+        },
         onSuccess: () => {
+            toast.success("Habit deleted correctly.");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
     });

@@ -1,16 +1,27 @@
 -- Create goals table
+-- NOTE FOR USER: If this table already exists, you need to run these commands in the Supabase SQL Editor:
+-- ALTER TABLE goals DROP COLUMN IF EXISTS title, DROP COLUMN IF EXISTS "totalWeeks", DROP COLUMN IF EXISTS "startWeek", DROP COLUMN IF EXISTS weeks, DROP COLUMN IF EXISTS description;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS name text;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS purpose text;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS "endDate" text;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS "goalType" text;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS plans jsonb;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS "durationValue" numeric;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS milestones jsonb;
 CREATE TABLE goals (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
   "createdAt" timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   "updatedAt" timestamp with time zone,
   code text,
-  description text,
-  title text NOT NULL,
-  "totalWeeks" integer NOT NULL,
-  "startWeek" text NOT NULL,
-  weeks jsonb NOT NULL,
-  "startDate" text NOT NULL
+  name text NOT NULL,
+  purpose text NOT NULL,
+  "startDate" text NOT NULL,
+  "endDate" text NOT NULL,
+  "goalType" text NOT NULL,
+  "durationValue" numeric,
+  plans jsonb,
+  milestones jsonb
 );
 
 -- Create habits table
@@ -40,6 +51,18 @@ CREATE TABLE week_plans (
   UNIQUE(user_id, week)
 );
 
+-- Create custom_tasks table (Task Library)
+CREATE TABLE custom_tasks (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  "createdAt" timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  name text NOT NULL,
+  description text,
+  "startTime" text NOT NULL,
+  "endTime" text NOT NULL,
+  "daysOfWeek" jsonb NOT NULL DEFAULT '[]'::jsonb
+);
+
 -- Create completed_tasks table
 CREATE TABLE completed_tasks (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -54,9 +77,11 @@ CREATE TABLE completed_tasks (
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE week_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE custom_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE completed_tasks ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage their own goals" ON goals FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own habits" ON habits FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own week_plans" ON week_plans FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own custom_tasks" ON custom_tasks FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own completed_tasks" ON completed_tasks FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

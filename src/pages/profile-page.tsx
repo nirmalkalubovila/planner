@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,10 @@ export const ProfilePage: React.FC = () => {
     const [weekStart, setWeekStart] = useState('');
     const [planTime, setPlanTime] = useState('');
     const [freeTime, setFreeTime] = useState('');
+    const [minTaskTime, setMinTaskTime] = useState('');
+    const [maxTaskTime, setMaxTaskTime] = useState('');
+    const [focusAbility, setFocusAbility] = useState('');
+    const [taskShiftingAbility, setTaskShiftingAbility] = useState('');
 
     useEffect(() => {
         if (user) {
@@ -31,6 +36,10 @@ export const ProfilePage: React.FC = () => {
             setWeekStart(user.user_metadata?.weekStart || 'Monday');
             setPlanTime(user.user_metadata?.planTime || 'Sunday 9PM - 10PM');
             setFreeTime(user.user_metadata?.freeTime || '2');
+            setMinTaskTime(user.user_metadata?.minTaskTime || '30');
+            setMaxTaskTime(user.user_metadata?.maxTaskTime || '2');
+            setFocusAbility(user.user_metadata?.focusAbility || 'normal');
+            setTaskShiftingAbility(user.user_metadata?.taskShiftingAbility || 'normal');
         }
     }, [user, isEditing]);
 
@@ -45,14 +54,19 @@ export const ProfilePage: React.FC = () => {
                 weekStart,
                 planTime,
                 freeTime,
+                minTaskTime,
+                maxTaskTime,
+                focusAbility,
+                taskShiftingAbility,
             }
         });
 
         setLoading(false);
         if (!error) {
             setIsEditing(false);
+            toast.success('Profile updated successfully!');
         } else {
-            alert('Failed to update profile: ' + error.message);
+            toast.error('Failed to update profile: ' + error.message);
         }
     };
 
@@ -173,6 +187,42 @@ export const ProfilePage: React.FC = () => {
                                     <label className="text-sm font-medium leading-none">Expected Free Time (hours)</label>
                                     <Input type="number" min="0" max="24" value={freeTime} onChange={(e) => setFreeTime(e.target.value)} />
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Minimum Task Time (minutes)</label>
+                                    <Input type="number" min="1" value={minTaskTime} onChange={(e) => setMinTaskTime(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Maximum Task Time (hours)</label>
+                                    <Input type="number" min="1" max="24" value={maxTaskTime} onChange={(e) => setMaxTaskTime(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Focus Ability</label>
+                                    <select
+                                        value={focusAbility}
+                                        onChange={(e) => setFocusAbility(e.target.value)}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option value="very low">Very Low</option>
+                                        <option value="low">Low</option>
+                                        <option value="normal">Normal</option>
+                                        <option value="high">High</option>
+                                        <option value="very high">Very High</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none">Task Shifting Ability</label>
+                                    <select
+                                        value={taskShiftingAbility}
+                                        onChange={(e) => setTaskShiftingAbility(e.target.value)}
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option value="very low">Very Low</option>
+                                        <option value="low">Low</option>
+                                        <option value="normal">Normal</option>
+                                        <option value="high">High</option>
+                                        <option value="very high">Very High</option>
+                                    </select>
+                                </div>
 
                                 <div className="flex items-center space-x-2 pt-2">
                                     <Button onClick={handleSave} disabled={loading} className="w-full">
@@ -197,6 +247,18 @@ export const ProfilePage: React.FC = () => {
 
                                     <div className="text-muted-foreground">Est. Free Time:</div>
                                     <div className="font-medium">{user.user_metadata?.freeTime || '2'} hours/day</div>
+
+                                    <div className="text-muted-foreground">Min Task Time:</div>
+                                    <div className="font-medium">{user.user_metadata?.minTaskTime || '30'} minutes</div>
+
+                                    <div className="text-muted-foreground">Max Task Time:</div>
+                                    <div className="font-medium">{user.user_metadata?.maxTaskTime || '2'} hours</div>
+
+                                    <div className="text-muted-foreground">Focus Ability:</div>
+                                    <div className="font-medium capitalize">{user.user_metadata?.focusAbility || 'normal'}</div>
+
+                                    <div className="text-muted-foreground">Task Shifting:</div>
+                                    <div className="font-medium capitalize">{user.user_metadata?.taskShiftingAbility || 'normal'}</div>
                                 </div>
                             </div>
                         )}

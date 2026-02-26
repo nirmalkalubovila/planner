@@ -12,6 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Habit } from '@/types/global-types';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/auth-context';
+import { timeToMinutes, minutesToTime, isTimeOverlapping, isSleepOverlapping } from '@/utils/time-utils';
+import { toast } from 'sonner';
+import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -19,7 +23,7 @@ const habitSchema = z.object({
     name: z.string().min(1, "Name is required"),
     purpose: z.string().min(1, "Purpose is required"),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
-    endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
+    durationPacks: z.number().min(1, "At least 1 pack (30 min) is required"),
     startDate: z.string().min(1, "Starting date is required"),
     endDate: z.string().min(1, "Ending date is required"),
     daysOfWeek: z.array(z.string()).min(1, "Select at least one day"),
@@ -28,9 +32,15 @@ const habitSchema = z.object({
 type HabitFormValues = z.infer<typeof habitSchema>;
 
 export const HabitsPage: React.FC = () => {
+    const { user } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [conflictError, setConflictError] = useState<string | null>(null);
+
+    // Confirmation state
+    const [idToDelete, setIdToDelete] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const { data: habits = [], isLoading } = useGetHabits();
     const createHabit = useCreateHabit();
@@ -43,12 +53,18 @@ export const HabitsPage: React.FC = () => {
             name: '',
             purpose: '',
             startTime: '06:00',
-            endTime: '07:00',
+            durationPacks: 2, // Default to 1 hour (2 * 30 min)
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             daysOfWeek: DAYS_OF_WEEK,
         },
     });
+
+    const watchedStartTime = form.watch('startTime');
+    const watchedPacks = form.watch('durationPacks');
+    const computedEndTime = watchedStartTime && watchedPacks
+        ? minutesToTime(timeToMinutes(watchedStartTime) + watchedPacks * 30)
+        : '';
 
     // Inject Defaults once loaded if empty
     useEffect(() => {
@@ -69,8 +85,51 @@ export const HabitsPage: React.FC = () => {
     }, [habits, isLoading, createHabit]);
 
     const onSubmit = (values: HabitFormValues) => {
+        setConflictError(null);
+        const endTime = minutesToTime(timeToMinutes(values.startTime) + values.durationPacks * 30);
+
+        // Conflict Check
+        // 1. Sleep Conflict
+        const sleepStart = user?.user_metadata?.sleepStart || '22:00';
+        const sleepDuration = Number(user?.user_metadata?.sleepDuration) || 8;
+
+        if (isSleepOverlapping(values.startTime, endTime, sleepStart, sleepDuration)) {
+            const errorMsg = "This habit overlaps with your sleep schedule.";
+            setConflictError(errorMsg);
+            toast.error(errorMsg);
+            return;
+        }
+
+        // 2. Existing Habit Conflict
+        for (const habit of habits) {
+            if (editingId && habit.id === editingId) continue;
+
+            const start1 = new Date(values.startDate);
+            const end1 = new Date(values.endDate);
+            const start2 = new Date(habit.startDate || '');
+            const end2 = new Date(habit.endDate || '');
+
+            if (start1 <= end2 && start2 <= end1) {
+                const commonDays = values.daysOfWeek.filter(day => habit.daysOfWeek?.includes(day));
+                if (commonDays.length > 0) {
+                    if (isTimeOverlapping(values.startTime, endTime, habit.startTime, habit.endTime)) {
+                        const errorMsg = `This habit overlaps with "${habit.name}" on ${commonDays[0]}.`;
+                        setConflictError(errorMsg);
+                        toast.error(errorMsg);
+                        return;
+                    }
+                }
+            }
+        }
+
         const habitData: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } = {
-            ...values,
+            name: values.name,
+            purpose: values.purpose,
+            startTime: values.startTime,
+            endTime: endTime,
+            startDate: values.startDate,
+            endDate: values.endDate,
+            daysOfWeek: values.daysOfWeek,
         };
 
         if (editingId) {
@@ -84,7 +143,7 @@ export const HabitsPage: React.FC = () => {
             name: '',
             purpose: '',
             startTime: '06:00',
-            endTime: '07:00',
+            durationPacks: 2,
             startDate: new Date().toISOString().split('T')[0],
             endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             daysOfWeek: DAYS_OF_WEEK,
@@ -94,11 +153,19 @@ export const HabitsPage: React.FC = () => {
 
     const handleEdit = (habit: Habit) => {
         setEditingId(habit.id!);
+        setConflictError(null);
+
+        // Convert endTime back to durationPacks
+        const startMin = timeToMinutes(habit.startTime);
+        const endMin = timeToMinutes(habit.endTime);
+        const diff = endMin < startMin ? (endMin + 1440 - startMin) : (endMin - startMin);
+        const packs = Math.max(1, Math.round(diff / 30));
+
         form.reset({
             name: habit.name,
             purpose: habit.purpose || '',
             startTime: habit.startTime,
-            endTime: habit.endTime,
+            durationPacks: packs,
             startDate: habit.startDate || new Date().toISOString().split('T')[0],
             endDate: habit.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             daysOfWeek: habit.daysOfWeek || DAYS_OF_WEEK,
@@ -206,19 +273,17 @@ export const HabitsPage: React.FC = () => {
                                     {form.formState.errors.startTime && <p className="text-xs text-destructive">{form.formState.errors.startTime.message}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">End Time <span className="text-destructive">*</span></label>
-                                    <Controller
-                                        control={form.control}
-                                        name="endTime"
-                                        render={({ field }) => (
-                                            <CustomTimePicker
-                                                selected={field.value ? parse(field.value, 'HH:mm', new Date()) : null}
-                                                onChange={(date) => field.onChange(date ? format(date, 'HH:mm') : '')}
-                                                placeholderText="Select end time"
-                                            />
-                                        )}
+                                    <label className="text-sm font-medium">Number of Packs (30 min each) <span className="text-destructive">*</span></label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        {...form.register('durationPacks', { valueAsNumber: true })}
+                                        placeholder="e.g., 2 for 1 hour"
                                     />
-                                    {form.formState.errors.endTime && <p className="text-xs text-destructive">{form.formState.errors.endTime.message}</p>}
+                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                        Calculated End Time: <span className="font-bold text-primary">{computedEndTime}</span>
+                                    </p>
+                                    {form.formState.errors.durationPacks && <p className="text-xs text-destructive">{form.formState.errors.durationPacks.message}</p>}
                                 </div>
 
                                 <div className="space-y-2 md:col-span-2 border rounded-xl p-4 bg-background">
@@ -246,7 +311,12 @@ export const HabitsPage: React.FC = () => {
                                     {form.formState.errors.daysOfWeek && <p className="text-xs text-destructive mt-2">{form.formState.errors.daysOfWeek.message}</p>}
                                 </div>
                             </div>
-                            <Button type="submit" className="w-full md:w-auto px-8">
+                            {conflictError && (
+                                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+                                    {conflictError}
+                                </div>
+                            )}
+                            <Button type="submit" className="w-full md:w-auto px-8" disabled={createHabit.isPending || updateHabit.isPending}>
                                 {editingId ? "Update Habit" : "Save Habit"}
                             </Button>
                         </form>
@@ -278,7 +348,7 @@ export const HabitsPage: React.FC = () => {
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEdit(habit)}>
                                             <Edit2 size={14} />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteHabit.mutate(habit.id!)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => { setIdToDelete(habit.id!); setShowDeleteConfirm(true); }}>
                                             <Trash2 size={14} />
                                         </Button>
                                     </div>
@@ -322,6 +392,21 @@ export const HabitsPage: React.FC = () => {
                     ))
                 )}
             </div>
+            <ConfirmationDialog
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={() => {
+                    if (idToDelete) {
+                        deleteHabit.mutate(idToDelete);
+                        setIdToDelete(null);
+                        setShowDeleteConfirm(false);
+                    }
+                }}
+                title="Delete Habit?"
+                description="Are you sure you want to delete this habit? This will remove all its occurrences from your weekly planning grid."
+                confirmText="Delete Habit"
+                variant="destructive"
+            />
         </div>
     );
 };
