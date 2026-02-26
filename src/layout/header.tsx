@@ -36,11 +36,13 @@ export const Header: React.FC = () => {
                 <div className="flex items-center justify-end gap-3">
                     <button
                         onClick={() => useReflectionStore.getState().setIsOpen(true)}
-                        className="flex items-center gap-2 text-orange-500 font-bold bg-orange-500/10 px-3 py-1.5 rounded-full border border-orange-500/20 hover:bg-orange-500/20 transition-colors group"
+                        className="flex items-center gap-2 group relative overflow-hidden shrink-0"
                         title="Self Reflection"
                     >
-                        <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
-                        <span className="text-xs">Reflect</span>
+                        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-500 font-black text-[12px] tracking-wide shadow-[0_0_15px_rgba(249,115,22,0.1)] transition-all duration-300 hover:shadow-[0_0_20px_rgba(249,115,22,0.2)] hover:scale-105 active:scale-95 hover:border-orange-500/50">
+                            <Sparkles size={15} className="group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 animate-pulse" />
+                            <span>REFLECT</span>
+                        </div>
                     </button>
                     <Link to="/profile" className="flex items-center gap-2 hover:text-primary transition-colors text-muted-foreground font-medium bg-secondary/50 px-3 py-1.5 rounded-full border border-border hover:bg-secondary">
                         <UserCircle size={20} />

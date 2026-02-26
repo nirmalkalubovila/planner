@@ -378,7 +378,7 @@ export const PlannerPage: React.FC = () => {
 
     return (
         <div className={cn(
-            "flex flex-col h-full w-full",
+            "flex flex-col h-full w-full overflow-hidden",
             selectedTool === 'erase' && "cursor-[url('https://api.iconify.design/lucide:eraser.svg?color=%23ef4444'),_auto]",
             selectedTool === 'goal' && "cursor-crosshair",
             selectedTool === 'duplicate' && (copiedTask ? "cursor-alias" : "cursor-copy")

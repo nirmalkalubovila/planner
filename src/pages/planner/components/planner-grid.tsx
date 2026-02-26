@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState } from '@/types/global-types';
@@ -27,19 +27,44 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     handleCellClick
 }) => {
     const weekDates = useMemo(() => WeekUtils.getDaysForWeek(currentWeek), [currentWeek]);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to morning (first non-sleep slot) on mount
+    useEffect(() => {
+        if (!scrollRef.current) return;
+
+        // Find the first active slot (usually wake up time)
+        let firstActiveSlot = 0;
+        for (let i = 0; i < SLOTS_PER_DAY; i++) {
+            if (!isSleepSlot(i)) {
+                firstActiveSlot = i;
+                break;
+            }
+        }
+
+        // Each slot is h-10 (40px)
+        const scrollPosition = Math.max(0, (firstActiveSlot * 40) - 20); // -20 for a bit of breathing room at the top
+        scrollRef.current.scrollTop = scrollPosition;
+    }, [isSleepSlot]); // Re-run if sleep settings change
 
     return (
-        <div className="flex-1 bg-card border rounded-xl shadow-inner overflow-hidden flex flex-col h-[60vh] lg:h-auto min-h-[400px]">
-            <div className="flex-1 overflow-auto">
-                <div className="min-w-[700px] h-full">
+        <div className="flex-1 bg-card border rounded-xl shadow-inner overflow-hidden flex flex-col h-full min-h-[400px]">
+            <div ref={scrollRef} className="flex-1 overflow-auto scroll-smooth">
 
-                    <div className="grid grid-cols-[75px_repeat(7,minmax(0,1fr))] border-b bg-muted/30 backdrop-blur z-20 sticky top-0 shadow-sm">
-                        <div className="h-10 border-r border-border" />
+                {/* FIX 1: Removed 'h-full' so this container grows with the massive time grid */}
+                <div className="min-w-[700px]">
+
+                    {/* FIX 2: Changed 'bg-muted/60 backdrop-blur-md' to a solid 'bg-card' (or bg-background) to hide scrolling content */}
+                    <div className="grid grid-cols-[75px_repeat(7,minmax(0,1fr))] border-b bg-card z-[60] sticky top-0 shadow-md">
+
+                        {/* Notice: this left corner cell needs the same solid background */}
+                        <div className="h-10 border-r border-border bg-card sticky left-0 z-[70]" />
+
                         {weekDates.map((date, dayIdx) => (
-                            <div key={dayIdx} className="h-10 flex flex-col items-center justify-center font-bold text-[9px] md:text-[11px] uppercase tracking-widest border-border">
+                            <div key={dayIdx} className="h-10 flex flex-col items-center justify-center font-bold text-[9px] md:text-[11px] uppercase tracking-widest border-border relative bg-card">
                                 <span className={cn(
                                     "px-2 rounded-full",
-                                    date.toDateString() === new Date().toDateString() ? "bg-primary text-primary-foreground" : "text-foreground"
+                                    date.toDateString() === new Date().toDateString() ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground"
                                 )}>
                                     {DAYS[dayIdx]}
                                 </span>
@@ -63,7 +88,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                             return (
                                 <React.Fragment key={slotIdx}>
                                     <div className={cn(
-                                        "h-10 border-r border-border flex flex-col items-center justify-center text-[10px] text-muted-foreground bg-accent/5 sticky left-0 z-10 font-mono",
+                                        "h-10 border-r border-border flex flex-col items-center justify-center text-[10px] text-muted-foreground bg-accent/10 sticky left-0 z-40 font-mono shadow-sm",
                                         isHourStart ? "border-b border-border/50" : "border-b border-border/20"
                                     )}>
                                         <span className="font-semibold text-[9px] text-muted-foreground/80">{timeStr}</span>
