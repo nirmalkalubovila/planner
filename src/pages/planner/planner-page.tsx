@@ -16,6 +16,7 @@ import { PlannerToolbar } from './components/planner-toolbar';
 import { PlannerGrid } from './components/planner-grid';
 import { CustomTaskDialog } from './forms/custom-task-dialog';
 import { GoalToolDialog } from './forms/goal-tool-dialog';
+import { TaskEditDialog } from './forms/task-edit-dialog';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 
 const FULL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -41,6 +42,11 @@ export const PlannerPage: React.FC = () => {
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    // Edit states
+    const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false);
+    const [editingTaskData, setEditingTaskData] = useState<any>(null);
+    const [editingTaskCell, setEditingTaskCell] = useState<{ dayIdx: number, slotIdx: number } | null>(null);
 
     // History for Undo/Redo
     const [history, setHistory] = useState<GridState[]>([]);
@@ -130,6 +136,45 @@ export const PlannerPage: React.FC = () => {
         return slotIdx >= startSlot || slotIdx < endSlot;
     };
 
+    const isHabitSlot = (dayIdx: number, slotIdx: number) => {
+        return (habits || []).some((h: Habit) => {
+            if (h.daysOfWeek && h.daysOfWeek.length > 0 && !h.daysOfWeek.includes(FULL_DAYS[dayIdx])) return false;
+            const [hStartH, hStartM] = h.startTime.split(':').map(Number);
+            const [hEndH, hEndM] = h.endTime.split(':').map(Number);
+            const startSlot = hStartH * 2 + (hStartM >= 30 ? 1 : 0);
+            const endSlot = hEndH * 2 + (hEndM >= 30 ? 1 : 0);
+            const habitStartMonth = h.startDate ? h.startDate.substring(0, 7) : null;
+            const hasStarted = habitStartMonth ? WeekUtils.compareWeeks(currentWeek, habitStartMonth) >= 0 : true;
+            return hasStarted && slotIdx >= startSlot && slotIdx < endSlot;
+        });
+    };
+
+    const getAvailableTimeBlocks = () => {
+        const blocks: string[] = [];
+        for (let d = 0; d < 7; d++) {
+            let currentBlockStart: number | null = null;
+            for (let s = 0; s < SLOTS_PER_DAY; s++) {
+                const isFree = !isSleepSlot(s) && !isHabitSlot(d, s) && !localGridState[`${d}-${s}`];
+                if (isFree && currentBlockStart === null) {
+                    currentBlockStart = s;
+                } else if (!isFree && currentBlockStart !== null) {
+                    const startH = Math.floor(currentBlockStart / 2).toString().padStart(2, '0');
+                    const startM = currentBlockStart % 2 === 0 ? '00' : '30';
+                    const endH = Math.floor(s / 2).toString().padStart(2, '0');
+                    const endM = s % 2 === 0 ? '00' : '30';
+                    blocks.push(`${FULL_DAYS[d]}: ${startH}:${startM} - ${endH}:${endM}`);
+                    currentBlockStart = null;
+                }
+            }
+            if (currentBlockStart !== null) {
+                const startH = Math.floor(currentBlockStart / 2).toString().padStart(2, '0');
+                const startM = currentBlockStart % 2 === 0 ? '00' : '30';
+                blocks.push(`${FULL_DAYS[d]}: ${startH}:${startM} - 24:00`);
+            }
+        }
+        return blocks.join('\n');
+    };
+
     const handleGenerateWeeklyPlan = async () => {
         if (!selectedGoalId || !user) {
             alert("Please select a goal first!");
@@ -146,8 +191,20 @@ export const PlannerPage: React.FC = () => {
             const habitStr = (habits || []).map((h: Habit) => `- ${h.name}: ${h.startTime} to ${h.endTime}`).join('\n');
             const milestonesStr = targetGoal.milestones ? targetGoal.milestones.map((m: any) => `- ${m.title}`).join('\n') : targetGoal.purpose;
 
+            const availableBlocks = getAvailableTimeBlocks();
+
+            // Extract existing goal tasks
+            const existingTasksForGoal = Object.values(localGridState)
+                .filter(slot => slot.type === 'goal' && (!selectedGoalId || slot.goalId === selectedGoalId))
+                .map(slot => slot.name)
+                .filter((v, i, a) => a.indexOf(v) === i); // Unique names
+
+            const existingTasksStr = existingTasksForGoal.length > 0
+                ? `Already planned tasks (DO NOT duplicate these concepts): ${existingTasksForGoal.join(', ')}`
+                : "No tasks planned yet.";
+
             const prompt = `
-Generate a weekly structured schedule of tasks for achieving this goal.
+Generate a weekly structured schedule of tasks for this goal.
 Goal Name: ${targetGoal.name}
 Goal Purpose: ${targetGoal.purpose}
 Milestones/Sub-goals to target:
@@ -156,7 +213,17 @@ ${milestonesStr}
 User Constraints & Preferences:
 - Minimum task block: ${meta.minTaskTime || 30} minutes
 - Maximum task block: ${meta.maxTaskTime || 2} hours
+- Focus Ability: ${meta.focusAbility || 'Very Low'}
+- Task Shifting Ability: ${meta.taskShifting || 'Very Low'}
 - Free Time Required: ${meta.freeTimeHours ? meta.freeTimeHours + ' hours per week' : '0 hours'}
+
+${existingTasksStr}
+
+Available Time Blocks (You MUST STRICTLY schedule ONLY within these free periods):
+${availableBlocks || "No free time available."}
+
+Create tasks step-by-step aligned with milestones. 
+For "free" type blocks, allocate relaxation/break time as required.
 
 Output format(Strict JSON array):
 [
@@ -169,7 +236,7 @@ Output format(Strict JSON array):
         "type": "goal" | "free"
     }
 ]
-RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
+RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARSER.
             `;
 
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -190,9 +257,17 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
             const rawResult = await response.json();
             if (!response.ok || rawResult.error) throw new Error(rawResult.error?.message || 'OpenRouter API Error');
 
-            const contentMessage = rawResult.choices[0]?.message?.content;
-            let cleanJson = contentMessage.replace(/^```json\n ? /gm, '').replace(/```$/gm, '').trim();
-            cleanJson = cleanJson.replace(/^```\n ? /gm, '').replace(/```$/gm, '').trim();
+            const contentMessage = rawResult.choices[0]?.message?.content || "";
+            let cleanJson = contentMessage.trim();
+            // Try to extract just the array part if markdown is present
+            const firstBracket = cleanJson.indexOf('[');
+            const lastBracket = cleanJson.lastIndexOf(']');
+            if (firstBracket !== -1 && lastBracket !== -1) {
+                cleanJson = cleanJson.substring(firstBracket, lastBracket + 1);
+            } else {
+                // Fallback basic markdown removal
+                cleanJson = cleanJson.replace(/```json/gi, '').replace(/```/g, '').trim();
+            }
 
             const planSlots = JSON.parse(cleanJson);
             setPreviewPlan(planSlots);
@@ -256,6 +331,26 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
         const startSlot = sH * 2 + (sM >= 30 ? 1 : 0);
         const endSlot = eH * 2 + (eM >= 30 ? 1 : 0);
 
+        let canAdd = true;
+        if (data.daysOfWeek && data.daysOfWeek.length > 0) {
+            data.daysOfWeek.forEach((dayName: string) => {
+                const dayIdx = FULL_DAYS.indexOf(dayName);
+                if (dayIdx !== -1) {
+                    for (let i = startSlot; i < endSlot; i++) {
+                        if (i >= SLOTS_PER_DAY) continue;
+                        if (isSleepSlot(i) || isHabitSlot(dayIdx, i) || newState[`${dayIdx}-${i}`]) {
+                            canAdd = false;
+                        }
+                    }
+                }
+            });
+        }
+
+        if (!canAdd) {
+            alert('Cannot make it happen. The selected time block is already reserved by Sleep, Habits, or another Task.');
+            return;
+        }
+
         if (data.daysOfWeek && data.daysOfWeek.length > 0) {
             data.daysOfWeek.forEach((dayName: string) => {
                 const dayIdx = FULL_DAYS.indexOf(dayName);
@@ -273,17 +368,26 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
         updateGridState(newState);
     };
 
-    const isHabitSlot = (dayIdx: number, slotIdx: number) => {
-        return (habits || []).some((h: Habit) => {
-            if (h.daysOfWeek && h.daysOfWeek.length > 0 && !h.daysOfWeek.includes(FULL_DAYS[dayIdx])) return false;
-            const [hStartH, hStartM] = h.startTime.split(':').map(Number);
-            const [hEndH, hEndM] = h.endTime.split(':').map(Number);
-            const startSlot = hStartH * 2 + (hStartM >= 30 ? 1 : 0);
-            const endSlot = hEndH * 2 + (hEndM >= 30 ? 1 : 0);
-            const habitStartMonth = h.startDate ? h.startDate.substring(0, 7) : null;
-            const hasStarted = habitStartMonth ? WeekUtils.compareWeeks(currentWeek, habitStartMonth) >= 0 : true;
-            return hasStarted && slotIdx >= startSlot && slotIdx < endSlot;
-        });
+
+    const handleTaskEditSave = (data: any) => {
+        if (!editingTaskCell) return;
+        const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
+        const newState = { ...localGridState };
+        newState[key] = {
+            ...newState[key],
+            ...data
+        };
+        updateGridState(newState);
+        setIsTaskEditDialogOpen(false);
+    };
+
+    const handleTaskDelete = () => {
+        if (!editingTaskCell) return;
+        const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
+        const newState = { ...localGridState };
+        delete newState[key];
+        updateGridState(newState);
+        setIsTaskEditDialogOpen(false);
     };
 
     const handleCellClick = (dayIdx: number, slotIdx: number) => {
@@ -292,6 +396,15 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
 
         const newState = { ...localGridState };
         const existing = newState[key];
+
+        if (!selectedTool) {
+            if (existing) {
+                setEditingTaskData({ ...existing });
+                setEditingTaskCell({ dayIdx, slotIdx });
+                setIsTaskEditDialogOpen(true);
+            }
+            return;
+        }
 
         if (selectedTool === 'erase') {
             delete newState[key];
@@ -345,7 +458,12 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
                 const endSlot = eH * 2 + (eM >= 30 ? 1 : 0);
                 return slotIdx >= startSlot && slotIdx < endSlot;
             });
-            if (previewSlot) return { type: 'preview', name: previewSlot.taskName };
+            if (previewSlot) {
+                return {
+                    type: previewSlot.type === 'free' ? 'preview-free' : 'preview',
+                    name: previewSlot.taskName
+                };
+            }
         }
         if (isSleepSlot(slotIdx)) return { type: 'sleep', name: 'Sleep' };
         const habit = (habits || []).find((h: Habit) => {
@@ -482,6 +600,14 @@ RETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
                 }}
                 onConfirm={handleCustomTaskConfirm}
                 initialData={selectedLibraryTask}
+            />
+
+            <TaskEditDialog
+                isOpen={isTaskEditDialogOpen}
+                onClose={() => setIsTaskEditDialogOpen(false)}
+                onSave={handleTaskEditSave}
+                onDelete={handleTaskDelete}
+                initialData={editingTaskData}
             />
 
             <div className="w-full flex-1 flex flex-col min-h-0">

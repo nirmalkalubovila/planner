@@ -73,16 +73,16 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                         const prevContent = slotIdx > 0 ? getCellContent(dayIdx, slotIdx - 1) : null;
                                         const isSameAsPrev = content && prevContent && content.type === prevContent.type && content.name === prevContent.name;
 
-                                        const isInteractive = content && (content.type === 'goal' || content.type === 'custom' || content.type === 'preview');
+                                        const isInteractive = content && (content.type === 'goal' || content.type === 'custom' || content.type === 'preview' || content.type === 'preview-free');
 
                                         return (
                                             <div
                                                 key={dayIdx}
                                                 draggable={!!isInteractive}
                                                 onDragStart={(e) => {
-                                                    if (content?.type === 'preview') {
+                                                    if (content?.type === 'preview' || content?.type === 'preview-free') {
                                                         e.dataTransfer.setData('sourceNewTask', JSON.stringify({
-                                                            type: 'goal',
+                                                            type: content.type === 'preview-free' ? 'custom' : 'goal',
                                                             name: content.name,
                                                         }));
                                                     } else if (isInteractive) {
@@ -120,6 +120,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     isToday && !content && "hover:bg-primary/10",
                                                     isSameAsPrev && (content?.type === 'sleep' || content?.type === 'habit') ? "border-t-0" : "",
                                                     content?.type === 'preview' && "bg-blue-500/10 text-blue-800 border-blue-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-blue-500/50 rounded-sm m-px",
+                                                    content?.type === 'preview-free' && "bg-amber-500/10 text-amber-800 border-amber-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-amber-500/50 rounded-sm m-px",
                                                     content?.type === 'sleep' && "bg-indigo-950/40 text-indigo-300/80 cursor-not-allowed border-indigo-900/30",
                                                     content?.type === 'habit' && "bg-emerald-950/40 text-emerald-400/90 cursor-not-allowed border-emerald-900/30",
                                                     content?.type === 'goal' && "bg-blue-600/90 text-white cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-blue-500",
