@@ -31,9 +31,6 @@ export const PlannerPage: React.FC = () => {
     const [selectedGoalId, setSelectedGoalId] = useState<string>('');
     const [localGridState, setLocalGridState] = useState<GridState>({});
 
-    // AI Generate states
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [previewPlan, setPreviewPlan] = useState<any[] | null>(null);
     const navigate = useNavigate();
 
     // Dialog States
@@ -154,156 +151,54 @@ export const PlannerPage: React.FC = () => {
         });
     };
 
-    const getAvailableTimeBlocks = () => {
-        const blocks: string[] = [];
-        for (let d = 0; d < 7; d++) {
-            let currentBlockStart: number | null = null;
-            for (let s = 0; s < SLOTS_PER_DAY; s++) {
-                const isFree = !isSleepSlot(s) && !isHabitSlot(d, s) && !localGridState[`${d}-${s}`];
-                if (isFree && currentBlockStart === null) {
-                    currentBlockStart = s;
-                } else if (!isFree && currentBlockStart !== null) {
-                    const startH = Math.floor(currentBlockStart / 2).toString().padStart(2, '0');
-                    const startM = currentBlockStart % 2 === 0 ? '00' : '30';
-                    const endH = Math.floor(s / 2).toString().padStart(2, '0');
-                    const endM = s % 2 === 0 ? '00' : '30';
-                    blocks.push(`${FULL_DAYS[d]}: ${startH}:${startM} - ${endH}:${endM}`);
-                    currentBlockStart = null;
-                }
-            }
-            if (currentBlockStart !== null) {
-                const startH = Math.floor(currentBlockStart / 2).toString().padStart(2, '0');
-                const startM = currentBlockStart % 2 === 0 ? '00' : '30';
-                blocks.push(`${FULL_DAYS[d]}: ${startH}:${startM} - 24:00`);
-            }
-        }
-        return blocks.join('\n');
-    };
+    // removed getAvailableTimeBlocks as it is no longer needed
 
-    const handleGenerateWeeklyPlan = async () => {
-        if (!selectedGoalId || !user) {
-            toast.error("Please select a goal first!");
-            return;
-        }
-        const targetGoal = activeGoalsForWeek.find(g => g.id === selectedGoalId);
+    const handleAllocateGoalTime = (goalId: string, hours: number) => {
+        const requiredSlots = Math.round(hours * 2);
+        const targetGoal = activeGoalsForWeek.find(g => g.id === goalId);
         if (!targetGoal) return;
 
-        setIsGenerating(true);
-        setPreviewPlan(null);
+        // Find empty slots
+        const emptySlotsGroupedByDay: { dayIdx: number, slotIdx: number }[][] = [[], [], [], [], [], [], []];
+        let totalEmptySlots = 0;
 
-        try {
-            const meta = user.user_metadata || {};
-            const habitStr = (habits || []).map((h: Habit) => `- ${h.name}: ${h.startTime} to ${h.endTime}`).join('\n');
-            const milestonesStr = targetGoal.milestones ? targetGoal.milestones.map((m: any) => `- ${m.title}`).join('\n') : targetGoal.purpose;
-
-            const availableBlocks = getAvailableTimeBlocks();
-
-            // Extract existing goal tasks
-            const existingTasksForGoal = Object.values(localGridState)
-                .filter(slot => slot.type === 'goal' && (!selectedGoalId || slot.goalId === selectedGoalId))
-                .map(slot => slot.name)
-                .filter((v, i, a) => a.indexOf(v) === i); // Unique names
-
-            const existingTasksStr = existingTasksForGoal.length > 0
-                ? `Already planned tasks (DO NOT duplicate these concepts): ${existingTasksForGoal.join(', ')}`
-                : "No tasks planned yet.";
-
-            const prompt = `
-Generate a weekly structured schedule of tasks for this goal.
-Goal Name: ${targetGoal.name}
-Goal Purpose: ${targetGoal.purpose}
-Milestones/Sub-goals to target:
-${milestonesStr}
-
-User Constraints & Preferences:
-- Minimum task block: ${meta.minTaskTime || 30} minutes
-- Maximum task block: ${meta.maxTaskTime || 2} hours
-- Focus Ability: ${meta.focusAbility || 'Very Low'}
-- Task Shifting Ability: ${meta.taskShifting || 'Very Low'}
-- Free Time Required: ${meta.freeTimeHours ? meta.freeTimeHours + ' hours per week' : '0 hours'}
-
-${existingTasksStr}
-
-Available Time Blocks (You MUST STRICTLY schedule ONLY within these free periods):
-${availableBlocks || "No free time available."}
-
-Create tasks step-by-step aligned with milestones. 
-For "free" type blocks, allocate relaxation/break time as required.
-
-Output format(Strict JSON array):
-[
-    {
-        "dayIdx": number(0 to 6),
-        "startTime": "HH:MM",
-        "endTime": "HH:MM",
-        "taskName": "string - short title",
-        "description": "string",
-        "type": "goal" | "free"
-    }
-]
-RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARSER.
-            `;
-
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey} `,
-                    'Content-Type': 'application/json',
-                    'HTTP-Referer': window.location.origin,
-                    'X-Title': 'Legacy Life Builder Planner'
-                },
-                body: JSON.stringify({
-                    model: "arcee-ai/trinity-large-preview:free",
-                    messages: [{ role: "user", content: prompt }]
-                })
-            });
-
-            const rawResult = await response.json();
-            if (!response.ok || rawResult.error) throw new Error(rawResult.error?.message || 'OpenRouter API Error');
-
-            const contentMessage = rawResult.choices[0]?.message?.content || "";
-            let cleanJson = contentMessage.trim();
-            // Try to extract just the array part if markdown is present
-            const firstBracket = cleanJson.indexOf('[');
-            const lastBracket = cleanJson.lastIndexOf(']');
-            if (firstBracket !== -1 && lastBracket !== -1) {
-                cleanJson = cleanJson.substring(firstBracket, lastBracket + 1);
-            } else {
-                // Fallback basic markdown removal
-                cleanJson = cleanJson.replace(/```json/gi, '').replace(/```/g, '').trim();
+        for (let d = 0; d < 7; d++) {
+            for (let s = 0; s < SLOTS_PER_DAY; s++) {
+                if (!isSleepSlot(s) && !isHabitSlot(d, s) && !localGridState[`${d}-${s}`]) {
+                    emptySlotsGroupedByDay[d].push({ dayIdx: d, slotIdx: s });
+                    totalEmptySlots++;
+                }
             }
-
-            const planSlots = JSON.parse(cleanJson);
-            setPreviewPlan(planSlots);
-            setIsGoalToolDialogOpen(false);
-        } catch (error: any) {
-            console.error('Failed to generate weekly plan', error);
-            toast.error('Failed to generate plan: ' + error.message);
-        } finally {
-            setIsGenerating(false);
         }
-    };
 
-    const commitPreviewPlan = () => {
-        if (!previewPlan) return;
+        if (totalEmptySlots < requiredSlots) {
+            toast.error(`Cannot allocate ${hours}h. Need ${requiredSlots} blocks, but only ${totalEmptySlots} blocks empty.`);
+            return;
+        }
+
         const newState = { ...localGridState };
-        previewPlan.forEach(slot => {
-            const [sH, sM] = slot.startTime.split(':').map(Number);
-            const [eH, eM] = slot.endTime.split(':').map(Number);
-            const startSlot = sH * 2 + (sM >= 30 ? 1 : 0);
-            const endSlot = eH * 2 + (eM >= 30 ? 1 : 0);
-            for (let i = startSlot; i < endSlot; i++) {
-                if (i >= SLOTS_PER_DAY) continue;
-                newState[`${slot.dayIdx}-${i}`] = {
-                    type: slot.type === 'free' ? 'custom' : 'goal',
-                    name: slot.taskName,
-                    goalId: slot.type === 'goal' ? selectedGoalId : undefined
+        let slotsToAllocate = requiredSlots;
+
+        // Spread them out evenly across days sequentially
+        let loopProtect = 0;
+        let d = 0;
+        while (slotsToAllocate > 0 && loopProtect < 1000) {
+            loopProtect++;
+            if (emptySlotsGroupedByDay[d].length > 0) {
+                const slot = emptySlotsGroupedByDay[d].shift()!;
+                newState[`${slot.dayIdx}-${slot.slotIdx}`] = {
+                    type: 'goal',
+                    name: targetGoal.name,
+                    goalId: targetGoal.id
                 };
+                slotsToAllocate--;
             }
-        });
+            d = (d + 1) % 7;
+        }
+
         updateGridState(newState);
-        setPreviewPlan(null);
+        setIsGoalToolDialogOpen(false);
+        toast.success(`Allocated ${hours} hours for "${targetGoal.name}"!`);
     };
 
     const handleSave = useCallback(async () => {
@@ -432,18 +327,7 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
         if (selectedTool === 'erase') {
             delete newState[key];
         } else if (selectedTool === 'goal') {
-            let previewName = '';
-            if (previewPlan) {
-                const previewSlot = previewPlan.find(slot => {
-                    if (slot.dayIdx !== dayIdx) return false;
-                    const [sH, sM] = slot.startTime.split(':').map(Number);
-                    const [eH, eM] = slot.endTime.split(':').map(Number);
-                    const startSlot = sH * 2 + (sM >= 30 ? 1 : 0);
-                    const endSlot = eH * 2 + (eM >= 30 ? 1 : 0);
-                    return slotIdx >= startSlot && slotIdx < endSlot;
-                });
-                if (previewSlot) previewName = previewSlot.taskName;
-            }
+            // Empty now without preview logic
 
             if (!selectedGoalId && (!existing || existing.type !== 'goal')) {
                 toast.error("Please select a goal first!");
@@ -456,7 +340,7 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
 
             newState[key] = {
                 type: 'goal',
-                name: (existing && existing.name) ? existing.name : (previewName || 'Goal Work'),
+                name: (existing && existing.name) ? existing.name : 'Goal Work',
                 goalId: selectedGoalId || (existing && (existing as any).goalId)
             };
         } else if (selectedTool === 'duplicate') {
@@ -472,22 +356,6 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
     };
 
     const getCellContent = (dayIdx: number, slotIdx: number) => {
-        if (previewPlan) {
-            const previewSlot = previewPlan.find(slot => {
-                if (slot.dayIdx !== dayIdx) return false;
-                const [sH, sM] = slot.startTime.split(':').map(Number);
-                const [eH, eM] = slot.endTime.split(':').map(Number);
-                const startSlot = sH * 2 + (sM >= 30 ? 1 : 0);
-                const endSlot = eH * 2 + (eM >= 30 ? 1 : 0);
-                return slotIdx >= startSlot && slotIdx < endSlot;
-            });
-            if (previewSlot) {
-                return {
-                    type: previewSlot.type === 'free' ? 'preview-free' : 'preview',
-                    name: previewSlot.taskName
-                };
-            }
-        }
         if (isSleepSlot(slotIdx)) return { type: 'sleep', name: 'Sleep' };
         const habit = (habits || []).find((h: Habit) => {
             if (h.daysOfWeek && h.daysOfWeek.length > 0 && !h.daysOfWeek.includes(FULL_DAYS[dayIdx])) return false;
@@ -526,9 +394,9 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
                     setIsCustomTaskDialogOpen(true);
                 }}
                 libraryTasks={libraryTasks || []}
-                previewPlan={previewPlan}
-                onCancelPreview={() => setPreviewPlan(null)}
-                commitPreviewPlan={commitPreviewPlan}
+                previewPlan={null}
+                onCancelPreview={() => { }}
+                commitPreviewPlan={() => { }}
                 onGoalToolClick={() => setIsGoalToolDialogOpen(true)}
                 onShowTips={() => setShowTipsDialog(true)}
             />
@@ -611,8 +479,7 @@ RETURN RAW JSON ARRAY ONLY. NO MARKDOWN, NO EXPLANATION. THIS IS FOR AN API PARS
                 activeGoals={activeGoalsForWeek}
                 selectedGoalId={selectedGoalId}
                 setSelectedGoalId={setSelectedGoalId}
-                isGenerating={isGenerating}
-                onGenerate={handleGenerateWeeklyPlan}
+                onAllocate={handleAllocateGoalTime}
             />
 
             <CustomTaskDialog
