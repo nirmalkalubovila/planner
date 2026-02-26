@@ -17,7 +17,8 @@ export const Header: React.FC = () => {
             <div className="hidden md:grid grid-cols-3 items-center h-14 px-8 w-full max-w-7xl mx-auto text-sm">
 
                 {/* Left: System Name */}
-                <div className="flex items-center justify-start">
+                <div className="flex items-center justify-start gap-3">
+                    <img src="/white-logo.svg" alt="Legacy Life Builder Logo" className="h-8 w-auto" />
                     <span className="text-xl font-bold tracking-tight text-primary">Legacy Life Builder</span>
                 </div>
 
