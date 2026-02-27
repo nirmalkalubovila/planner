@@ -11,6 +11,8 @@ import { LoginPage } from './pages/login-page';
 import { SignupPage } from './pages/signup-page';
 import { ProfilePage } from './pages/profile-page';
 import { PersonalizePage } from './pages/personalize-page';
+import { ForgotPasswordPage } from './pages/forgot-password-page';
+import { ResetPasswordPage } from './pages/reset-password-page';
 import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient({
@@ -47,6 +49,8 @@ const router = createBrowserRouter(
     <Route element={<RootLayout />}>
       <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
       <Route path="/signup" element={<AuthRoute><SignupPage /></AuthRoute>} />
+      <Route path="/forgot-password" element={<AuthRoute><ForgotPasswordPage /></AuthRoute>} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
