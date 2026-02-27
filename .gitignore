@@ -35,4 +35,5 @@ dist-ssr
 npm-debug.log
 coverage/
 
-client_secret_263553387186-lpm1dtbu259mqraj30q84h2gha7p1q8v.apps.googleusercontent.com.json
+# Google auth
+client.json
