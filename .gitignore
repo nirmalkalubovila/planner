@@ -34,3 +34,6 @@ dist-ssr
 # Vite Output
 npm-debug.log
 coverage/
+
+# Google auth
+client.json
