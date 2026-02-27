@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LogIn } from 'lucide-react';
+
 
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -35,6 +35,9 @@ export const LoginPage: React.FC = () => {
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/`,
+                }
             });
             if (error) throw error;
         } catch (error: any) {

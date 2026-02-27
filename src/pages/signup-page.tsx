@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserPlus, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const SignupPage: React.FC = () => {
@@ -59,6 +59,9 @@ export const SignupPage: React.FC = () => {
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/personalize`,
+                }
             });
             if (error) throw error;
         } catch (error: any) {
