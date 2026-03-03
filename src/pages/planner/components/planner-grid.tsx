@@ -13,6 +13,7 @@ interface PlannerGridProps {
     setLocalGridState: (state: GridState) => void;
     isSleepSlot: (slotIdx: number) => boolean;
     isHabitSlot: (dayIdx: number, slotIdx: number) => boolean;
+    isPlanSlot: (dayIdx: number, slotIdx: number) => boolean;
     getCellContent: (dayIdx: number, slotIdx: number) => any;
     handleCellClick: (dayIdx: number, slotIdx: number) => void;
 }
@@ -23,6 +24,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     setLocalGridState,
     isSleepSlot,
     isHabitSlot,
+    isPlanSlot,
     getCellContent,
     handleCellClick
 }) => {
@@ -120,7 +122,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                 onDragOver={(e) => e.preventDefault()}
                                                 onDrop={(e) => {
                                                     e.preventDefault();
-                                                    if (isSleepSlot(slotIdx) || isHabitSlot(dayIdx, slotIdx)) return;
+                                                    if (isSleepSlot(slotIdx) || isHabitSlot(dayIdx, slotIdx) || isPlanSlot(dayIdx, slotIdx)) return;
 
                                                     const targetKey = `${dayIdx}-${slotIdx}`;
                                                     const newState = { ...localGridState };
@@ -144,11 +146,12 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     isHourStart ? "border-b border-border/50" : "border-b border-border/20",
                                                     isToday && "bg-primary/[0.02]",
                                                     isToday && !content && "hover:bg-primary/10",
-                                                    isSameAsPrev && (content?.type === 'sleep' || content?.type === 'habit') ? "border-t-0" : "",
+                                                    isSameAsPrev && (content?.type === 'sleep' || content?.type === 'habit' || content?.type === 'plan') ? "border-t-0" : "",
                                                     content?.type === 'preview' && "bg-blue-500/10 text-blue-800 border-blue-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-blue-500/50 rounded-sm m-px",
                                                     content?.type === 'preview-free' && "bg-amber-500/10 text-amber-800 border-amber-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-amber-500/50 rounded-sm m-px",
                                                     content?.type === 'sleep' && "bg-indigo-950/40 text-indigo-300/80 cursor-not-allowed border-indigo-900/30",
                                                     content?.type === 'habit' && "bg-emerald-950/40 text-emerald-400/90 cursor-not-allowed border-emerald-900/30",
+                                                    content?.type === 'plan' && "bg-purple-950/40 text-purple-400/90 cursor-not-allowed border-purple-900/30",
                                                     content?.type === 'goal' && "bg-blue-600/90 text-white cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-blue-500",
                                                     content?.type === 'custom' && "bg-amber-500/80 text-amber-950 cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-amber-400",
                                                     !content && !isToday && "hover:bg-accent/30 text-transparent",
@@ -169,7 +172,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                 {content ? (
                                                     <span className={cn(
                                                         "truncate w-full block",
-                                                        (isSameAsPrev && (content.type === 'sleep' || content.type === 'habit')) && "opacity-0"
+                                                        (isSameAsPrev && (content.type === 'sleep' || content.type === 'habit' || content.type === 'plan')) && "opacity-0"
                                                     )}>
                                                         {content.name}
                                                     </span>

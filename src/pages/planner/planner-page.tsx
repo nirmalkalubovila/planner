@@ -154,6 +154,22 @@ export const PlannerPage: React.FC = () => {
         });
     };
 
+    const isPlanSlot = (dayIdx: number, slotIdx: number) => {
+        if (!user) return false;
+        const planDay = user.user_metadata?.planDay || 'Sunday';
+        const planStartTimeStr = user.user_metadata?.planStartTime || '21:00';
+        const durationSlots = Number(user.user_metadata?.planDurationPacks) || 2;
+
+        const targetDayIdx = FULL_DAYS.indexOf(planDay);
+        if (dayIdx !== targetDayIdx) return false;
+
+        const [pH, pM] = planStartTimeStr.split(':').map(Number);
+        const startSlot = pH * 2 + (pM >= 30 ? 1 : 0);
+        const endSlot = startSlot + durationSlots;
+
+        return slotIdx >= startSlot && slotIdx < endSlot;
+    };
+
     // removed getAvailableTimeBlocks as it is no longer needed
 
     const handleAllocateGoalTime = (goalId: string, hours: number) => {
@@ -167,7 +183,7 @@ export const PlannerPage: React.FC = () => {
 
         for (let d = 0; d < 7; d++) {
             for (let s = 0; s < SLOTS_PER_DAY; s++) {
-                if (!isSleepSlot(s) && !isHabitSlot(d, s) && !localGridState[`${d}-${s}`]) {
+                if (!isSleepSlot(s) && !isHabitSlot(d, s) && !isPlanSlot(d, s) && !localGridState[`${d}-${s}`]) {
                     emptySlotsGroupedByDay[d].push({ dayIdx: d, slotIdx: s });
                     totalEmptySlots++;
                 }
@@ -241,7 +257,7 @@ export const PlannerPage: React.FC = () => {
                 if (dayIdx !== -1) {
                     for (let i = startSlot; i < endSlot; i++) {
                         if (i >= SLOTS_PER_DAY) continue;
-                        if (isSleepSlot(i) || isHabitSlot(dayIdx, i) || newState[`${dayIdx}-${i}`]) {
+                        if (isSleepSlot(i) || isHabitSlot(dayIdx, i) || isPlanSlot(dayIdx, i) || newState[`${dayIdx}-${i}`]) {
                             canAdd = false;
                         }
                     }
@@ -315,7 +331,7 @@ export const PlannerPage: React.FC = () => {
 
     const handleCellClick = (dayIdx: number, slotIdx: number) => {
         const key = `${dayIdx}-${slotIdx}`;
-        if (isSleepSlot(slotIdx) || isHabitSlot(dayIdx, slotIdx)) return;
+        if (isSleepSlot(slotIdx) || isHabitSlot(dayIdx, slotIdx) || isPlanSlot(dayIdx, slotIdx)) return;
 
         const newState = { ...localGridState };
         const existing = newState[key];
@@ -362,6 +378,7 @@ export const PlannerPage: React.FC = () => {
 
     const getCellContent = (dayIdx: number, slotIdx: number) => {
         if (isSleepSlot(slotIdx)) return { type: 'sleep', name: 'Sleep' };
+        if (isPlanSlot(dayIdx, slotIdx)) return { type: 'plan', name: 'Weekly Planning' };
         const habit = (habits || []).find((h: Habit) => {
             if (h.daysOfWeek && h.daysOfWeek.length > 0 && !h.daysOfWeek.includes(FULL_DAYS[dayIdx])) return false;
             const [hStartH, hStartM] = h.startTime.split(':').map(Number);
@@ -514,6 +531,7 @@ export const PlannerPage: React.FC = () => {
                     setLocalGridState={updateGridState}
                     isSleepSlot={isSleepSlot}
                     isHabitSlot={isHabitSlot}
+                    isPlanSlot={isPlanSlot}
                     getCellContent={getCellContent}
                     handleCellClick={handleCellClick}
                 />
