@@ -29,13 +29,19 @@ export const WeekReflectionDialog: React.FC = () => {
         if (!user || hasChecked) return;
         setHasChecked(true);
 
-        const planTime = user.user_metadata?.planTime;
+        // Condition 1: Older User (isPersonalized is true)
+        const isPersonalized = user.user_metadata?.isPersonalized;
+        if (!isPersonalized) return;
+
+        const planDay = user.user_metadata?.planDay;
+        const planStartTime = user.user_metadata?.planStartTime;
         const lastReflected = user.user_metadata?.lastReflectionDate;
 
-        if (planTime && ReflectionUtils.isReflectionDue(planTime, lastReflected)) {
+        // Condition 2: Planning start time for last week passed
+        if (planDay && planStartTime && ReflectionUtils.isReflectionDue(planDay, planStartTime, lastReflected)) {
             // Load and analyze data to pass into steps (we mock some for now, later enhance processing)
             useReflectionStore.getState().setSummaryData({
-                taskCompletionRate: 75, // mocked summary, you can enhance analyzing logic later
+                taskCompletionRate: 75,
                 goalSummary: "Made progress on Core Project",
                 habitSummary: "Consistently hit morning routine"
             });

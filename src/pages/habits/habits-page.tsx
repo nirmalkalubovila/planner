@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronUp, Search, Target } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 import { useGetHabits, useCreateHabit, useDeleteHabit, useUpdateHabit } from '@/api/services/habit-service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,8 +34,8 @@ export const HabitsPage: React.FC = () => {
     // Inject Defaults once loaded if empty
     useEffect(() => {
         if (!isLoading && habits.length === 0) {
-            const hasSeeded = localStorage.getItem('seededDefaultHabits');
-            if (!hasSeeded) {
+            const hasSeededInDb = user?.user_metadata?.habitsSeeded;
+            if (!hasSeededInDb) {
                 const defaults: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>[] = [
                     { name: 'Gym & Exercise', purpose: 'Build physical health and discipline', startTime: '06:00', endTime: '07:30', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] },
                     { name: 'Breakfast', purpose: 'Fuel for the day', startTime: '08:00', endTime: '09:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
@@ -42,11 +43,20 @@ export const HabitsPage: React.FC = () => {
                     { name: 'Dinner', purpose: 'Evening recovery', startTime: '19:00', endTime: '20:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
                 ];
 
-                defaults.forEach(d => createHabit.mutate(d as Habit));
-                localStorage.setItem('seededDefaultHabits', 'true');
+                // Create all defaults and mark as seeded in User Metadata so it's persistent across devices
+                const seedPromises = defaults.map(d => createHabit.mutateAsync(d as Habit));
+
+                Promise.all(seedPromises).then(async () => {
+                    await supabase.auth.updateUser({
+                        data: { habitsSeeded: true }
+                    });
+                    toast.success("Welcome! We've created some essential habits for you. Feel free to update them to match your routine.", {
+                        duration: 6000,
+                    });
+                });
             }
         }
-    }, [habits, isLoading, createHabit]);
+    }, [habits, isLoading, createHabit, user]);
 
     const onSubmit = (values: HabitFormValues) => {
         setConflictError(null);
