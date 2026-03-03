@@ -7,12 +7,12 @@ import { HabitsPage } from './pages/habits/habits-page';
 import { GoalsPage } from './pages/goals/goals-page';
 import { PlannerPage } from './pages/planner/planner-page';
 import { TodayPage } from './pages/today-page';
-import { LoginPage } from './pages/login-page';
-import { SignupPage } from './pages/signup-page';
+import { LoginPage } from './pages/auth/login-page';
+import { SignupPage } from './pages/auth/signup-page';
 import { ProfilePage } from './pages/profile-page';
-import { PersonalizePage } from './pages/personalize-page';
-import { ForgotPasswordPage } from './pages/forgot-password-page';
-import { ResetPasswordPage } from './pages/reset-password-page';
+import { PersonalizePage } from './pages/auth/personalize-page';
+import { ForgotPasswordPage } from './pages/auth/forgot-password-page';
+import { ResetPasswordPage } from './pages/auth/reset-password-page';
 import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient({
