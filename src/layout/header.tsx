@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { Clock, UserCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Settings, LogOut, User as UserIcon } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 export const Header: React.FC = () => {
+    const { user, signOut } = useAuth();
+    const navigate = useNavigate();
     const [time, setTime] = useState(new Date());
 
     useEffect(() => {
@@ -12,49 +19,93 @@ export const Header: React.FC = () => {
         return () => clearInterval(timer);
     }, []);
 
-    return (
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            {/* Desktop View: Left Name, Middle Grid Time, Right Profile */}
-            <div className="hidden md:grid grid-cols-3 items-center h-14 px-8 w-full max-w-7xl mx-auto text-sm">
+    const handleLogout = async () => {
+        await signOut();
+        navigate('/login');
+    };
 
-                {/* Left: System Name */}
-                <div className="flex items-center justify-start gap-3">
-                    <img src="/white-logo.svg" alt="Legacy Life Builder Logo" className="h-8 w-auto" />
-                    <span className="text-xl font-bold tracking-tight text-primary">Legacy Life Builder</span>
+    return (
+        <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+            <div className="grid grid-cols-3 items-center h-16 px-4 md:px-8 max-w-7xl mx-auto">
+
+                {/* Left: Beautiful Logo & Title (Anchored to home) */}
+                <div className="flex justify-start">
+                    <Link
+                        to="/"
+                        className="flex items-center gap-2.5 group transition-all duration-300 hover:scale-[1.02] active:scale-95"
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
+                    >
+                        <div className="relative flex items-center justify-center">
+                            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            <img
+                                src="/white-logo.svg"
+                                alt="Legacy Life Builder Logo"
+                                className="h-7 w-7 md:h-8 md:w-8 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm md:text-lg font-bold tracking-[-0.03em] leading-none uppercase bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
+                                Legacy Life Builder
+                            </span>
+                            <div className="h-[1.5px] w-0 group-hover:w-full bg-gradient-to-r from-primary/80 to-transparent transition-all duration-500 ease-out" />
+                        </div>
+                    </Link>
                 </div>
 
-                {/* Middle: Time, Date, Year */}
-                <div className="flex items-center justify-center font-medium text-muted-foreground w-full">
-                    <div className="flex items-center gap-2 bg-accent/50 px-4 py-1.5 rounded-full border border-border shadow-sm">
-                        <Clock size={16} className="text-primary" />
-                        <span>{format(time, 'EEE, MMM d, yyyy HH:mm')}</span>
+                {/* Middle: Timer (Logo-style Text) */}
+                <div className="flex flex-col items-center justify-center font-bold text-white tracking-widest leading-tight">
+                    <div className="flex flex-col items-center group cursor-default">
+                        <span className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-white/40 group-hover:text-primary transition-colors">
+                            {format(time, 'yyyy, MMM dd')}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg md:text-xl font-mono">
+                                {format(time, 'HH:mm:ss')}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Right: User Profile & Reflection */}
-                <div className="flex items-center justify-end gap-3">
-                    <Link to="/profile" className="flex items-center gap-2 hover:text-primary transition-colors text-muted-foreground font-medium bg-secondary/50 px-3 py-1.5 rounded-full border border-border hover:bg-secondary">
-                        <UserCircle size={20} />
-                        <span>Profile</span>
-                    </Link>
-                </div>
-            </div>
-
-            {/* Mobile View: Left Time, Right Profile */}
-            <div className="flex md:hidden items-center justify-between h-14 px-4 w-full text-sm">
-
-                {/* Left: System Name (Mobile) */}
-                <div className="flex items-center gap-2">
-                    <img src="/white-logo.svg" alt="Legacy Life Builder Logo" className="h-6 w-auto" />
-                    <span className="text-base font-bold tracking-tight text-primary">Legacy Life Builder</span>
-                </div>
-
-                {/* Right: User Profile & Reflection */}
-                <div className="flex items-center gap-2">
-                    <Link to="/profile" className="flex items-center gap-2 text-primary bg-primary/10 px-3 py-1 rounded-full">
-                        <UserCircle size={20} />
-                        <span className="text-xs font-semibold">Profile</span>
-                    </Link>
+                {/* Right: Round Profile Icon with Dropdown */}
+                <div className="flex justify-end">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 p-0 hover:bg-white/10 transition-all active:scale-95 focus:outline-none focus:ring-1 focus:ring-white/20">
+                                <UserIcon size={20} className="text-white/80" />
+                                {user && (
+                                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" />
+                                )}
+                            </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-52 p-1.5 border-white/10 bg-background/95 backdrop-blur-xl shadow-2xl" align="end">
+                            <div className="px-3 py-2.5 border-b border-white/5 mb-1.5 bg-white/5 -mx-1.5 -mt-1.5 rounded-t-lg">
+                                <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Signed in as</p>
+                                <p className="text-xs text-white truncate max-w-full font-medium mt-1">
+                                    {user?.email}
+                                </p>
+                            </div>
+                            <div className="space-y-0.5">
+                                <button
+                                    onClick={() => navigate('/profile')}
+                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all rounded-md group"
+                                >
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white/5 group-hover:bg-primary/20 transition-colors">
+                                        <Settings size={14} className="group-hover:rotate-45 transition-transform duration-500" />
+                                    </div>
+                                    <span className="font-medium">Settings</span>
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all rounded-md group"
+                                >
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/5 group-hover:bg-red-500/20 transition-colors">
+                                        <LogOut size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                                    </div>
+                                    <span className="font-medium">Log out</span>
+                                </button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </div>
         </header>
