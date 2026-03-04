@@ -40,14 +40,15 @@ function Calendar({
     selected,
     onSelect,
     className,
-    captionLayout = "buttons",
-    fromYear = 1900,
-    toYear = new Date().getFullYear(),
     showOutsideDays = true,
     defaultMonth,
 }: CalendarProps) {
+    const [view, setView] = React.useState<"calendar" | "months" | "years">("calendar")
     const [currentMonth, setCurrentMonth] = React.useState(
         defaultMonth || selected || new Date()
+    )
+    const [yearRangeStart, setYearRangeStart] = React.useState(
+        Math.floor(getYear(currentMonth) / 12) * 12
     )
 
     const monthStart = startOfMonth(currentMonth)
@@ -56,89 +57,38 @@ function Calendar({
     const calendarEnd = endOfWeek(monthEnd)
 
     // Build all the days to display
-    const days: Date[] = []
+    const daysArr: Date[] = []
     let day = calendarStart
     while (day <= calendarEnd) {
-        days.push(day)
+        daysArr.push(day)
         day = addDays(day, 1)
     }
 
     // Build weeks (rows of 7)
     const weeks: Date[][] = []
-    for (let i = 0; i < days.length; i += 7) {
-        weeks.push(days.slice(i, i + 7))
+    for (let i = 0; i < daysArr.length; i += 7) {
+        weeks.push(daysArr.slice(i, i + 7))
     }
 
     const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
     const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
 
-    const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setCurrentMonth(setMonth(currentMonth, parseInt(e.target.value)))
+    const handleMonthSelect = (m: number) => {
+        setCurrentMonth(setMonth(currentMonth, m))
+        setView("calendar")
     }
 
-    const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setCurrentMonth(setYear(currentMonth, parseInt(e.target.value)))
+    const handleYearSelect = (y: number) => {
+        setCurrentMonth(setYear(currentMonth, y))
+        setView("months")
     }
-
-    const years = Array.from({ length: toYear - fromYear + 1 }, (_, i) => fromYear + i)
-    const months = Array.from({ length: 12 }, (_, i) => i)
 
     const isToday = (d: Date) => isSameDay(d, new Date())
     const isSelected = (d: Date) => selected ? isSameDay(d, selected) : false
     const isOutside = (d: Date) => !isSameMonth(d, currentMonth)
 
-    return (
-        <div className={cn("p-3", className)}>
-            {/* Caption / Header */}
-            <div className="flex items-center justify-between mb-3">
-                <button
-                    type="button"
-                    onClick={handlePrevMonth}
-                    className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                >
-                    <ChevronLeft className="h-4 w-4" />
-                </button>
-
-                {captionLayout === "dropdown" ? (
-                    <div className="flex gap-2 items-center">
-                        <select
-                            value={getMonth(currentMonth)}
-                            onChange={handleMonthChange}
-                            className="appearance-none bg-accent text-foreground border border-border rounded-md px-2 py-1 text-sm font-medium cursor-pointer outline-none focus:ring-1 focus:ring-ring"
-                        >
-                            {months.map((m) => (
-                                <option key={m} value={m} className="bg-popover text-foreground">
-                                    {format(new Date(2000, m, 1), "MMMM")}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            value={getYear(currentMonth)}
-                            onChange={handleYearChange}
-                            className="appearance-none bg-accent text-foreground border border-border rounded-md px-2 py-1 text-sm font-medium cursor-pointer outline-none focus:ring-1 focus:ring-ring"
-                        >
-                            {years.map((y) => (
-                                <option key={y} value={y} className="bg-popover text-foreground">
-                                    {y}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                ) : (
-                    <span className="text-sm font-medium text-foreground">
-                        {format(currentMonth, "MMMM yyyy")}
-                    </span>
-                )}
-
-                <button
-                    type="button"
-                    onClick={handleNextMonth}
-                    className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                >
-                    <ChevronRight className="h-4 w-4" />
-                </button>
-            </div>
-
+    const renderCalendar = () => (
+        <>
             {/* Weekday Headers */}
             <div className="grid grid-cols-7 mb-1">
                 {WEEKDAYS.map((wd) => (
@@ -178,6 +128,114 @@ function Calendar({
                     })}
                 </div>
             ))}
+        </>
+    )
+
+    const renderMonths = () => (
+        <div className="grid grid-cols-3 gap-2 p-1">
+            {Array.from({ length: 12 }, (_, i) => (
+                <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleMonthSelect(i)}
+                    className={cn(
+                        "h-10 px-2 rounded-md text-xs font-semibold transition-colors",
+                        getMonth(currentMonth) === i
+                            ? "bg-primary text-primary-foreground"
+                            : "text-foreground hover:bg-accent"
+                    )}
+                >
+                    {format(new Date(2000, i, 1), "MMM")}
+                </button>
+            ))}
+        </div>
+    )
+
+    const renderYears = () => {
+        const years = Array.from({ length: 12 }, (_, i) => yearRangeStart + i)
+        return (
+            <div className="grid grid-cols-3 gap-2 p-1">
+                {years.map((y) => (
+                    <button
+                        key={y}
+                        type="button"
+                        onClick={() => handleYearSelect(y)}
+                        className={cn(
+                            "h-10 px-2 rounded-md text-xs font-semibold transition-colors",
+                            getYear(currentMonth) === y
+                                ? "bg-primary text-primary-foreground"
+                                : "text-foreground hover:bg-accent"
+                        )}
+                    >
+                        {y}
+                    </button>
+                ))}
+            </div>
+        )
+    }
+
+    return (
+        <div className={cn("p-3 w-[280px]", className)}>
+            {/* Caption / Header */}
+            <div className="flex items-center justify-between mb-3">
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (view === "calendar") handlePrevMonth()
+                        if (view === "years") setYearRangeStart(yearRangeStart - 12)
+                    }}
+                    className={cn(
+                        "inline-flex items-center justify-center h-7 w-7 rounded-md border border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors",
+                        view === "months" && "opacity-0 pointer-events-none"
+                    )}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                <div className="flex gap-1 items-center">
+                    <button
+                        type="button"
+                        onClick={() => setView(view === "months" ? "calendar" : "months")}
+                        className="px-2 py-1 rounded-md hover:bg-white/5 text-sm font-bold text-white transition-colors"
+                    >
+                        {format(currentMonth, "MMMM")}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (view === "years") {
+                                setView("calendar")
+                            } else {
+                                setYearRangeStart(Math.floor(getYear(currentMonth) / 12) * 12)
+                                setView("years")
+                            }
+                        }}
+                        className="px-2 py-1 rounded-md hover:bg-white/5 text-sm font-bold text-white transition-colors"
+                    >
+                        {view === "years" ? `${yearRangeStart} - ${yearRangeStart + 11}` : getYear(currentMonth)}
+                    </button>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (view === "calendar") handleNextMonth()
+                        if (view === "years") setYearRangeStart(yearRangeStart + 12)
+                    }}
+                    className={cn(
+                        "inline-flex items-center justify-center h-7 w-7 rounded-md border border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors",
+                        view === "months" && "opacity-0 pointer-events-none"
+                    )}
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </button>
+            </div>
+
+            <div className="min-h-[220px]">
+                {view === "calendar" && renderCalendar()}
+                {view === "months" && renderMonths()}
+                {view === "years" && renderYears()}
+            </div>
         </div>
     )
 }

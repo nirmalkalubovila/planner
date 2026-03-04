@@ -34,13 +34,15 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                 <Button
                     variant={"outline"}
                     className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full flex items-center justify-between text-left font-normal h-9 px-3 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 transition-colors",
                         !selected && "text-muted-foreground",
                         className
                     )}
                 >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selected ? format(selected, "PPP") : <span>{placeholderText}</span>}
+                    <span className="truncate">
+                        {selected ? format(selected, "PPP") : placeholderText}
+                    </span>
+                    <CalendarIcon className="h-4 w-4 text-white shrink-0" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -53,7 +55,6 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                     }}
                     captionLayout="dropdown"
                     fromYear={1900}
-                    toYear={new Date().getFullYear()}
                 />
             </PopoverContent>
         </Popover>

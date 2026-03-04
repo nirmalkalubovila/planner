@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { AuthError } from '@/components/ui/auth-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FormField, FormSelect } from '@/components/ui/form-components';
+import { FormField } from '@/components/ui/form-components';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Text, Divider } from '@/components/ui/typography';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 import { format } from 'date-fns';
@@ -129,15 +130,20 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                             />
                         </FormField>
                         <FormField label="Week Starts" icon={<CalendarDays className="w-3 h-3" />}>
-                            <FormSelect value={weekStart} onChange={(e) => setWeekStart(e.target.value)}>
-                                <option value="Monday">Monday</option>
-                                <option value="Tuesday">Tuesday</option>
-                                <option value="Wednesday">Wednesday</option>
-                                <option value="Thursday">Thursday</option>
-                                <option value="Friday">Friday</option>
-                                <option value="Saturday">Saturday</option>
-                                <option value="Sunday">Sunday</option>
-                            </FormSelect>
+                            <Select value={weekStart} onValueChange={setWeekStart}>
+                                <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Monday">Monday</SelectItem>
+                                    <SelectItem value="Tuesday">Tuesday</SelectItem>
+                                    <SelectItem value="Wednesday">Wednesday</SelectItem>
+                                    <SelectItem value="Thursday">Thursday</SelectItem>
+                                    <SelectItem value="Friday">Friday</SelectItem>
+                                    <SelectItem value="Saturday">Saturday</SelectItem>
+                                    <SelectItem value="Sunday">Sunday</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </FormField>
                     </div>
 
@@ -145,15 +151,20 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <FormField label="Plan Week On (Day)" icon={<CalendarDays className="w-3 h-3" />}>
-                            <FormSelect value={planDay} onChange={(e) => setPlanDay(e.target.value)}>
-                                <option value="Monday">Monday</option>
-                                <option value="Tuesday">Tuesday</option>
-                                <option value="Wednesday">Wednesday</option>
-                                <option value="Thursday">Thursday</option>
-                                <option value="Friday">Friday</option>
-                                <option value="Saturday">Saturday</option>
-                                <option value="Sunday">Sunday</option>
-                            </FormSelect>
+                            <Select value={planDay} onValueChange={setPlanDay}>
+                                <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Monday">Monday</SelectItem>
+                                    <SelectItem value="Tuesday">Tuesday</SelectItem>
+                                    <SelectItem value="Wednesday">Wednesday</SelectItem>
+                                    <SelectItem value="Thursday">Thursday</SelectItem>
+                                    <SelectItem value="Friday">Friday</SelectItem>
+                                    <SelectItem value="Saturday">Saturday</SelectItem>
+                                    <SelectItem value="Sunday">Sunday</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </FormField>
                         <FormField label="Plan Start Time" icon={<Clock className="w-3 h-3" />}>
                             <SimpleTimePicker value={planStartTime} onChange={setPlanStartTime} />
@@ -173,12 +184,17 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                             <Input type="text" value={currentProfession} onChange={(e) => setCurrentProfession(e.target.value)} placeholder="Software Engineer" className="h-9" />
                         </FormField>
                         <FormField label="Energy Peak Time" icon={<Zap className="w-3 h-3" />}>
-                            <FormSelect value={energyPeakTime} onChange={(e) => setEnergyPeakTime(e.target.value)}>
-                                <option value="Morning">Morning (6AM–12PM)</option>
-                                <option value="Afternoon">Afternoon (12–5PM)</option>
-                                <option value="Evening">Evening (5–9PM)</option>
-                                <option value="Night">Night (9PM–12AM)</option>
-                            </FormSelect>
+                            <Select value={energyPeakTime} onValueChange={setEnergyPeakTime}>
+                                <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Morning">Morning (6AM–12PM)</SelectItem>
+                                    <SelectItem value="Afternoon">Afternoon (12–5PM)</SelectItem>
+                                    <SelectItem value="Evening">Evening (5–9PM)</SelectItem>
+                                    <SelectItem value="Night">Night (9PM–12AM)</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </FormField>
                     </div>
 
@@ -186,18 +202,28 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <FormField label="Focus Ability" icon={<Zap className="w-3 h-3" />}>
-                            <FormSelect value={focusAbility} onChange={(e) => setFocusAbility(e.target.value)}>
-                                <option value="High">High (Deep focus for hours)</option>
-                                <option value="Normal">Normal (Steady pace)</option>
-                                <option value="Low">Low (Easily distracted)</option>
-                            </FormSelect>
+                            <Select value={focusAbility} onValueChange={setFocusAbility}>
+                                <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="High">High (Deep focus for hours)</SelectItem>
+                                    <SelectItem value="Normal">Normal (Steady pace)</SelectItem>
+                                    <SelectItem value="Low">Low (Easily distracted)</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </FormField>
                         <FormField label="Task Shifting Ability" icon={<Zap className="w-3 h-3" />}>
-                            <FormSelect value={taskShiftingAbility} onChange={(e) => setTaskShiftingAbility(e.target.value)}>
-                                <option value="Fast">Fast (Context switch easily)</option>
-                                <option value="Normal">Normal (Comfortable transition)</option>
-                                <option value="Slow">Slow (Need wind-down time)</option>
-                            </FormSelect>
+                            <Select value={taskShiftingAbility} onValueChange={setTaskShiftingAbility}>
+                                <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Fast">Fast (Context switch easily)</SelectItem>
+                                    <SelectItem value="Normal">Normal (Comfortable transition)</SelectItem>
+                                    <SelectItem value="Slow">Slow (Need wind-down time)</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </FormField>
                     </div>
 

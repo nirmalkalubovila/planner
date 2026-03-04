@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronUp, Search, Target } from 'lucide-react';
+import { Plus, ChevronUp, Target } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useGetHabits, useCreateHabit, useDeleteHabit, useUpdateHabit } from '@/api/services/habit-service';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Habit } from '@/types/global-types';
 import { useAuth } from '@/contexts/auth-context';
@@ -19,7 +18,6 @@ export const HabitsPage: React.FC = () => {
     const { user } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
-    const [searchQuery, setSearchQuery] = useState("");
     const [conflictError, setConflictError] = useState<string | null>(null);
 
     // Confirmation state
@@ -31,8 +29,6 @@ export const HabitsPage: React.FC = () => {
     const updateHabit = useUpdateHabit();
     const deleteHabit = useDeleteHabit();
 
-    const isSeedingRef = React.useRef(false);
-
     const onSubmit = (values: HabitFormValues) => {
         setConflictError(null);
         // Calculate end time
@@ -41,7 +37,6 @@ export const HabitsPage: React.FC = () => {
         const endTime = `${Math.floor((endMin % 1440) / 60).toString().padStart(2, '0')}:${(endMin % 60).toString().padStart(2, '0')}`;
 
         // Conflict Check
-        // 1. Sleep Conflict
         const sleepStart = user?.user_metadata?.sleepStart || '22:00';
         const sleepDuration = Number(user?.user_metadata?.sleepDuration) || 8;
 
@@ -52,7 +47,6 @@ export const HabitsPage: React.FC = () => {
             return;
         }
 
-        // 2. Existing Habit Conflict
         for (const habit of habits) {
             if (editingHabit && habit.id === editingHabit.id) continue;
 
@@ -106,84 +100,79 @@ export const HabitsPage: React.FC = () => {
         setIsFormOpen(true);
     };
 
-    const filteredHabits = habits.filter((h: Habit) => h.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    const totalCount = filteredHabits.length;
-
     return (
-        <div className="space-y-6 pb-20">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Habit Tracker</h1>
-                    <p className="text-sm md:text-base text-muted-foreground">Define daily habits. These will lock into your Weekly Planner.</p>
+        <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4">
+            {/* Minimalist Header */}
+            <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Habit Collection</h2>
+                    <div className="flex items-center gap-2">
+                        <div className="h-1 w-12 bg-primary/40 rounded-full" />
+                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{habits.length} ACTIVE</span>
+                    </div>
                 </div>
-                <Button onClick={() => { setIsFormOpen(!isFormOpen); setEditingHabit(null); }} className="gap-2 w-full sm:w-auto">
-                    {isFormOpen ? <ChevronUp size={16} /> : <Plus size={16} />}
-                    {isFormOpen ? "Cancel" : "Add New Habit"}
+                <Button
+                    onClick={() => { setIsFormOpen(!isFormOpen); setEditingHabit(null); }}
+                    variant={isFormOpen ? "outline" : "default"}
+                    className="gap-2 h-10 px-6 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all duration-300"
+                >
+                    {isFormOpen ? <ChevronUp size={14} /> : <Plus size={14} />}
+                    {isFormOpen ? "Close Panel" : "Architect Habit"}
                 </Button>
             </div>
 
-            {/* Search and Counts */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-card border rounded-lg p-3 w-full shadow-sm">
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                        placeholder="Search habits..."
-                        className="pl-9 w-full"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-                <div className="flex items-center gap-2 whitespace-nowrap text-sm font-medium">
-                    <span className="text-muted-foreground">Total Habits:</span>
-                    <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">{totalCount}</span>
-                </div>
-            </div>
-
             {isFormOpen && (
-                <Card className="border-primary/20 bg-accent/5 focus-within:border-primary/40 transition-all">
-                    <CardHeader>
-                        <CardTitle>{editingHabit ? "Edit Habit" : "Add New Habit"}</CardTitle>
-                        <CardDescription>Fill in the details for your recurring daily habit.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <HabitDefinitionForm
-                            key={editingHabit?.id || 'new'}
-                            initialValues={editingHabit ? {
-                                name: editingHabit.name,
-                                purpose: editingHabit.purpose || '',
-                                startTime: editingHabit.startTime,
-                                durationPacks: Math.max(1, Math.round(((timeToMinutes(editingHabit.endTime) < timeToMinutes(editingHabit.startTime) ? (timeToMinutes(editingHabit.endTime) + 1440 - timeToMinutes(editingHabit.startTime)) : (timeToMinutes(editingHabit.endTime) - timeToMinutes(editingHabit.startTime)))) / 30)),
-                                startDate: editingHabit.startDate || new Date().toISOString().split('T')[0],
-                                endDate: editingHabit.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-                                daysOfWeek: editingHabit.daysOfWeek || DAYS_OF_WEEK,
-                            } : undefined}
-                            onSubmit={onSubmit}
-                            isPending={createHabit.isPending || updateHabit.isPending}
-                        />
-                        {conflictError && (
-                            <div className="mt-4 p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-                                {conflictError}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+                    <Card className="border-white/10 bg-white/[0.02] backdrop-blur-md rounded-3xl overflow-hidden shadow-2xl">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-xl font-bold tracking-tight text-white/90">{editingHabit ? "Refine Habit" : "New Habit Definition"}</CardTitle>
+                            <CardDescription className="text-white/40">Define the recurring cycles of your legacy.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <HabitDefinitionForm
+                                key={editingHabit?.id || 'new'}
+                                initialValues={editingHabit ? {
+                                    name: editingHabit.name,
+                                    purpose: editingHabit.purpose || '',
+                                    startTime: editingHabit.startTime,
+                                    durationPacks: Math.max(1, Math.round(((timeToMinutes(editingHabit.endTime) < timeToMinutes(editingHabit.startTime) ? (timeToMinutes(editingHabit.endTime) + 1440 - timeToMinutes(editingHabit.startTime)) : (timeToMinutes(editingHabit.endTime) - timeToMinutes(editingHabit.startTime)))) / 30)),
+                                    startDate: editingHabit.startDate || new Date().toISOString().split('T')[0],
+                                    endDate: editingHabit.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                                    daysOfWeek: editingHabit.daysOfWeek || DAYS_OF_WEEK,
+                                } : undefined}
+                                onSubmit={onSubmit}
+                                isPending={createHabit.isPending || updateHabit.isPending}
+                            />
+                            {conflictError && (
+                                <div className="mt-4 p-4 text-xs font-bold uppercase tracking-widest text-destructive bg-destructive/5 border border-destructive/20 rounded-2xl">
+                                    {conflictError}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                 {isLoading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                        <Card key={i} className="animate-pulse">
-                            <CardContent className="h-40 bg-accent/20" />
-                        </Card>
+                    Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="h-48 rounded-3xl bg-white/[0.02] border border-white/5 animate-pulse" />
                     ))
-                ) : filteredHabits.length === 0 ? (
-                    <div className="col-span-full py-16 text-center bg-card rounded-xl border border-dashed">
-                        <Target className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                        <h3 className="text-lg font-semibold text-foreground">No Habits Found</h3>
-                        <p className="text-sm text-muted-foreground">There are no habits matching your search criteria.</p>
+                ) : habits.length === 0 ? (
+                    <div className="col-span-full py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm">
+                        <Target className="w-16 h-16 text-white/10 mx-auto mb-6 opacity-50" strokeWidth={1} />
+                        <h3 className="text-xl font-bold text-white/60 tracking-tight">System Empty</h3>
+                        <p className="text-sm text-white/20 mt-2 max-w-xs mx-auto">Initialize your first habit to begin the architectural process.</p>
+                        <Button
+                            onClick={() => setIsFormOpen(true)}
+                            variant="link"
+                            className="mt-6 text-primary font-bold uppercase tracking-widest text-[10px]"
+                        >
+                            + Begin Initialization
+                        </Button>
                     </div>
                 ) : (
-                    filteredHabits.map((habit: Habit) => (
+                    habits.map((habit: Habit) => (
                         <HabitCard
                             key={habit.id}
                             habit={habit}
@@ -204,9 +193,9 @@ export const HabitsPage: React.FC = () => {
                         setShowDeleteConfirm(false);
                     }
                 }}
-                title="Delete Habit?"
-                description="Are you sure you want to delete this habit? This will remove all its occurrences from your weekly planning grid."
-                confirmText="Delete Habit"
+                title="Deconstruct Habit?"
+                description="This action will remove all recurring occurrences of this habit from your operational schedule. This cannot be undone."
+                confirmText="Confirm Deconstruction"
                 variant="destructive"
             />
         </div>

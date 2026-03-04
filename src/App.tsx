@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/auth-context';
 import { ProtectedRoute } from './components/protected-route';
@@ -6,10 +6,10 @@ import { DashboardLayout } from './layout/dashboard-layout';
 import { HabitsPage } from './pages/habits/habits-page';
 import { GoalsPage } from './pages/goals/goals-page';
 import { PlannerPage } from './pages/planner/planner-page';
-import { TodayPage } from './pages/today-page';
+import { TodayPage } from './pages/today/today-page';
 import { LoginPage } from './pages/auth/login-page';
 import { SignupPage } from './pages/auth/signup-page';
-import { ProfilePage } from './pages/profile-page';
+import { ProfilePage } from './pages/profile/profile-page';
 import { PersonalizePage } from './pages/auth/personalize-page';
 import { ForgotPasswordPage } from './pages/auth/forgot-password-page';
 import { ResetPasswordPage } from './pages/auth/reset-password-page';
@@ -40,11 +40,9 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const RootLayout = () => {
-  const location = useLocation();
-  const isTodayPage = location.pathname === '/';
   return (
     <>
-      {!isTodayPage && <Toaster position="top-right" theme="dark" richColors />}
+      <Toaster position="bottom-right" theme="dark" richColors />
       <Outlet />
     </>
   );

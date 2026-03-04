@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ListTodo, Target, CalendarDays, BarChart2, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Home, ListTodo, Target, CalendarDays, BarChart2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from '@/components/ui/button';
 
 const navigation = [
-    { name: 'Today Tasks', href: '/', icon: Home },
-    { name: 'Week Planner', href: '/planner', icon: CalendarDays },
-    { name: 'Goals', href: '/goals', icon: Target },
-    { name: 'Habits', href: '/habits', icon: ListTodo },
-    { name: 'Statistics', href: '/statistics', icon: BarChart2 },
+    { name: 'Today Tasks', href: '/', icon: Home, label: 'Execution' },
+    { name: 'Habits', href: '/habits', icon: ListTodo, label: 'Consistency' },
+    { name: 'Goals', href: '/goals', icon: Target, label: 'Vision' },
+    { name: 'Planner', href: '/planner', icon: CalendarDays, label: 'Strategy' },
+    { name: 'Statistics', href: '/statistics', icon: BarChart2, label: 'Insights' },
 ];
 
 export const DashboardSidebar: React.FC = () => {
@@ -24,74 +24,106 @@ export const DashboardSidebar: React.FC = () => {
 
     return (
         <div className={cn(
-            "flex h-full flex-col border-r bg-card text-card-foreground transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative",
+            "flex h-full flex-col border-r border-white/5 bg-background text-foreground transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] relative z-50",
             isCollapsed ? "w-20" : "w-64"
         )}>
-            {/* Collapse Toggle Button */}
+            {/* Header / Brand area placeholder */}
             <div className={cn(
-                "flex items-center p-4 border-b",
+                "flex items-center h-16 px-6",
                 isCollapsed ? "justify-center" : "justify-between"
             )}>
-                {!isCollapsed && <span className="font-black text-xs uppercase tracking-widest text-primary opacity-80">Menu</span>}
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 rounded-xl hover:bg-accent transition-all duration-200"
+                {!isCollapsed && (
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 select-none">
+                        Navigation
+                    </span>
+                )}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-white/5 text-white/30 hover:text-white transition-all duration-300"
                     onClick={() => setIsCollapsed(!isCollapsed)}
                 >
-                    {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+                    {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
                 </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto py-6 px-3 space-y-2">
+            <nav className="flex-1 px-4 space-y-1 mt-4">
                 {navigation.map((item) => (
                     <NavLink
                         key={item.name}
                         to={item.href}
-                        title={isCollapsed ? item.name : ""}
                         className={({ isActive }) =>
                             cn(
-                                "flex items-center gap-3 rounded-2xl px-3 py-3 transition-all duration-200 group relative",
-                                isActive 
-                                    ? "bg-primary/10 text-primary shadow-[0_0_15px_rgba(var(--primary),0.1)]" 
-                                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                                "flex items-center gap-4 rounded-xl px-4 py-3.5 transition-all duration-500 group relative overflow-hidden",
+                                isActive
+                                    ? "bg-white/[0.03] text-primary shadow-sm"
+                                    : "text-white/40 hover:text-white hover:bg-white/[0.02]",
                                 isCollapsed ? "justify-center" : "justify-start"
                             )
                         }
                     >
-                        <item.icon 
-                            size={22} 
-                            className={cn(
-                                "shrink-0 transition-transform duration-200 group-hover:scale-110",
-                                isCollapsed ? "" : "mr-1"
-                            )} 
+                        {/* Dynamic Active Glow / Background effect */}
+                        <NavLink
+                            to={item.href}
+                            className={({ isActive }) => cn(
+                                "absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent transition-opacity duration-500 pointer-events-none",
+                                isActive ? "opacity-100" : "opacity-0"
+                            )}
                         />
-                        
+
+                        <item.icon
+                            size={20}
+                            strokeWidth={isActiveIcon(item.href) ? 2.5 : 1.5}
+                            className={cn(
+                                "shrink-0 transition-all duration-500 group-hover:scale-110 relative z-10",
+                                isCollapsed ? "" : ""
+                            )}
+                        />
+
                         {!isCollapsed && (
-                            <span className="text-[13px] font-bold tracking-tight animate-in fade-in slide-in-from-left-2 duration-300">
-                                {item.name}
-                            </span>
+                            <div className="flex flex-col items-start relative z-10 animate-in fade-in slide-in-from-left-2 duration-500">
+                                <span className="text-[12px] font-bold tracking-tight leading-none mb-1">
+                                    {item.name}
+                                </span>
+                                <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40 group-hover:opacity-60 transition-opacity">
+                                    {item.label}
+                                </span>
+                            </div>
                         )}
 
-                        {/* Active Indicator */}
-                        <NavLink 
-                            to={item.href} 
+                        {/* Active Vertical Notch */}
+                        <NavLink
+                            to={item.href}
                             className={({ isActive }) => cn(
-                                "absolute left-0 w-1 bg-primary rounded-r-full transition-all duration-300",
+                                "absolute left-0 w-[3px] bg-primary rounded-r-full transition-all duration-500 ease-out",
                                 isActive ? "h-6 opacity-100" : "h-0 opacity-0"
-                            )} 
+                            )}
                         />
                     </NavLink>
                 ))}
-            </div>
+            </nav>
 
-            {/* Bottom Section (Optional: can add profile/logout here or footer) */}
-            <div className="p-4 border-t opacity-40 hover:opacity-100 transition-opacity">
-                 <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
-                    <div className="w-8 h-8 rounded-full bg-muted shrink-0" />
-                    {!isCollapsed && <div className="h-2 w-20 bg-muted rounded animate-pulse" />}
-                 </div>
+            {/* Support / Bottom links */}
+            <div className="p-6 mt-auto">
+                <div className={cn(
+                    "flex items-center p-3 rounded-2xl bg-white/[0.02] border border-white/5 transition-all duration-500",
+                    isCollapsed ? "justify-center" : "gap-4"
+                )}>
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white/10 to-white/5 border border-white/10 shrink-0 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    </div>
+                    {!isCollapsed && (
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-white/80">System Online</span>
+                            <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Operational</span>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
+
+// Helper to determine active state inside the loop if NavLink isActive is tricky for the icon props
+// But standard isActive in className usually suffices. Using a small helper for prop clarity.
+const isActiveIcon = (href: string) => window.location.pathname === href;

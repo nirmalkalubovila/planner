@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Eraser, Target, Sparkles, Save, RotateCcw, Plus, Check, Undo2, Redo2, Copy, Lightbulb, BookmarkPlus, Layers, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eraser, Target, Sparkles, Save, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WeekUtils } from '@/utils/week-utils';
 import { CustomTask } from '@/types/global-types';
@@ -23,7 +23,6 @@ interface PlannerToolbarProps {
     onCancelPreview: () => void;
     commitPreviewPlan: () => void;
     onGoalToolClick: () => void;
-    onShowTips: () => void;
 }
 
 export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
@@ -33,14 +32,13 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
     onCreateCustomTask,
     libraryTasks, missedTasks,
     previewPlan, onCancelPreview, commitPreviewPlan,
-    onGoalToolClick,
-    onShowTips
+    onGoalToolClick
 }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     const renderLibraryItems = (tasks: CustomTask[], title: string, colorClass: string, icon: React.ReactNode) => (
         <div className="flex items-center gap-3 shrink-0">
-            <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] uppercase tracking-wider font-black shadow-sm border", colorClass)}>
+            <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider font-black shadow-sm border", colorClass)}>
                 {icon} {title}
             </div>
             <div className="flex items-center gap-2 max-w-[500px] overflow-x-auto hide-scrollbar py-0.5">
@@ -77,23 +75,27 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
 
     return (
         <div className={cn(
-            "flex flex-col bg-card/90 backdrop-blur-xl rounded-[20px] border shadow-xl w-full relative z-50 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden",
-            isCollapsed ? "py-0.5 px-4 h-[40px] mb-2" : "py-4 px-6 gap-4 min-h-[140px] mb-4"
+            "flex flex-col bg-card/90 backdrop-blur-xl rounded-[12px] border border-white/5 shadow-2xl w-full relative z-50 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden",
+            isCollapsed ? "py-1.5 px-6 h-[52px] mb-3" : "py-5 px-8 gap-5 min-h-[160px] mb-6"
         )}>
-            {/* Collapse Toggle */}
+            {/* Collapse Toggle Handle - Bigger & More Tactile */}
             <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-5 w-14 rounded-t-2xl bg-muted/50 hover:bg-primary/20 border-t border-x z-[60] group border-b-transparent transition-all duration-200"
+                className="absolute -bottom-px left-1/2 -translate-x-1/2 h-7 w-24 rounded-t-[18px] bg-muted/30 hover:bg-primary/10 border-t border-x border-white/5 z-[60] group border-b-transparent transition-all duration-500 ease-out"
             >
-                {isCollapsed ? <ChevronDown size={14} className="group-hover:translate-y-0.5 transition-transform" /> : <ChevronUp size={14} className="group-hover:-translate-y-0.5 transition-transform" />}
+                {isCollapsed ? (
+                    <ChevronDown size={18} className="text-white/20 group-hover:text-primary group-hover:translate-y-0.5 transition-all duration-300" />
+                ) : (
+                    <ChevronUp size={18} className="text-white/20 group-hover:text-primary group-hover:-translate-y-0.5 transition-all duration-300" />
+                )}
             </Button>
 
             {/* Row 1: Primary Controls */}
             <div className={cn(
-                "flex items-center justify-between gap-4 transition-all duration-300 origin-left h-full",
-                isCollapsed ? "scale-[0.92] opacity-100" : "scale-100 opacity-100"
+                "flex items-center justify-between gap-6 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] origin-left h-full",
+                isCollapsed ? "scale-[0.98] opacity-100" : "scale-100 opacity-100"
             )}>
                 <div className="flex items-center gap-6">
                     {/* Week Nav Group */}
@@ -221,37 +223,21 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     )}
 
                     <div className="flex items-center gap-2 ml-auto">
-                        {!isCollapsed && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-all duration-300 shadow-sm border border-transparent hover:border-amber-500/20 shrink-0"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onShowTips();
-                                }}
-                                title="Planner Tips"
-                            >
-                                <Lightbulb size={22} />
-                            </Button>
-                        )}
-
-                        {!isCollapsed && <div className="w-px bg-border/60 mx-1 h-8 shrink-0" />}
 
                         {!isCollapsed && (
                             <Button variant="ghost" size="sm" className="h-10 px-4 rounded-2xl font-bold text-destructive hover:bg-destructive/10 transition-all shrink-0" onClick={onClear} title="Clear Grid">
                                 <RotateCcw size={16} className="mr-2" /> Clear
                             </Button>
                         )}
-                        
-                        <Button 
-                            variant="default" 
-                            size="sm" 
+
+                        <Button
+                            variant="default"
+                            size="sm"
                             className={cn(
-                                "rounded-xl font-black shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all hover:scale-[1.03] active:scale-95 shrink-0 flex items-center justify-center", 
+                                "rounded-xl font-black shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all hover:scale-[1.03] active:scale-95 shrink-0 flex items-center justify-center",
                                 isCollapsed ? "h-7 px-4 text-[10px]" : "h-10 px-8 text-sm"
-                            )} 
-                            onClick={onSave} 
+                            )}
+                            onClick={onSave}
                             title="Save Plan"
                         >
                             <Save size={isCollapsed ? 13 : 18} className="mr-1.5" /> SAVE

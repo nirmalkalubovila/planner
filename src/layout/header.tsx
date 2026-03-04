@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { format } from 'date-fns';
+import { format, intervalToDuration } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
-import { Settings, LogOut, User as UserIcon } from 'lucide-react';
+import { Settings, LogOut, User as UserIcon, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import {
     Popover,
@@ -23,6 +23,12 @@ export const Header: React.FC = () => {
         await signOut();
         navigate('/login');
     };
+
+    const dob = user?.user_metadata?.dob;
+    const duration = dob ? intervalToDuration({
+        start: new Date(dob),
+        end: time
+    }) : null;
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
@@ -66,8 +72,8 @@ export const Header: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Right: Round Profile Icon with Dropdown */}
-                <div className="flex justify-end">
+                {/* Right: Round Profile Icon with Dropdown & Age */}
+                <div className="flex justify-end items-center gap-3 md:gap-4">
                     <Popover>
                         <PopoverTrigger asChild>
                             <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 p-0 hover:bg-white/10 transition-all active:scale-95 focus:outline-none focus:ring-1 focus:ring-white/20">
@@ -106,6 +112,21 @@ export const Header: React.FC = () => {
                             </div>
                         </PopoverContent>
                     </Popover>
+
+                    {/* Live Age Display */}
+                    {duration && (
+                        <div className="hidden sm:flex flex-col items-start min-w-[80px] group cursor-default">
+                            <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] text-white/30 group-hover:text-primary/60 transition-colors font-bold">
+                                <Sparkles size={8} className="animate-pulse" />
+                                <span>Time Lived</span>
+                            </div>
+                            <div className="text-[12px] md:text-sm font-black text-white/80 tabular-nums tracking-wider leading-none mt-0.5 flex items-baseline gap-1">
+                                <span className="text-white">{duration.years}</span><span className="text-white/30 text-[10px] lowercase font-normal">y</span>
+                                <span className="text-white">{duration.months}</span><span className="text-white/30 text-[10px] lowercase font-normal">m</span>
+                                <span className="text-white">{duration.days}</span><span className="text-white/30 text-[10px] lowercase font-normal">d</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </header>
