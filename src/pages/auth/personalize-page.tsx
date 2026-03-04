@@ -1,17 +1,15 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AuthLayout, AuthHeader } from '@/components/ui/auth-layout';
 import { PersonalizeForm } from './forms/personalize-form';
 
 export const PersonalizePage: React.FC = () => {
-    const navigate = useNavigate();
 
     const handleSuccess = () => {
-        navigate('/');
+        window.location.href = '/habits';
     };
 
     const handleSkip = () => {
-        navigate('/');
+        window.location.href = '/habits';
     };
 
     return (

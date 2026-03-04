@@ -78,6 +78,27 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
         onSuccess();
     };
 
+    const handleSkipClick = async () => {
+        setLoading(true);
+        if (user) {
+            // Mark as personalized even if skipping, so they can access the app
+            await supabase.auth.updateUser({
+                data: {
+                    isPersonalized: true,
+                    // Set minimal defaults if needed
+                    sleepStart: sleepStart || '22:00',
+                    sleepDuration: sleepDuration || '8',
+                    planDay: planDay || 'Sunday',
+                    planStartTime: planStartTime || '21:00',
+                    planDurationPacks: 2,
+                    dob: user.user_metadata?.dob || '2002-11-23'
+                }
+            });
+        }
+        setLoading(false);
+        onSkip();
+    };
+
     return (
         <div className="flex flex-col gap-3">
             {/* Importance Banner */}
@@ -185,8 +206,9 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
                         <button
                             type="button"
-                            onClick={onSkip}
-                            className="flex items-center gap-1.5 text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors order-2 sm:order-1"
+                            onClick={handleSkipClick}
+                            disabled={loading}
+                            className="flex items-center gap-1.5 text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors order-2 sm:order-1 disabled:opacity-50"
                         >
                             <SkipForward className="w-3.5 h-3.5" /> Skip for now
                         </button>
