@@ -1,0 +1,242 @@
+import React from 'react';
+import { format } from 'date-fns';
+import { CustomDatePicker } from '@/components/ui/date-picker';
+import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
+import { Edit2, Check, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface ProfilePreferencesProps {
+    user: any;
+    isEditing: boolean;
+    setIsEditing: (val: boolean) => void;
+    loading: boolean;
+    onSave: () => void;
+    formData: {
+        fullName: string;
+        setFullName: (val: string) => void;
+        dob: string;
+        setDob: (val: string) => void;
+        sleepStart: string;
+        setSleepStart: (val: string) => void;
+        sleepDuration: string;
+        setSleepDuration: (val: string) => void;
+        weekStart: string;
+        setWeekStart: (val: string) => void;
+        planTime: string;
+        setPlanTime: (val: string) => void;
+        primaryLifeFocus: string;
+        setPrimaryLifeFocus: (val: string) => void;
+        currentProfession: string;
+        setCurrentProfession: (val: string) => void;
+        energyPeakTime: string;
+        setEnergyPeakTime: (val: string) => void;
+        focusAbility: string;
+        setFocusAbility: (val: string) => void;
+        taskShiftingAbility: string;
+        setTaskShiftingAbility: (val: string) => void;
+    };
+}
+
+const labelClass = "text-xs font-semibold text-muted-foreground ml-0.5";
+
+export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
+    user, isEditing, setIsEditing, loading, onSave, formData
+}) => {
+    return (
+        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-6 shadow-xl space-y-6">
+            {/* Section header */}
+            <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold">Planner Preferences</h3>
+                {!isEditing && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                        className="h-8 px-3 rounded-lg text-xs text-muted-foreground hover:text-primary"
+                    >
+                        <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                        Edit
+                    </Button>
+                )}
+            </div>
+
+            {isEditing ? (
+                <div className="space-y-5 animate-in fade-in duration-300">
+                    {/* Personal */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Full Name</label>
+                            <Input value={formData.fullName} onChange={(e) => formData.setFullName(e.target.value)} className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Date of Birth</label>
+                            <CustomDatePicker
+                                selected={formData.dob ? new Date(formData.dob) : null}
+                                onChange={(date) => formData.setDob(date ? format(date, 'yyyy-MM-dd') : '')}
+                                placeholderText="Select date"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Sleep */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Sleep Start Time</label>
+                            <SimpleTimePicker value={formData.sleepStart} onChange={formData.setSleepStart} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Sleep Duration (hours)</label>
+                            <Input type="number" min="1" max="24" value={formData.sleepDuration} onChange={(e) => formData.setSleepDuration(e.target.value)} className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
+                        </div>
+                    </div>
+
+                    {/* Schedule */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Week Starts On</label>
+                            <Select value={formData.weekStart} onValueChange={formData.setWeekStart}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select day" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Monday">Monday</SelectItem>
+                                    <SelectItem value="Tuesday">Tuesday</SelectItem>
+                                    <SelectItem value="Wednesday">Wednesday</SelectItem>
+                                    <SelectItem value="Thursday">Thursday</SelectItem>
+                                    <SelectItem value="Friday">Friday</SelectItem>
+                                    <SelectItem value="Saturday">Saturday</SelectItem>
+                                    <SelectItem value="Sunday">Sunday</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Planning Time</label>
+                            <Select value={formData.planTime} onValueChange={formData.setPlanTime}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select time" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Friday 4PM - 5PM">Friday 4–5 PM</SelectItem>
+                                    <SelectItem value="Saturday 10AM - 11AM">Saturday 10–11 AM</SelectItem>
+                                    <SelectItem value="Sunday 9AM - 10AM">Sunday 9–10 AM</SelectItem>
+                                    <SelectItem value="Sunday 8PM - 9PM">Sunday 8–9 PM</SelectItem>
+                                    <SelectItem value="Sunday 9PM - 10PM">Sunday 9–10 PM</SelectItem>
+                                    <SelectItem value="Monday 8AM - 9AM">Monday 8–9 AM</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Focus */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Primary Life Focus</label>
+                            <Input value={formData.primaryLifeFocus} onChange={(e) => formData.setPrimaryLifeFocus(e.target.value)} placeholder="e.g., Career, Health" className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Profession / Status</label>
+                            <Input value={formData.currentProfession} onChange={(e) => formData.setCurrentProfession(e.target.value)} placeholder="e.g., Engineer, Student" className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
+                        </div>
+                    </div>
+
+                    {/* Metrics */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-white/5">
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Energy Peak</label>
+                            <Select value={formData.energyPeakTime} onValueChange={formData.setEnergyPeakTime}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select peak" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Morning">Morning</SelectItem>
+                                    <SelectItem value="Afternoon">Afternoon</SelectItem>
+                                    <SelectItem value="Evening">Evening</SelectItem>
+                                    <SelectItem value="Night">Night</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Focus Ability</label>
+                            <Select value={formData.focusAbility} onValueChange={formData.setFocusAbility}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="very low">Very Low</SelectItem>
+                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="normal">Normal</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="very high">Very High</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Task Switching</label>
+                            <Select value={formData.taskShiftingAbility} onValueChange={formData.setTaskShiftingAbility}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="very low">Very Low</SelectItem>
+                                    <SelectItem value="low">Low</SelectItem>
+                                    <SelectItem value="normal">Normal</SelectItem>
+                                    <SelectItem value="high">High</SelectItem>
+                                    <SelectItem value="very high">Very High</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-4">
+                        <Button onClick={onSave} disabled={loading} className="flex-1 h-10 rounded-xl font-semibold">
+                            <Check className="h-4 w-4 mr-1.5" /> Save Changes
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsEditing(false)} disabled={loading} className="flex-1 h-10 rounded-xl font-semibold border-white/10">
+                            <X className="h-4 w-4 mr-1.5" /> Cancel
+                        </Button>
+                    </div>
+                </div>
+            ) : (
+                <div className="animate-in fade-in duration-300">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
+                        <div>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Sleep</p>
+                            <p className="text-sm font-medium">{user.user_metadata?.sleepStart || '22:00'} ({user.user_metadata?.sleepDuration || '8'}h)</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Week Start</p>
+                            <p className="text-sm font-medium">{user.user_metadata?.weekStart || 'Monday'}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Planning</p>
+                            <p className="text-sm font-medium">{user.user_metadata?.planTime || 'Sunday 9–10 PM'}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Focus</p>
+                            <p className="text-sm font-medium">{user.user_metadata?.primaryLifeFocus || 'Not set'}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Profession</p>
+                            <p className="text-sm font-medium">{user.user_metadata?.currentProfession || 'Not set'}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Energy Peak</p>
+                            <p className="text-sm font-medium">{user.user_metadata?.energyPeakTime || 'Morning'}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Focus Level</p>
+                            <p className="text-sm font-medium capitalize">{user.user_metadata?.focusAbility || 'Normal'}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Task Switching</p>
+                            <p className="text-sm font-medium capitalize">{user.user_metadata?.taskShiftingAbility || 'Normal'}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};

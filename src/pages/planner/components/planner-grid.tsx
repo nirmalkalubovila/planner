@@ -51,7 +51,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
     return (
         <div className="flex-1 bg-card border rounded-xl shadow-inner overflow-hidden flex flex-col h-full min-h-[400px]">
-            <div ref={scrollRef} className="flex-1 overflow-auto scroll-smooth">
+            <div ref={scrollRef} className="flex-1 overflow-auto">
 
                 {/* FIX 1: Removed 'h-full' so this container grows with the massive time grid */}
                 <div className="min-w-[700px]">

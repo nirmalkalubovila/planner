@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { AuthLayout } from '@/components/ui/auth-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { SignupForm } from './forms/signup-form';
 import { OtpVerification } from './components/otp-verification';
 
 export const SignupPage: React.FC = () => {
-    const navigate = useNavigate();
     const [showOtp, setShowOtp] = useState(false);
     const [otpEmail, setOtpEmail] = useState('');
 
@@ -16,7 +15,8 @@ export const SignupPage: React.FC = () => {
     };
 
     const handleSuccess = () => {
-        navigate('/personalize');
+        // Force a full page load so AuthProvider re-initializes with the new session
+        window.location.href = '/personalize';
     };
 
     if (showOtp) {

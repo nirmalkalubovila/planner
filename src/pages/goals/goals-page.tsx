@@ -242,141 +242,175 @@ Each object must have exactly these keys:
     };
 
     return (
-        <div className="space-y-6 pb-20">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Goal Tracker</h1>
-                    <p className="text-sm md:text-base text-muted-foreground">Define your goals and let AI plan your journey.</p>
+        <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4">
+
+            {/* Minimalist Header */}
+            <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Goal Matrix</h2>
+                    <div className="flex items-center gap-2">
+                        <div className="h-1 w-12 bg-primary/40 rounded-full" />
+                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{goals.length} STRATEGIC OBJECTIVES</span>
+                    </div>
                 </div>
-                <Button onClick={() => { setIsFormOpen(!isFormOpen); setStep(1); setActiveGoal(null); setIsNewRecord(true); setTempPlan(null); }} variant={isFormOpen && isNewRecord ? "outline" : "default"} className="w-full sm:w-auto">
-                    {isFormOpen && isNewRecord ? "Cancel" : "Define New Goal"}
+                <Button
+                    onClick={() => { setIsFormOpen(!isFormOpen); setStep(1); setActiveGoal(null); setIsNewRecord(true); setTempPlan(null); }}
+                    variant={isFormOpen && isNewRecord ? "outline" : "default"}
+                    className="gap-2 h-10 px-6 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all duration-300 shadow-lg active:scale-95"
+                >
+                    {isFormOpen && isNewRecord ? "Cancel Operation" : "Define New Goal"}
                 </Button>
             </div>
 
             {isFormOpen && isNewRecord && (
-                <Card className="border-primary/20 bg-accent/5 shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-500"></div>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Target size={18} />
-                            New Goal Setup
-                        </CardTitle>
-                        <CardDescription>
-                            {step === 1 && "Step 1: Goal Definition"}
-                            {step === 2 && "Step 2: AI Plan Generation"}
-                            {step === 3 && "Step 2: Manual Plan Entry"}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {step === 1 ? (
-                            <GoalDefinitionForm
-                                initialValues={activeGoal || {}}
-                                onSubmit={onDefinitionSubmit}
-                            />
-                        ) : step === 2 ? (
-                            <AIGenerationStep
-                                onGenerate={handleGeneratePlan}
-                                generating={generating}
-                                previewPlan={tempPlan}
-                                onConfirm={handleConfirmPlan}
-                                onCancelPreview={handleCancelPreview}
-                            />
-                        ) : (
-                            <ManualPlanStep
-                                goal={activeGoal!}
-                                onBack={() => setStep(1)}
-                                onSave={(plans) => {
-                                    updateGoal.mutate({ ...activeGoal!, plans }, {
-                                        onSuccess: () => {
-                                            setIsFormOpen(false);
-                                            setActiveGoal(null);
-                                            setIsNewRecord(false);
-                                            setStep(1);
-                                            toast.success("Goal plan created manually!");
-                                        }
-                                    });
-                                }}
-                            />
-                        )}
-                    </CardContent>
-                </Card>
+                <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+                    <Card className="border-white/10 bg-white/[0.02] backdrop-blur-md rounded-3xl overflow-hidden shadow-2xl relative">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/40 to-blue-500/40 opacity-50"></div>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-xl font-bold tracking-tight text-white/90 flex items-center gap-3">
+                                <Target size={20} className="text-primary/60" />
+                                {step === 1 && "Goal Architecture"}
+                                {step === 2 && "Neural Plan Generation"}
+                                {step === 3 && "Manual Operations Setup"}
+                            </CardTitle>
+                            <CardDescription className="text-white/40">
+                                {step === 1 && "Define the core parameters of your strategic legacy."}
+                                {step === 2 && "The AI engine is calculating your optimal path."}
+                                {step === 3 && "Manually define the milestones for this objective."}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {step === 1 ? (
+                                <GoalDefinitionForm
+                                    initialValues={activeGoal || {}}
+                                    onSubmit={onDefinitionSubmit}
+                                />
+                            ) : step === 2 ? (
+                                <AIGenerationStep
+                                    onGenerate={handleGeneratePlan}
+                                    generating={generating}
+                                    previewPlan={tempPlan}
+                                    onConfirm={handleConfirmPlan}
+                                    onCancelPreview={handleCancelPreview}
+                                />
+                            ) : (
+                                <ManualPlanStep
+                                    goal={activeGoal!}
+                                    onBack={() => setStep(1)}
+                                    onSave={(plans) => {
+                                        updateGoal.mutate({ ...activeGoal!, plans }, {
+                                            onSuccess: () => {
+                                                setIsFormOpen(false);
+                                                setActiveGoal(null);
+                                                setIsNewRecord(false);
+                                                setStep(1);
+                                                toast.success("Goal plan created manually!");
+                                            }
+                                        });
+                                    }}
+                                />
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
             )}
 
             <div className="space-y-6">
-                <h3 className="text-xl font-semibold">Active Goals & Plans</h3>
+                <div className="flex items-center gap-3 px-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Active Matrix</h3>
+                </div>
+
                 {isLoading ? (
-                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" size={24} /></div>
+                    <div className="flex items-center justify-center p-24 bg-white/[0.01] border border-white/5 rounded-[40px] animate-pulse">
+                        <Loader2 className="animate-spin text-white/20" size={32} />
+                    </div>
                 ) : goals.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed rounded-xl text-muted-foreground">
-                        No active goals found. Start planning!
+                    <div className="py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm group hover:border-white/10 transition-colors">
+                        <Target className="w-16 h-16 text-white/5 mx-auto mb-6 group-hover:scale-110 group-hover:text-white/10 transition-all duration-500" strokeWidth={1} />
+                        <h3 className="text-xl font-bold text-white/40 tracking-tight leading-none">Matrix Inactive</h3>
+                        <p className="text-sm text-white/20 mt-3 max-w-xs mx-auto">Initialize a strategic objective to begin legacy construction.</p>
+                        <Button
+                            onClick={() => { setIsFormOpen(true); setIsNewRecord(true); }}
+                            variant="link"
+                            className="mt-6 text-primary font-bold uppercase tracking-widest text-[10px] hover:text-primary/80"
+                        >
+                            + Begin Definition
+                        </Button>
                     </div>
                 ) : (
-                    goals.map((goal: Goal) => (
-                        <div key={goal.id} className="space-y-4">
-                            <GoalCard
-                                goal={goal}
-                                isExpanded={!!expandedGoals[goal.id!]}
-                                onToggle={toggleGoal}
-                                onEdit={handleEdit}
-                                onDelete={(id) => { setGoalIdToDelete(id); setShowDeleteConfirm(true); }}
-                                weekPlan={weekPlan || {}}
-                                completedDays={completedDays || {}}
-                                currentWeek={currentWeek}
-                                onUpdateGoal={(updatedGoal) => updateGoal.mutate(updatedGoal)}
-                            />
+                    <div className="grid grid-cols-1 gap-6">
+                        {goals.map((goal: Goal) => (
+                            <div key={goal.id} className="space-y-4">
+                                <GoalCard
+                                    goal={goal}
+                                    isExpanded={!!expandedGoals[goal.id!]}
+                                    onToggle={toggleGoal}
+                                    onEdit={handleEdit}
+                                    onDelete={(id) => { setGoalIdToDelete(id); setShowDeleteConfirm(true); }}
+                                    weekPlan={weekPlan || {}}
+                                    completedDays={completedDays || {}}
+                                    currentWeek={currentWeek}
+                                    onUpdateGoal={(updatedGoal) => updateGoal.mutate(updatedGoal)}
+                                />
 
-                            {isFormOpen && !isNewRecord && activeGoal?.id === goal.id && (
-                                <Card className="border-primary/20 bg-accent/5 shadow-lg relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-500"></div>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <Edit2 size={18} />
-                                                Goal Editor: {goal.name}
-                                            </div>
-                                            <Button variant="ghost" size="sm" onClick={() => { setIsFormOpen(false); setActiveGoal(null); setIsNewRecord(false); setStep(1); }}>Cancel</Button>
-                                        </CardTitle>
-                                        <CardDescription>
-                                            {step === 1 && "Step 1: Update Definition"}
-                                            {step === 2 && "Step 2: AI Plan Generation"}
-                                            {step === 3 && "Step 2: Manual Plan Entry"}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {step === 1 ? (
-                                            <GoalDefinitionForm
-                                                initialValues={activeGoal || {}}
-                                                onSubmit={onDefinitionSubmit}
-                                            />
-                                        ) : step === 2 ? (
-                                            <AIGenerationStep
-                                                onGenerate={handleGeneratePlan}
-                                                generating={generating}
-                                                previewPlan={tempPlan}
-                                                onConfirm={handleConfirmPlan}
-                                                onCancelPreview={handleCancelPreview}
-                                            />
-                                        ) : (
-                                            <ManualPlanStep
-                                                goal={activeGoal!}
-                                                onBack={() => setStep(1)}
-                                                onSave={(plans) => {
-                                                    updateGoal.mutate({ ...activeGoal!, plans }, {
-                                                        onSuccess: () => {
-                                                            setIsFormOpen(false);
-                                                            setActiveGoal(null);
-                                                            setStep(1);
-                                                            toast.success("Manual plan saved successfully!");
-                                                        }
-                                                    });
-                                                }}
-                                            />
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
-                    ))
+                                {isFormOpen && !isNewRecord && activeGoal?.id === goal.id && (
+                                    <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                                        <Card className="border-white/10 bg-white/[0.02] backdrop-blur-md rounded-3xl overflow-hidden shadow-2xl relative">
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/30 to-blue-500/30 opacity-40"></div>
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-lg font-bold tracking-tight text-white/90 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <Edit2 size={16} className="text-primary/50" />
+                                                        Refining: {goal.name}
+                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white/60"
+                                                        onClick={() => { setIsFormOpen(false); setActiveGoal(null); setIsNewRecord(false); setStep(1); }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                {step === 1 ? (
+                                                    <GoalDefinitionForm
+                                                        initialValues={activeGoal || {}}
+                                                        onSubmit={onDefinitionSubmit}
+                                                    />
+                                                ) : step === 2 ? (
+                                                    <AIGenerationStep
+                                                        onGenerate={handleGeneratePlan}
+                                                        generating={generating}
+                                                        previewPlan={tempPlan}
+                                                        onConfirm={handleConfirmPlan}
+                                                        onCancelPreview={handleCancelPreview}
+                                                    />
+                                                ) : (
+                                                    <ManualPlanStep
+                                                        goal={activeGoal!}
+                                                        onBack={() => setStep(1)}
+                                                        onSave={(plans) => {
+                                                            updateGoal.mutate({ ...activeGoal!, plans }, {
+                                                                onSuccess: () => {
+                                                                    setIsFormOpen(false);
+                                                                    setActiveGoal(null);
+                                                                    setStep(1);
+                                                                    toast.success("Manual plan saved successfully!");
+                                                                }
+                                                            });
+                                                        }}
+                                                    />
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 )}
             </div>
 
@@ -392,10 +426,10 @@ Each object must have exactly these keys:
                 isOpen={showConfirm}
                 onClose={() => setShowConfirm(false)}
                 onConfirm={() => pendingValues && executeDefinitionSubmit(pendingValues)}
-                title="Update Goal Definition?"
-                description="Changing your goal's definition or duration will automatically reset your current AI action plan. You will need to regenerate the plan to match your new milestones."
-                confirmText="Save & Continue"
-                cancelText="Go Back"
+                title="Shift Strategy?"
+                description="Altering this objective's definition will deconstruct the current AI roadmap. A regeneration will be required for alignment."
+                confirmText="Continue Architecture"
+                cancelText="Retain Current"
             />
             <ConfirmationDialog
                 isOpen={showDeleteConfirm}
@@ -407,9 +441,9 @@ Each object must have exactly these keys:
                         setShowDeleteConfirm(false);
                     }
                 }}
-                title="Delete Goal?"
-                description="Deleting this goal will also permanently remove all its associated plans and milestones. This action cannot be undone."
-                confirmText="Delete Goal"
+                title="Delete Strategic Objective?"
+                description="This will permanently purge this goal and all associated neural plans from the system. This operation is irreversible."
+                confirmText="Confirm Purge"
                 variant="destructive"
             />
         </div>
