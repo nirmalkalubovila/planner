@@ -6,9 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/ui/form-components';
 import { Text } from '@/components/ui/typography';
-import { CustomDatePicker } from '@/components/ui/date-picker';
-import { format } from 'date-fns';
-import { Eye, EyeOff, User, Mail, Lock, CalendarDays } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 
 interface SignupFormProps {
     onSuccess: () => void;
@@ -17,7 +15,6 @@ interface SignupFormProps {
 
 export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onRequireOtp }) => {
     const [name, setName] = useState('');
-    const [dob, setDob] = useState<Date | null>(null);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,12 +26,6 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onRequireOtp 
         e.preventDefault();
         setLoading(true);
         setError('');
-
-        if (!dob) {
-            setError('Please select your date of birth.');
-            setLoading(false);
-            return;
-        }
 
         if (password !== confirmPassword) {
             setError('Passwords do not match.');
@@ -54,7 +45,6 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onRequireOtp 
             options: {
                 data: {
                     full_name: name,
-                    dob: dob ? format(dob, 'yyyy-MM-dd') : null,
                 },
             },
         });
@@ -95,25 +85,15 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onRequireOtp 
             <AuthError message={error} />
 
             <form onSubmit={handleSignup} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField label="Full Name" icon={<User className="w-3 h-3" />} required>
-                        <Input
-                            type="text"
-                            placeholder="John Doe"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                        />
-                    </FormField>
-
-                    <FormField label="Date of Birth" icon={<CalendarDays className="w-3 h-3" />} required>
-                        <CustomDatePicker
-                            selected={dob}
-                            onChange={(date) => setDob(date)}
-                            placeholderText="Select your birthday"
-                        />
-                    </FormField>
-                </div>
+                <FormField label="Full Name" icon={<User className="w-3 h-3" />} required>
+                    <Input
+                        type="text"
+                        placeholder="John Doe"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                    />
+                </FormField>
 
                 <FormField label="Email" icon={<Mail className="w-3 h-3" />} required>
                     <Input

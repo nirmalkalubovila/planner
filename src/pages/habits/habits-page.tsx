@@ -31,32 +31,7 @@ export const HabitsPage: React.FC = () => {
     const updateHabit = useUpdateHabit();
     const deleteHabit = useDeleteHabit();
 
-    // Inject Defaults once loaded if empty
-    useEffect(() => {
-        if (!isLoading && habits.length === 0) {
-            const hasSeededInDb = user?.user_metadata?.habitsSeeded;
-            if (!hasSeededInDb) {
-                const defaults: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>[] = [
-                    { name: 'Gym & Exercise', purpose: 'Build physical health and discipline', startTime: '06:00', endTime: '07:30', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] },
-                    { name: 'Breakfast', purpose: 'Fuel for the day', startTime: '08:00', endTime: '09:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
-                    { name: 'Lunch', purpose: 'Mid-day reboot', startTime: '12:00', endTime: '13:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
-                    { name: 'Dinner', purpose: 'Evening recovery', startTime: '19:00', endTime: '20:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
-                ];
-
-                // Create all defaults and mark as seeded in User Metadata so it's persistent across devices
-                const seedPromises = defaults.map(d => createHabit.mutateAsync(d as Habit));
-
-                Promise.all(seedPromises).then(async () => {
-                    await supabase.auth.updateUser({
-                        data: { habitsSeeded: true }
-                    });
-                    toast.success("Welcome! We've created some essential habits for you. Feel free to update them to match your routine.", {
-                        duration: 6000,
-                    });
-                });
-            }
-        }
-    }, [habits, isLoading, createHabit, user]);
+    const isSeedingRef = React.useRef(false);
 
     const onSubmit = (values: HabitFormValues) => {
         setConflictError(null);
