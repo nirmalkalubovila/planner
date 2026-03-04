@@ -16,7 +16,7 @@ export const LoginPage: React.FC = () => {
     };
 
     const handleSuccess = () => {
-        navigate('/');
+        navigate('/habits');
     };
 
     if (showOtp) {

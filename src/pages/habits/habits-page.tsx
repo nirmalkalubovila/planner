@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronUp, Search, Target } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 import { useGetHabits, useCreateHabit, useDeleteHabit, useUpdateHabit } from '@/api/services/habit-service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,23 +31,7 @@ export const HabitsPage: React.FC = () => {
     const updateHabit = useUpdateHabit();
     const deleteHabit = useDeleteHabit();
 
-    // Inject Defaults once loaded if empty
-    useEffect(() => {
-        if (!isLoading && habits.length === 0) {
-            const hasSeeded = localStorage.getItem('seededDefaultHabits');
-            if (!hasSeeded) {
-                const defaults: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'>[] = [
-                    { name: 'Gym & Exercise', purpose: 'Build physical health and discipline', startTime: '06:00', endTime: '07:30', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] },
-                    { name: 'Breakfast', purpose: 'Fuel for the day', startTime: '08:00', endTime: '09:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
-                    { name: 'Lunch', purpose: 'Mid-day reboot', startTime: '12:00', endTime: '13:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
-                    { name: 'Dinner', purpose: 'Evening recovery', startTime: '19:00', endTime: '20:00', startDate: new Date().toISOString().split('T')[0], endDate: '2030-12-31', daysOfWeek: DAYS_OF_WEEK },
-                ];
-
-                defaults.forEach(d => createHabit.mutate(d as Habit));
-                localStorage.setItem('seededDefaultHabits', 'true');
-            }
-        }
-    }, [habits, isLoading, createHabit]);
+    const isSeedingRef = React.useRef(false);
 
     const onSubmit = (values: HabitFormValues) => {
         setConflictError(null);

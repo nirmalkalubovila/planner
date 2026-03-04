@@ -1,13 +1,6 @@
 export const ReflectionUtils = {
-    isReflectionDue(planTimeStr: string, lastReflectionDateStr: string | null): boolean {
-        if (!planTimeStr) return false;
-
-        // example planTimeStr: "Sunday 9PM - 10PM" or "Friday 4PM - 5PM"
-        const parts = planTimeStr.split(' ');
-        if (parts.length < 2) return false;
-
-        const dayName = parts[0].toLowerCase();
-        const timePart = parts[1]; // e.g., "9PM"
+    isReflectionDue(planDay: string, planStartTime: string, lastReflectionDateStr: string | null): boolean {
+        if (!planDay || !planStartTime) return false;
 
         // Map day name to JS Date day (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
         const daysMap: Record<string, number> = {
@@ -19,34 +12,26 @@ export const ReflectionUtils = {
             friday: 5,
             saturday: 6,
         };
-        const targetDay = daysMap[dayName];
+        const targetDay = daysMap[planDay.toLowerCase()];
         if (targetDay === undefined) return false;
 
-        // Parse "9PM" -> 21
-        let isPM = timePart.toUpperCase().includes('PM');
-        let hours = parseInt(timePart.replace(/[^0-9]/g, ''), 10);
-        if (isNaN(hours)) return false;
-
-        if (isPM && hours !== 12) hours += 12;
-        if (!isPM && hours === 12) hours = 0;
+        // Parse "HH:mm"
+        const [hours, minutes] = planStartTime.split(':').map(Number);
+        if (isNaN(hours) || isNaN(minutes)) return false;
 
         const now = new Date();
 
         // Find the date of this week's target day (e.g., this week's Sunday)
         const currentJsDay = now.getDay();
-        // Since planning usually is for the *next* week, but the reflection is for the *past* week at plan time.
-        // We find the closest previous occurrence of `targetDay` and `hours` within the last 7 days.
         const targetDate = new Date(now);
-        // How many days ago was targetDay?
-        // if today is Sunday(0) and target is Sunday(0), it could be today or 7 days ago depending on time.
-        let diff = currentJsDay - targetDay;
 
+        let diff = currentJsDay - targetDay;
         if (diff < 0) {
             diff += 7; // it was last week
         }
 
         targetDate.setDate(now.getDate() - diff);
-        targetDate.setHours(hours, 0, 0, 0);
+        targetDate.setHours(hours, minutes, 0, 0);
 
         // If today is the target day but current time is BEFORE the target time, then the *actual* due date was 7 days ago.
         if (diff === 0 && now.getTime() < targetDate.getTime()) {

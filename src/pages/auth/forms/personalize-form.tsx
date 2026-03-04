@@ -30,6 +30,8 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
     const [primaryLifeFocus, setPrimaryLifeFocus] = useState('');
     const [currentProfession, setCurrentProfession] = useState('');
     const [energyPeakTime, setEnergyPeakTime] = useState('Morning');
+    const [focusAbility, setFocusAbility] = useState('Normal');
+    const [taskShiftingAbility, setTaskShiftingAbility] = useState('Normal');
     const [dob, setDob] = useState<Date | null>(() => {
         const existingDob = user?.user_metadata?.dob;
         return existingDob ? new Date(existingDob) : null;
@@ -60,6 +62,8 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                     primaryLifeFocus: finalPrimaryFocus,
                     currentProfession: finalProfession,
                     energyPeakTime,
+                    focusAbility,
+                    taskShiftingAbility,
                     isPersonalized: true,
                     dob: format(finalDob, 'yyyy-MM-dd'),
                 }
@@ -153,6 +157,25 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                                 <option value="Afternoon">Afternoon (12–5PM)</option>
                                 <option value="Evening">Evening (5–9PM)</option>
                                 <option value="Night">Night (9PM–12AM)</option>
+                            </FormSelect>
+                        </FormField>
+                    </div>
+
+                    <Divider />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <FormField label="Focus Ability" icon={<Zap className="w-3 h-3" />}>
+                            <FormSelect value={focusAbility} onChange={(e) => setFocusAbility(e.target.value)}>
+                                <option value="High">High (Deep focus for hours)</option>
+                                <option value="Normal">Normal (Steady pace)</option>
+                                <option value="Low">Low (Easily distracted)</option>
+                            </FormSelect>
+                        </FormField>
+                        <FormField label="Task Shifting Ability" icon={<Zap className="w-3 h-3" />}>
+                            <FormSelect value={taskShiftingAbility} onChange={(e) => setTaskShiftingAbility(e.target.value)}>
+                                <option value="Fast">Fast (Context switch easily)</option>
+                                <option value="Normal">Normal (Comfortable transition)</option>
+                                <option value="Slow">Slow (Need wind-down time)</option>
                             </FormSelect>
                         </FormField>
                     </div>
