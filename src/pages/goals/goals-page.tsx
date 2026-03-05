@@ -178,7 +178,8 @@ Each object must have exactly these keys:
 {
   "date": "YYYY-MM-DD",
   "dayTask": "string - short title of the major sub-goal/task",
-  "description": "string - 1 to 2 sentences detailing what needs to be achieved during this period to hit this sub-goal."
+  "description": "string - 1 to 2 sentences detailing what needs to be achieved during this period to hit this sub-goal.",
+  "estimatedHours": number - realistic estimated hours needed to complete this milestone's core task (e.g. 8)
 }
 \nRETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
 `;
