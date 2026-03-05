@@ -202,7 +202,7 @@ export const PlannerPage: React.FC = () => {
                 const slot = emptySlotsGroupedByDay[d].shift()!;
                 newState[`${slot.dayIdx}-${slot.slotIdx}`] = {
                     type: 'goal',
-                    name: targetGoal.name,
+                    name: targetGoal.title || targetGoal.name,
                     goalId: targetGoal.id
                 };
                 slotsToAllocate--;
@@ -212,7 +212,7 @@ export const PlannerPage: React.FC = () => {
 
         updateGridState(newState);
         setIsGoalToolDialogOpen(false);
-        toast.success(`Allocated ${hours} hours for "${targetGoal.name}"!`);
+        toast.success(`Allocated ${hours} hours for "${targetGoal.title || targetGoal.name}"!`);
     };
 
     const handleSave = useCallback(async () => {

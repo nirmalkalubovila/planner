@@ -362,7 +362,7 @@ Each object must have exactly these keys:
                                                 <CardTitle className="text-lg font-bold tracking-tight text-white/90 flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
                                                         <Edit2 size={16} className="text-primary/50" />
-                                                        Refining: {goal.name}
+                                                        Refining: {goal.title || goal.name}
                                                     </div>
                                                     <Button
                                                         variant="ghost"

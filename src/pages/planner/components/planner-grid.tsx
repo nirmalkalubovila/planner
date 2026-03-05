@@ -31,7 +31,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     const weekDates = useMemo(() => WeekUtils.getDaysForWeek(currentWeek), [currentWeek]);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to morning (first non-sleep slot) on mount
+    // Auto-scroll to morning (first non-sleep slot) on mount or week change
     useEffect(() => {
         if (!scrollRef.current) return;
 
@@ -47,7 +47,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
         // Each slot is h-10 (40px)
         const scrollPosition = Math.max(0, (firstActiveSlot * 40) - 20); // -20 for a bit of breathing room at the top
         scrollRef.current.scrollTop = scrollPosition;
-    }, [isSleepSlot]); // Re-run if sleep settings change
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentWeek]); // Only scroll on mount or week change, NOT on every grid click
 
     return (
         <div className="flex-1 bg-card border rounded-xl shadow-inner overflow-hidden flex flex-col h-full min-h-[400px]">
