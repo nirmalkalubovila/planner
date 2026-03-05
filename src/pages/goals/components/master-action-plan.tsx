@@ -291,7 +291,8 @@ Each object must have these exact keys:
 {
   "date": "string - ${isWeekLevel ? "use the exact date range from the pre-calculated list above (e.g., 'March 5 - March 11')" : "use the exact month label from the pre-calculated list above (e.g., 'March 2026')"}",
   "dayTask": "string - short clear title of this sub-milestone",
-  "description": "string - 1 to 2 sentences describing the focus and strategy for this specific period."${isWeekLevel ? ',\n  "estimatedHours": number - realistic estimated hours (e.g. 5)' : ''}
+  "description": "string - 1 to 2 sentences describing the focus and strategy for this specific period.",
+  "estimatedHours": number - realistic estimated hours (e.g. 5)
 }
 NO MARKDOWN. RAW JSON ONLY.
 `;
@@ -495,7 +496,14 @@ const MilestoneRow = ({
                         isEditing ? (
                             <Input value={editValues.task} onChange={e => setEditValues({ ...editValues, task: e.target.value })} className="h-7 text-xs bg-background" />
                         ) : (
-                            <span className="text-sm font-semibold text-foreground tracking-tight leading-tight">{slot.dayTask}</span>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-sm font-semibold text-foreground tracking-tight leading-tight">{slot.dayTask}</span>
+                                {slot.estimatedHours && (
+                                    <span className="text-[10px] text-muted-foreground flex items-center font-medium bg-secondary/50 self-start px-1.5 py-0.5 rounded-md">
+                                        <Clock size={10} className="mr-1" /> Est: {slot.estimatedHours}h
+                                    </span>
+                                )}
+                            </div>
                         )
                     )}
                 </div>
