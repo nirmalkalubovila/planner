@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addDays, differenceInCalendarDays, min as minDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Check, Save, X, Edit3, ChevronRight, ChevronDown, BrainCircuit, Loader2, UserCog, Trash2, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -14,15 +14,41 @@ interface MasterActionPlanProps {
     onUpdate?: (updatedGoal: Goal) => void;
 }
 
-function getExpansionInfo(goalType: string, depth: number) {
+function getExpansionType(goalType: string, depth: number): 'Months' | 'Weeks' | null {
     if (goalType === 'Year') {
-        if (depth === 0) return { type: 'Months', count: 12 };
-        if (depth === 1) return { type: 'Weeks', count: 4 };
+        if (depth === 0) return 'Months';
+        if (depth === 1) return 'Weeks';
     }
     if (goalType === 'Month') {
-        if (depth === 0) return { type: 'Weeks', count: 4 };
+        if (depth === 0) return 'Weeks';
     }
     return null;
+}
+
+function getWeekRanges(periodStart: Date, periodEnd: Date): { start: Date; end: Date; label: string }[] {
+    const totalDays = differenceInCalendarDays(periodEnd, periodStart);
+    if (totalDays <= 0) return [];
+    const weeks: { start: Date; end: Date; label: string }[] = [];
+    let cursor = periodStart;
+    while (differenceInCalendarDays(periodEnd, cursor) > 0) {
+        const weekEnd = minDate([addDays(cursor, 6), addDays(periodEnd, -1)]);
+        weeks.push({
+            start: cursor,
+            end: weekEnd,
+            label: `${format(cursor, 'MMMM d')} - ${format(weekEnd, 'MMMM d')}`,
+        });
+        cursor = addDays(weekEnd, 1);
+    }
+    return weeks;
+}
+
+function getPeriodStartForSlot(goal: Goal, slotDate: string): Date {
+    const sortedMilestones = (goal.milestones || []).slice().sort((a, b) => a.targetDate.localeCompare(b.targetDate));
+    const milestoneIdx = sortedMilestones.findIndex(m => m.targetDate === slotDate);
+    if (milestoneIdx <= 0) {
+        return parseISO(goal.startDate);
+    }
+    return parseISO(sortedMilestones[milestoneIdx - 1].targetDate);
 }
 
 const deepUpdateSubPlans = (plans: AIGeneratedPlanSlot[], searchPath: number[], newSubPlans?: AIGeneratedPlanSlot[]): AIGeneratedPlanSlot[] => {
@@ -50,37 +76,122 @@ const deepEditSlot = (plans: AIGeneratedPlanSlot[], searchPath: number[], edits:
     const idx = searchPath[searchPath.length - 1];
     current[idx].dayTask = edits.task;
     current[idx].description = edits.desc;
-    // We only modify the date field if it was a manual stub, but for now we keep dates as is or rely on top level milestones
     return clone;
 };
 
-const PlanRow = ({
-    slot, path, depth, goal, isNext, isCompleted, milestoneTitle, onUpdateSubPlans, onSaveEdit, user
+// ─── Sub‑plan item row (week / month) ───────────────────────────────────────
+const SubPlanRow = ({
+    slot, path, depth, goal, onUpdateSubPlans, onSaveEdit, user
 }: {
-    slot: AIGeneratedPlanSlot, path: number[], depth: number, goal: Goal, isNext: boolean, isCompleted: boolean, milestoneTitle?: string,
-    onUpdateSubPlans: (path: number[], subPlans: AIGeneratedPlanSlot[] | undefined) => void,
-    onSaveEdit: (path: number[], edits: { title: string, task: string, desc: string }, date: string) => void,
-    user: any
+    slot: AIGeneratedPlanSlot; path: number[]; depth: number; goal: Goal;
+    onUpdateSubPlans: (p: number[], sp: AIGeneratedPlanSlot[] | undefined) => void;
+    onSaveEdit: (p: number[], e: { title: string; task: string; desc: string }, d: string) => void;
+    user: any;
 }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [editValues, setEditValues] = useState({ title: milestoneTitle || '', task: slot.dayTask, desc: slot.description });
-    const [expanded, setExpanded] = useState(false);
+    const [editValues, setEditValues] = useState({ title: '', task: slot.dayTask, desc: slot.description });
+    const validDate = slot.date && !isNaN(parseISO(slot.date).getTime()) ? format(parseISO(slot.date), 'MMM d, yyyy') : slot.date;
+
+    // For Year goals: months (depth 1 sub‑plans) can further expand to weeks
+    const deeperType = getExpansionType(goal.goalType, depth + 1);
+
+    return (
+        <div className="flex flex-col">
+            <div className={cn(
+                "group grid grid-cols-1 md:grid-cols-12 gap-y-2 md:gap-4 px-4 py-3 hover:bg-accent/40 transition-all items-start",
+                isEditing && "bg-accent/60 ring-1 ring-primary/20"
+            )}>
+                <div className="md:col-span-3 flex items-center gap-2 pl-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
+                    <span className="text-xs font-semibold text-primary">{validDate}</span>
+                </div>
+                <div className="md:col-span-3 md:border-l md:border-border/50 md:pl-2 flex flex-col gap-1">
+                    {isEditing ? (
+                        <Input value={editValues.task} onChange={e => setEditValues({ ...editValues, task: e.target.value })} className="h-7 text-xs bg-background" />
+                    ) : (
+                        <div className="flex flex-col gap-1">
+                            <span className="text-sm font-semibold text-foreground tracking-tight leading-tight">{slot.dayTask}</span>
+                            {slot.estimatedHours && (
+                                <span className="text-[10px] text-muted-foreground flex items-center font-medium bg-secondary/50 self-start px-1.5 py-0.5 rounded-md">
+                                    <Clock size={10} className="mr-1" /> Est: {slot.estimatedHours}h
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
+                <div className="md:col-span-5 md:border-l md:border-border/50 md:pl-2">
+                    {isEditing ? (
+                        <textarea value={editValues.desc} onChange={e => setEditValues({ ...editValues, desc: e.target.value })} className="w-full text-xs bg-background border rounded-md p-2 min-h-[60px] resize-none focus:outline-none focus:ring-1 focus:ring-primary" />
+                    ) : (
+                        <span className="text-xs text-muted-foreground/80 leading-relaxed">{slot.description}</span>
+                    )}
+                </div>
+                <div className="md:col-span-1 flex items-center justify-end md:justify-center">
+                    {isEditing ? (
+                        <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-500 hover:bg-emerald-500/10" onClick={() => { onSaveEdit(path, editValues, slot.date); setIsEditing(false); }}>
+                                <Save size={14} />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => setIsEditing(false)}>
+                                <X size={14} />
+                            </Button>
+                        </div>
+                    ) : (
+                        <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity" onClick={() => setIsEditing(true)}>
+                            <Edit3 size={12} />
+                        </Button>
+                    )}
+                </div>
+            </div>
+            {/* Nested deeper breakdown (e.g. weeks inside a month for Year goals) */}
+            {deeperType && (
+                <BreakdownSection
+                    slot={slot} path={path} depth={depth + 1} goal={goal}
+                    expansionType={deeperType}
+                    onUpdateSubPlans={onUpdateSubPlans} onSaveEdit={onSaveEdit} user={user}
+                    nested
+                />
+            )}
+        </div>
+    );
+};
+
+// ─── Breakdown Section (generate / view / delete sub‑plans) ─────────────────
+const BreakdownSection = ({
+    slot, path, depth, goal, expansionType, onUpdateSubPlans, onSaveEdit, user, nested
+}: {
+    slot: AIGeneratedPlanSlot; path: number[]; depth: number; goal: Goal;
+    expansionType: 'Weeks' | 'Months';
+    onUpdateSubPlans: (p: number[], sp: AIGeneratedPlanSlot[] | undefined) => void;
+    onSaveEdit: (p: number[], e: { title: string; task: string; desc: string }, d: string) => void;
+    user: any; nested?: boolean;
+}) => {
+    const [expanded, setExpanded] = useState(!nested);
     const [generating, setGenerating] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const expInfo = getExpansionInfo(goal.goalType, depth);
-    const hasExpandable = !!expInfo;
     const hasSubPlans = slot.subPlans && slot.subPlans.length > 0;
+    const isWeekLevel = expansionType === 'Weeks';
 
-    const validDate = slot.date && !isNaN(parseISO(slot.date).getTime()) ? format(parseISO(slot.date), 'MMM d, yyyy') : slot.date;
-
+    // ── AI Generation ──
     const handleGenerate = async () => {
         setGenerating(true);
         try {
-            if (!expInfo) return;
             const parentLevelTasks = goal.plans?.map(p => p.dayTask).join(', ') || '';
+            let dynamicCount: number;
+            let dateRangesDescription = '';
 
-            const isWeekLevel = expInfo.type === 'Weeks';
+            if (isWeekLevel) {
+                const periodStart = getPeriodStartForSlot(goal, slot.date);
+                const periodEnd = parseISO(slot.date);
+                const weekRanges = getWeekRanges(periodStart, periodEnd);
+                dynamicCount = weekRanges.length;
+                dateRangesDescription = weekRanges.map((w, i) =>
+                    `Week ${i + 1}: ${format(w.start, 'yyyy-MM-dd')} to ${format(w.end, 'yyyy-MM-dd')} (${w.label})`
+                ).join('\n');
+            } else {
+                dynamicCount = goal.milestones?.length || 12;
+            }
 
             const prompt = `
 Generate a detailed hierarchical action plan breakdown for the following phase of the overall goal.
@@ -97,15 +208,18 @@ Tailor tasks specifically to fit this person's profession, life focus, and energ
 
 Context - The surrounding sibling phases in the overall plan are: ${parentLevelTasks}. Ensure this new breakdown strictly stays within the current phase's boundaries.
 
-Please break this specific phase down into EXACTLY ${expInfo.count} sequential sub-milestones (representing ${expInfo.type}).
+Please break this specific phase down into EXACTLY ${dynamicCount} sequential sub-milestones (representing ${expansionType}).
 
-TIMELINE SYNC CRITICAL: You must use the "System Current Date" as your reality baseline. 
-${isWeekLevel ? "CRITICAL: You are generating a Weekly plan. You MUST include real-world date ranges (e.g., Jan 1 - Jan 7, 2026) for each week based on the goal's start date, this phase's timeline, and the System Current Date. You MUST also include an 'estimatedHours' integer field representing realistic hours to complete that week's core task." : "CRITICAL: You MUST include real-world date ranges or specific month names (e.g., January 2027) based on the goal's start date and this phase, anchored by the System Current Date."}
+TIMELINE SYNC CRITICAL: You must use the "System Current Date" as your reality baseline.
+${isWeekLevel ? `CRITICAL: You are generating a Weekly plan. The exact week date ranges are pre-calculated below. You MUST use these EXACT date ranges for the "date" field of each week. You MUST also include an 'estimatedHours' integer field representing realistic hours to complete that week's core task.
 
-Return ONLY a JSON array with exactly ${expInfo.count} objects.
+PRE-CALCULATED WEEK RANGES (use these exactly):
+${dateRangesDescription}` : "CRITICAL: You MUST include real-world date ranges or specific month names (e.g., January 2027) based on the goal's start date and this phase, anchored by the System Current Date."}
+
+Return ONLY a JSON array with exactly ${dynamicCount} objects.
 Each object must have these exact keys:
 {
-  "date": "string - real world date range or month (e.g., 'May 1 - May 7' or 'May 2027')",
+  "date": "string - ${isWeekLevel ? "use the exact date range from the pre-calculated list above (e.g., 'March 5 - March 11')" : "real world date range or month (e.g., 'May 2027')"}",
   "dayTask": "string - short clear title of this sub-milestone",
   "description": "string - 1 to 2 sentences describing the focus and strategy for this specific period."${isWeekLevel ? ',\n  "estimatedHours": number - realistic estimated hours (e.g. 5)' : ''}
 }
@@ -145,131 +259,51 @@ NO MARKDOWN. RAW JSON ONLY.
         }
     };
 
+    // ── Manual Generation ──
     const handleManualGen = () => {
-        if (!expInfo) return;
-        const emptySubPlans = Array.from({ length: expInfo.count }).map((_, i) => ({
-            date: `${expInfo.type.slice(0, -1)} ${i + 1}`,
-            dayTask: 'Draft Task',
-            description: 'Edit this sub-milestone manually.'
-        }));
+        let emptySubPlans: AIGeneratedPlanSlot[];
+        if (isWeekLevel) {
+            const periodStart = getPeriodStartForSlot(goal, slot.date);
+            const periodEnd = parseISO(slot.date);
+            const weekRanges = getWeekRanges(periodStart, periodEnd);
+            emptySubPlans = weekRanges.map(w => ({ date: w.label, dayTask: 'Draft Task', description: 'Edit this sub-milestone manually.' }));
+        } else {
+            const count = goal.milestones?.length || 12;
+            emptySubPlans = Array.from({ length: count }).map((_, i) => ({
+                date: `${expansionType.slice(0, -1)} ${i + 1}`,
+                dayTask: 'Draft Task',
+                description: 'Edit this sub-milestone manually.'
+            }));
+        }
         onUpdateSubPlans(path, emptySubPlans);
         setExpanded(true);
         toast.success("Manual sub-plan template ready.");
     };
 
-    const handleSave = () => {
-        onSaveEdit(path, editValues, slot.date);
-        setIsEditing(false);
-    };
-
     return (
-        <div className={cn("flex flex-col", depth > 0 && " border-t border-border/30 bg-muted/5")}>
-            <div className={cn(
-                "group grid grid-cols-1 md:grid-cols-12 gap-y-3 md:gap-4 px-4 py-4 md:py-3 hover:bg-accent/40 transition-all items-start relative border-l-2",
-                isCompleted ? "border-emerald-500/50 bg-emerald-500/5" : isNext ? "border-primary bg-primary/5" : "border-transparent",
-                isEditing && "bg-accent/60 ring-1 ring-primary/20",
-                depth > 0 && "ml-4 md:ml-6 border-l-border/50"
-            )}>
-                {/* Expand / Date Column */}
-                <div className="md:col-span-3 flex flex-col items-start justify-center">
-                    <div className="flex flex-wrap items-center gap-2 mb-0.5 w-full">
-                        {hasExpandable && (
-                            <button onClick={() => setExpanded(!expanded)} className="text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-accent transition-colors absolute -left-3.5 bg-background border shadow-sm">
-                                {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                            </button>
-                        )}
-                        {isEditing ? (
-                            <div className="w-full pl-2">
-                                {depth === 0 && <label className="text-[9px] uppercase font-bold text-primary/70 mb-1 block">Phase Title</label>}
-                                {depth === 0 && (
-                                    <Input
-                                        value={editValues.title}
-                                        onChange={(e) => setEditValues({ ...editValues, title: e.target.value })}
-                                        className="h-7 text-xs bg-background mb-1"
-                                        placeholder="Phase Title"
-                                    />
-                                )}
-                            </div>
-                        ) : (
-                            <div className="pl-2 flex items-center gap-2">
-                                {milestoneTitle && <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{milestoneTitle}</span>}
-                                {isCompleted && <div className="w-3 h-3 rounded-full bg-emerald-500 flex items-center justify-center"><Check size={8} className="text-white" /></div>}
-                                {isNext && <span className="text-[8px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-black animate-pulse uppercase">NEXT STEP</span>}
-                            </div>
-                        )}
-                    </div>
-                    {!isEditing && <div className="text-xs font-semibold text-primary pl-2">{validDate}</div>}
-                </div>
+        <div className={cn("relative", nested ? "ml-6 pl-4 border-l border-dashed border-border/40 my-1" : "")}>
+            {/* Toggle header */}
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className={cn(
+                    "flex items-center gap-2 w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors rounded-md",
+                    nested ? "text-muted-foreground/60 hover:text-muted-foreground" : "text-primary/60 hover:text-primary hover:bg-primary/5",
+                )}
+            >
+                {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                {hasSubPlans
+                    ? `${expansionType} Breakdown (${slot.subPlans!.length} items)`
+                    : `${expansionType} Breakdown`
+                }
+            </button>
 
-                {/* Task Column */}
-                <div className="md:col-span-3 md:border-l md:border-border/50 md:pl-2 flex flex-col gap-1">
-                    {isEditing ? (
-                        <>
-                            <label className="text-[9px] uppercase font-bold text-primary/70 mb-1 block md:hidden">Core Task</label>
-                            <Input
-                                value={editValues.task}
-                                onChange={(e) => setEditValues({ ...editValues, task: e.target.value })}
-                                className="h-7 text-xs bg-background"
-                            />
-                        </>
-                    ) : (
-                        <div className="flex flex-col gap-1">
-                            <span className="text-sm font-semibold text-foreground tracking-tight leading-tight">{slot.dayTask}</span>
-                            {slot.estimatedHours && (
-                                <span className="text-[10px] text-muted-foreground flex items-center font-medium bg-secondary/50 self-start px-1.5 py-0.5 rounded-md">
-                                    <Clock size={10} className="mr-1" /> Est: {slot.estimatedHours}h
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Description Column */}
-                <div className="md:col-span-5 md:border-l md:border-border/50 md:pl-2 flex flex-col gap-1">
-                    {isEditing ? (
-                        <>
-                            <label className="text-[9px] uppercase font-bold text-primary/70 mb-1 block md:hidden">Description</label>
-                            <textarea
-                                value={editValues.desc}
-                                onChange={(e) => setEditValues({ ...editValues, desc: e.target.value })}
-                                className="w-full text-xs bg-background border rounded-md p-2 min-h-[60px] resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-                            />
-                        </>
-                    ) : (
-                        <span className="text-xs text-muted-foreground/80 leading-relaxed md:leading-snug">{slot.description}</span>
-                    )}
-                </div>
-
-                {/* Action Box */}
-                <div className="md:col-span-1 flex items-center justify-end md:justify-center pt-1 md:pt-0">
-                    {isEditing ? (
-                        <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-500 hover:bg-emerald-500/10" onClick={handleSave}>
-                                <Save size={14} />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => setIsEditing(false)}>
-                                <X size={14} />
-                            </Button>
-                        </div>
-                    ) : (
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            className={cn("h-7 w-7 transition-opacity text-muted-foreground hover:text-primary", expanded || hasSubPlans ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
-                            onClick={() => setIsEditing(true)}
-                        >
-                            <Edit3 size={12} />
-                        </Button>
-                    )}
-                </div>
-            </div>
-
-            {/* Recursion / Expansion Area */}
             {expanded && (
-                <div className="animate-in slide-in-from-top-2 fade-in duration-200">
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
                     {!hasSubPlans ? (
-                        <div className="p-4 bg-accent/20 border-b flex flex-col items-center justify-center space-y-4 ml-6 mr-4 rounded-xl mb-3 shadow-inner">
-                            <p className="text-xs font-semibold text-muted-foreground text-center">Detailed {expInfo?.type} breakdown for this phase hasn't been created yet.</p>
+                        <div className="p-4 bg-accent/10 border border-dashed border-border/30 flex flex-col items-center justify-center space-y-3 mx-4 rounded-xl mb-3">
+                            <p className="text-xs font-semibold text-muted-foreground text-center">
+                                {expansionType} breakdown for this phase hasn't been created yet.
+                            </p>
                             <div className="flex flex-wrap items-center justify-center gap-3">
                                 <Button size="sm" onClick={handleGenerate} disabled={generating} className="bg-primary/20 text-primary hover:bg-primary hover:text-primary-foreground border-transparent shadow-none">
                                     {generating ? <Loader2 className="animate-spin mr-2" size={14} /> : <BrainCircuit className="mr-2" size={14} />}
@@ -282,40 +316,31 @@ NO MARKDOWN. RAW JSON ONLY.
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col border-l-2 border-border/50 ml-6 mr-4 mb-2 rounded-bl-lg">
-                            <div className="flex justify-end pt-2 pr-2">
+                        <div className="flex flex-col mx-2 mb-2">
+                            <div className="flex justify-end px-2 mb-1">
                                 <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-destructive hover:bg-destructive/10" onClick={() => setShowDeleteConfirm(true)}>
-                                    <Trash2 size={12} className="mr-1" /> Delete {expInfo?.type} Breakdown
+                                    <Trash2 size={12} className="mr-1" /> Delete {expansionType} Breakdown
                                 </Button>
                             </div>
-
+                            <div className="flex flex-col border-l-2 border-border/40 ml-2 rounded-bl-lg divide-y divide-border/30">
+                                {slot.subPlans!.map((subSlot, idx) => (
+                                    <SubPlanRow
+                                        key={idx} slot={subSlot} path={[...path, idx]}
+                                        depth={depth} goal={goal}
+                                        onUpdateSubPlans={onUpdateSubPlans}
+                                        onSaveEdit={onSaveEdit} user={user}
+                                    />
+                                ))}
+                            </div>
                             <ConfirmationDialog
                                 isOpen={showDeleteConfirm}
                                 onClose={() => setShowDeleteConfirm(false)}
-                                onConfirm={() => {
-                                    onUpdateSubPlans(path, undefined);
-                                    setShowDeleteConfirm(false);
-                                }}
-                                title={`Delete ${expInfo?.type} Breakdown`}
-                                description={`Are you sure you want to delete this ${expInfo?.type} breakdown? This action cannot be undone.`}
+                                onConfirm={() => { onUpdateSubPlans(path, undefined); setShowDeleteConfirm(false); }}
+                                title={`Delete ${expansionType} Breakdown`}
+                                description={`Are you sure you want to delete this ${expansionType} breakdown? This action cannot be undone.`}
                                 confirmText="Delete Breakdown"
                                 variant="destructive"
                             />
-
-                            {slot.subPlans?.map((subSlot, idx) => (
-                                <PlanRow
-                                    key={idx}
-                                    slot={subSlot}
-                                    path={[...path, idx]}
-                                    depth={depth + 1}
-                                    goal={goal}
-                                    isNext={false}
-                                    isCompleted={false}
-                                    onUpdateSubPlans={onUpdateSubPlans}
-                                    onSaveEdit={onSaveEdit}
-                                    user={user}
-                                />
-                            ))}
                         </div>
                     )}
                 </div>
@@ -324,6 +349,120 @@ NO MARKDOWN. RAW JSON ONLY.
     );
 };
 
+// ─── Milestone Marker Row ───────────────────────────────────────────────────
+const MilestoneRow = ({
+    slot, path, milestoneTitle, isNext, isCompleted, isStart, onSaveEdit
+}: {
+    slot?: AIGeneratedPlanSlot; path?: number[]; milestoneTitle: string;
+    isNext?: boolean; isCompleted?: boolean; isStart?: boolean;
+    onSaveEdit?: (p: number[], e: { title: string; task: string; desc: string }, d: string) => void;
+}) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValues, setEditValues] = useState({
+        title: milestoneTitle || '',
+        task: slot?.dayTask || '',
+        desc: slot?.description || ''
+    });
+
+    const dateStr = slot?.date || '';
+    const validDate = dateStr && !isNaN(parseISO(dateStr).getTime()) ? format(parseISO(dateStr), 'MMM d, yyyy') : dateStr;
+
+    return (
+        <div className={cn(
+            "relative group",
+            isStart ? "" : "border-t border-border/30"
+        )}>
+            <div className={cn(
+                "grid grid-cols-1 md:grid-cols-12 gap-y-2 md:gap-4 px-4 py-4 md:py-3 transition-all items-start border-l-4",
+                isStart ? "border-muted-foreground/30 bg-muted/10" :
+                    isCompleted ? "border-emerald-500/60 bg-emerald-500/5" :
+                        isNext ? "border-primary bg-primary/5" :
+                            "border-border/60 bg-accent/10",
+                isEditing && "ring-1 ring-primary/20"
+            )}>
+                {/* Date / Label Column */}
+                <div className="md:col-span-3 flex flex-col gap-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Dot */}
+                        <div className={cn(
+                            "w-3 h-3 rounded-full border-2 shrink-0 flex items-center justify-center",
+                            isStart ? "border-muted-foreground bg-muted-foreground/20" :
+                                isCompleted ? "border-emerald-500 bg-emerald-500" :
+                                    isNext ? "border-primary bg-primary" :
+                                        "border-border bg-background"
+                        )}>
+                            {isCompleted && <Check size={7} className="text-white" />}
+                        </div>
+                        {isEditing && path && slot ? (
+                            <Input
+                                value={editValues.title}
+                                onChange={e => setEditValues({ ...editValues, title: e.target.value })}
+                                className="h-7 text-xs bg-background flex-1"
+                                placeholder="Phase Title"
+                            />
+                        ) : (
+                            <span className={cn(
+                                "text-[10px] uppercase font-bold tracking-wider",
+                                isStart ? "text-muted-foreground" : "text-muted-foreground"
+                            )}>
+                                {milestoneTitle}
+                            </span>
+                        )}
+                        {isNext && <span className="text-[8px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-black animate-pulse uppercase">NEXT STEP</span>}
+                    </div>
+                    <div className="text-xs font-semibold text-primary pl-5">{validDate}</div>
+                </div>
+
+                {/* Task Column */}
+                <div className="md:col-span-3 md:border-l md:border-border/50 md:pl-2 flex flex-col gap-1">
+                    {slot && (
+                        isEditing ? (
+                            <Input value={editValues.task} onChange={e => setEditValues({ ...editValues, task: e.target.value })} className="h-7 text-xs bg-background" />
+                        ) : (
+                            <span className="text-sm font-semibold text-foreground tracking-tight leading-tight">{slot.dayTask}</span>
+                        )
+                    )}
+                </div>
+
+                {/* Description Column */}
+                <div className="md:col-span-5 md:border-l md:border-border/50 md:pl-2">
+                    {slot && (
+                        isEditing ? (
+                            <textarea value={editValues.desc} onChange={e => setEditValues({ ...editValues, desc: e.target.value })} className="w-full text-xs bg-background border rounded-md p-2 min-h-[60px] resize-none focus:outline-none focus:ring-1 focus:ring-primary" />
+                        ) : (
+                            <span className="text-xs text-muted-foreground/80 leading-relaxed">{slot.description}</span>
+                        )
+                    )}
+                </div>
+
+                {/* Action Column */}
+                <div className="md:col-span-1 flex items-center justify-end md:justify-center">
+                    {slot && path && onSaveEdit && (
+                        isEditing ? (
+                            <div className="flex gap-1">
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-500 hover:bg-emerald-500/10" onClick={() => {
+                                    onSaveEdit(path, editValues, slot.date);
+                                    setIsEditing(false);
+                                }}>
+                                    <Save size={14} />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => setIsEditing(false)}>
+                                    <X size={14} />
+                                </Button>
+                            </div>
+                        ) : (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity" onClick={() => setIsEditing(true)}>
+                                <Edit3 size={12} />
+                            </Button>
+                        )
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Main Component ─────────────────────────────────────────────────────────
 export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpdate }) => {
     const { user } = useAuth();
 
@@ -344,9 +483,8 @@ export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpda
         onUpdate({ ...goal, plans: newPlans });
     };
 
-    const handleSaveEdit = (path: number[], edits: { title: string, task: string, desc: string }, date: string) => {
+    const handleSaveEdit = (path: number[], edits: { title: string; task: string; desc: string }, date: string) => {
         if (!onUpdate) return;
-
         const newPlans = deepEditSlot(sortedPlans, path, edits);
         let newMilestones = goal.milestones;
 
@@ -357,9 +495,13 @@ export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpda
                 newMilestones[mIdx] = { ...newMilestones[mIdx], title: edits.title };
             }
         }
-
         onUpdate({ ...goal, plans: newPlans, milestones: newMilestones });
     };
+
+    const expansionType = getExpansionType(goal.goalType, 0);
+    const startDate = goal.startDate && !isNaN(parseISO(goal.startDate).getTime())
+        ? format(parseISO(goal.startDate), 'MMM d, yyyy')
+        : goal.startDate;
 
     return (
         <div className="bg-background pt-2 p-0 md:p-4 rounded-b-xl">
@@ -379,8 +521,16 @@ export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpda
                     <div className="col-span-1 border-l pl-2 border-border/50 text-center">Action</div>
                 </div>
 
-                {/* Recursive Rows */}
-                <div className="flex flex-col mb-4 md:mb-0 divide-y divide-border/50">
+                {/* Timeline Flow */}
+                <div className="flex flex-col mb-4 md:mb-0">
+                    {/* ── Starting Point ── */}
+                    <MilestoneRow
+                        milestoneTitle="Starting Point"
+                        isStart
+                        slot={{ date: goal.startDate, dayTask: '', description: '' }}
+                    />
+
+                    {/* ── For each milestone: breakdown THEN milestone marker ── */}
                     {sortedPlans.map((slot, idx) => {
                         const milestone = goal.milestones?.find(m => m.targetDate === slot.date);
                         const isCompleted = milestone?.completed;
@@ -388,19 +538,27 @@ export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpda
                         if (isNext) nextFound = true;
 
                         return (
-                            <PlanRow
-                                key={idx}
-                                slot={slot}
-                                path={[idx]}
-                                depth={0}
-                                goal={goal}
-                                isNext={isNext!}
-                                isCompleted={isCompleted!}
-                                milestoneTitle={milestone?.title}
-                                onUpdateSubPlans={handleUpdateSubPlans}
-                                onSaveEdit={handleSaveEdit}
-                                user={user}
-                            />
+                            <React.Fragment key={idx}>
+                                {/* Sub-plan breakdown (weeks/months) for the period LEADING UP TO this milestone */}
+                                {expansionType && (
+                                    <BreakdownSection
+                                        slot={slot} path={[idx]} depth={0} goal={goal}
+                                        expansionType={expansionType}
+                                        onUpdateSubPlans={handleUpdateSubPlans}
+                                        onSaveEdit={handleSaveEdit} user={user}
+                                    />
+                                )}
+
+                                {/* The milestone itself */}
+                                <MilestoneRow
+                                    slot={slot}
+                                    path={[idx]}
+                                    milestoneTitle={milestone?.title || `Phase ${idx + 1}`}
+                                    isNext={isNext!}
+                                    isCompleted={isCompleted!}
+                                    onSaveEdit={handleSaveEdit}
+                                />
+                            </React.Fragment>
                         );
                     })}
                 </div>
@@ -408,4 +566,3 @@ export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpda
         </div>
     );
 };
-
