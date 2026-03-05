@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Goal, GridState } from '@/types/global-types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Target, Calendar, Check, Edit2, Trash2, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { Target, Calendar, Check, Edit2, Trash2, ChevronDown, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { GoalProgressBar } from './goal-progress-bar';
 import { MasterActionPlan } from './master-action-plan';
@@ -133,8 +133,11 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                                     </span>
                                 )}
                             </div>
-                            <h3 className="font-bold text-lg leading-tight">{goal.name}</h3>
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{goal.purpose}</p>
+                            <h3 className="font-bold text-lg leading-snug">{goal.title || goal.name}</h3>
+                            <p className={cn("text-sm text-muted-foreground mt-1 transition-all duration-300", !isExpanded && "line-clamp-1")}>{goal.name}</p>
+                            {isExpanded && goal.purpose && (
+                                <p className="text-xs text-muted-foreground/70 mt-1 italic">{goal.purpose}</p>
+                            )}
                             <div className="text-[11px] text-muted-foreground/80 mt-2 flex items-center gap-2 font-medium">
                                 <span className="flex items-center gap-1"><Calendar size={12} /> Start: {goal.startDate ? format(parseISO(goal.startDate), 'MMM d, yy') : 'N/A'}</span>
                                 <span>&rarr;</span>
@@ -143,8 +146,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                         </div>
                     </div>
                     <div className="flex gap-2 self-end sm:self-center items-center">
-                        <Button variant="ghost" size="sm" onClick={() => onToggle(goal.id!)}>
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        <Button variant="ghost" size="sm" onClick={() => onToggle(goal.id!)} className="hover:bg-primary/10">
+                            <ChevronDown size={18} className={cn("transition-transform duration-300", isExpanded && "rotate-180")} />
                         </Button>
                         <Button variant="secondary" size="sm" onClick={() => onEdit(goal)}>
                             <Edit2 size={14} className="mr-1" /> Edit

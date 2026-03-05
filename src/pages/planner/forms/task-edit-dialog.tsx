@@ -89,7 +89,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
                                 <option value="">No Goal Linked</option>
                                 {goals?.map(goal => (
                                     <option key={goal.id} value={goal.id}>
-                                        {goal.name}
+                                        {goal.title || goal.name}
                                     </option>
                                 ))}
                             </select>

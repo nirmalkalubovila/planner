@@ -38,7 +38,8 @@ export interface AIGeneratedPlanSlot {
 }
 
 export interface Goal extends GlobalRecords {
-    name: string;
+    title: string;       // Short unique name, e.g., "Legacy Content Brand"
+    name: string;        // Detailed description / strategic mission
     purpose: string;
     startDate: string;
     endDate: string; // Calculated field now

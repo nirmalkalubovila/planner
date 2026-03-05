@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
-import { format, parseISO, addDays, differenceInCalendarDays, min as minDate } from 'date-fns';
+import { format, parseISO, addDays, addMonths, differenceInCalendarDays, min as minDate, parse as dateParse } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Check, Save, X, Edit3, ChevronRight, ChevronDown, BrainCircuit, Loader2, UserCog, Trash2, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,29 @@ function getWeekRanges(periodStart: Date, periodEnd: Date): { start: Date; end: 
     return weeks;
 }
 
+/**
+ * Compute real calendar month ranges that tile perfectly between periodStart and periodEnd.
+ * Each month advances by the same day-of-month as the period start.
+ */
+function getMonthRanges(periodStart: Date, periodEnd: Date): { start: Date; end: Date; label: string }[] {
+    const months: { start: Date; end: Date; label: string }[] = [];
+    let cursor = new Date(periodStart);
+    while (differenceInCalendarDays(periodEnd, cursor) > 0) {
+        const nextMonth = addMonths(cursor, 1);
+        const monthEnd = minDate([nextMonth, periodEnd]);
+        if (differenceInCalendarDays(monthEnd, cursor) > 0) {
+            months.push({
+                start: new Date(cursor),
+                end: new Date(monthEnd),
+                label: format(cursor, 'MMMM yyyy'),
+            });
+        }
+        cursor = nextMonth;
+    }
+    return months;
+}
+
+
 function getPeriodStartForSlot(goal: Goal, slotDate: string): Date {
     const sortedMilestones = (goal.milestones || []).slice().sort((a, b) => a.targetDate.localeCompare(b.targetDate));
     const milestoneIdx = sortedMilestones.findIndex(m => m.targetDate === slotDate);
@@ -49,6 +72,27 @@ function getPeriodStartForSlot(goal: Goal, slotDate: string): Date {
         return parseISO(goal.startDate);
     }
     return parseISO(sortedMilestones[milestoneIdx - 1].targetDate);
+}
+
+/**
+ * Try to parse a date string in multiple formats:
+ * - ISO (YYYY-MM-DD)
+ * - Month Year (e.g., "March 2027")
+ * - Month Day - Month Day range (returns the start date)
+ */
+function tryParseDate(dateStr: string): Date | null {
+    if (!dateStr) return null;
+    const iso = parseISO(dateStr);
+    if (!isNaN(iso.getTime())) return iso;
+    try {
+        const d = dateParse(dateStr, 'MMMM yyyy', new Date());
+        if (!isNaN(d.getTime())) return d;
+    } catch { /* ignore */ }
+    try {
+        const d = dateParse(dateStr, 'MMM yyyy', new Date());
+        if (!isNaN(d.getTime())) return d;
+    } catch { /* ignore */ }
+    return null;
 }
 
 const deepUpdateSubPlans = (plans: AIGeneratedPlanSlot[], searchPath: number[], newSubPlans?: AIGeneratedPlanSlot[]): AIGeneratedPlanSlot[] => {
@@ -95,6 +139,17 @@ const SubPlanRow = ({
     // For Year goals: months (depth 1 sub‑plans) can further expand to weeks
     const deeperType = getExpansionType(goal.goalType, depth + 1);
 
+    // Compute period dates for nested week breakdowns (e.g. weeks inside a month for Year goals)
+    let nestedPeriodStart: Date | undefined;
+    let nestedPeriodEnd: Date | undefined;
+    if (deeperType === 'Weeks') {
+        const parsed = tryParseDate(slot.date);
+        if (parsed) {
+            nestedPeriodStart = parsed;
+            nestedPeriodEnd = addMonths(parsed, 1);
+        }
+    }
+
     return (
         <div className="flex flex-col">
             <div className={cn(
@@ -102,8 +157,8 @@ const SubPlanRow = ({
                 isEditing && "bg-accent/60 ring-1 ring-primary/20"
             )}>
                 <div className="md:col-span-3 flex items-center gap-2 pl-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
-                    <span className="text-xs font-semibold text-primary">{validDate}</span>
+                    <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", depth === 0 ? "bg-violet-500" : "bg-cyan-500")} />
+                    <span className={cn("text-xs font-semibold", depth === 0 ? "text-violet-400" : "text-cyan-400")}>{validDate}</span>
                 </div>
                 <div className="md:col-span-3 md:border-l md:border-border/50 md:pl-2 flex flex-col gap-1">
                     {isEditing ? (
@@ -150,6 +205,8 @@ const SubPlanRow = ({
                     expansionType={deeperType}
                     onUpdateSubPlans={onUpdateSubPlans} onSaveEdit={onSaveEdit} user={user}
                     nested
+                    overridePeriodStart={nestedPeriodStart}
+                    overridePeriodEnd={nestedPeriodEnd}
                 />
             )}
         </div>
@@ -158,13 +215,15 @@ const SubPlanRow = ({
 
 // ─── Breakdown Section (generate / view / delete sub‑plans) ─────────────────
 const BreakdownSection = ({
-    slot, path, depth, goal, expansionType, onUpdateSubPlans, onSaveEdit, user, nested
+    slot, path, depth, goal, expansionType, onUpdateSubPlans, onSaveEdit, user, nested,
+    overridePeriodStart, overridePeriodEnd
 }: {
     slot: AIGeneratedPlanSlot; path: number[]; depth: number; goal: Goal;
     expansionType: 'Weeks' | 'Months';
     onUpdateSubPlans: (p: number[], sp: AIGeneratedPlanSlot[] | undefined) => void;
     onSaveEdit: (p: number[], e: { title: string; task: string; desc: string }, d: string) => void;
     user: any; nested?: boolean;
+    overridePeriodStart?: Date; overridePeriodEnd?: Date;
 }) => {
     const [expanded, setExpanded] = useState(!nested);
     const [generating, setGenerating] = useState(false);
@@ -182,15 +241,23 @@ const BreakdownSection = ({
             let dateRangesDescription = '';
 
             if (isWeekLevel) {
-                const periodStart = getPeriodStartForSlot(goal, slot.date);
-                const periodEnd = parseISO(slot.date);
+                // Use override dates (for nested months in Year goals) or compute from milestones
+                const periodStart = overridePeriodStart || getPeriodStartForSlot(goal, slot.date);
+                const periodEnd = overridePeriodEnd || parseISO(slot.date);
                 const weekRanges = getWeekRanges(periodStart, periodEnd);
                 dynamicCount = weekRanges.length;
                 dateRangesDescription = weekRanges.map((w, i) =>
                     `Week ${i + 1}: ${format(w.start, 'yyyy-MM-dd')} to ${format(w.end, 'yyyy-MM-dd')} (${w.label})`
                 ).join('\n');
             } else {
-                dynamicCount = goal.milestones?.length || 12;
+                // Month-level breakdown for Year goals — compute actual month ranges
+                const periodStart = overridePeriodStart || getPeriodStartForSlot(goal, slot.date);
+                const periodEnd = overridePeriodEnd || parseISO(slot.date);
+                const monthRanges = getMonthRanges(periodStart, periodEnd);
+                dynamicCount = monthRanges.length;
+                dateRangesDescription = monthRanges.map((m, i) =>
+                    `Month ${i + 1}: ${format(m.start, 'yyyy-MM-dd')} to ${format(m.end, 'yyyy-MM-dd')} (${m.label})`
+                ).join('\n');
             }
 
             const prompt = `
@@ -214,12 +281,15 @@ TIMELINE SYNC CRITICAL: You must use the "System Current Date" as your reality b
 ${isWeekLevel ? `CRITICAL: You are generating a Weekly plan. The exact week date ranges are pre-calculated below. You MUST use these EXACT date ranges for the "date" field of each week. You MUST also include an 'estimatedHours' integer field representing realistic hours to complete that week's core task.
 
 PRE-CALCULATED WEEK RANGES (use these exactly):
-${dateRangesDescription}` : "CRITICAL: You MUST include real-world date ranges or specific month names (e.g., January 2027) based on the goal's start date and this phase, anchored by the System Current Date."}
+${dateRangesDescription}` : `CRITICAL: You are generating a Monthly plan. The exact month date ranges are pre-calculated below. You MUST use these EXACT month labels for the "date" field of each month.
+
+PRE-CALCULATED MONTH RANGES (use these exactly):
+${dateRangesDescription}`}
 
 Return ONLY a JSON array with exactly ${dynamicCount} objects.
 Each object must have these exact keys:
 {
-  "date": "string - ${isWeekLevel ? "use the exact date range from the pre-calculated list above (e.g., 'March 5 - March 11')" : "real world date range or month (e.g., 'May 2027')"}",
+  "date": "string - ${isWeekLevel ? "use the exact date range from the pre-calculated list above (e.g., 'March 5 - March 11')" : "use the exact month label from the pre-calculated list above (e.g., 'March 2026')"}",
   "dayTask": "string - short clear title of this sub-milestone",
   "description": "string - 1 to 2 sentences describing the focus and strategy for this specific period."${isWeekLevel ? ',\n  "estimatedHours": number - realistic estimated hours (e.g. 5)' : ''}
 }
@@ -263,14 +333,18 @@ NO MARKDOWN. RAW JSON ONLY.
     const handleManualGen = () => {
         let emptySubPlans: AIGeneratedPlanSlot[];
         if (isWeekLevel) {
-            const periodStart = getPeriodStartForSlot(goal, slot.date);
-            const periodEnd = parseISO(slot.date);
+            // Use override dates (for nested months in Year goals) or compute from milestones
+            const periodStart = overridePeriodStart || getPeriodStartForSlot(goal, slot.date);
+            const periodEnd = overridePeriodEnd || parseISO(slot.date);
             const weekRanges = getWeekRanges(periodStart, periodEnd);
             emptySubPlans = weekRanges.map(w => ({ date: w.label, dayTask: 'Draft Task', description: 'Edit this sub-milestone manually.' }));
         } else {
-            const count = goal.milestones?.length || 12;
-            emptySubPlans = Array.from({ length: count }).map((_, i) => ({
-                date: `${expansionType.slice(0, -1)} ${i + 1}`,
+            // Month-level breakdown — compute actual month ranges
+            const periodStart = overridePeriodStart || getPeriodStartForSlot(goal, slot.date);
+            const periodEnd = overridePeriodEnd || parseISO(slot.date);
+            const monthRanges = getMonthRanges(periodStart, periodEnd);
+            emptySubPlans = monthRanges.map(m => ({
+                date: m.label,
                 dayTask: 'Draft Task',
                 description: 'Edit this sub-milestone manually.'
             }));
@@ -287,7 +361,9 @@ NO MARKDOWN. RAW JSON ONLY.
                 onClick={() => setExpanded(!expanded)}
                 className={cn(
                     "flex items-center gap-2 w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors rounded-md",
-                    nested ? "text-muted-foreground/60 hover:text-muted-foreground" : "text-primary/60 hover:text-primary hover:bg-primary/5",
+                    nested
+                        ? (isWeekLevel ? "text-cyan-500/60 hover:text-cyan-400" : "text-violet-500/60 hover:text-violet-400")
+                        : (isWeekLevel ? "text-cyan-500/60 hover:text-cyan-400 hover:bg-cyan-500/5" : "text-violet-500/60 hover:text-violet-400 hover:bg-violet-500/5"),
                 )}
             >
                 {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -322,7 +398,7 @@ NO MARKDOWN. RAW JSON ONLY.
                                     <Trash2 size={12} className="mr-1" /> Delete {expansionType} Breakdown
                                 </Button>
                             </div>
-                            <div className="flex flex-col border-l-2 border-border/40 ml-2 rounded-bl-lg divide-y divide-border/30">
+                            <div className={cn("flex flex-col border-l-2 ml-2 rounded-bl-lg divide-y divide-border/30", isWeekLevel ? "border-cyan-500/30" : "border-violet-500/30")}>
                                 {slot.subPlans!.map((subSlot, idx) => (
                                     <SubPlanRow
                                         key={idx} slot={subSlot} path={[...path, idx]}

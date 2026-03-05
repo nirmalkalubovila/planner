@@ -114,7 +114,7 @@ export const GoalToolDialog: React.FC<GoalToolDialogProps> = ({
                         >
                             <option value="">-- Choose Goal --</option>
                             {activeGoals.map((g) => (
-                                <option key={g.id} value={g.id}>{g.name}</option>
+                                <option key={g.id} value={g.id}>{g.title || g.name}</option>
                             ))}
                         </select>
                     </div>
@@ -124,7 +124,7 @@ export const GoalToolDialog: React.FC<GoalToolDialogProps> = ({
                             <div>
                                 <h4 className="font-bold text-sm mb-1 text-foreground">Next Pending Phase:</h4>
                                 <p className="text-sm font-medium text-primary">
-                                    {nextSlot ? nextSlot.dayTask : activeGoal.name}
+                                    {nextSlot ? nextSlot.dayTask : (activeGoal.title || activeGoal.name)}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                     {nextSlot && nextSlot.date ? `Target: ${nextSlot.date}` : `Overall Goal: ${activeGoal.purpose}`}

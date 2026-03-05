@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 
 const goalSchema = z.object({
-    name: z.string().min(1, "Goal Name is required"),
+    title: z.string().min(1, "Goal Title is required").max(60, "Title must be 60 characters or less"),
+    name: z.string().min(1, "Description is required"),
     purpose: z.string().min(1, "Purpose is required"),
     startDate: z.string().min(1, "Start Date is required"),
     goalType: z.enum(['Week', 'Month', 'Year']),
@@ -47,6 +48,7 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
     const form = useForm<GoalFormValues>({
         resolver: zodResolver(goalSchema),
         defaultValues: {
+            title: initialValues?.title || '',
             name: initialValues?.name || '',
             purpose: initialValues?.purpose || '',
             startDate: initialValues?.startDate || '',
@@ -61,8 +63,13 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-medium">Goal Name</label>
-                    <Input {...form.register('name')} placeholder="e.g., Master React in 2 weeks" className="bg-background" />
+                    <label className="text-sm font-medium">Goal Title <span className="text-muted-foreground font-normal">(short unique name)</span></label>
+                    <Input {...form.register('title')} placeholder="e.g., Master Node.js" className="bg-background" maxLength={60} />
+                    {form.formState.errors.title && <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>}
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-medium">Strategic Mission / Description</label>
+                    <textarea {...form.register('name')} placeholder="e.g., Master core Node.js concepts including modules, async programming, and the runtime environment" className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none" />
                     {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
                 </div>
                 <div className="space-y-2 md:col-span-2">
