@@ -31,7 +31,7 @@ export const Header: React.FC = () => {
     }) : null;
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-[100] w-full border-b border-white/5 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
             <div className="grid grid-cols-3 items-center h-16 px-4 md:px-8 max-w-7xl mx-auto">
 
                 {/* Left: Beautiful Logo & Title (Anchored to home) */}
@@ -46,10 +46,10 @@ export const Header: React.FC = () => {
                             <img
                                 src="/white-logo.svg"
                                 alt="Legacy Life Builder Logo"
-                                className="h-7 w-7 md:h-8 md:w-8 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+                                className="h-9 w-9 md:h-8 md:w-8 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
                             />
                         </div>
-                        <div className="flex flex-col">
+                        <div className="hidden md:flex flex-col">
                             <span className="text-sm md:text-lg font-bold tracking-[-0.03em] leading-none uppercase bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
                                 Legacy Life Builder
                             </span>
@@ -132,3 +132,5 @@ export const Header: React.FC = () => {
         </header>
     );
 };
+
+export default Header;

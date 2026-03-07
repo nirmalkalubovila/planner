@@ -115,50 +115,89 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     }, [goal, weekPlan, completedDays, currentWeek]);
 
 
+    const [showFullDesc, setShowFullDesc] = React.useState(false);
+    const [showFullPurpose, setShowFullPurpose] = React.useState(false);
+
     return (
-        <Card className="overflow-hidden border-border/60 hover:border-primary/40 transition-all group">
-            <div className="bg-accent/40 px-5 pt-5 pb-6 flex flex-col border-b group/card transition-all duration-300">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                    <div className="flex items-start sm:items-center gap-4">
-                        <div className="bg-primary/10 text-primary p-3 rounded-xl flex-shrink-0">
-                            <Target size={24} />
+        <Card className="h-full overflow-hidden border-border/60 hover:border-primary/40 transition-all group flex flex-col">
+            <div className={cn(
+                "bg-accent/40 px-3 sm:px-5 pt-4 sm:pt-5 pb-5 sm:pb-6 flex flex-col border-b group/card transition-all duration-300",
+                !isExpanded && "min-h-[220px] sm:min-h-[200px]"
+            )}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+                    <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                        <div className="bg-primary/10 text-primary p-2.5 sm:p-3 rounded-xl flex-shrink-0">
+                            <Target size={20} className="sm:w-6 sm:h-6" />
                         </div>
-                        <div>
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">{goal.goalType} Goal</span>
-                                {hasPlan && <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 font-medium flex items-center"><Check size={10} className="mr-1" /> Plan Ready</span>}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                                <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">{goal.goalType}</span>
+                                {hasPlan && <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 font-medium flex items-center"><Check size={10} className="mr-1" /> Plan</span>}
                                 {weeklyTasks.length > 0 && (
                                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 font-bold border border-indigo-500/20">
-                                        This Week: {completedWeeklyTasksCount}/{weeklyTasks.length} Tasks
+                                        {completedWeeklyTasksCount}/{weeklyTasks.length} Done
                                     </span>
                                 )}
                             </div>
-                            <h3 className="font-bold text-lg leading-snug">{goal.title || goal.name}</h3>
-                            <p className={cn("text-sm text-muted-foreground mt-1 transition-all duration-300", !isExpanded && "line-clamp-1")}>{goal.name}</p>
+                            <h3 className="font-bold text-base sm:text-lg leading-snug">{goal.title || goal.name}</h3>
+
+                            <div className="mt-1">
+                                <p className={cn(
+                                    "text-[11px] sm:text-sm text-muted-foreground transition-all duration-300",
+                                    (!isExpanded || !showFullDesc) ? "line-clamp-2" : "line-clamp-none"
+                                )}>
+                                    {goal.name}
+                                </p>
+                                {isExpanded && goal.name.length > 100 && (
+                                    <button
+                                        onClick={() => setShowFullDesc(!showFullDesc)}
+                                        className="text-[10px] font-bold text-primary hover:underline mt-0.5 uppercase tracking-widest"
+                                    >
+                                        {showFullDesc ? "Show Less" : "... View"}
+                                    </button>
+                                )}
+                            </div>
+
                             {isExpanded && goal.purpose && (
-                                <p className="text-xs text-muted-foreground/70 mt-1 italic">{goal.purpose}</p>
+                                <div className="mt-2">
+                                    <p className={cn(
+                                        "text-[10px] sm:text-xs text-muted-foreground/70 italic leading-relaxed",
+                                        !showFullPurpose ? "line-clamp-2" : "line-clamp-none"
+                                    )}>
+                                        {goal.purpose}
+                                    </p>
+                                    {goal.purpose.length > 80 && (
+                                        <button
+                                            onClick={() => setShowFullPurpose(!showFullPurpose)}
+                                            className="text-[9px] font-bold text-primary/60 hover:text-primary transition-colors mt-0.5 uppercase tracking-widest"
+                                        >
+                                            {showFullPurpose ? "Show Less" : "... View"}
+                                        </button>
+                                    )}
+                                </div>
                             )}
-                            <div className="text-[11px] text-muted-foreground/80 mt-2 flex items-center gap-2 font-medium">
-                                <span className="flex items-center gap-1"><Calendar size={12} /> Start: {goal.startDate ? format(parseISO(goal.startDate), 'MMM d, yy') : 'N/A'}</span>
-                                <span>&rarr;</span>
+
+                            <div className="text-[10px] sm:text-[11px] text-muted-foreground/80 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
+                                <span className="flex items-center gap-1"><Calendar size={11} /> {goal.startDate ? format(parseISO(goal.startDate), 'MMM d, yy') : 'N/A'}</span>
+                                <span className="hidden xs:inline text-muted-foreground/40">&rarr;</span>
                                 <span className="flex items-center gap-1">End: {goal.endDate ? format(parseISO(goal.endDate), 'MMM d, yy') : 'N/A'}</span>
                             </div>
                         </div>
                     </div>
                     <div className="flex gap-2 self-end sm:self-center items-center">
-                        <Button variant="ghost" size="sm" onClick={() => onToggle(goal.id!)} className="hover:bg-primary/10">
+                        <Button variant="ghost" size="sm" onClick={() => onToggle(goal.id!)} className="hover:bg-primary/10 p-2">
                             <ChevronDown size={18} className={cn("transition-transform duration-300", isExpanded && "rotate-180")} />
                         </Button>
-                        <Button variant="secondary" size="sm" onClick={() => onEdit(goal)}>
-                            <Edit2 size={14} className="mr-1" /> Edit
+                        <Button variant="secondary" size="sm" onClick={() => onEdit(goal)} className="p-2 h-8">
+                            <Edit2 size={14} />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(goal.id!)}>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive hover:text-destructive-foreground p-2 h-8" onClick={() => onDelete(goal.id!)}>
                             <Trash2 size={14} />
                         </Button>
                     </div>
                 </div>
 
-                <div className="w-full pl-5 pr-5">
+                <div className="w-full mt-auto">
                     <GoalProgressBar
                         milestones={goal.milestones || []}
                         progressPercentage={progressPercentage}

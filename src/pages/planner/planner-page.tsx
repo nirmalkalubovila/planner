@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useBlocker } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+// react-router-dom import removed — auto-save handles all persistence
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useGetWeekPlan, useSaveWeekPlan } from '@/api/services/planner-service';
+import { useGetWeekPlan, useSaveWeekPlan, usePrefetchAdjacentWeeks } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetGoals } from '@/api/services/goal-service';
 import { useAuth } from '@/contexts/auth-context';
@@ -34,11 +34,11 @@ export const PlannerPage: React.FC = () => {
     const [selectedLibraryTask, setSelectedLibraryTask] = useState<CustomTask | null>(null);
     const [isGoalToolDialogOpen, setIsGoalToolDialogOpen] = useState(false);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
-    const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
     const [showTaskDeleteConfirm, setShowTaskDeleteConfirm] = useState(false);
     const [showLibraryDeleteConfirm, setShowLibraryDeleteConfirm] = useState(false);
     const [idToDeleteFromLibrary, setIdToDeleteFromLibrary] = useState<string | null>(null);
-    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    // Save status for toolbar indicator: 'idle' | 'saving' | 'saved'
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
     // Edit states
     const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false);
@@ -48,6 +48,9 @@ export const PlannerPage: React.FC = () => {
     // History for Undo/Redo
     const [history, setHistory] = useState<GridState[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
+
+    // Auto-save timer ref
+    const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { data: weekPlan } = useGetWeekPlan(currentWeek);
     const { data: habits } = useGetHabits();
@@ -59,9 +62,11 @@ export const PlannerPage: React.FC = () => {
     const { user } = useAuth();
     const savePlan = useSaveWeekPlan();
 
+    // Prefetch adjacent weeks for instant navigation
+    usePrefetchAdjacentWeeks(currentWeek);
+
     const updateGridState = (newState: GridState, skipHistory = false) => {
         setLocalGridState(newState);
-        setHasUnsavedChanges(true);
         if (!skipHistory) {
             const newHistory = history.slice(0, historyIndex + 1);
             newHistory.push(newState);
@@ -69,7 +74,24 @@ export const PlannerPage: React.FC = () => {
             setHistory(newHistory);
             setHistoryIndex(newHistory.length - 1);
         }
+
+        // Debounced auto-save: saves 2s after last edit
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = setTimeout(() => {
+            setSaveStatus('saving');
+            savePlan.mutate({ week: currentWeek, state: newState }, {
+                onSuccess: () => setSaveStatus('saved'),
+                onError: () => setSaveStatus('idle'),
+            });
+        }, 2000);
     };
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        };
+    }, []);
 
     const handleUndo = () => {
         if (historyIndex > 0) {
@@ -103,6 +125,8 @@ export const PlannerPage: React.FC = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [history, historyIndex]);
 
+    // Only reset history on initial load or WEEK CHANGE, not on auto-save re-fetch
+    const lastLoadedWeekRef = useRef<string>('');
     useEffect(() => {
         if (weekPlan) {
             const normalized: GridState = {};
@@ -110,11 +134,14 @@ export const PlannerPage: React.FC = () => {
                 normalized[key.replace(/\s/g, '')] = val as any;
             });
             setLocalGridState(normalized);
-            setHistory([normalized]);
-            setHistoryIndex(0);
-            setHasUnsavedChanges(false);
+            // Only reset history if the week actually changed
+            if (lastLoadedWeekRef.current !== currentWeek) {
+                lastLoadedWeekRef.current = currentWeek;
+                setHistory([normalized]);
+                setHistoryIndex(0);
+            }
         }
-    }, [weekPlan]);
+    }, [weekPlan, currentWeek]);
 
     const activeGoalsForWeek = useMemo(() => {
         return (goals || []).filter((g: Goal) => {
@@ -124,46 +151,88 @@ export const PlannerPage: React.FC = () => {
         });
     }, [goals, currentWeek]);
 
-    const isSleepSlot = (slotIdx: number) => {
-        if (!user) return false;
+    // Pre-compute sleep slots as a Set for O(1) lookups (called 336+ times per render)
+    const sleepSlots = useMemo(() => {
+        const set = new Set<number>();
+        if (!user) return set;
         const sleepStartStr = user.user_metadata?.sleepStart || '22:00';
         const sleepDuration = Number(user.user_metadata?.sleepDuration) || 8;
         const [sH, sM] = sleepStartStr.split(':').map(Number);
         const startSlot = sH * 2 + (sM >= 30 ? 1 : 0);
         const durationSlots = Math.round(sleepDuration * 2);
-        const endSlot = (startSlot + durationSlots) % SLOTS_PER_DAY;
-        if (startSlot < endSlot) return slotIdx >= startSlot && slotIdx < endSlot;
-        return slotIdx >= startSlot || slotIdx < endSlot;
-    };
+        for (let i = 0; i < durationSlots; i++) {
+            set.add((startSlot + i) % SLOTS_PER_DAY);
+        }
+        return set;
+    }, [user]);
 
-    const isHabitSlot = (dayIdx: number, slotIdx: number) => {
-        return (habits || []).some((h: Habit) => {
-            if (h.daysOfWeek && h.daysOfWeek.length > 0 && !h.daysOfWeek.includes(FULL_DAYS[dayIdx])) return false;
+    const isSleepSlot = useCallback((slotIdx: number) => sleepSlots.has(slotIdx), [sleepSlots]);
+
+    // Pre-compute plan slot Set for O(1) lookups
+    const planSlotKeys = useMemo(() => {
+        const set = new Set<string>();
+        if (!user) return set;
+        const planDay = user.user_metadata?.planDay || 'Sunday';
+        const planStartTimeStr = user.user_metadata?.planStartTime || '21:00';
+        const durationSlots = Number(user.user_metadata?.planDurationPacks) || 2;
+        const targetDayIdx = FULL_DAYS.indexOf(planDay);
+        if (targetDayIdx === -1) return set;
+        const [pH, pM] = planStartTimeStr.split(':').map(Number);
+        const startSlot = pH * 2 + (pM >= 30 ? 1 : 0);
+        for (let s = startSlot; s < startSlot + durationSlots; s++) {
+            set.add(`${targetDayIdx}-${s}`);
+        }
+        return set;
+    }, [user]);
+
+    const isPlanSlot = useCallback((dayIdx: number, slotIdx: number) => planSlotKeys.has(`${dayIdx}-${slotIdx}`), [planSlotKeys]);
+
+    // Pre-compute habit slot map for O(1) lookups
+    const habitSlotMap = useMemo(() => {
+        const map = new Map<string, string>(); // key -> habit name
+        (habits || []).forEach((h: Habit) => {
             const [hStartH, hStartM] = h.startTime.split(':').map(Number);
             const [hEndH, hEndM] = h.endTime.split(':').map(Number);
             const startSlot = hStartH * 2 + (hStartM >= 30 ? 1 : 0);
             const endSlot = hEndH * 2 + (hEndM >= 30 ? 1 : 0);
             const habitStartMonth = h.startDate ? h.startDate.substring(0, 7) : null;
             const hasStarted = habitStartMonth ? WeekUtils.compareWeeks(currentWeek, habitStartMonth) >= 0 : true;
-            return hasStarted && slotIdx >= startSlot && slotIdx < endSlot;
+            if (!hasStarted) return;
+            for (let d = 0; d < 7; d++) {
+                if (h.daysOfWeek && h.daysOfWeek.length > 0 && !h.daysOfWeek.includes(FULL_DAYS[d])) continue;
+                for (let s = startSlot; s < endSlot; s++) {
+                    map.set(`${d}-${s}`, h.name);
+                }
+            }
         });
-    };
+        return map;
+    }, [habits, currentWeek]);
 
-    const isPlanSlot = (dayIdx: number, slotIdx: number) => {
-        if (!user) return false;
-        const planDay = user.user_metadata?.planDay || 'Sunday';
-        const planStartTimeStr = user.user_metadata?.planStartTime || '21:00';
-        const durationSlots = Number(user.user_metadata?.planDurationPacks) || 2;
+    const isHabitSlot = useCallback((dayIdx: number, slotIdx: number) => habitSlotMap.has(`${dayIdx}-${slotIdx}`), [habitSlotMap]);
 
-        const targetDayIdx = FULL_DAYS.indexOf(planDay);
-        if (dayIdx !== targetDayIdx) return false;
+    // Pre-compute full cell content map — one pass for all 336 cells
+    const cellContentMap = useMemo(() => {
+        const map = new Map<string, any>();
+        for (let d = 0; d < 7; d++) {
+            for (let s = 0; s < SLOTS_PER_DAY; s++) {
+                const key = `${d}-${s}`;
+                if (sleepSlots.has(s)) {
+                    map.set(key, { type: 'sleep', name: 'Sleep' });
+                } else if (planSlotKeys.has(key)) {
+                    map.set(key, { type: 'plan', name: 'Weekly Planning' });
+                } else if (habitSlotMap.has(key)) {
+                    map.set(key, { type: 'habit', name: habitSlotMap.get(key) });
+                } else if (localGridState[key]) {
+                    map.set(key, localGridState[key]);
+                }
+            }
+        }
+        return map;
+    }, [sleepSlots, planSlotKeys, habitSlotMap, localGridState]);
 
-        const [pH, pM] = planStartTimeStr.split(':').map(Number);
-        const startSlot = pH * 2 + (pM >= 30 ? 1 : 0);
-        const endSlot = startSlot + durationSlots;
-
-        return slotIdx >= startSlot && slotIdx < endSlot;
-    };
+    const getCellContent = useCallback((dayIdx: number, slotIdx: number) => {
+        return cellContentMap.get(`${dayIdx}-${slotIdx}`) || null;
+    }, [cellContentMap]);
 
     // removed getAvailableTimeBlocks as it is no longer needed
 
@@ -178,7 +247,7 @@ export const PlannerPage: React.FC = () => {
 
         for (let d = 0; d < 7; d++) {
             for (let s = 0; s < SLOTS_PER_DAY; s++) {
-                if (!isSleepSlot(s) && !isHabitSlot(d, s) && !isPlanSlot(d, s) && !localGridState[`${d}-${s}`]) {
+                if (!isSleepSlot(s) && !isHabitSlot(d, s) && !isPlanSlot(d, s) && !localGridState[`${d} -${s} `]) {
                     emptySlotsGroupedByDay[d].push({ dayIdx: d, slotIdx: s });
                     totalEmptySlots++;
                 }
@@ -186,7 +255,7 @@ export const PlannerPage: React.FC = () => {
         }
 
         if (totalEmptySlots < requiredSlots) {
-            toast.error(`Cannot allocate ${hours}h. Need ${requiredSlots} blocks, but only ${totalEmptySlots} blocks empty.`);
+            toast.error(`Cannot allocate ${hours} h.Need ${requiredSlots} blocks, but only ${totalEmptySlots} blocks empty.`);
             return;
         }
 
@@ -200,7 +269,7 @@ export const PlannerPage: React.FC = () => {
             loopProtect++;
             if (emptySlotsGroupedByDay[d].length > 0) {
                 const slot = emptySlotsGroupedByDay[d].shift()!;
-                newState[`${slot.dayIdx}-${slot.slotIdx}`] = {
+                newState[`${slot.dayIdx} -${slot.slotIdx} `] = {
                     type: 'goal',
                     name: targetGoal.title || targetGoal.name,
                     goalId: targetGoal.id
@@ -215,28 +284,7 @@ export const PlannerPage: React.FC = () => {
         toast.success(`Allocated ${hours} hours for "${targetGoal.title || targetGoal.name}"!`);
     };
 
-    const handleSave = useCallback(async () => {
-        try {
-            await savePlan.mutateAsync({ week: currentWeek, state: localGridState });
-            setHasUnsavedChanges(false);
-            return true;
-        } catch (error) {
-            console.error("Failed to auto-save:", error);
-            return false;
-        }
-    }, [savePlan, currentWeek, localGridState]);
 
-    // Navigation Blocker Logic
-    const blocker = useBlocker(
-        ({ currentLocation, nextLocation }) =>
-            hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
-    );
-
-    useEffect(() => {
-        if (blocker.state === "blocked") {
-            setShowUnsavedConfirm(true);
-        }
-    }, [blocker.state]);
 
     const handleCustomTaskConfirm = (data: any) => {
         const newState = { ...localGridState };
@@ -252,7 +300,7 @@ export const PlannerPage: React.FC = () => {
                 if (dayIdx !== -1) {
                     for (let i = startSlot; i < endSlot; i++) {
                         if (i >= SLOTS_PER_DAY) continue;
-                        if (isSleepSlot(i) || isHabitSlot(dayIdx, i) || isPlanSlot(dayIdx, i) || newState[`${dayIdx}-${i}`]) {
+                        if (isSleepSlot(i) || isHabitSlot(dayIdx, i) || isPlanSlot(dayIdx, i) || newState[`${dayIdx} - ${i} `]) {
                             canAdd = false;
                         }
                     }
@@ -271,7 +319,7 @@ export const PlannerPage: React.FC = () => {
                 if (dayIdx !== -1) {
                     for (let i = startSlot; i < endSlot; i++) {
                         if (i >= SLOTS_PER_DAY) continue;
-                        newState[`${dayIdx}-${i}`] = {
+                        newState[`${dayIdx} -${i} `] = {
                             type: 'custom',
                             name: data.name
                         };
@@ -300,7 +348,7 @@ export const PlannerPage: React.FC = () => {
 
     const handleTaskEditSave = (data: any) => {
         if (!editingTaskCell) return;
-        const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
+        const key = `${editingTaskCell.dayIdx} -${editingTaskCell.slotIdx} `;
         const newState = { ...localGridState };
         newState[key] = {
             ...newState[key],
@@ -316,7 +364,7 @@ export const PlannerPage: React.FC = () => {
 
     const executeTaskDelete = () => {
         if (!editingTaskCell) return;
-        const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
+        const key = `${editingTaskCell.dayIdx} -${editingTaskCell.slotIdx} `;
         const newState = { ...localGridState };
         delete newState[key];
         updateGridState(newState);
@@ -325,7 +373,7 @@ export const PlannerPage: React.FC = () => {
     };
 
     const handleCellClick = (dayIdx: number, slotIdx: number) => {
-        const key = `${dayIdx}-${slotIdx}`;
+        const key = `${dayIdx} -${slotIdx} `;
         if (isSleepSlot(slotIdx) || isHabitSlot(dayIdx, slotIdx) || isPlanSlot(dayIdx, slotIdx)) return;
 
         const newState = { ...localGridState };
@@ -371,23 +419,6 @@ export const PlannerPage: React.FC = () => {
         updateGridState(newState);
     };
 
-    const getCellContent = (dayIdx: number, slotIdx: number) => {
-        if (isSleepSlot(slotIdx)) return { type: 'sleep', name: 'Sleep' };
-        if (isPlanSlot(dayIdx, slotIdx)) return { type: 'plan', name: 'Weekly Planning' };
-        const habit = (habits || []).find((h: Habit) => {
-            if (h.daysOfWeek && h.daysOfWeek.length > 0 && !h.daysOfWeek.includes(FULL_DAYS[dayIdx])) return false;
-            const [hStartH, hStartM] = h.startTime.split(':').map(Number);
-            const [hEndH, hEndM] = h.endTime.split(':').map(Number);
-            const startSlot = hStartH * 2 + (hStartM >= 30 ? 1 : 0);
-            const endSlot = hEndH * 2 + (hEndM >= 30 ? 1 : 0);
-            const habitStartMonth = h.startDate ? h.startDate.substring(0, 7) : null;
-            const hasStarted = habitStartMonth ? WeekUtils.compareWeeks(currentWeek, habitStartMonth) >= 0 : true;
-            return hasStarted && slotIdx >= startSlot && slotIdx < endSlot;
-        });
-        if (habit) return { type: 'habit', name: habit.name };
-        return localGridState[`${dayIdx}-${slotIdx}`];
-    };
-
     return (
         <div className={cn(
             "flex flex-col h-full w-full overflow-hidden",
@@ -395,28 +426,42 @@ export const PlannerPage: React.FC = () => {
             selectedTool === 'goal' && "cursor-crosshair",
             selectedTool === 'duplicate' && (copiedTask ? "cursor-alias" : "cursor-copy")
         )}>
-            <PlannerToolbar
-                currentWeek={currentWeek}
-                setCurrentWeek={setCurrentWeek}
-                selectedTool={selectedTool}
-                setSelectedTool={setSelectedTool}
-                onClear={() => setShowClearConfirm(true)}
-                onUndo={handleUndo}
-                onRedo={handleRedo}
-                canUndo={historyIndex > 0}
-                canRedo={historyIndex < history.length - 1}
-                onSave={handleSave}
-                onCreateCustomTask={(task: CustomTask | undefined) => {
-                    setSelectedLibraryTask(task || null);
-                    setIsCustomTaskDialogOpen(true);
-                }}
-                libraryTasks={libraryTasks || []}
-                missedTasks={missedLibraryTasks || []}
-                previewPlan={null}
-                onCancelPreview={() => { }}
-                commitPreviewPlan={() => { }}
-                onGoalToolClick={() => setIsGoalToolDialogOpen(true)}
-            />
+            <div className="w-full flex-1 flex flex-row min-h-0 overflow-hidden">
+                <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
+                    <PlannerGrid
+                        currentWeek={currentWeek}
+                        setCurrentWeek={setCurrentWeek}
+                        localGridState={localGridState}
+                        setLocalGridState={updateGridState}
+                        isSleepSlot={isSleepSlot}
+                        isHabitSlot={isHabitSlot}
+                        isPlanSlot={isPlanSlot}
+                        getCellContent={getCellContent}
+                        handleCellClick={handleCellClick}
+                    />
+                </div>
+
+                <PlannerToolbar
+                    selectedTool={selectedTool}
+                    setSelectedTool={setSelectedTool}
+                    onClear={() => setShowClearConfirm(true)}
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    canUndo={historyIndex > 0}
+                    canRedo={historyIndex < history.length - 1}
+                    saveStatus={saveStatus}
+                    onCreateCustomTask={(task: CustomTask | undefined) => {
+                        setSelectedLibraryTask(task || null);
+                        setIsCustomTaskDialogOpen(true);
+                    }}
+                    libraryTasks={libraryTasks || []}
+                    missedTasks={missedLibraryTasks || []}
+                    previewPlan={null}
+                    onCancelPreview={() => { }}
+                    commitPreviewPlan={() => { }}
+                    onGoalToolClick={() => setIsGoalToolDialogOpen(true)}
+                />
+            </div>
 
             <GoalToolDialog
                 isOpen={isGoalToolDialogOpen}
@@ -446,19 +491,6 @@ export const PlannerPage: React.FC = () => {
                 initialData={editingTaskData}
             />
 
-            <div className="w-full flex-1 flex flex-col min-h-0">
-                <PlannerGrid
-                    currentWeek={currentWeek}
-                    localGridState={localGridState}
-                    setLocalGridState={updateGridState}
-                    isSleepSlot={isSleepSlot}
-                    isHabitSlot={isHabitSlot}
-                    isPlanSlot={isPlanSlot}
-                    getCellContent={getCellContent}
-                    handleCellClick={handleCellClick}
-                />
-            </div>
-
             <ConfirmationDialog
                 isOpen={showClearConfirm}
                 onClose={() => setShowClearConfirm(false)}
@@ -473,28 +505,7 @@ export const PlannerPage: React.FC = () => {
                 variant="destructive"
             />
 
-            <ConfirmationDialog
-                isOpen={showUnsavedConfirm}
-                onClose={() => {
-                    setShowUnsavedConfirm(false);
-                    if (blocker.state === "blocked") blocker.reset();
-                }}
-                onConfirm={async () => {
-                    const success = await handleSave();
-                    if (success && blocker.state === "blocked") {
-                        blocker.proceed();
-                    }
-                    setShowUnsavedConfirm(false);
-                }}
-                title="Unsaved Planner Changes"
-                description="You have unsaved changes in your planner. Would you like to save them before leaving?"
-                confirmText="Save & Leave"
-                cancelText="Discard & Leave"
-                onCancel={() => {
-                    setShowUnsavedConfirm(false);
-                    if (blocker.state === "blocked") blocker.proceed();
-                }}
-            />
+
 
             <ConfirmationDialog
                 isOpen={showTaskDeleteConfirm}

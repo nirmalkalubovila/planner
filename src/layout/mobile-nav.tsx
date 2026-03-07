@@ -13,7 +13,7 @@ const navigation = [
 
 export const MobileNav: React.FC = () => {
     return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 safe-area-bottom">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 safe-area-bottom">
             <div className="flex items-center justify-around h-16">
                 {navigation.map((item) => (
                     <NavLink

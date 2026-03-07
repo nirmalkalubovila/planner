@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { format } from 'date-fns';
 import { useGetWeekPlan } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetCompletedTasks, useToggleCompletedTask } from '@/api/services/today-service';
@@ -43,7 +44,7 @@ export const TodayPage: React.FC = () => {
                 const endSlot = hEndH * 2 + (hEndM >= 30 ? 1 : 0);
                 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
                 const currentDayName = DAYS[dayIdx];
-                const todayDate = new Date().toISOString().split('T')[0];
+                const todayDate = format(new Date(), 'yyyy-MM-dd');
 
                 const isDayMatched = h.daysOfWeek?.includes(currentDayName) ?? true;
                 const hasStarted = h.startDate ? h.startDate <= todayDate : true;
