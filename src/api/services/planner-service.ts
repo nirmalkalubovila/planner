@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { GridState } from "@/types/global-types";
 import { WeekUtils } from "@/utils/week-utils";
@@ -31,7 +32,32 @@ export function useGetWeekPlan(week: string) {
     return useQuery({
         queryKey: ["planner", WeekUtils.normalizeWeek(week)],
         queryFn: () => getPlan(week),
+        staleTime: 5 * 60 * 1000,      // 5 min — data stays fresh, no refetch on focus/mount
+        gcTime: 30 * 60 * 1000,         // 30 min — keep in cache even after unmount
+        placeholderData: (prev) => prev, // Keep showing previous week while new one loads
+        refetchOnWindowFocus: false,
     });
+}
+
+// Prefetch adjacent weeks for instant navigation
+export function usePrefetchAdjacentWeeks(week: string) {
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        const prevWeek = WeekUtils.addWeeks(week, -1);
+        const nextWeek = WeekUtils.addWeeks(week, 1);
+
+        queryClient.prefetchQuery({
+            queryKey: ["planner", WeekUtils.normalizeWeek(prevWeek)],
+            queryFn: () => getPlan(prevWeek),
+            staleTime: 5 * 60 * 1000,
+        });
+        queryClient.prefetchQuery({
+            queryKey: ["planner", WeekUtils.normalizeWeek(nextWeek)],
+            queryFn: () => getPlan(nextWeek),
+            staleTime: 5 * 60 * 1000,
+        });
+    }, [week, queryClient]);
 }
 
 export function useSaveWeekPlan() {
@@ -72,12 +98,9 @@ export function useSaveWeekPlan() {
             }
             toast.error("Failed to save plan: " + _err.message);
         },
-        onSuccess: () => {
-            toast.success("Week plan saved! Keep up the good work.");
-        },
-        onSettled: (_, __, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["planner", WeekUtils.normalizeWeek(variables.week)] });
-        },
+        // No success toast — auto-save is silent (Google Docs style)
+        // No onSettled invalidation — we already do optimistic updates via onMutate,
+        // and invalidation would re-fetch and reset undo/redo history
     });
 }
 

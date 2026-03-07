@@ -11,7 +11,10 @@ export const WeekUtils = {
         const year = date.getFullYear();
         const startOfYear = new Date(year, 0, 1);
         const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-        const week = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+        // Monday-start week logic: (days since Jan 1 + Jan 1 day of week) / 7
+        // where Mon=1, Sun=7
+        const startDay = startOfYear.getDay() || 7;
+        const week = Math.ceil((days + startDay) / 7);
         return `${year}-${String(week).padStart(2, '0')}`;
     },
 
@@ -83,11 +86,12 @@ export const WeekUtils = {
     getDaysForWeek(weekStr: string): Date[] {
         const { year, week } = this.parseWeek(weekStr);
         const startOfYear = new Date(year, 0, 1);
-        const daysToStartOfWeek = (week - 1) * 7 - startOfYear.getDay();
+        const startDay = startOfYear.getDay() || 7;
+        const daysToStartOfWeek = (week - 1) * 7 - (startDay - 1);
         const startOfWeek = new Date(year, 0, 1 + daysToStartOfWeek);
 
         const dates: Date[] = [];
-        for (let i = 1; i <= 7; i++) {
+        for (let i = 0; i < 7; i++) {
             const d = new Date(startOfWeek);
             d.setDate(startOfWeek.getDate() + i);
             dates.push(d);

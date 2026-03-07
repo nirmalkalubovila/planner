@@ -13,7 +13,7 @@ export const PersonalizePage: React.FC = () => {
     };
 
     return (
-        <AuthLayout maxWidth="3xl" fullHeight>
+        <AuthLayout maxWidth="3xl">
             <div className="flex flex-col gap-3">
                 <AuthHeader
                     icon={

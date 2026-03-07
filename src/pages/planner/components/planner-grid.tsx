@@ -3,12 +3,15 @@ import { cn } from '@/lib/utils';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState } from '@/types/global-types';
 import { getGoalColor } from '@/utils/color-utils';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SLOTS_PER_DAY = 48;
 
 interface PlannerGridProps {
     currentWeek: string;
+    setCurrentWeek: (val: string) => void;
     localGridState: GridState;
     setLocalGridState: (state: GridState) => void;
     isSleepSlot: (slotIdx: number) => boolean;
@@ -20,6 +23,7 @@ interface PlannerGridProps {
 
 export const PlannerGrid: React.FC<PlannerGridProps> = ({
     currentWeek,
+    setCurrentWeek,
     localGridState,
     setLocalGridState,
     isSleepSlot,
@@ -51,22 +55,37 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     }, [currentWeek]); // Only scroll on mount or week change, NOT on every grid click
 
     return (
-        <div className="flex-1 bg-card border rounded-xl shadow-inner overflow-hidden flex flex-col h-full min-h-[400px]">
-            <div ref={scrollRef} className="flex-1 overflow-auto">
+        <div className="flex-1 bg-card border rounded-lg shadow-inner overflow-hidden flex flex-col h-full min-h-[400px]">
+            {/* Week Navigation - always visible above the scrollable grid */}
+            <div className="flex-none flex items-center justify-center py-1 sm:py-1.5 bg-card border-b border-border/50 z-[65]">
+                <div className="flex items-center gap-0.5 sm:gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg hover:bg-muted/50 text-muted-foreground" onClick={() => setCurrentWeek(WeekUtils.addWeeks(currentWeek, -1))}>
+                        <ChevronLeft size={16} />
+                    </Button>
+                    <span className="text-[11px] sm:text-xs font-bold px-2 sm:px-3 min-w-[100px] sm:min-w-[130px] text-center tracking-wider text-foreground/70">
+                        {WeekUtils.formatWeekDisplay(currentWeek)}
+                    </span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg hover:bg-muted/50 text-muted-foreground" onClick={() => setCurrentWeek(WeekUtils.addWeeks(currentWeek, 1))}>
+                        <ChevronRight size={16} />
+                    </Button>
+                </div>
+            </div>
+
+            <div ref={scrollRef} className="flex-1 overflow-auto custom-scrollbar">
 
                 {/* FIX 1: Removed 'h-full' so this container grows with the massive time grid */}
                 <div className="min-w-[700px]">
 
-                    {/* FIX 2: Changed 'bg-muted/60 backdrop-blur-md' to a solid 'bg-card' (or bg-background) to hide scrolling content */}
+                    {/* Day header row */}
                     <div className="grid grid-cols-[75px_repeat(7,minmax(0,1fr))] border-b bg-card z-[60] sticky top-0 shadow-md">
 
                         {/* Notice: this left corner cell needs the same solid background */}
-                        <div className="h-10 border-r border-border bg-card sticky left-0 z-[70]" />
+                        <div className="h-10 border-r border-border bg-card sticky left-0 z-[70] outline outline-1 outline-card -outline-offset-1" />
 
                         {weekDates.map((date, dayIdx) => (
                             <div key={dayIdx} className="h-10 flex flex-col items-center justify-center font-bold text-[9px] md:text-[11px] uppercase tracking-widest border-border relative bg-card">
                                 <span className={cn(
-                                    "px-2 rounded-full",
+                                    "px-2 rounded-lg",
                                     date.toDateString() === new Date().toDateString() ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground"
                                 )}>
                                     {DAYS[dayIdx]}
@@ -91,7 +110,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                             return (
                                 <React.Fragment key={slotIdx}>
                                     <div className={cn(
-                                        "h-10 border-r border-border flex flex-col items-center justify-center text-[10px] text-muted-foreground bg-accent/10 sticky left-0 z-40 font-mono shadow-sm",
+                                        "h-10 border-r border-border flex flex-col items-center justify-center text-[10px] text-muted-foreground bg-card sticky left-0 z-40 font-mono shadow-sm outline outline-1 outline-card -outline-offset-1",
                                         isHourStart ? "border-b border-border/50" : "border-b border-border/20"
                                     )}>
                                         <span className="font-semibold text-[9px] text-muted-foreground/80">{timeStr}</span>
@@ -148,13 +167,13 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     isToday && "bg-primary/[0.02]",
                                                     isToday && !content && "hover:bg-primary/10",
                                                     isSameAsPrev && (content?.type === 'sleep' || content?.type === 'habit' || content?.type === 'plan') ? "border-t-0" : "",
-                                                    content?.type === 'preview' && "bg-blue-500/10 text-blue-800 border-blue-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-blue-500/50 rounded-sm m-px",
-                                                    content?.type === 'preview-free' && "bg-amber-500/10 text-amber-800 border-amber-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-amber-500/50 rounded-sm m-px",
-                                                    content?.type === 'sleep' && "bg-indigo-950/40 text-indigo-300/80 cursor-not-allowed border-indigo-900/30",
-                                                    content?.type === 'habit' && "bg-emerald-950/40 text-emerald-400/90 cursor-not-allowed border-emerald-900/30",
-                                                    content?.type === 'plan' && "bg-purple-950/40 text-purple-400/90 cursor-not-allowed border-purple-900/30",
-                                                    content?.type === 'goal' && "bg-blue-600/90 text-white cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-blue-500",
-                                                    content?.type === 'custom' && "bg-amber-500/80 text-amber-950 cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-amber-400",
+                                                    content?.type === 'preview' && "bg-blue-500/10 text-blue-800 border-blue-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-blue-500/50 rounded-lg m-px",
+                                                    content?.type === 'preview-free' && "bg-amber-500/10 text-amber-800 border-amber-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-amber-500/50 rounded-lg m-px",
+                                                    content?.type === 'sleep' && "bg-indigo-950 text-indigo-300/80 cursor-not-allowed border-indigo-900/30",
+                                                    content?.type === 'habit' && "bg-emerald-950 text-emerald-400/90 cursor-not-allowed border-emerald-900/30",
+                                                    content?.type === 'plan' && "bg-purple-950 text-purple-400/90 cursor-not-allowed border-purple-900/30",
+                                                    content?.type === 'goal' && "bg-blue-600 text-white cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-blue-500",
+                                                    content?.type === 'custom' && "bg-amber-500 text-amber-950 cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-amber-400",
                                                     !content && !isToday && "hover:bg-accent/30 text-transparent",
                                                     !content && isToday && "text-transparent"
                                                 )}

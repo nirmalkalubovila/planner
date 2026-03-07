@@ -115,7 +115,7 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                 <AuthError message={error} />
 
                 <form onSubmit={handleSave} className="space-y-4">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
                         <FormField label="Sleep Time" icon={<Clock className="w-3 h-3" />}>
                             <SimpleTimePicker value={sleepStart} onChange={setSleepStart} />
                         </FormField>
@@ -126,7 +126,7 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                             <CustomDatePicker
                                 selected={dob}
                                 onChange={(date) => setDob(date)}
-                                placeholderText="November 23rd, 2002"
+                                placeholderText="December 12, 2000"
                             />
                         </FormField>
                         <FormField label="Week Starts" icon={<CalendarDays className="w-3 h-3" />}>

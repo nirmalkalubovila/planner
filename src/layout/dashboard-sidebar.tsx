@@ -43,7 +43,7 @@ export const DashboardSidebar: React.FC = () => {
                     className="h-8 w-8 rounded-full hover:bg-white/5 text-white/30 hover:text-white transition-all duration-300"
                     onClick={() => setIsCollapsed(!isCollapsed)}
                 >
-                    {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+                    {isCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
                 </Button>
             </div>
 
@@ -72,7 +72,7 @@ export const DashboardSidebar: React.FC = () => {
                         />
 
                         <item.icon
-                            size={20}
+                            size={14}
                             strokeWidth={isActiveIcon(item.href) ? 2.5 : 1.5}
                             className={cn(
                                 "shrink-0 transition-all duration-500 group-hover:scale-110 relative z-10",
