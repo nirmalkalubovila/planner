@@ -20,7 +20,7 @@ import { createPlannerHandlers } from './hooks/use-planner-handlers';
 
 export const PlannerPage: React.FC = () => {
     const [currentWeek, setCurrentWeek] = useState(WeekUtils.getCurrentWeek());
-    const [selectedTool, setSelectedTool] = useState<'erase' | 'goal' | 'duplicate' | null>(null);
+    const [selectedTool, setSelectedTool] = useState<'erase' | 'goal' | 'duplicate' | 'drag' | null>(null);
     const [copiedTask, setCopiedTask] = useState<any>(null);
     const [selectedGoalId, setSelectedGoalId] = useState<string>('');
 
@@ -112,7 +112,8 @@ export const PlannerPage: React.FC = () => {
             "flex flex-col h-full w-full overflow-hidden relative",
             selectedTool === 'erase' && "cursor-[url('https://api.iconify.design/lucide:eraser.svg?color=%23ef4444'),_auto]",
             selectedTool === 'goal' && "cursor-crosshair",
-            selectedTool === 'duplicate' && (copiedTask ? "cursor-alias" : "cursor-copy")
+            selectedTool === 'duplicate' && (copiedTask ? "cursor-alias" : "cursor-copy"),
+            selectedTool === 'drag' && "cursor-grab active:cursor-grabbing"
         )}>
             <div className="w-full flex-1 flex flex-row min-h-0 overflow-hidden">
                 <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
@@ -126,6 +127,7 @@ export const PlannerPage: React.FC = () => {
                         isPlanSlot={isPlanSlot}
                         getCellContent={getCellContent}
                         handleCellClick={handlers.handleCellClick}
+                        selectedTool={selectedTool}
                     />
                 </div>
 
