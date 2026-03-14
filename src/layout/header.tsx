@@ -109,7 +109,7 @@ export const Header: React.FC = () => {
                         <div className="hidden sm:flex flex-col items-start min-w-[80px] group cursor-default">
                             <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] text-white/30 group-hover:text-primary/60 transition-colors font-bold">
                                 <Sparkles size={8} className="animate-pulse" />
-                                <span>Time Lived</span>
+                                <span>My Age</span>
                             </div>
                             <div className="text-[12px] md:text-sm font-black text-white/80 tabular-nums tracking-wider leading-none mt-0.5 flex items-baseline gap-1">
                                 <span className="text-white">{duration.years}</span><span className="text-white/30 text-[10px] lowercase font-normal">y</span>

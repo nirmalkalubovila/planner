@@ -27,7 +27,7 @@ export const TodayPage: React.FC = () => {
     const isTaskCompleted = (taskId: string) => (completedTasks || []).includes(taskId);
 
     return (
-        <div className="flex flex-col space-y-2 md:space-y-4 pb-20 px-2 md:px-4">
+        <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
 
             {tasks.length > 0 && (
                 <div className="w-full shrink-0 mt-2 mb-4">
@@ -42,21 +42,12 @@ export const TodayPage: React.FC = () => {
             )}
 
             <div className="flex-1 w-full flex flex-col">
-                <div className="flex justify-between items-end mb-6 border-b border-white/5 pb-4 px-2">
-                    <div className="flex flex-col gap-1">
-                        <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40">Today's Schedule</h2>
-                        <div className="h-1 w-12 bg-primary/40 rounded-full" />
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest hidden sm:inline">Progress</span>
-                        <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg shadow-sm">
-                            <span className="text-xs font-bold text-white">
-                                {(completedTasks || []).length}
-                            </span>
-                            <span className="text-[10px] text-white/30 font-bold">/</span>
-                            <span className="text-xs font-bold text-white/50">
-                                {tasks.length}
-                            </span>
+                <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Today's Schedule</h2>
+                        <div className="flex items-center gap-2">
+                            <div className="h-1 w-12 bg-primary/40 rounded-full" />
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{(completedTasks || []).length} / {tasks.length} TASKS COMPLETED</span>
                         </div>
                     </div>
                 </div>
