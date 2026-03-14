@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown } from 'lucide-react';
+import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomTask } from '@/types/global-types';
 import { cn } from '@/lib/utils';
 
 interface PlannerToolbarProps {
-    selectedTool: 'erase' | 'goal' | 'duplicate' | null;
-    setSelectedTool: (val: 'erase' | 'goal' | 'duplicate' | null) => void;
+    selectedTool: 'erase' | 'goal' | 'duplicate' | 'drag' | null;
+    setSelectedTool: (val: 'erase' | 'goal' | 'duplicate' | 'drag' | null) => void;
     onClear: () => void;
     onUndo: () => void;
     onRedo: () => void;
@@ -156,6 +156,19 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                     >
                                         <Copy size={14} />
                                     </Button>
+                                    <Button
+                                        variant={selectedTool === 'drag' ? 'secondary' : 'ghost'}
+                                        size="icon"
+                                        className={cn(
+                                            "rounded-xl transition-all h-9 w-9",
+                                            isCollapsed && "mx-auto",
+                                            selectedTool === 'drag' ? "bg-emerald-500/15 text-emerald-600 ring-1 ring-emerald-500/30 shadow-md scale-105" : "text-muted-foreground hover:bg-muted"
+                                        )}
+                                        onClick={() => setSelectedTool(selectedTool === 'drag' ? null : 'drag')}
+                                        title="Move Tool"
+                                    >
+                                        <Hand size={14} />
+                                    </Button>
                                 </div>
 
                                 {/* Group 2: Creators (Goal, Custom Task) */}
@@ -303,12 +316,23 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                         isCollapsed ? "opacity-0 translate-y-20 pointer-events-none" : "opacity-100 translate-y-0"
                     )}
                 >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar flex-1 mr-2 pb-0.5 min-w-0 pr-2">
+                        <Button
+                            variant={selectedTool === 'drag' ? 'secondary' : 'ghost'}
+                            size="icon"
+                            className={cn(
+                                "shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
+                                selectedTool === 'drag' ? "bg-emerald-500/15 text-emerald-600 ring-1 ring-emerald-500/30 shadow-md scale-105" : "text-muted-foreground hover:bg-muted"
+                            )}
+                            onClick={() => setSelectedTool(selectedTool === 'drag' ? null : 'drag')}
+                        >
+                            <Hand size={18} />
+                        </Button>
                         <Button
                             variant={selectedTool === 'erase' ? 'secondary' : 'ghost'}
                             size="icon"
                             className={cn(
-                                "rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
+                                "shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
                                 selectedTool === 'erase' ? "bg-destructive/15 text-destructive ring-1 ring-destructive/30 shadow-md scale-105" : "text-muted-foreground hover:bg-muted"
                             )}
                             onClick={() => setSelectedTool(selectedTool === 'erase' ? null : 'erase')}
@@ -319,7 +343,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             variant={selectedTool === 'duplicate' ? 'secondary' : 'ghost'}
                             size="icon"
                             className={cn(
-                                "rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
+                                "shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
                                 selectedTool === 'duplicate' ? "bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/30 shadow-md scale-105" : "text-muted-foreground hover:bg-muted"
                             )}
                             onClick={() => setSelectedTool(selectedTool === 'duplicate' ? null : 'duplicate')}
@@ -330,7 +354,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             variant={selectedTool === 'goal' ? 'secondary' : 'ghost'}
                             size="icon"
                             className={cn(
-                                "rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
+                                "shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
                                 selectedTool === 'goal' ? "bg-primary/15 text-primary ring-1 ring-primary/30 shadow-md scale-105" : "text-primary/70 hover:bg-primary/10 hover:text-primary"
                             )}
                             onClick={() => {
@@ -344,7 +368,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             onClick={() => onCreateCustomTask()}
                             variant="ghost"
                             size="icon"
-                            className="rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11"
+                            className="shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11"
                         >
                             <Plus size={22} strokeWidth={2.5} />
                         </Button>

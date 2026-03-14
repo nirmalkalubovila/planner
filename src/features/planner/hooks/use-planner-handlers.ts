@@ -9,7 +9,7 @@ interface HandlerDeps {
     isHabitSlot: (dayIdx: number, slotIdx: number) => boolean;
     isPlanSlot: (dayIdx: number, slotIdx: number) => boolean;
     activeGoalsForWeek: Goal[];
-    selectedTool: 'erase' | 'goal' | 'duplicate' | null;
+    selectedTool: 'erase' | 'goal' | 'duplicate' | 'drag' | null;
     selectedGoalId: string;
     copiedTask: any;
     setCopiedTask: (task: any) => void;
@@ -85,7 +85,7 @@ export function createPlannerHandlers(deps: HandlerDeps) {
         const conflictDetails: string[] = [];
         if (data.daysOfWeek && data.daysOfWeek.length > 0) {
             data.daysOfWeek.forEach((dayName: string) => {
-                const dayIdx = DAYS_OF_WEEK.indexOf(dayName);
+                const dayIdx = DAYS_OF_WEEK.indexOf(dayName as any);
                 if (dayIdx !== -1) {
                     for (let i = startSlot; i < endSlot; i++) {
                         if (i >= SLOTS_PER_DAY) continue;
@@ -116,7 +116,7 @@ export function createPlannerHandlers(deps: HandlerDeps) {
 
         if (data.daysOfWeek && data.daysOfWeek.length > 0) {
             data.daysOfWeek.forEach((dayName: string) => {
-                const dayIdx = DAYS_OF_WEEK.indexOf(dayName);
+                const dayIdx = DAYS_OF_WEEK.indexOf(dayName as any);
                 if (dayIdx !== -1) {
                     for (let i = startSlot; i < endSlot; i++) {
                         if (i >= SLOTS_PER_DAY) continue;
