@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { format, intervalToDuration } from 'date-fns';
+import React from 'react';
+import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { Settings, LogOut, User as UserIcon, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { useTimeLived } from '@/hooks/use-time-lived';
 import {
     Popover,
     PopoverContent,
@@ -12,23 +13,13 @@ import {
 export const Header: React.FC = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
-    const [time, setTime] = useState(new Date());
 
-    useEffect(() => {
-        const timer = setInterval(() => setTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
+    const { time, duration } = useTimeLived(user?.user_metadata?.dob);
 
     const handleLogout = async () => {
         await signOut();
         navigate('/login');
     };
-
-    const dob = user?.user_metadata?.dob;
-    const duration = dob ? intervalToDuration({
-        start: new Date(dob),
-        end: time
-    }) : null;
 
     return (
         <header className="sticky top-0 z-[100] w-full border-b border-white/5 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">

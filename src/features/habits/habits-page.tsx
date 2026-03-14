@@ -1,26 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Plus, ChevronUp, Target } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
 import { useGetHabits, useCreateHabit, useDeleteHabit, useUpdateHabit } from '@/api/services/habit-service';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Habit } from '@/types/global-types';
-import { useAuth } from '@/contexts/auth-context';
-import { timeToMinutes, isTimeOverlapping, isSleepOverlapping } from '@/utils/time-utils';
+import { timeToMinutes, minutesToTime } from '@/utils/time';
 import { toast } from 'sonner';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { HabitCard } from './components/habit-card';
 import { HabitDefinitionForm, HabitFormValues } from './forms/habit-definition-form';
-
-const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+import { useHabitConflicts } from './hooks/use-habit-conflicts';
 
 export const HabitsPage: React.FC = () => {
-    const { user } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [conflictError, setConflictError] = useState<string | null>(null);
 
-    // Confirmation state
     const [idToDelete, setIdToDelete] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -29,43 +24,26 @@ export const HabitsPage: React.FC = () => {
     const updateHabit = useUpdateHabit();
     const deleteHabit = useDeleteHabit();
 
+    const { checkConflicts } = useHabitConflicts(habits, editingHabit?.id);
+
     const onSubmit = (values: HabitFormValues) => {
         setConflictError(null);
-        // Calculate end time
         const startMin = timeToMinutes(values.startTime);
         const endMin = startMin + values.durationPacks * 30;
-        const endTime = `${Math.floor((endMin % 1440) / 60).toString().padStart(2, '0')}:${(endMin % 60).toString().padStart(2, '0')}`;
+        const endTime = minutesToTime(endMin);
 
-        // Conflict Check
-        const sleepStart = user?.user_metadata?.sleepStart || '22:00';
-        const sleepDuration = Number(user?.user_metadata?.sleepDuration) || 8;
+        const error = checkConflicts({
+            startTime: values.startTime,
+            endTime,
+            daysOfWeek: values.daysOfWeek,
+            startDate: values.startDate,
+            endDate: values.endDate,
+        });
 
-        if (isSleepOverlapping(values.startTime, endTime, sleepStart, sleepDuration)) {
-            const errorMsg = "This habit overlaps with your sleep schedule.";
-            setConflictError(errorMsg);
-            toast.error(errorMsg);
+        if (error) {
+            setConflictError(error);
+            toast.error(error);
             return;
-        }
-
-        for (const habit of habits) {
-            if (editingHabit && habit.id === editingHabit.id) continue;
-
-            const start1 = new Date(values.startDate);
-            const end1 = new Date(values.endDate);
-            const start2 = new Date(habit.startDate || '');
-            const end2 = new Date(habit.endDate || '');
-
-            if (start1 <= end2 && start2 <= end1) {
-                const commonDays = values.daysOfWeek.filter(day => habit.daysOfWeek?.includes(day));
-                if (commonDays.length > 0) {
-                    if (isTimeOverlapping(values.startTime, endTime, habit.startTime, habit.endTime)) {
-                        const errorMsg = `This habit overlaps with "${habit.name}" on ${commonDays[0]}.`;
-                        setConflictError(errorMsg);
-                        toast.error(errorMsg);
-                        return;
-                    }
-                }
-            }
         }
 
         const habitData: Omit<Habit, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } = {
@@ -102,7 +80,6 @@ export const HabitsPage: React.FC = () => {
 
     return (
         <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4">
-            {/* Minimalist Header */}
             <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
                 <div className="flex flex-col gap-2">
                     <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Habit Collection</h2>
@@ -138,7 +115,7 @@ export const HabitsPage: React.FC = () => {
                                     durationPacks: Math.max(1, Math.round(((timeToMinutes(editingHabit.endTime) < timeToMinutes(editingHabit.startTime) ? (timeToMinutes(editingHabit.endTime) + 1440 - timeToMinutes(editingHabit.startTime)) : (timeToMinutes(editingHabit.endTime) - timeToMinutes(editingHabit.startTime)))) / 30)),
                                     startDate: editingHabit.startDate || new Date().toISOString().split('T')[0],
                                     endDate: editingHabit.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-                                    daysOfWeek: editingHabit.daysOfWeek || DAYS_OF_WEEK,
+                                    daysOfWeek: editingHabit.daysOfWeek || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
                                 } : undefined}
                                 onSubmit={onSubmit}
                                 isPending={createHabit.isPending || updateHabit.isPending}

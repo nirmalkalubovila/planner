@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, ChevronDown, ChevronUp, PanelRightClose, PanelRightOpen, Cloud, Loader2 } from 'lucide-react';
+import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomTask } from '@/types/global-types';
 import { cn } from '@/lib/utils';

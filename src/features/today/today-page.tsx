@@ -1,102 +1,24 @@
-import React, { useMemo } from 'react';
-import { format } from 'date-fns';
+import React from 'react';
 import { useGetWeekPlan } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetCompletedTasks, useToggleCompletedTask } from '@/api/services/today-service';
 import { WeekUtils } from '@/utils/week-utils';
-// Removed unused Card imports
 import { Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Habit } from '@/types/global-types';
 import { ActiveTheme } from './components/active-theme';
-
-interface TaskItem {
-    id: string;
-    name: string;
-    type: string;
-    startTime: string;
-    endTime: string;
-    startSlot: number;
-    endSlot: number;
-}
+import { useTodayTasks } from './hooks/use-today-tasks';
 
 export const TodayPage: React.FC = () => {
     const currentWeek = WeekUtils.getCurrentWeek();
-    const currentDayStr = WeekUtils.getCurrentDay(); // format: YYYY-WW-Day
-    const dayIdx = parseInt(currentDayStr.split('-')[2]) - 1; // 0 to 6 (Mon to Sun)
+    const currentDayStr = WeekUtils.getCurrentDay();
+    const dayIdx = parseInt(currentDayStr.split('-')[2]) - 1;
 
     const { data: weekPlan } = useGetWeekPlan(currentWeek);
     const { data: habits } = useGetHabits();
     const { data: completedTasks } = useGetCompletedTasks(currentDayStr);
     const toggleTask = useToggleCompletedTask();
 
-    const tasks = useMemo(() => {
-        const SLOTS_PER_DAY = 48;
-        const result: TaskItem[] = [];
-        let currentTask: TaskItem | null = null;
-
-        const getCellContent = (slotIdx: number) => {
-            // Priority 1: Habit
-            const habit = (habits || []).find((h: Habit) => {
-                const [hStartH, hStartM] = h.startTime.split(':').map(Number);
-                const [hEndH, hEndM] = h.endTime.split(':').map(Number);
-                const startSlot = hStartH * 2 + (hStartM >= 30 ? 1 : 0);
-                const endSlot = hEndH * 2 + (hEndM >= 30 ? 1 : 0);
-                const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-                const currentDayName = DAYS[dayIdx];
-                const todayDate = format(new Date(), 'yyyy-MM-dd');
-
-                const isDayMatched = h.daysOfWeek?.includes(currentDayName) ?? true;
-                const hasStarted = h.startDate ? h.startDate <= todayDate : true;
-                const hasNotEnded = h.endDate ? h.endDate >= todayDate : true;
-
-                return isDayMatched && hasStarted && hasNotEnded && slotIdx >= startSlot && slotIdx < endSlot;
-            });
-            if (habit) return { type: 'habit', name: habit.name };
-
-            // Priority 2: Planned Session
-            return (weekPlan || {})[`${dayIdx}-${slotIdx}`];
-        };
-
-        const formatTime = (slot: number) => {
-            const hour = Math.floor(slot / 2);
-            const min = (slot % 2) * 30;
-            return `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-        };
-
-        for (let i = 0; i < SLOTS_PER_DAY; i++) {
-            const content = getCellContent(i);
-
-            if (content) {
-                if (currentTask && currentTask.name === content.name && currentTask.type === content.type) {
-                    // Extend current task
-                    currentTask.endSlot = i + 1;
-                    currentTask.endTime = formatTime(i + 1);
-                } else {
-                    // Push previous and start new
-                    if (currentTask) result.push(currentTask);
-                    currentTask = {
-                        id: `${content.type}-${content.name}-${i}`, // Unique ID
-                        name: content.name,
-                        type: content.type,
-                        startSlot: i,
-                        endSlot: i + 1,
-                        startTime: formatTime(i),
-                        endTime: formatTime(i + 1),
-                    };
-                }
-            } else {
-                if (currentTask) {
-                    result.push(currentTask);
-                    currentTask = null;
-                }
-            }
-        }
-        if (currentTask) result.push(currentTask);
-
-        return result;
-    }, [weekPlan, habits, currentWeek, dayIdx]);
-
+    const { tasks, pointsData } = useTodayTasks(weekPlan, habits, dayIdx, completedTasks);
 
     const handleToggle = (taskId: string) => {
         toggleTask.mutate({ dayStr: currentDayStr, taskId });
@@ -104,36 +26,9 @@ export const TodayPage: React.FC = () => {
 
     const isTaskCompleted = (taskId: string) => (completedTasks || []).includes(taskId);
 
-    // Calculate Points based on the Endowed Progress & Duration Multiplier Math
-    const calculateTaskPoints = (task: TaskItem) => {
-        const BASE_BONUS = 15;
-        const HOURLY_WEIGHT = 20;
-
-        // Slot duration difference (1 slot = 30 minutes = 0.5 hours)
-        const durationHours = (task.endSlot - task.startSlot) * 0.5;
-
-        return BASE_BONUS + (durationHours * HOURLY_WEIGHT);
-    };
-
-    const pointsData = useMemo(() => {
-        let completedPoints = 0;
-        let totalPoints = 0;
-
-        tasks.forEach((task) => {
-            const taskPoints = calculateTaskPoints(task);
-            totalPoints += taskPoints;
-            if (isTaskCompleted(task.id)) {
-                completedPoints += taskPoints;
-            }
-        });
-
-        return { completedPoints, totalPoints };
-    }, [tasks, completedTasks]);
-
     return (
         <div className="flex flex-col h-[calc(100vh-64px)] space-y-2 md:space-y-4 pb-20 overflow-y-auto overflow-x-hidden px-2 md:px-4">
 
-            {/* The Active Theme - Hero Section */}
             {tasks.length > 0 && (
                 <div className="w-full shrink-0 mt-2 mb-4">
                     <ActiveTheme
@@ -193,7 +88,6 @@ export const TodayPage: React.FC = () => {
                                             : "bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.05] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] active:scale-[0.98]"
                                     )}
                                 >
-                                    {/* Task Content */}
                                     <div className="flex items-center gap-4 relative z-10">
                                         <div className="flex-shrink-0 flex items-center justify-center">
                                             {completed ? (
@@ -222,7 +116,6 @@ export const TodayPage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Type Badge */}
                                     <div className="relative z-10">
                                         <span className={cn(
                                             "text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-tighter border",
@@ -234,7 +127,6 @@ export const TodayPage: React.FC = () => {
                                         </span>
                                     </div>
 
-                                    {/* Active Glow Effect */}
                                     {!completed && (
                                         <div className="absolute top-0 right-0 w-12 h-12 bg-primary/5 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-primary/10 transition-colors" />
                                     )}

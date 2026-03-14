@@ -2,12 +2,12 @@ import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomDatePicker } from '@/components/ui/date-picker';
-import { CustomTimePicker } from '@/components/ui/time-picker';
+import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { cn } from '@/lib/utils';
 import { timeToMinutes, minutesToTime } from '@/utils/time-utils';
 
@@ -106,10 +106,9 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
                         control={form.control}
                         name="startTime"
                         render={({ field }) => (
-                            <CustomTimePicker
-                                selected={field.value ? parse(field.value, 'HH:mm', new Date()) : null}
-                                onChange={(date) => field.onChange(date ? format(date, 'HH:mm') : '')}
-                                placeholderText="Select start time"
+                            <SimpleTimePicker
+                                value={field.value}
+                                onChange={field.onChange}
                             />
                         )}
                     />

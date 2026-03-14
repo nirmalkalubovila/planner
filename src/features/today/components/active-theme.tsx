@@ -9,7 +9,7 @@ import {
     EngineDashboard,
     DailyBossFight,
     DailyThemeProps
-} from './daily-themes';
+} from './daily-themes/index';
 
 interface ActiveThemeProps extends DailyThemeProps {
     currentDayStr: string; // e.g. '2026-08-3'

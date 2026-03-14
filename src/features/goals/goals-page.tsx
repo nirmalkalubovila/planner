@@ -5,7 +5,7 @@ import { useGetGoals, useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/api/
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Goal, AIGeneratedPlanSlot, Milestone } from '@/types/global-types';
+import { Goal, Milestone } from '@/types/global-types';
 import { format, parseISO, addWeeks, addMonths, addYears } from 'date-fns';
 import { GoalCard } from './components/goal-card';
 import { GoalDefinitionForm, GoalFormValues } from './forms/goal-definition-form';
@@ -17,18 +17,19 @@ import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { MilestoneStrategyDialog } from './components/strategy-choice-dialog';
 import { ManualPlanStep } from './forms/manual-plan-step';
 import { AILoadingPopup } from '@/components/common/ai-loading-popup';
+import { useAiPlanGeneration } from './hooks/use-ai-plan-generation';
 
 export const GoalsPage: React.FC = () => {
     const { user } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [step, setStep] = useState(1); // 1: Definition, 2: Plan Gen
+    const [step, setStep] = useState(1);
     const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
-    const [generating, setGenerating] = useState(false);
     const [isNewRecord, setIsNewRecord] = useState(false);
     const [expandedGoals, setExpandedGoals] = useState<Record<string, boolean>>({});
-    const [tempPlan, setTempPlan] = useState<AIGeneratedPlanSlot[] | null>(null);
     const [showStrategyDialog, setShowStrategyDialog] = useState(false);
     const [strategyPendingData, setStrategyPendingData] = useState<Goal | null>(null);
+
+    const { generating, tempPlan, generatePlan, clearTempPlan } = useAiPlanGeneration(user);
 
     // Confirmation Dialog State
     const [showConfirm, setShowConfirm] = useState(false);
@@ -57,7 +58,7 @@ export const GoalsPage: React.FC = () => {
         setActiveGoal(goal);
         setIsNewRecord(false);
         setStep(1);
-        setTempPlan(null);
+        clearTempPlan();
         setIsFormOpen(true);
     };
 
@@ -117,10 +118,6 @@ export const GoalsPage: React.FC = () => {
         if (!strategyPendingData) return;
         setShowStrategyDialog(false);
 
-        if (type === 'ai') {
-            setGenerating(true);
-        }
-
         const mutation = activeGoal?.id ? updateGoal : createGoal;
 
         mutation.mutate(strategyPendingData, {
@@ -128,109 +125,29 @@ export const GoalsPage: React.FC = () => {
                 setActiveGoal(data);
                 if (type === 'ai') {
                     setStep(2);
-                    handleGeneratePlan(data);
+                    generatePlan(data);
                 } else {
                     setStep(3);
                 }
             },
-            onError: () => {
-                setGenerating(false);
-            }
         });
     };
 
     const handleGeneratePlan = async (targetGoal?: Goal) => {
         const goalToUse = targetGoal || activeGoal;
-        if (!goalToUse || !user) return;
-        setGenerating(true);
-
-        try {
-            const milestoneDatesStr = goalToUse.milestones
-                ? goalToUse.milestones.map(m => `- ${m.title}: ${m.targetDate}`).join('\n')
-                : `End Date: ${goalToUse.endDate}`;
-
-            const prompt = `
-Generate a detailed milestone action plan for achieving a goal.
-Goal Name: ${goalToUse.name}
-Goal Purpose: ${goalToUse.purpose}
-Goal Start Date: ${goalToUse.startDate}
-System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
-
-Target Milestone Dates:
-${milestoneDatesStr}
-
-User Persona & Preferences:
-- Primary Life Focus: ${user?.user_metadata?.primaryLifeFocus || 'Not set'}
-- Current Profession: ${user?.user_metadata?.currentProfession || 'Not set'}
-- Peak Energy Time: ${user?.user_metadata?.energyPeakTime || 'Morning'}
-- Focus Ability: ${user?.user_metadata?.focusAbility || 'normal'}
-
-Based on this, break down the main goal into weighted sub-tasks/sub-goals that need to be accomplished by the end of each milestone period.
-Tailor the nature and pacing of the tasks to fit this specific person's profession, life focus, and energy capabilities.
-TIMELINE SYNC CRITICAL: Use the "System Current Date" as your reality baseline to understand the exact year and timeframe you are generating this for.
-
-Return an action plan as a JSON array of objects.
-
-CRITICAL INSTRUCTION: DO NOT generate tiny, daily tasks. Instead, generate exactly ONE major SUB-GOAL or SUB-TASK to be accomplished by EACH "Target Milestone Date" listed above. If there are 3 Milestone Dates, you should only return an array with exactly 3 objects. This single sub-goal per milestone should represent the main objective for that entire period.
-The "date" field in your JSON must exactly match the YYYY-MM-DD target dates provided in the milestone list.
-
-Each object must have exactly these keys:
-{
-  "date": "YYYY-MM-DD",
-  "dayTask": "string - short title of the major sub-goal/task",
-  "description": "string - 1 to 2 sentences detailing what needs to be achieved during this period to hit this sub-goal.",
-  "estimatedHours": number - realistic estimated hours needed to complete this milestone's core task (e.g. 8)
-}
-\nRETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
-`;
-
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-            const response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json',
-                    'HTTP-Referer': window.location.origin,
-                    'X-Title': 'Legacy Life Builder Planner'
-                },
-                body: JSON.stringify({
-                    model: "arcee-ai/trinity-large-preview:free",
-                    messages: [{ role: "user", content: prompt }]
-                })
-            });
-
-            const rawResult = await response.json();
-            if (!response.ok || !rawResult.choices?.[0]?.message?.content) {
-                throw new Error(rawResult.error?.message || "AI response error");
-            }
-
-            const textResponse = rawResult.choices[0].message.content;
-            let cleanJson = textResponse.replace(/^```json\n?/gm, '').replace(/```$/gm, '').trim();
-            cleanJson = cleanJson.replace(/^```\n?/gm, '').replace(/```$/gm, '').trim();
-
-            const planSlots: AIGeneratedPlanSlot[] = JSON.parse(cleanJson);
-            setTempPlan(planSlots);
-            setGenerating(false);
-        } catch (error: any) {
-            toast.error('Generation Failed: ' + (error.message || 'Unknown error'));
-            setGenerating(false);
-        }
+        if (!goalToUse) return;
+        await generatePlan(goalToUse);
     };
 
     const handleConfirmPlan = () => {
         if (!activeGoal || !tempPlan) return;
 
-        const updatedGoal = {
-            ...activeGoal,
-            plans: tempPlan
-        };
-
-        updateGoal.mutate(updatedGoal, {
+        updateGoal.mutate({ ...activeGoal, plans: tempPlan }, {
             onSuccess: () => {
                 setIsFormOpen(false);
                 setStep(1);
                 setActiveGoal(null);
-                setTempPlan(null);
+                clearTempPlan();
                 toast.success('Action plan saved!');
             },
             onError: (err: any) => { toast.error('DB Error: ' + err.message); }
@@ -238,7 +155,7 @@ Each object must have exactly these keys:
     };
 
     const handleCancelPreview = () => {
-        setTempPlan(null);
+        clearTempPlan();
         setStep(1);
     };
 
@@ -255,7 +172,7 @@ Each object must have exactly these keys:
                     </div>
                 </div>
                 <Button
-                    onClick={() => { setIsFormOpen(!isFormOpen); setStep(1); setActiveGoal(null); setIsNewRecord(true); setTempPlan(null); }}
+                    onClick={() => { setIsFormOpen(!isFormOpen); setStep(1); setActiveGoal(null); setIsNewRecord(true); clearTempPlan(); }}
                     variant={isFormOpen && isNewRecord ? "outline" : "default"}
                     className="gap-2 h-10 px-6 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all duration-300 shadow-lg active:scale-95"
                 >
