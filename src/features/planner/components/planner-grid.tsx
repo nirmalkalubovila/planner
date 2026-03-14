@@ -83,13 +83,13 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                     {/* Day header row */}
                     <div className={cn(
                         "grid border-b bg-card z-[60] sticky top-0 shadow-md transition-all duration-300",
-                        isTimeColumnVisible ? "grid-cols-[45px_repeat(7,minmax(0,1fr))]" : "grid-cols-[25px_repeat(7,minmax(0,1fr))]"
+                        isTimeColumnVisible ? "grid-cols-[45px_repeat(7,minmax(0,1fr))]" : "grid-cols-[0px_repeat(7,minmax(0,1fr))]"
                     )}>
-                        {/* Eye toggle - minimal space when hidden */}
+                        {/* Eye toggle - now floats absolute when hidden to remove layout gap */}
                         <div 
                             className={cn(
-                                "h-10 border-[#1e293b] bg-black sticky left-0 z-[75] flex items-center justify-center cursor-pointer hover:bg-black/90 transition-all duration-300 group shadow-[2px_0_8px_rgba(0,0,0,0.5),-4px_0_0_0_#000]",
-                                isTimeColumnVisible ? "w-[45px] border-r border-b" : "w-[25px] border-b"
+                                "h-10 bg-black sticky left-0 z-[75] flex items-center justify-center cursor-pointer hover:bg-black/90 transition-all duration-300 group shadow-[2px_0_8px_rgba(0,0,0,0.5)] border-b border-[#1e293b]",
+                                isTimeColumnVisible ? "w-[45px] border-r" : "w-8 absolute left-0 rounded-br-lg border-r shadow-xl"
                             )}
                             onClick={() => setIsTimeColumnVisible(!isTimeColumnVisible)}
                             title={isTimeColumnVisible ? "Hide time column" : "Show time column"}
@@ -118,7 +118,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
                     <div className={cn(
                         "grid transition-all duration-300",
-                        isTimeColumnVisible ? "grid-cols-[45px_repeat(7,minmax(0,1fr))]" : "grid-cols-[25px_repeat(7,minmax(0,1fr))]"
+                        isTimeColumnVisible ? "grid-cols-[45px_repeat(7,minmax(0,1fr))]" : "grid-cols-[0px_repeat(7,minmax(0,1fr))]"
                     )}>
                         {Array.from({ length: SLOTS_PER_DAY }).map((_, slotIdx) => {
                             const hour = Math.floor(slotIdx / 2);
@@ -133,14 +133,14 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                 <React.Fragment key={slotIdx}>
                                     <div 
                                         className={cn(
-                                            "h-10 flex flex-col items-center justify-center text-[10px] text-muted-foreground transition-all duration-300 select-none",
-                                            isTimeColumnVisible ? "w-[45px] bg-black border-r border-[#1e293b] sticky left-0 z-[50] font-mono shadow-[2px_0_8px_rgba(0,0,0,0.5),-4px_0_0_0_#000]" : "w-[25px] opacity-0 pointer-events-none sticky left-0 z-[50]",
-                                            isHourStart ? (isTimeColumnVisible ? "border-b border-[#000]" : "") : (isTimeColumnVisible ? "border-b border-[#0f172a]" : ""),
+                                            "h-10 flex flex-col items-center justify-center text-[10px] text-muted-foreground transition-all duration-300 select-none sticky left-0 z-[50] font-mono",
+                                            isTimeColumnVisible ? "w-[45px] bg-black border-r border-[#1e293b] opacity-100" : "w-0 opacity-0 pointer-events-none",
+                                            isTimeColumnVisible && (isHourStart ? "border-b border-[#000]" : "border-b border-white/[0.02]"),
                                         )}
                                     >
                                         <span className={cn(
                                             "font-semibold text-[9px] text-white/50 whitespace-nowrap transition-opacity duration-200",
-                                            isTimeColumnVisible ? "opacity-100" : "opacity-0 invisible"
+                                            isTimeColumnVisible ? "opacity-100" : "opacity-0"
                                         )}>{timeStr}</span>
                                     </div>
                                     {DAYS.map((_, dayIdx) => {
@@ -190,10 +190,10 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     }
                                                 }}
                                                 className={cn(
-                                                    "h-10 transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group relative",
+                                                    "h-10 transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group relative border-b border-white/[0.03] border-r border-white/[0.02]",
                                                     isToday && "bg-primary/[0.02]",
                                                     isToday && !content && "hover:bg-primary/10",
-                                                    content && !isSameAsPrev && "border-t border-t-black/20",
+                                                    content && !isSameAsPrev && "border-t border-white/[0.1] z-[11]",
                                                     content?.type === 'preview' && "bg-blue-500/10 text-blue-800 border-blue-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-blue-500/50 rounded-lg m-px z-20",
                                                     content?.type === 'preview-free' && "bg-amber-500/10 text-amber-800 border-amber-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-amber-500/50 rounded-lg m-px z-20",
                                                     content?.type === 'sleep' && "bg-indigo-950 text-indigo-300/80 cursor-not-allowed z-10",
