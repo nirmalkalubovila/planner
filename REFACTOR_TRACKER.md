@@ -44,3 +44,5 @@ All changes are logged here with date, file, action, and reasoning.
 | 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Added Move tool logic + refined hidden state | UX: Dragging is now an explicit tool to avoid touch scroll conflicts; hidden state is now 0-impact |
 | 2026-03-14 | `src/features/planner/components/planner-toolbar.tsx` | Added Hand icon + mobile overflow scrolling | UX: Better tool discoverability and support for many tools on small screens |
 | 2026-03-14 | `src/layout/dashboard-layout.tsx` | Removed mobile padding | UX: Planner grid now uses 100% of mobile screen width |
+| 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Added faint grid lines & task separators | UX: Easier to identify time slots while keeping a seamless look |
+| 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Removed time column gap + smoothed UI | UX: Eliminated the 25px layout gap when hidden; smoothed column alignment for a cleaner look |
