@@ -85,13 +85,13 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
             // Mobile Styles (Floating Centered Widget)
             "absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 max-h-[85vh] h-auto rounded-3xl overflow-hidden",
             isCollapsed
-                ? "w-12 h-12 border-0 bg-transparent md:w-20 md:h-full md:border-l md:bg-background/95"
+                ? "w-12 h-12 border-0 bg-transparent md:w-14 md:h-full md:border-l md:bg-background/95"
                 : "w-[260px] md:w-64 border shadow-[0_10px_40px_-5px_rgba(0,0,0,0.5)] md:shadow-none"
         )}>
             {/* Toggle Handle - matches DashboardSidebar */}
             <div className={cn(
                 "flex items-center shrink-0 w-full",
-                isCollapsed ? "h-12 px-0 justify-center md:h-16 md:px-6" : "h-16 px-6 justify-between border-b border-white/5"
+                isCollapsed ? "h-12 px-0 justify-center md:h-12 md:px-4" : "h-12 px-4 justify-between border-b border-white/5"
             )}>
                 {!isCollapsed && (
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 select-none">
@@ -105,11 +105,11 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     className={cn(
                         "transition-all duration-300 shrink-0",
                         isCollapsed
-                            ? "h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground md:h-8 md:w-8 md:bg-transparent md:text-white/30 md:hover:bg-white/5 md:hover:text-white md:shadow-none"
+                            ? "h-8 w-8 h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground md:h-8 md:w-8 md:bg-transparent md:text-white/30 md:hover:bg-white/5 md:hover:text-white md:shadow-none"
                             : "h-8 w-8 rounded-full hover:bg-white/5 text-white/30 hover:text-white"
                     )}
                 >
-                    {isCollapsed ? <PanelRightOpen size={isCollapsed ? 20 : 16} className="md:w-4 md:h-4 w-5 h-5 pointer-events-none" /> : <PanelRightClose size={16} />}
+                    {isCollapsed ? <PanelRightOpen size={isCollapsed ? 14 : 14} className="md:w-4 md:h-4 w-5 h-5 pointer-events-none" /> : <PanelRightClose size={14} />}
                 </Button>
             </div>
 
@@ -194,7 +194,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                     )}
                                     title="Add Custom Task"
                                 >
-                                    <Plus size={22} strokeWidth={2.5} />
+                                    <Plus size={14} strokeWidth={2.5} />
                                 </Button>
                             </div>
                         </div>

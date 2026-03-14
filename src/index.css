@@ -40,21 +40,22 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.2);
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.1);
   border-radius: 10px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.4);
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.2);
 }
 
 /* Fix native date/time picker icons for dark mode */

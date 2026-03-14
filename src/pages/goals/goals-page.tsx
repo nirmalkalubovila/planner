@@ -340,7 +340,7 @@ Each object must have exactly these keys:
                         </Button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 items-start">
                         {goals.map((goal: Goal) => (
                             <div key={goal.id} className="space-y-4">
                                 <GoalCard

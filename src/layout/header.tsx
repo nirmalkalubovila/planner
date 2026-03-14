@@ -32,7 +32,7 @@ export const Header: React.FC = () => {
 
     return (
         <header className="sticky top-0 z-[100] w-full border-b border-white/5 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-            <div className="grid grid-cols-3 items-center h-16 px-4 md:px-8 max-w-7xl mx-auto">
+            <div className="grid grid-cols-3 items-center h-12 px-4 md:px-8 max-w-7xl mx-auto">
 
                 {/* Left: Beautiful Logo & Title (Anchored to home) */}
                 <div className="flex justify-start">
