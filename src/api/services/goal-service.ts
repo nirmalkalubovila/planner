@@ -1,14 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Goal } from "@/types/global-types";
 import { supabase } from "@/lib/supabaseClient";
+import { getCurrentUserId, getOptionalUserId } from "@/api/helpers/auth-helpers";
 import { toast } from "sonner";
 
 const TABLE_NAME = "goals";
 
-// Fetch from Supabase
 const getGoals = async (): Promise<Goal[]> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
+    const userId = await getOptionalUserId();
     if (!userId) return [];
 
     const { data, error } = await supabase
@@ -24,7 +23,7 @@ const getGoals = async (): Promise<Goal[]> => {
 export function useGetGoals() {
     return useQuery({
         queryKey: [TABLE_NAME],
-        queryFn: () => getGoals(),
+        queryFn: getGoals,
     });
 }
 
@@ -33,26 +32,17 @@ export function useCreateGoal() {
 
     return useMutation({
         mutationFn: async (newGoal: Goal) => {
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
-            if (!userId) throw new Error("Not authenticated");
-
-            const goalData = { ...newGoal, user_id: userId };
-
+            const userId = await getCurrentUserId();
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .insert([goalData])
+                .insert([{ ...newGoal, user_id: userId }])
                 .select()
                 .single();
             if (error) throw new Error(error.message);
             return data;
         },
-        onError: (err) => {
-            toast.error("Failed to create goal: " + err.message);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
-        },
+        onError: (err) => { toast.error("Failed to create goal: " + err.message); },
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: [TABLE_NAME] }); },
     });
 }
 
@@ -61,10 +51,7 @@ export function useUpdateGoal() {
 
     return useMutation({
         mutationFn: async (updatedGoal: Goal) => {
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
-            if (!userId) throw new Error("Not authenticated");
-
+            const userId = await getCurrentUserId();
             const { id, ...updates } = updatedGoal;
             const { data, error } = await supabase
                 .from(TABLE_NAME)
@@ -76,12 +63,8 @@ export function useUpdateGoal() {
             if (error) throw new Error(error.message);
             return data;
         },
-        onError: (err) => {
-            toast.error("Failed to update goal: " + err.message);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
-        },
+        onError: (err) => { toast.error("Failed to update goal: " + err.message); },
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: [TABLE_NAME] }); },
     });
 }
 
@@ -90,16 +73,11 @@ export function useDeleteGoal() {
 
     return useMutation({
         mutationFn: async (id: string) => {
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
-            if (!userId) throw new Error("Not authenticated");
-
+            const userId = await getCurrentUserId();
             const { error } = await supabase.from(TABLE_NAME).delete().eq("id", id).eq("user_id", userId);
             if (error) throw new Error(error.message);
         },
-        onError: (err) => {
-            toast.error("Failed to delete goal: " + err.message);
-        },
+        onError: (err) => { toast.error("Failed to delete goal: " + err.message); },
         onSuccess: () => {
             toast.success("Goal deleted from records.");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });

@@ -1,14 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Habit } from "@/types/global-types";
 import { supabase } from "@/lib/supabaseClient";
+import { getCurrentUserId, getOptionalUserId } from "@/api/helpers/auth-helpers";
 import { toast } from "sonner";
 
 const TABLE_NAME = "habits";
 
-// Fetch from Supabase
 const getHabits = async (): Promise<Habit[]> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
+    const userId = await getOptionalUserId();
     if (!userId) return [];
 
     const { data, error } = await supabase
@@ -21,43 +20,29 @@ const getHabits = async (): Promise<Habit[]> => {
     return data || [];
 };
 
-// ============ QUERIES ============
-
 export function useGetHabits() {
     return useQuery({
         queryKey: [TABLE_NAME],
-        queryFn: () => getHabits(),
+        queryFn: getHabits,
     });
 }
-
-// ============ MUTATIONS ============
 
 export function useCreateHabit() {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (newHabit: Habit) => {
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
-            if (!userId) throw new Error("Not authenticated");
-
+            const userId = await getCurrentUserId();
             const { description, ...safeHabit } = newHabit as any;
-            const habitData = { ...safeHabit, user_id: userId };
-
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .insert([habitData])
+                .insert([{ ...safeHabit, user_id: userId }])
                 .select()
                 .single();
-            if (error) {
-                console.error("Supabase Insert Error:", error);
-                throw new Error(error.message);
-            }
+            if (error) throw new Error(error.message);
             return data;
         },
-        onError: (err) => {
-            toast.error("Failed to create habit: " + err.message);
-        },
+        onError: (err) => { toast.error("Failed to create habit: " + err.message); },
         onSuccess: () => {
             toast.success("Habit created successfully!");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
@@ -70,10 +55,7 @@ export function useUpdateHabit() {
 
     return useMutation({
         mutationFn: async (updatedHabit: Habit) => {
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
-            if (!userId) throw new Error("Not authenticated");
-
+            const userId = await getCurrentUserId();
             const { id, description, ...updates } = updatedHabit as any;
             const { data, error } = await supabase
                 .from(TABLE_NAME)
@@ -85,9 +67,7 @@ export function useUpdateHabit() {
             if (error) throw new Error(error.message);
             return data;
         },
-        onError: (err) => {
-            toast.error("Failed to update habit: " + err.message);
-        },
+        onError: (err) => { toast.error("Failed to update habit: " + err.message); },
         onSuccess: () => {
             toast.success("Habit updated successfully!");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
@@ -100,16 +80,11 @@ export function useDeleteHabit() {
 
     return useMutation({
         mutationFn: async (id: string) => {
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
-            if (!userId) throw new Error("Not authenticated");
-
+            const userId = await getCurrentUserId();
             const { error } = await supabase.from(TABLE_NAME).delete().eq("id", id).eq("user_id", userId);
             if (error) throw new Error(error.message);
         },
-        onError: (err) => {
-            toast.error("Failed to delete habit: " + err.message);
-        },
+        onError: (err) => { toast.error("Failed to delete habit: " + err.message); },
         onSuccess: () => {
             toast.success("Habit deleted correctly.");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });

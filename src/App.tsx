@@ -6,23 +6,18 @@ import { ProtectedRoute } from './components/protected-route';
 import { DashboardLayout } from './layout/dashboard-layout';
 import { Toaster } from 'sonner';
 
-// Lazy-loaded page components for code splitting
-const HabitsPage = React.lazy(() => import('./pages/habits/habits-page').then(m => ({ default: m.HabitsPage })));
-const GoalsPage = React.lazy(() => import('./pages/goals/goals-page').then(m => ({ default: m.GoalsPage })));
-const PlannerPage = React.lazy(() => import('./pages/planner/planner-page').then(m => ({ default: m.PlannerPage })));
-const TodayPage = React.lazy(() => import('./pages/today/today-page').then(m => ({ default: m.TodayPage })));
-const LoginPage = React.lazy(() => import('./pages/auth/login-page').then(m => ({ default: m.LoginPage })));
-const SignupPage = React.lazy(() => import('./pages/auth/signup-page').then(m => ({ default: m.SignupPage })));
-const ProfilePage = React.lazy(() => import('./pages/profile/profile-page').then(m => ({ default: m.ProfilePage })));
-const PersonalizePage = React.lazy(() => import('./pages/auth/personalize-page').then(m => ({ default: m.PersonalizePage })));
-const ForgotPasswordPage = React.lazy(() => import('./pages/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
-const ResetPasswordPage = React.lazy(() => import('./pages/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
+import { PageLoader } from './components/common/page-loader';
 
-const PageLoader = () => (
-  <div className="flex h-screen items-center justify-center bg-background">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-  </div>
-);
+const HabitsPage = React.lazy(() => import('./features/habits/habits-page').then(m => ({ default: m.HabitsPage })));
+const GoalsPage = React.lazy(() => import('./features/goals/goals-page').then(m => ({ default: m.GoalsPage })));
+const PlannerPage = React.lazy(() => import('./features/planner/planner-page').then(m => ({ default: m.PlannerPage })));
+const TodayPage = React.lazy(() => import('./features/today/today-page').then(m => ({ default: m.TodayPage })));
+const LoginPage = React.lazy(() => import('./features/auth/login-page').then(m => ({ default: m.LoginPage })));
+const SignupPage = React.lazy(() => import('./features/auth/signup-page').then(m => ({ default: m.SignupPage })));
+const ProfilePage = React.lazy(() => import('./features/profile/profile-page').then(m => ({ default: m.ProfilePage })));
+const PersonalizePage = React.lazy(() => import('./features/auth/personalize-page').then(m => ({ default: m.PersonalizePage })));
+const ForgotPasswordPage = React.lazy(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = React.lazy(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
 
 const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={<PageLoader />}>{children}</Suspense>

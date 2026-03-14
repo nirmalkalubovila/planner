@@ -40,9 +40,9 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 2px;
 }
 
 ::-webkit-scrollbar-track {
@@ -58,16 +58,14 @@
   background: hsl(var(--muted-foreground) / 0.2);
 }
 
-/* Fix native date/time picker icons for dark mode */
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
+/* Fix native date picker icons for dark mode */
+input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
   cursor: pointer;
   opacity: 0.6;
   transition: opacity 0.2s;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator:hover,
-input[type="time"]::-webkit-calendar-picker-indicator:hover {
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }

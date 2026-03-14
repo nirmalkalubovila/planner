@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CustomTask } from "@/types/global-types";
 import { supabase } from "@/lib/supabaseClient";
+import { getCurrentUserId, getOptionalUserId } from "@/api/helpers/auth-helpers";
 import { toast } from "sonner";
 
 const TABLE_NAME = "missed_tasks";
 
 const getMissedTasks = async (): Promise<CustomTask[]> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
+    const userId = await getOptionalUserId();
     if (!userId) return [];
 
     const { data, error } = await supabase
@@ -32,9 +32,7 @@ export function useCreateMissedTask() {
 
     return useMutation({
         mutationFn: async (task: Partial<CustomTask>) => {
-            const { data: { session } } = await supabase.auth.getSession();
-            const userId = session?.user?.id;
-            if (!userId) throw new Error("Not authenticated");
+            const userId = await getCurrentUserId();
 
             const cleanTask = Object.fromEntries(
                 Object.entries(task).filter(([k, v]) => v !== undefined && k !== 'color' && k !== 'id')
@@ -42,10 +40,7 @@ export function useCreateMissedTask() {
 
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .insert({
-                    ...cleanTask,
-                    user_id: userId
-                })
+                .insert({ ...cleanTask, user_id: userId })
                 .select()
                 .single();
 
@@ -67,10 +62,13 @@ export function useDeleteMissedTask() {
 
     return useMutation({
         mutationFn: async (id: string) => {
+            const userId = await getCurrentUserId();
+
             const { error } = await supabase
                 .from(TABLE_NAME)
                 .delete()
-                .eq("id", id);
+                .eq("id", id)
+                .eq("user_id", userId);
 
             if (error) throw new Error(error.message);
         },
