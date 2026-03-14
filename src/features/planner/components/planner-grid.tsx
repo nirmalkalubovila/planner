@@ -1,9 +1,9 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState } from '@/types/global-types';
 import { getGoalColor } from '@/utils/color-utils';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -34,6 +34,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 }) => {
     const weekDates = useMemo(() => WeekUtils.getDaysForWeek(currentWeek), [currentWeek]);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [isTimeColumnVisible, setIsTimeColumnVisible] = useState(true);
+    const [touchSourceKey, setTouchSourceKey] = useState<string | null>(null);
 
     // Auto-scroll to morning (first non-sleep slot) on mount or week change
     useEffect(() => {
@@ -77,10 +79,23 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                 <div className="min-w-[700px]">
 
                     {/* Day header row */}
-                    <div className="grid grid-cols-[75px_repeat(7,minmax(0,1fr))] border-b bg-card z-[60] sticky top-0 shadow-md">
+                    <div className={cn(
+                        "grid border-b bg-card z-[60] sticky top-0 shadow-md transition-all duration-300",
+                        isTimeColumnVisible ? "grid-cols-[75px_repeat(7,minmax(0,1fr))]" : "grid-cols-[20px_repeat(7,minmax(0,1fr))]"
+                    )}>
 
                         {/* Notice: this left corner cell needs the same solid background */}
-                        <div className="h-10 border-r border-border bg-card sticky left-0 z-[70] outline outline-1 outline-card -outline-offset-1" />
+                        <div 
+                            className="h-10 border-r border-b border-[#1e293b] bg-black sticky left-0 z-[75] flex items-center justify-center cursor-pointer hover:bg-black/90 transition-colors group shadow-[2px_0_8px_rgba(0,0,0,0.5),-4px_0_0_0_#000]"
+                            onClick={() => setIsTimeColumnVisible(!isTimeColumnVisible)}
+                            title={isTimeColumnVisible ? "Hide time column" : "Show time column"}
+                        >
+                            {isTimeColumnVisible ? (
+                                <EyeOff size={10} className="text-white/30 group-hover:text-white" />
+                            ) : (
+                                <Eye size={10} className="text-white/30 group-hover:text-white" />
+                            )}
+                        </div>
 
                         {weekDates.map((date, dayIdx) => (
                             <div key={dayIdx} className="h-10 flex flex-col items-center justify-center font-bold text-[9px] md:text-[11px] uppercase tracking-widest border-border relative bg-card">
@@ -97,7 +112,10 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-[75px_repeat(7,minmax(0,1fr))]">
+                    <div className={cn(
+                        "grid transition-all duration-300",
+                        isTimeColumnVisible ? "grid-cols-[75px_repeat(7,minmax(0,1fr))]" : "grid-cols-[20px_repeat(7,minmax(0,1fr))]"
+                    )}>
                         {Array.from({ length: SLOTS_PER_DAY }).map((_, slotIdx) => {
                             const hour = Math.floor(slotIdx / 2);
                             const min = (slotIdx % 2) * 30;
@@ -109,11 +127,19 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
                             return (
                                 <React.Fragment key={slotIdx}>
-                                    <div className={cn(
-                                        "h-10 border-r border-border flex flex-col items-center justify-center text-[10px] text-muted-foreground bg-card sticky left-0 z-40 font-mono shadow-sm outline outline-1 outline-card -outline-offset-1",
-                                        isHourStart ? "border-b border-border/50" : "border-b border-border/20"
-                                    )}>
-                                        <span className="font-semibold text-[9px] text-muted-foreground/80">{timeStr}</span>
+                                    <div 
+                                        className={cn(
+                                            "h-10 flex flex-col items-center justify-center text-[10px] text-muted-foreground bg-black sticky left-0 z-[50] font-mono overflow-hidden transition-all duration-300 select-none border-r border-[#1e293b] shadow-[2px_0_8px_rgba(0,0,0,0.5),-4px_0_0_0_#000]",
+                                            isHourStart ? "border-b border-[#000]" : "border-b border-[#0f172a]",
+                                            !isTimeColumnVisible && "cursor-pointer hover:bg-[#111]"
+                                        )}
+                                        onClick={() => !isTimeColumnVisible && setIsTimeColumnVisible(true)}
+                                        title={!isTimeColumnVisible ? "Show time column" : ""}
+                                    >
+                                        <span className={cn(
+                                            "font-semibold text-[9px] text-white/50 whitespace-nowrap transition-opacity duration-200",
+                                            isTimeColumnVisible ? "opacity-100" : "opacity-0 invisible"
+                                        )}>{timeStr}</span>
                                     </div>
                                     {DAYS.map((_, dayIdx) => {
                                         const isToday = weekDates[dayIdx].toDateString() === new Date().toDateString();
@@ -126,7 +152,38 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                         return (
                                             <div
                                                 key={dayIdx}
+                                                data-cell-key={`${dayIdx}-${slotIdx}`}
                                                 draggable={!!isInteractive}
+                                                onTouchStart={() => {
+                                                    if (isInteractive) {
+                                                        setTouchSourceKey(`${dayIdx}-${slotIdx}`);
+                                                    }
+                                                }}
+                                                onTouchMove={(e) => {
+                                                    if (touchSourceKey) {
+                                                        e.preventDefault(); // allow dragging without scrolling page
+                                                    }
+                                                }}
+                                                onTouchEnd={(e) => {
+                                                    if (!touchSourceKey) return;
+                                                    const touch = e.changedTouches[0];
+                                                    const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                                                    const targetKey = targetElement?.closest('[data-cell-key]')?.getAttribute('data-cell-key');
+
+                                                    if (targetKey && targetKey !== touchSourceKey) {
+                                                        const [targetDayStr, targetSlotStr] = targetKey.split('-');
+                                                        const targetDay = parseInt(targetDayStr);
+                                                        const targetSlot = parseInt(targetSlotStr);
+
+                                                        if (!isSleepSlot(targetSlot) && !isHabitSlot(targetDay, targetSlot) && !isPlanSlot(targetDay, targetSlot)) {
+                                                            const newState = { ...localGridState };
+                                                            newState[targetKey] = newState[touchSourceKey];
+                                                            delete newState[touchSourceKey];
+                                                            setLocalGridState(newState);
+                                                        }
+                                                    }
+                                                    setTouchSourceKey(null);
+                                                }}
                                                 onDragStart={(e) => {
                                                     if (content?.type === 'preview' || content?.type === 'preview-free') {
                                                         e.dataTransfer.setData('sourceNewTask', JSON.stringify({
@@ -175,7 +232,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     content?.type === 'goal' && "bg-blue-600 text-white cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-blue-500",
                                                     content?.type === 'custom' && "bg-amber-500 text-amber-950 cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-amber-400",
                                                     !content && !isToday && "hover:bg-accent/30 text-transparent",
-                                                    !content && isToday && "text-transparent"
+                                                    !content && isToday && "text-transparent",
+                                                    touchSourceKey === `${dayIdx}-${slotIdx}` && "opacity-50 scale-95" // Visual feedback for touch dragging
                                                 )}
                                                 style={
                                                     content?.type === 'goal'

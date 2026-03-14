@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useCreateCustomTask } from '@/api/services/custom-task-service';
 import { timeToMinutes, minutesToTime } from '@/utils/time-utils';
+import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { CUSTOM_TASK_COLORS } from '@/utils/color-utils';
 
 interface CustomTaskDialogProps {
@@ -159,10 +160,9 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                             <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
                                 <Clock size={12} /> Start Time
                             </label>
-                            <Input
-                                type="time"
+                            <SimpleTimePicker
                                 value={startTime}
-                                onChange={(e) => setStartTime(e.target.value)}
+                                onChange={(value: string) => setStartTime(value)}
                                 className="h-10"
                             />
                         </div>

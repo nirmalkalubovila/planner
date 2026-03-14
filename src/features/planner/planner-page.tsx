@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useGetWeekPlan, usePrefetchAdjacentWeeks } from '@/api/services/planner-service';
 import { useGetGoals } from '@/api/services/goal-service';
-import { useAuth } from '@/contexts/auth-context';
 import { WeekUtils } from '@/utils/week-utils';
 import { Goal, CustomTask } from '@/types/global-types';
 import { useGetCustomTasks, useDeleteCustomTask } from '@/api/services/custom-task-service';
@@ -111,7 +109,7 @@ export const PlannerPage: React.FC = () => {
 
     return (
         <div className={cn(
-            "flex flex-col h-full w-full overflow-hidden",
+            "flex flex-col h-full w-full overflow-hidden relative",
             selectedTool === 'erase' && "cursor-[url('https://api.iconify.design/lucide:eraser.svg?color=%23ef4444'),_auto]",
             selectedTool === 'goal' && "cursor-crosshair",
             selectedTool === 'duplicate' && (copiedTask ? "cursor-alias" : "cursor-copy")

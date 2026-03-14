@@ -39,25 +39,25 @@ export const SimpleTimePicker: React.FC<SimpleTimePickerProps> = ({ value, onCha
                 <Button
                     variant="outline"
                     className={cn(
-                        "w-full flex items-center justify-between text-left font-normal h-9 px-3 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 transition-colors",
+                        "w-full flex items-center justify-between text-left font-normal h-9 px-3 rounded-lg border-input bg-transparent hover:bg-accent hover:text-accent-foreground transition-colors",
                         className
                     )}
                 >
-                    <span className="text-sm font-medium text-white/90">
+                    <span className="text-sm font-medium text-foreground">
                         {`${h12.toString().padStart(2, '0')}:${displayMinute} ${isPm ? 'PM' : 'AM'}`}
                     </span>
-                    <Clock className="h-4 w-4 text-white shrink-0" />
+                    <Clock className="h-4 w-4 text-foreground dark:text-white shrink-0" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent
-                className="w-auto p-1.5 border-white/10 bg-popover shadow-2xl backdrop-blur-xl rounded-xl overflow-hidden"
+                className="w-auto p-1.5 border-border bg-popover shadow-2xl backdrop-blur-xl rounded-xl overflow-hidden"
                 align="start"
                 sideOffset={4}
             >
-                <div className="flex bg-white/[0.02] rounded-lg border border-white/5 overflow-hidden">
+                <div className="flex bg-transparent rounded-lg border border-border overflow-hidden">
                     {/* Hours */}
                     <div className="flex flex-col h-[180px] overflow-y-auto custom-scrollbar w-[56px] relative">
-                        <div className="text-[10px] font-bold text-muted-foreground text-center py-2 uppercase tracking-widest bg-[#0c0c0c] border-b border-white/5 sticky top-0 z-20">Hr</div>
+                        <div className="text-[10px] font-bold text-muted-foreground text-center py-2 uppercase tracking-widest bg-muted border-b border-border sticky top-0 z-20">Hr</div>
                         <div className="flex flex-col">
                             {hours.map((h) => (
                                 <button
@@ -75,8 +75,8 @@ export const SimpleTimePicker: React.FC<SimpleTimePickerProps> = ({ value, onCha
                         </div>
                     </div>
                     {/* Minutes */}
-                    <div className="flex flex-col h-[180px] overflow-y-auto custom-scrollbar w-[56px] border-l border-white/5 relative">
-                        <div className="text-[10px] font-bold text-muted-foreground text-center py-2 uppercase tracking-widest bg-[#0c0c0c] border-b border-white/5 sticky top-0 z-20">Min</div>
+                    <div className="flex flex-col h-[180px] overflow-y-auto custom-scrollbar w-[56px] border-l border-border relative">
+                        <div className="text-[10px] font-bold text-muted-foreground text-center py-2 uppercase tracking-widest bg-muted border-b border-border sticky top-0 z-20">Min</div>
                         <div className="flex flex-col">
                             {minutes.map((m) => (
                                 <button
@@ -94,8 +94,8 @@ export const SimpleTimePicker: React.FC<SimpleTimePickerProps> = ({ value, onCha
                         </div>
                     </div>
                     {/* AM/PM */}
-                    <div className="flex flex-col h-[180px] w-[56px] border-l border-white/5 relative">
-                        <div className="text-[10px] font-bold text-muted-foreground text-center py-2 uppercase tracking-widest bg-[#0c0c0c] border-b border-white/5 sticky top-0 z-20">Set</div>
+                    <div className="flex flex-col h-[180px] w-[56px] border-l border-border relative">
+                        <div className="text-[10px] font-bold text-muted-foreground text-center py-2 uppercase tracking-widest bg-muted border-b border-border sticky top-0 z-20">Set</div>
                         <div className="flex flex-col gap-0.5 p-1 flex-1 justify-center">
                             {["AM", "PM"].map((p) => (
                                 <button
