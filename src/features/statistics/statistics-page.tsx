@@ -10,7 +10,7 @@ export const StatisticsPage: React.FC = () => {
     } = useAnalytics();
 
     return (
-        <div className="flex flex-col h-[calc(100vh-48px)] overflow-hidden px-4 pt-4 md:px-8">
+        <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
             {/* Header section mirroring Goals/Habits page style */}
             <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
                 <div className="flex flex-col gap-2">
@@ -34,7 +34,7 @@ export const StatisticsPage: React.FC = () => {
             </div>
 
             {/* Main Content */}
-            <div className="w-full flex-1 flex flex-col min-h-0">
+            <div className="w-full pb-20 max-w-[1600px] mx-auto">
                 <PerformanceDashboard />
             </div>
         </div>
