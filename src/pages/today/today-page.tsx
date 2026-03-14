@@ -131,7 +131,7 @@ export const TodayPage: React.FC = () => {
     }, [tasks, completedTasks]);
 
     return (
-        <div className="flex flex-col h-[calc(100vh-64px)] space-y-2 md:space-y-4 pb-20 overflow-y-auto overflow-x-hidden px-2 md:px-4">
+        <div className="flex flex-col space-y-2 md:space-y-4 pb-20 px-2 md:px-4">
 
             {/* The Active Theme - Hero Section */}
             {tasks.length > 0 && (

@@ -247,7 +247,7 @@ export const PlannerPage: React.FC = () => {
 
         for (let d = 0; d < 7; d++) {
             for (let s = 0; s < SLOTS_PER_DAY; s++) {
-                if (!isSleepSlot(s) && !isHabitSlot(d, s) && !isPlanSlot(d, s) && !localGridState[`${d} -${s} `]) {
+                if (!isSleepSlot(s) && !isHabitSlot(d, s) && !isPlanSlot(d, s) && !localGridState[`${d}-${s}`]) {
                     emptySlotsGroupedByDay[d].push({ dayIdx: d, slotIdx: s });
                     totalEmptySlots++;
                 }
@@ -269,7 +269,7 @@ export const PlannerPage: React.FC = () => {
             loopProtect++;
             if (emptySlotsGroupedByDay[d].length > 0) {
                 const slot = emptySlotsGroupedByDay[d].shift()!;
-                newState[`${slot.dayIdx} -${slot.slotIdx} `] = {
+                newState[`${slot.dayIdx}-${slot.slotIdx}`] = {
                     type: 'goal',
                     name: targetGoal.title || targetGoal.name,
                     goalId: targetGoal.id
@@ -294,14 +294,26 @@ export const PlannerPage: React.FC = () => {
         const endSlot = eH * 2 + (eM >= 30 ? 1 : 0);
 
         let canAdd = true;
+        const conflictDetails: string[] = [];
         if (data.daysOfWeek && data.daysOfWeek.length > 0) {
             data.daysOfWeek.forEach((dayName: string) => {
                 const dayIdx = FULL_DAYS.indexOf(dayName);
                 if (dayIdx !== -1) {
                     for (let i = startSlot; i < endSlot; i++) {
                         if (i >= SLOTS_PER_DAY) continue;
-                        if (isSleepSlot(i) || isHabitSlot(dayIdx, i) || isPlanSlot(dayIdx, i) || newState[`${dayIdx} - ${i} `]) {
+                        const key = `${dayIdx}-${i}`;
+                        if (isSleepSlot(i)) {
                             canAdd = false;
+                            conflictDetails.push(`${dayName}: Sleep`);
+                        } else if (isHabitSlot(dayIdx, i)) {
+                            canAdd = false;
+                            conflictDetails.push(`${dayName}: Habit`);
+                        } else if (isPlanSlot(dayIdx, i)) {
+                            canAdd = false;
+                            conflictDetails.push(`${dayName}: Planning`);
+                        } else if (newState[key]) {
+                            canAdd = false;
+                            conflictDetails.push(`${dayName}: ${newState[key].name}`);
                         }
                     }
                 }
@@ -309,7 +321,8 @@ export const PlannerPage: React.FC = () => {
         }
 
         if (!canAdd) {
-            toast.error('Cannot make it happen. The selected time block is already reserved by Sleep, Habits, or another Task.');
+            const uniqueConflicts = [...new Set(conflictDetails)];
+            toast.error(`Cannot add task. Conflicts: ${uniqueConflicts.slice(0, 3).join(', ')}${uniqueConflicts.length > 3 ? '...' : ''}`);
             return;
         }
 
@@ -319,9 +332,10 @@ export const PlannerPage: React.FC = () => {
                 if (dayIdx !== -1) {
                     for (let i = startSlot; i < endSlot; i++) {
                         if (i >= SLOTS_PER_DAY) continue;
-                        newState[`${dayIdx} -${i} `] = {
+                        newState[`${dayIdx}-${i}`] = {
                             type: 'custom',
-                            name: data.name
+                            name: data.name,
+                            color: data.color
                         };
                     }
                 }
@@ -348,7 +362,7 @@ export const PlannerPage: React.FC = () => {
 
     const handleTaskEditSave = (data: any) => {
         if (!editingTaskCell) return;
-        const key = `${editingTaskCell.dayIdx} -${editingTaskCell.slotIdx} `;
+        const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
         const newState = { ...localGridState };
         newState[key] = {
             ...newState[key],
@@ -364,7 +378,7 @@ export const PlannerPage: React.FC = () => {
 
     const executeTaskDelete = () => {
         if (!editingTaskCell) return;
-        const key = `${editingTaskCell.dayIdx} -${editingTaskCell.slotIdx} `;
+        const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
         const newState = { ...localGridState };
         delete newState[key];
         updateGridState(newState);
@@ -373,7 +387,7 @@ export const PlannerPage: React.FC = () => {
     };
 
     const handleCellClick = (dayIdx: number, slotIdx: number) => {
-        const key = `${dayIdx} -${slotIdx} `;
+        const key = `${dayIdx}-${slotIdx}`;
         if (isSleepSlot(slotIdx) || isHabitSlot(dayIdx, slotIdx) || isPlanSlot(dayIdx, slotIdx)) return;
 
         const newState = { ...localGridState };

@@ -36,7 +36,7 @@ export const HabitsPage: React.FC = () => {
         const endMin = startMin + values.durationPacks * 30;
         const endTime = `${Math.floor((endMin % 1440) / 60).toString().padStart(2, '0')}:${(endMin % 60).toString().padStart(2, '0')}`;
 
-        // Conflict Check
+        // Conflict Check: Sleep
         const sleepStart = user?.user_metadata?.sleepStart || '22:00';
         const sleepDuration = Number(user?.user_metadata?.sleepDuration) || 8;
 
@@ -47,6 +47,23 @@ export const HabitsPage: React.FC = () => {
             return;
         }
 
+        // Conflict Check: Planning Time
+        const planDay = user?.user_metadata?.planDay || 'Sunday';
+        const planStartTime = user?.user_metadata?.planStartTime || '21:00';
+        const planDurationPacks = Number(user?.user_metadata?.planDurationPacks) || 2;
+        const planEndMin = timeToMinutes(planStartTime) + planDurationPacks * 30;
+        const planEndTime = `${Math.floor((planEndMin % 1440) / 60).toString().padStart(2, '0')}:${(planEndMin % 60).toString().padStart(2, '0')}`;
+
+        if (values.daysOfWeek.includes(planDay)) {
+            if (isTimeOverlapping(values.startTime, endTime, planStartTime, planEndTime)) {
+                const errorMsg = `This habit overlaps with your Weekly Planning time on ${planDay} (${planStartTime} - ${planEndTime}).`;
+                setConflictError(errorMsg);
+                toast.error(errorMsg);
+                return;
+            }
+        }
+
+        // Conflict Check: Other Habits
         for (const habit of habits) {
             if (editingHabit && habit.id === editingHabit.id) continue;
 

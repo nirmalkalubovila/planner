@@ -485,7 +485,7 @@ const MilestoneRow = ({
                                 {milestoneTitle}
                             </span>
                         )}
-                        {isNext && <span className="text-[8px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-black animate-pulse uppercase">NEXT STEP</span>}
+
                     </div>
                     <div className="text-xs font-semibold text-primary pl-5">{validDate}</div>
                 </div>
