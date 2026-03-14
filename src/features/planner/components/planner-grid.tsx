@@ -59,7 +59,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     }, [currentWeek]); // Only scroll on mount or week change, NOT on every grid click
 
     return (
-        <div className="flex-1 bg-card sm:border sm:rounded-lg overflow-hidden flex flex-col h-full min-h-[400px]">
+        <div className="flex-1 bg-card overflow-hidden flex flex-col h-full min-h-[400px]">
             {/* Week Navigation - always visible above the scrollable grid */}
             <div className="flex-none flex items-center justify-center py-1 sm:py-1.5 bg-card border-b border-border/50 z-[65]">
                 <div className="flex items-center gap-0.5 sm:gap-1">
@@ -85,24 +85,29 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                         "grid border-b bg-card z-[60] sticky top-0 shadow-md transition-all duration-300",
                         isTimeColumnVisible ? "grid-cols-[45px_repeat(7,minmax(0,1fr))]" : "grid-cols-[0px_repeat(7,minmax(0,1fr))]"
                     )}>
-                        {/* Eye toggle - now floats absolute when hidden to remove layout gap */}
+                        {/* Eye toggle - stays in flow with w-0 when hidden to keep Monday in its correct column */}
                         <div 
                             className={cn(
-                                "h-10 bg-black sticky left-0 z-[75] flex items-center justify-center cursor-pointer hover:bg-black/90 transition-all duration-300 group shadow-[2px_0_8px_rgba(0,0,0,0.5)] border-b border-[#1e293b]",
-                                isTimeColumnVisible ? "w-[45px] border-r" : "w-8 absolute left-0 rounded-br-lg border-r shadow-xl"
+                                "h-10 sticky left-0 z-[75] flex items-center justify-center cursor-pointer transition-all duration-300 group border-[#1e293b] overflow-visible",
+                                isTimeColumnVisible ? "w-[45px] bg-black border-r border-b shadow-[2px_0_8px_rgba(0,0,0,0.5)]" : "w-0"
                             )}
                             onClick={() => setIsTimeColumnVisible(!isTimeColumnVisible)}
                             title={isTimeColumnVisible ? "Hide time column" : "Show time column"}
                         >
-                            {isTimeColumnVisible ? (
-                                <EyeOff size={10} className="text-white/30 group-hover:text-white" />
-                            ) : (
-                                <Eye size={10} className="text-white/30 group-hover:text-white" />
-                            )}
+                            <div className={cn(
+                                "flex items-center justify-center transition-all duration-300",
+                                !isTimeColumnVisible ? "absolute left-0 w-8 h-10 bg-black/80 backdrop-blur-md rounded-br-lg border-r border-b border-white/10 shadow-2xl" : "w-full h-full"
+                            )}>
+                                {isTimeColumnVisible ? (
+                                    <EyeOff size={10} className="text-white/30 group-hover:text-white" />
+                                ) : (
+                                    <Eye size={10} className="text-white/30 group-hover:text-white" />
+                                )}
+                            </div>
                         </div>
 
                         {weekDates.map((date, dayIdx) => (
-                            <div key={dayIdx} className="h-10 flex flex-col items-center justify-center font-bold text-[9px] md:text-[11px] uppercase tracking-widest border-border relative bg-card">
+                            <div key={dayIdx} className="h-10 flex flex-col items-center justify-center font-bold text-[9px] md:text-[11px] uppercase tracking-widest border-r border-white/[0.05] relative bg-card">
                                 <span className={cn(
                                     "px-2 rounded-lg",
                                     date.toDateString() === new Date().toDateString() ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground"
@@ -133,8 +138,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                 <React.Fragment key={slotIdx}>
                                     <div 
                                         className={cn(
-                                            "h-10 flex flex-col items-center justify-center text-[10px] text-muted-foreground transition-all duration-300 select-none sticky left-0 z-[50] font-mono",
-                                            isTimeColumnVisible ? "w-[45px] bg-black border-r border-[#1e293b] opacity-100" : "w-0 opacity-0 pointer-events-none",
+                                            "h-10 flex flex-col items-center justify-center text-[10px] text-muted-foreground transition-all duration-300 select-none z-[50] font-mono",
+                                            isTimeColumnVisible ? "w-[45px] bg-black border-r border-[#1e293b] sticky left-0 opacity-100 shadow-[2px_0_8px_rgba(0,0,0,0.5)]" : "w-0 opacity-0 pointer-events-none",
                                             isTimeColumnVisible && (isHourStart ? "border-b border-[#000]" : "border-b border-white/[0.02]"),
                                         )}
                                     >
@@ -190,7 +195,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     }
                                                 }}
                                                 className={cn(
-                                                    "h-10 transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group relative border-b border-white/[0.03] border-r border-white/[0.02]",
+                                                    "h-10 transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group relative border-b border-r border-white/[0.05]",
                                                     isToday && "bg-primary/[0.02]",
                                                     isToday && !content && "hover:bg-primary/10",
                                                     content && !isSameAsPrev && "border-t border-white/[0.1] z-[11]",
@@ -206,9 +211,9 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                 )}
                                                 style={
                                                     content?.type === 'goal'
-                                                        ? { backgroundColor: getGoalColor(content.goalId || content.name), color: '#fff', borderColor: 'transparent' }
+                                                        ? { backgroundColor: getGoalColor(content.goalId || content.name), color: '#fff' }
                                                         : content?.type === 'custom' && content.color
-                                                            ? { backgroundColor: content.color, color: '#fff', borderColor: 'transparent' }
+                                                            ? { backgroundColor: content.color, color: '#fff' }
                                                             : {}
                                                 }
                                                 onClick={() => handleCellClick(dayIdx, slotIdx)}

@@ -46,3 +46,10 @@ All changes are logged here with date, file, action, and reasoning.
 | 2026-03-14 | `src/layout/dashboard-layout.tsx` | Removed mobile padding | UX: Planner grid now uses 100% of mobile screen width |
 | 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Added faint grid lines & task separators | UX: Easier to identify time slots while keeping a seamless look |
 | 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Removed time column gap + smoothed UI | UX: Eliminated the 25px layout gap when hidden; smoothed column alignment for a cleaner look |
+| 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Refined grid borders (smooth & very thin) | UX: Consistent vertical/horizontal slot identifiers for better readability |
+| 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Fixed missing borders on tasks/goals | UX: Ensured grid lines show through even when slots are occupied by colored tasks |
+| 2026-03-14 | `src/index.css` & `src/layout/dashboard-layout.tsx` | Ultra-thin scrollbars (3px) | UX: Made scrollbars much less noticeable and more premium |
+| 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Removed desktop outer grid border | UX: Borderless desktop view for a more integrated, edge-to-edge feel |
+| 2026-03-14 | `src/layout/` | Max-width & Padding Removal | UX: Content (Header & Grid) now utilizes 100% of the screen width and height |
+| 2026-03-14 | `src/features/planner/components/planner-toolbar.tsx` | Fixed height & scroll refinements | UX: Enhanced space for library tasks on large screens |
+| 2026-03-14 | `src/features/planner/components/planner-toolbar.tsx` | Static Actions & Cloud Sync Status | UX: Undo/Redo/Clear/Save are now always pinned; Green Cloud = Saved, Red = Syncing/Pending |

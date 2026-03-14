@@ -44,7 +44,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     </div>
                     <span className="bg-background/80 px-1.5 py-0.5 rounded text-[9px] opacity-80">{displayTasks.length}</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5 w-full max-h-[160px] overflow-y-auto overflow-x-hidden hide-scrollbar pb-2 pt-1">
+                <div className="flex flex-wrap gap-1.5 w-full max-h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pb-2 pt-1 transition-all">
                     {displayTasks.length === 0 ? (
                         <span className="text-[10px] text-muted-foreground italic px-2">No tasks available</span>
                     ) : (
@@ -111,7 +111,8 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     </Button>
                 </div>
 
-                <div className="flex flex-col flex-1 overflow-y-auto hide-scrollbar p-0">
+                {/* Scrollable middle section: Tools and Libraries */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
                     <div className={cn(
                         "flex flex-col flex-1 transition-opacity duration-300",
                         isCollapsed ? "opacity-100 items-center py-4 px-2" : "opacity-100 p-4"
@@ -245,45 +246,48 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             </div>
                         )}
                     </div>
+                </div>
 
-                    {/* Footer: Actions & Save Status */}
-                    <div className={cn(
-                        "flex flex-col border-t border-white/5 p-3 sm:p-4 gap-3 bg-muted/10 shrink-0 mt-auto",
-                        !isCollapsed && "animate-in slide-in-from-bottom-5 duration-500 delay-200"
-                    )}>
-                        {isCollapsed ? (
-                            <div className="flex flex-col gap-3 items-center pt-2">
-                                <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30 hover:bg-muted" onClick={onUndo} disabled={!canUndo} title="Undo">
-                                    <Undo2 size={14} />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30 hover:bg-muted" onClick={onRedo} disabled={!canRedo} title="Redo">
-                                    <Redo2 size={14} />
-                                </Button>
-                                <div className="w-6 h-px bg-white/10 my-1" />
-                                <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-destructive hover:bg-destructive/10" onClick={onClear} title="Clear All">
-                                    <RotateCcw size={14} />
-                                </Button>
-                            </div>
-                        ) : (
-                            <Button variant="ghost" size="sm" className="w-full h-10 rounded-xl font-bold text-destructive hover:bg-destructive/10 text-[11px]" onClick={onClear}>
-                                <RotateCcw size={16} className="mr-2" /> CLEAR ALL
+                {/* Footer: Actions & Save Status - STATIC (outside scrollable area) */}
+                <div className={cn(
+                    "flex flex-col border-t border-white/5 p-3 sm:p-4 gap-3 bg-muted/10 shrink-0",
+                    !isCollapsed && "animate-in slide-in-from-bottom-5 duration-500 delay-200"
+                )}>
+                    {isCollapsed ? (
+                        <div className="flex flex-col gap-3 items-center pt-2">
+                            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30 hover:bg-muted" onClick={onUndo} disabled={!canUndo} title="Undo">
+                                <Undo2 size={14} />
                             </Button>
-                        )}
+                            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30 hover:bg-muted" onClick={onRedo} disabled={!canRedo} title="Redo">
+                                <Redo2 size={14} />
+                            </Button>
+                            <div className="w-6 h-px bg-white/10 my-1" />
+                            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-destructive hover:bg-destructive/10" onClick={onClear} title="Clear All">
+                                <RotateCcw size={14} />
+                            </Button>
+                        </div>
+                    ) : (
+                        <Button variant="ghost" size="sm" className="w-full h-10 rounded-xl font-bold text-destructive hover:bg-destructive/10 text-[11px]" onClick={onClear}>
+                            <RotateCcw size={16} className="mr-2" /> CLEAR ALL
+                        </Button>
+                    )}
 
-                        {saveStatus !== 'idle' && (
-                            <div className={cn("flex items-center justify-center gap-1.5 pt-2", isCollapsed ? "flex-col" : "flex-row")}>
-                                {saveStatus === 'saving' ? (
-                                    <>
-                                        <Loader2 size={14} className="animate-spin text-muted-foreground" />
-                                        {!isCollapsed && <span className="text-[10px] text-muted-foreground/40 font-normal select-none">Saving...</span>}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Cloud size={14} className="text-muted-foreground" />
-                                        {!isCollapsed && <span className="text-[10px] text-muted-foreground/30 font-normal select-none">All changes saved</span>}
-                                    </>
-                                )}
-                            </div>
+                    <div className={cn("flex items-center justify-center gap-1.5 pt-2 border-t border-white/5 mt-1", isCollapsed ? "flex-col" : "flex-row")}>
+                        {saveStatus === 'saving' ? (
+                            <>
+                                <Loader2 size={14} className="animate-spin text-red-500" />
+                                {!isCollapsed && <span className="text-[10px] text-red-500 font-bold select-none uppercase tracking-tighter">Syncing...</span>}
+                            </>
+                        ) : saveStatus === 'saved' ? (
+                            <>
+                                <Cloud size={14} className="text-emerald-500" />
+                                {!isCollapsed && <span className="text-[10px] text-emerald-500 font-bold select-none uppercase tracking-tighter">Plan Saved</span>}
+                            </>
+                        ) : (
+                            <>
+                                <Cloud size={14} className="text-red-500 opacity-50" />
+                                {!isCollapsed && <span className="text-[10px] text-red-500/50 font-bold select-none uppercase tracking-tighter">Pending</span>}
+                            </>
                         )}
                     </div>
                 </div>
@@ -377,6 +381,15 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     <div className="w-px h-8 bg-white/15 mx-1" />
 
                     <div className="flex items-center gap-1">
+                        <div className="flex items-center justify-center w-8">
+                            {saveStatus === 'saving' ? (
+                                <Loader2 size={16} className="animate-spin text-red-500" />
+                            ) : saveStatus === 'saved' ? (
+                                <Cloud size={16} className="text-emerald-500" />
+                            ) : (
+                                <Cloud size={16} className="text-red-500 opacity-50" />
+                            )}
+                        </div>
                         <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30" onClick={onUndo} disabled={!canUndo}>
                             <Undo2 size={18} />
                         </Button>

@@ -12,8 +12,8 @@ export const DashboardLayout: React.FC = () => {
                 <div className="hidden md:flex">
                     <DashboardSidebar />
                 </div>
-                <main className="flex-1 overflow-y-auto w-full">
-                    <div className="mx-auto w-full h-full p-0 md:p-3 md:pt-1 space-y-2">
+                <main className="flex-1 overflow-hidden w-full custom-scrollbar">
+                    <div className="w-full h-full p-0">
                         <Outlet />
                     </div>
                 </main>
