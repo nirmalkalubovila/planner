@@ -63,7 +63,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                     }));
                                 }}
                                 className={cn(
-                                    "px-2 py-1 border rounded-md text-[10px] font-bold cursor-grab active:cursor-grabbing hover:shadow-md transition-all bg-background/80 shadow-sm max-w-[120px] truncate text-center",
+                                    "px-2 py-1 border rounded-md text-[10px] font-bold cursor-grab active:cursor-grabbing hover:shadow-md transition-all bg-background/80 shadow-sm max-w-[120px] truncate text-center touch-action-none",
                                     colorClass.includes("emerald") ? "hover:border-emerald-500/80 hover:bg-emerald-500/10 text-emerald-100" : "hover:border-orange-500/80 hover:bg-orange-500/10 text-orange-100"
                                 )}
                                 title={`Drag onto grid or click to apply: ${task.name}`}

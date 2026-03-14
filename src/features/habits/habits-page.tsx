@@ -79,7 +79,7 @@ export const HabitsPage: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4">
+        <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
             <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
                 <div className="flex flex-col gap-2">
                     <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Habit Collection</h2>
@@ -90,11 +90,11 @@ export const HabitsPage: React.FC = () => {
                 </div>
                 <Button
                     onClick={() => { setIsFormOpen(!isFormOpen); setEditingHabit(null); }}
-                    variant={isFormOpen ? "outline" : "default"}
-                    className="gap-2 h-10 px-6 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all duration-300"
+                    variant="ghost"
+                    className="h-10 w-10 p-0 rounded-full text-white hover:bg-white/10 transition-all duration-300 active:scale-95"
+                    title={isFormOpen ? "Close Panel" : "Architect Habit"}
                 >
-                    {isFormOpen ? <ChevronUp size={14} /> : <Plus size={14} />}
-                    {isFormOpen ? "Close Panel" : "Architect Habit"}
+                    {isFormOpen ? <ChevronUp size={22} className="opacity-60" /> : <Plus size={26} strokeWidth={2.5} />}
                 </Button>
             </div>
 

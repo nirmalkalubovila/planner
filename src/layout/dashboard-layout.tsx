@@ -12,10 +12,8 @@ export const DashboardLayout: React.FC = () => {
                 <div className="hidden md:flex">
                     <DashboardSidebar />
                 </div>
-                <main className="flex-1 overflow-hidden w-full custom-scrollbar">
-                    <div className="w-full h-full p-0">
-                        <Outlet />
-                    </div>
+                <main className="flex-1 overflow-y-auto w-full custom-scrollbar flex flex-col relative">
+                    <Outlet />
                 </main>
                 <MobileNav />
             </div>

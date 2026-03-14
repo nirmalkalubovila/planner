@@ -109,7 +109,7 @@ export const PlannerPage: React.FC = () => {
 
     return (
         <div className={cn(
-            "flex flex-col h-full w-full overflow-hidden relative",
+            "flex flex-col flex-1 h-full w-full overflow-hidden relative",
             selectedTool === 'erase' && "cursor-[url('https://api.iconify.design/lucide:eraser.svg?color=%23ef4444'),_auto]",
             selectedTool === 'goal' && "cursor-crosshair",
             selectedTool === 'duplicate' && (copiedTask ? "cursor-alias" : "cursor-copy"),
@@ -123,8 +123,6 @@ export const PlannerPage: React.FC = () => {
                         localGridState={localGridState}
                         setLocalGridState={updateGridState}
                         isSleepSlot={isSleepSlot}
-                        isHabitSlot={isHabitSlot}
-                        isPlanSlot={isPlanSlot}
                         getCellContent={getCellContent}
                         handleCellClick={handlers.handleCellClick}
                         selectedTool={selectedTool}
