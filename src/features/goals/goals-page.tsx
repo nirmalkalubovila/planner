@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Target, Loader2, Edit2 } from 'lucide-react';
+import { Target, Loader2, Edit2, ChevronDown, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetGoals, useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/api/services/goal-service';
 import { useAuth } from '@/contexts/auth-context';
@@ -160,7 +160,7 @@ export const GoalsPage: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4">
+        <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
 
             {/* Minimalist Header */}
             <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
@@ -173,10 +173,11 @@ export const GoalsPage: React.FC = () => {
                 </div>
                 <Button
                     onClick={() => { setIsFormOpen(!isFormOpen); setStep(1); setActiveGoal(null); setIsNewRecord(true); clearTempPlan(); }}
-                    variant={isFormOpen && isNewRecord ? "outline" : "default"}
-                    className="gap-2 h-10 px-6 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all duration-300 shadow-lg active:scale-95"
+                    variant="ghost"
+                    className="h-10 w-10 p-0 rounded-full text-white hover:bg-white/10 transition-all duration-300 active:scale-95"
+                    title={isFormOpen && isNewRecord ? "Cancel Operation" : "Define New Goal"}
                 >
-                    {isFormOpen && isNewRecord ? "Cancel Operation" : "Define New Goal"}
+                    {isFormOpen && isNewRecord ? <ChevronDown size={22} className="rotate-180 opacity-60" /> : <Plus size={26} strokeWidth={2.5} />}
                 </Button>
             </div>
 
@@ -233,33 +234,27 @@ export const GoalsPage: React.FC = () => {
                 </div>
             )}
 
-            <div className="space-y-6">
-                <div className="flex items-center gap-3 px-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Active Matrix</h3>
+            {isLoading ? (
+                <div className="flex items-center justify-center p-24 bg-white/[0.01] border border-white/5 rounded-[40px] animate-pulse">
+                    <Loader2 className="animate-spin text-white/20" size={32} />
                 </div>
-
-                {isLoading ? (
-                    <div className="flex items-center justify-center p-24 bg-white/[0.01] border border-white/5 rounded-[40px] animate-pulse">
-                        <Loader2 className="animate-spin text-white/20" size={32} />
-                    </div>
-                ) : goals.length === 0 ? (
-                    <div className="py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm group hover:border-white/10 transition-colors">
-                        <Target className="w-16 h-16 text-white/5 mx-auto mb-6 group-hover:scale-110 group-hover:text-white/10 transition-all duration-500" strokeWidth={1} />
-                        <h3 className="text-xl font-bold text-white/40 tracking-tight leading-none">Matrix Inactive</h3>
-                        <p className="text-sm text-white/20 mt-3 max-w-xs mx-auto">Initialize a strategic objective to begin legacy construction.</p>
-                        <Button
-                            onClick={() => { setIsFormOpen(true); setIsNewRecord(true); }}
-                            variant="link"
-                            className="mt-6 text-primary font-bold uppercase tracking-widest text-[10px] hover:text-primary/80"
-                        >
-                            + Begin Definition
-                        </Button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 items-start">
-                        {goals.map((goal: Goal) => (
-                            <div key={goal.id} className="space-y-4">
+            ) : goals.length === 0 ? (
+                <div className="py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm group hover:border-white/10 transition-colors">
+                    <Target className="w-16 h-16 text-white/5 mx-auto mb-6 group-hover:scale-110 group-hover:text-white/10 transition-all duration-500" strokeWidth={1} />
+                    <h3 className="text-xl font-bold text-white/40 tracking-tight leading-none">Matrix Inactive</h3>
+                    <p className="text-sm text-white/20 mt-3 max-w-xs mx-auto">Initialize a strategic objective to begin legacy construction.</p>
+                    <Button
+                        onClick={() => { setIsFormOpen(true); setIsNewRecord(true); }}
+                        variant="link"
+                        className="mt-6 text-primary font-bold uppercase tracking-widest text-[10px] hover:text-primary/80"
+                    >
+                        + Begin Definition
+                    </Button>
+                </div>
+            ) : (
+                <div className="flex flex-col gap-10 w-full pb-20">
+                    {goals.map((goal: Goal) => (
+                        <div key={goal.id} className="w-full flex flex-col gap-6">
                                 <GoalCard
                                     goal={goal}
                                     isExpanded={!!expandedGoals[goal.id!]}
@@ -273,55 +268,70 @@ export const GoalsPage: React.FC = () => {
                                 />
 
                                 {isFormOpen && !isNewRecord && activeGoal?.id === goal.id && (
-                                    <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                                    <div className="w-full sm:max-w-none max-w-[450px] animate-in fade-in slide-in-from-top-4 duration-300">
                                         <Card className="border-white/10 bg-white/[0.02] backdrop-blur-md rounded-3xl overflow-hidden shadow-2xl relative">
                                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/30 to-blue-500/30 opacity-40"></div>
                                             <CardHeader className="pb-2">
-                                                <CardTitle className="text-lg font-bold tracking-tight text-white/90 flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        <Edit2 size={16} className="text-primary/50" />
-                                                        Refining: {goal.title || goal.name}
+                                                <CardTitle className="text-[10px] font-black tracking-[0.2em] text-white/90 flex items-center justify-between uppercase">
+                                                    <div className="flex items-center gap-2">
+                                                        <Edit2 size={12} className="text-primary/50" />
+                                                        Refining Objective
                                                     </div>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white/60"
-                                                        onClick={() => { setIsFormOpen(false); setActiveGoal(null); setIsNewRecord(false); setStep(1); }}
+                                                        className="h-7 px-2 text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white/60"
+                                                        onClick={() => { setIsFormOpen(false); setActiveGoal(null); setStep(1); }}
                                                     >
                                                         Cancel
                                                     </Button>
                                                 </CardTitle>
                                             </CardHeader>
-                                            <CardContent>
-                                                {step === 1 ? (
+                                            <CardContent className="pb-8">
+                                                {step === 1 && activeGoal ? (
                                                     <GoalDefinitionForm
-                                                        initialValues={activeGoal || {}}
-                                                        onSubmit={onDefinitionSubmit}
-                                                    />
-                                                ) : step === 2 ? (
-                                                    <AIGenerationStep
-                                                        onGenerate={handleGeneratePlan}
-                                                        generating={generating}
-                                                        previewPlan={tempPlan}
-                                                        onConfirm={handleConfirmPlan}
-                                                        onCancelPreview={handleCancelPreview}
-                                                    />
-                                                ) : (
-                                                    <ManualPlanStep
-                                                        goal={activeGoal!}
-                                                        onBack={() => setStep(1)}
-                                                        onSave={(plans) => {
-                                                            updateGoal.mutate({ ...activeGoal!, plans }, {
-                                                                onSuccess: () => {
-                                                                    setIsFormOpen(false);
-                                                                    setActiveGoal(null);
-                                                                    setStep(1);
-                                                                    toast.success("Manual plan saved successfully!");
-                                                                }
-                                                            });
+                                                        key={`edit-${goal.id}`}
+                                                        initialValues={{
+                                                            title: activeGoal.title || activeGoal.name,
+                                                            name: activeGoal.name,
+                                                            goalType: activeGoal.goalType,
+                                                            purpose: activeGoal.purpose || '',
+                                                            startDate: activeGoal.startDate,
+                                                            durationValue: activeGoal.milestones?.length || 1
+                                                        }}
+                                                        onSubmit={(values) => {
+                                                            const updated = { ...activeGoal, ...values } as Goal;
+                                                            updateGoal.mutate(updated);
+                                                            setStep(2);
                                                         }}
                                                     />
-                                                )}
+                                                ) : step === 2 && activeGoal ? (
+                                                    <AIGenerationStep
+                                                        onGenerate={() => generatePlan(activeGoal)}
+                                                        generating={generating}
+                                                        previewPlan={tempPlan}
+                                                        onConfirm={() => {
+                                                            if (tempPlan) {
+                                                                updateGoal.mutate({ ...activeGoal, plans: tempPlan } as Goal);
+                                                                setIsFormOpen(false);
+                                                                setActiveGoal(null);
+                                                                setStep(1);
+                                                            }
+                                                        }}
+                                                        onCancelPreview={clearTempPlan}
+                                                    />
+                                                ) : activeGoal ? (
+                                                    <ManualPlanStep
+                                                        goal={activeGoal}
+                                                        onBack={() => setStep(2)}
+                                                        onSave={(plans) => {
+                                                            updateGoal.mutate({ ...activeGoal, plans } as Goal);
+                                                            setIsFormOpen(false);
+                                                            setActiveGoal(null);
+                                                            setStep(1);
+                                                        }}
+                                                    />
+                                                ) : null}
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -330,7 +340,7 @@ export const GoalsPage: React.FC = () => {
                         ))}
                     </div>
                 )}
-            </div>
+
 
             <MilestoneStrategyDialog
                 isOpen={showStrategyDialog}

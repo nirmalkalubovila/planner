@@ -16,8 +16,6 @@ interface PlannerGridProps {
     localGridState: GridState;
     setLocalGridState: (state: GridState) => void;
     isSleepSlot: (slotIdx: number) => boolean;
-    isHabitSlot: (dayIdx: number, slotIdx: number) => boolean;
-    isPlanSlot: (dayIdx: number, slotIdx: number) => boolean;
     getCellContent: (dayIdx: number, slotIdx: number) => any;
     handleCellClick: (dayIdx: number, slotIdx: number) => void;
     selectedTool: string | null;
@@ -29,8 +27,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     localGridState,
     setLocalGridState,
     isSleepSlot,
-    isHabitSlot,
-    isPlanSlot,
     getCellContent,
     handleCellClick,
     selectedTool
@@ -154,7 +150,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                         const prevContent = slotIdx > 0 ? getCellContent(dayIdx, slotIdx - 1) : null;
                                         const isSameAsPrev = content && prevContent && content.type === prevContent.type && content.name === prevContent.name;
 
-                                        const isInteractive = content && (content.type === 'goal' || content.type === 'custom' || content.type === 'preview' || content.type === 'preview-free');
+                                        const isInteractive = content && (content.type === 'goal' || content.type === 'custom' || content.type === 'habit' || content.type === 'preview' || content.type === 'preview-free');
 
                                         return (
                                             <div
@@ -175,7 +171,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                 onDragOver={(e) => e.preventDefault()}
                                                 onDrop={(e) => {
                                                     e.preventDefault();
-                                                    if (isSleepSlot(slotIdx) || isHabitSlot(dayIdx, slotIdx) || isPlanSlot(dayIdx, slotIdx)) return;
+                                                    if (isSleepSlot(slotIdx)) return;
 
                                                     const targetKey = `${dayIdx}-${slotIdx}`;
                                                     const newState = { ...localGridState };
@@ -202,12 +198,12 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     content?.type === 'preview' && "bg-blue-500/10 text-blue-800 border-blue-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-blue-500/50 rounded-lg m-px z-20",
                                                     content?.type === 'preview-free' && "bg-amber-500/10 text-amber-800 border-amber-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-amber-500/50 rounded-lg m-px z-20",
                                                     content?.type === 'sleep' && "bg-indigo-950 text-indigo-300/80 cursor-not-allowed z-10",
-                                                    content?.type === 'habit' && "bg-emerald-950 text-emerald-400/90 cursor-not-allowed z-10",
-                                                    content?.type === 'plan' && "bg-purple-950 text-purple-400/90 cursor-not-allowed z-10",
                                                     content?.type === 'goal' && "bg-blue-600 text-white cursor-grab active:cursor-grabbing hover:brightness-110 z-10",
                                                     content?.type === 'custom' && "bg-amber-500 text-amber-950 cursor-grab active:cursor-grabbing hover:brightness-110 z-10",
+                                                    content?.type === 'habit' && "bg-emerald-950 text-emerald-400/90 cursor-grab active:cursor-grabbing hover:brightness-110 z-10",
                                                     !content && !isToday && "hover:bg-accent/30 text-transparent",
-                                                    !content && isToday && "text-transparent"
+                                                    !content && isToday && "text-transparent",
+                                                    (isInteractive && selectedTool === 'drag') && "touch-action-none"
                                                 )}
                                                 style={
                                                     content?.type === 'goal'
