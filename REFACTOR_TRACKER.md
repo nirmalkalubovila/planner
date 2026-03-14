@@ -91,5 +91,4 @@ All changes are logged here with date, file, action, and reasoning.
 | 2026-03-14 | `src/components/ui/simple-time-picker.tsx` | Globally replaced native time pickers | UI Consistency: Standardized time picking interface across app |
 | 2026-03-14 | `src/features/planner/components/planner-toolbar.tsx` | Separated desktop/mobile layouts | UX: Built responsive horizontal bottom toolbar for mobile |
 | 2026-03-14 | `src/index.css` | Reduced horizontal scrollbar height | UX: Made custom scrollbar thinner to save vertical space |
-| 2026-03-14 | `src/features/planner/components/planner-toolbar.tsx` | Reduced mobile toolbar width & added active states | UX/Touch: Made buttons scale-90 on tap for native app feel |
-| 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Implemented touch Drag & Drop for grid blocks | Touch UX: Added onTouchStart/Move/End handlers for mobile |
+| 2026-03-14 | `src/features/planner/components/planner-grid.tsx` | Made time column hidable + styled black | UX: User can now collapse massive time column to view full grid |
