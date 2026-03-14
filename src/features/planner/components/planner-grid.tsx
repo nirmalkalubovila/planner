@@ -206,6 +206,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
                                                     const sourceKey = e.dataTransfer.getData('sourceKey');
                                                     if (sourceKey && sourceKey !== targetKey) {
+                                                        if (newState[targetKey]) return;
                                                         newState[targetKey] = newState[sourceKey];
                                                         delete newState[sourceKey];
                                                         setLocalGridState(newState);
@@ -214,6 +215,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
                                                     const sourceNewTaskStr = e.dataTransfer.getData('sourceNewTask');
                                                     if (sourceNewTaskStr) {
+                                                        if (newState[targetKey]) return;
                                                         newState[targetKey] = JSON.parse(sourceNewTaskStr);
                                                         setLocalGridState(newState);
                                                     }

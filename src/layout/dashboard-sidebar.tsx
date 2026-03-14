@@ -25,11 +25,11 @@ export const DashboardSidebar: React.FC = () => {
     return (
         <div className={cn(
             "flex h-full flex-col border-r border-white/5 bg-background text-foreground transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] relative z-50",
-            isCollapsed ? "w-20" : "w-64"
+            isCollapsed ? "w-14" : "w-50"
         )}>
             {/* Header / Brand area placeholder */}
             <div className={cn(
-                "flex items-center h-16 px-6",
+                "flex items-center h-12 px-4",
                 isCollapsed ? "justify-center" : "justify-between"
             )}>
                 {!isCollapsed && (
@@ -40,7 +40,7 @@ export const DashboardSidebar: React.FC = () => {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-white/5 text-white/30 hover:text-white transition-all duration-300"
+                    className="h-8 w-8 rounded-full pl-2 hover:bg-white/5 text-white/30 hover:text-white transition-all duration-300"
                     onClick={() => setIsCollapsed(!isCollapsed)}
                 >
                     {isCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
@@ -102,24 +102,6 @@ export const DashboardSidebar: React.FC = () => {
                     </NavLink>
                 ))}
             </nav>
-
-            {/* Support / Bottom links */}
-            <div className="p-6 mt-auto">
-                <div className={cn(
-                    "flex items-center p-3 rounded-2xl bg-white/[0.02] border border-white/5 transition-all duration-500",
-                    isCollapsed ? "justify-center" : "gap-4"
-                )}>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-white/10 to-white/5 border border-white/10 shrink-0 flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    </div>
-                    {!isCollapsed && (
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-white/80">System Online</span>
-                            <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Operational</span>
-                        </div>
-                    )}
-                </div>
-            </div>
         </div>
     );
 };

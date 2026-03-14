@@ -24,8 +24,12 @@ interface ProfilePreferencesProps {
         setSleepDuration: (val: string) => void;
         weekStart: string;
         setWeekStart: (val: string) => void;
-        planTime: string;
-        setPlanTime: (val: string) => void;
+        planDay: string;
+        setPlanDay: (val: string) => void;
+        planStartTime: string;
+        setPlanStartTime: (val: string) => void;
+        planDurationPacks: string;
+        setPlanDurationPacks: (val: string) => void;
         primaryLifeFocus: string;
         setPrimaryLifeFocus: (val: string) => void;
         currentProfession: string;
@@ -112,20 +116,32 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                             </Select>
                         </div>
                         <div className="space-y-1.5">
-                            <label className={labelClass}>Planning Time</label>
-                            <Select value={formData.planTime} onValueChange={formData.setPlanTime}>
+                            <label className={labelClass}>Planning Day</label>
+                            <Select value={formData.planDay} onValueChange={formData.setPlanDay}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select time" />
+                                    <SelectValue placeholder="Select day" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Friday 4PM - 5PM">Friday 4–5 PM</SelectItem>
-                                    <SelectItem value="Saturday 10AM - 11AM">Saturday 10–11 AM</SelectItem>
-                                    <SelectItem value="Sunday 9AM - 10AM">Sunday 9–10 AM</SelectItem>
-                                    <SelectItem value="Sunday 8PM - 9PM">Sunday 8–9 PM</SelectItem>
-                                    <SelectItem value="Sunday 9PM - 10PM">Sunday 9–10 PM</SelectItem>
-                                    <SelectItem value="Monday 8AM - 9AM">Monday 8–9 AM</SelectItem>
+                                    <SelectItem value="Monday">Monday</SelectItem>
+                                    <SelectItem value="Tuesday">Tuesday</SelectItem>
+                                    <SelectItem value="Wednesday">Wednesday</SelectItem>
+                                    <SelectItem value="Thursday">Thursday</SelectItem>
+                                    <SelectItem value="Friday">Friday</SelectItem>
+                                    <SelectItem value="Saturday">Saturday</SelectItem>
+                                    <SelectItem value="Sunday">Sunday</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Planning Start Time</label>
+                            <SimpleTimePicker value={formData.planStartTime} onChange={formData.setPlanStartTime} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className={labelClass}>Planning Duration (30m packs)</label>
+                            <Input type="number" min="1" max="10" value={formData.planDurationPacks} onChange={(e) => formData.setPlanDurationPacks(e.target.value)} placeholder="2" className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
                         </div>
                     </div>
 
@@ -212,7 +228,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Planning</p>
-                            <p className="text-sm font-medium">{user.user_metadata?.planTime || 'Sunday 9–10 PM'}</p>
+                            <p className="text-sm font-medium">{user.user_metadata?.planDay || 'Sunday'} {user.user_metadata?.planStartTime || '21:00'} ({user.user_metadata?.planDurationPacks || 2}×30m)</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Focus</p>

@@ -18,7 +18,9 @@ export const ProfilePage: React.FC = () => {
     const [sleepStart, setSleepStart] = useState('');
     const [sleepDuration, setSleepDuration] = useState('');
     const [weekStart, setWeekStart] = useState('');
-    const [planTime, setPlanTime] = useState('');
+    const [planDay, setPlanDay] = useState('');
+    const [planStartTime, setPlanStartTime] = useState('');
+    const [planDurationPacks, setPlanDurationPacks] = useState('');
     const [primaryLifeFocus, setPrimaryLifeFocus] = useState('');
     const [currentProfession, setCurrentProfession] = useState('');
     const [energyPeakTime, setEnergyPeakTime] = useState('');
@@ -32,7 +34,9 @@ export const ProfilePage: React.FC = () => {
             setSleepStart(user.user_metadata?.sleepStart || '22:00');
             setSleepDuration(user.user_metadata?.sleepDuration || '8');
             setWeekStart(user.user_metadata?.weekStart || 'Monday');
-            setPlanTime(user.user_metadata?.planTime || 'Sunday 9PM - 10PM');
+            setPlanDay(user.user_metadata?.planDay || 'Sunday');
+            setPlanStartTime(user.user_metadata?.planStartTime || '21:00');
+            setPlanDurationPacks(String(user.user_metadata?.planDurationPacks || '2'));
             setPrimaryLifeFocus(user.user_metadata?.primaryLifeFocus || '');
             setCurrentProfession(user.user_metadata?.currentProfession || '');
             setEnergyPeakTime(user.user_metadata?.energyPeakTime || 'Morning');
@@ -50,7 +54,9 @@ export const ProfilePage: React.FC = () => {
                 sleepStart,
                 sleepDuration,
                 weekStart,
-                planTime,
+                planDay,
+                planStartTime,
+                planDurationPacks: Number(planDurationPacks) || 2,
                 primaryLifeFocus,
                 currentProfession,
                 energyPeakTime,
@@ -76,7 +82,9 @@ export const ProfilePage: React.FC = () => {
         sleepStart, setSleepStart,
         sleepDuration, setSleepDuration,
         weekStart, setWeekStart,
-        planTime, setPlanTime,
+        planDay, setPlanDay,
+        planStartTime, setPlanStartTime,
+        planDurationPacks, setPlanDurationPacks,
         primaryLifeFocus, setPrimaryLifeFocus,
         currentProfession, setCurrentProfession,
         energyPeakTime, setEnergyPeakTime,
