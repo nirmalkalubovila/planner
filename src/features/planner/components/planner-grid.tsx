@@ -35,7 +35,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     const weekDates = useMemo(() => WeekUtils.getDaysForWeek(currentWeek), [currentWeek]);
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isTimeColumnVisible, setIsTimeColumnVisible] = useState(true);
-    const [touchSourceKey, setTouchSourceKey] = useState<string | null>(null);
 
     // Auto-scroll to morning (first non-sleep slot) on mount or week change
     useEffect(() => {
@@ -152,38 +151,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                         return (
                                             <div
                                                 key={dayIdx}
-                                                data-cell-key={`${dayIdx}-${slotIdx}`}
                                                 draggable={!!isInteractive}
-                                                onTouchStart={() => {
-                                                    if (isInteractive) {
-                                                        setTouchSourceKey(`${dayIdx}-${slotIdx}`);
-                                                    }
-                                                }}
-                                                onTouchMove={(e) => {
-                                                    if (touchSourceKey) {
-                                                        e.preventDefault(); // allow dragging without scrolling page
-                                                    }
-                                                }}
-                                                onTouchEnd={(e) => {
-                                                    if (!touchSourceKey) return;
-                                                    const touch = e.changedTouches[0];
-                                                    const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                                                    const targetKey = targetElement?.closest('[data-cell-key]')?.getAttribute('data-cell-key');
-
-                                                    if (targetKey && targetKey !== touchSourceKey) {
-                                                        const [targetDayStr, targetSlotStr] = targetKey.split('-');
-                                                        const targetDay = parseInt(targetDayStr);
-                                                        const targetSlot = parseInt(targetSlotStr);
-
-                                                        if (!isSleepSlot(targetSlot) && !isHabitSlot(targetDay, targetSlot) && !isPlanSlot(targetDay, targetSlot)) {
-                                                            const newState = { ...localGridState };
-                                                            newState[targetKey] = newState[touchSourceKey];
-                                                            delete newState[touchSourceKey];
-                                                            setLocalGridState(newState);
-                                                        }
-                                                    }
-                                                    setTouchSourceKey(null);
-                                                }}
                                                 onDragStart={(e) => {
                                                     if (content?.type === 'preview' || content?.type === 'preview-free') {
                                                         e.dataTransfer.setData('sourceNewTask', JSON.stringify({
@@ -206,7 +174,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
                                                     const sourceKey = e.dataTransfer.getData('sourceKey');
                                                     if (sourceKey && sourceKey !== targetKey) {
-                                                        if (newState[targetKey]) return;
                                                         newState[targetKey] = newState[sourceKey];
                                                         delete newState[sourceKey];
                                                         setLocalGridState(newState);
@@ -215,7 +182,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
 
                                                     const sourceNewTaskStr = e.dataTransfer.getData('sourceNewTask');
                                                     if (sourceNewTaskStr) {
-                                                        if (newState[targetKey]) return;
                                                         newState[targetKey] = JSON.parse(sourceNewTaskStr);
                                                         setLocalGridState(newState);
                                                     }
@@ -234,8 +200,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     content?.type === 'goal' && "bg-blue-600 text-white cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-blue-500",
                                                     content?.type === 'custom' && "bg-amber-500 text-amber-950 cursor-grab active:cursor-grabbing shadow-sm m-px rounded hover:brightness-110 border border-amber-400",
                                                     !content && !isToday && "hover:bg-accent/30 text-transparent",
-                                                    !content && isToday && "text-transparent",
-                                                    touchSourceKey === `${dayIdx}-${slotIdx}` && "opacity-50 scale-95" // Visual feedback for touch dragging
+                                                    !content && isToday && "text-transparent"
                                                 )}
                                                 style={
                                                     content?.type === 'goal'

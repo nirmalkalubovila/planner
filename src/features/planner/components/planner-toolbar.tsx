@@ -299,17 +299,17 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                 {/* 2) Expanded Horizontal Toolbar (Bottom) when NOT collapsed */}
                 <div 
                     className={cn(
-                        "absolute bottom-4 left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-24px)] flex flex-row items-center justify-center p-1.5 rounded-2xl bg-card/95 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.8)] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-auto",
-                        isCollapsed ? "opacity-0 translate-y-20 scale-95 pointer-events-none" : "opacity-100 translate-y-0 scale-100"
+                        "absolute bottom-4 left-2 right-2 flex flex-row items-center justify-around p-2 rounded-2xl bg-card/95 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.8)] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-auto",
+                        isCollapsed ? "opacity-0 translate-y-20 pointer-events-none" : "opacity-100 translate-y-0"
                     )}
                 >
-                    <div className="flex items-center gap-0.5">
+                    <div className="flex items-center gap-1">
                         <Button
                             variant={selectedTool === 'erase' ? 'secondary' : 'ghost'}
                             size="icon"
                             className={cn(
-                                "rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11 active:scale-90",
-                                selectedTool === 'erase' ? "bg-destructive/15 text-destructive ring-1 ring-destructive/30 shadow-md" : "text-muted-foreground hover:bg-muted"
+                                "rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
+                                selectedTool === 'erase' ? "bg-destructive/15 text-destructive ring-1 ring-destructive/30 shadow-md scale-105" : "text-muted-foreground hover:bg-muted"
                             )}
                             onClick={() => setSelectedTool(selectedTool === 'erase' ? null : 'erase')}
                         >
@@ -319,8 +319,8 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             variant={selectedTool === 'duplicate' ? 'secondary' : 'ghost'}
                             size="icon"
                             className={cn(
-                                "rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11 active:scale-90",
-                                selectedTool === 'duplicate' ? "bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/30 shadow-md" : "text-muted-foreground hover:bg-muted"
+                                "rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
+                                selectedTool === 'duplicate' ? "bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/30 shadow-md scale-105" : "text-muted-foreground hover:bg-muted"
                             )}
                             onClick={() => setSelectedTool(selectedTool === 'duplicate' ? null : 'duplicate')}
                         >
@@ -330,8 +330,8 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             variant={selectedTool === 'goal' ? 'secondary' : 'ghost'}
                             size="icon"
                             className={cn(
-                                "rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11 active:scale-90",
-                                selectedTool === 'goal' ? "bg-primary/15 text-primary ring-1 ring-primary/30 shadow-md" : "text-primary/70 hover:bg-primary/10 hover:text-primary"
+                                "rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
+                                selectedTool === 'goal' ? "bg-primary/15 text-primary ring-1 ring-primary/30 shadow-md scale-105" : "text-primary/70 hover:bg-primary/10 hover:text-primary"
                             )}
                             onClick={() => {
                                 if (selectedTool === 'goal') setSelectedTool(null);
@@ -344,32 +344,32 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             onClick={() => onCreateCustomTask()}
                             variant="ghost"
                             size="icon"
-                            className="rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11 active:scale-90 text-foreground"
+                            className="rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11"
                         >
                             <Plus size={22} strokeWidth={2.5} />
                         </Button>
                     </div>
 
-                    <div className="w-px h-8 bg-white/10 mx-1 shrink-0" />
+                    <div className="w-px h-8 bg-white/15 mx-1" />
 
-                    <div className="flex items-center gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30 active:scale-90 transition-transform" onClick={onUndo} disabled={!canUndo}>
+                    <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30" onClick={onUndo} disabled={!canUndo}>
                             <Undo2 size={18} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30 active:scale-90 transition-transform" onClick={onRedo} disabled={!canRedo}>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30" onClick={onRedo} disabled={!canRedo}>
                             <Redo2 size={18} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-destructive hover:bg-destructive/10 active:scale-90 transition-transform" onClick={onClear}>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-destructive hover:bg-destructive/10" onClick={onClear}>
                             <RotateCcw size={18} />
                         </Button>
                     </div>
                 
-                    <div className="w-px h-8 bg-white/10 mx-1 shrink-0" />
+                    <div className="w-px h-8 bg-white/15 mx-1" />
 
                     <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-10 w-10 rounded-full shrink-0 border border-white/5 bg-background/50 hover:bg-background/80 hover:text-primary active:scale-90 transition-transform"
+                        className="h-10 w-10 rounded-full shrink-0 border border-white/5 bg-background/50 hover:bg-background/80 hover:text-primary"
                         onClick={() => setIsCollapsed(true)}
                     >
                         <ChevronDown size={20} />
