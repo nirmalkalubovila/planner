@@ -15,7 +15,7 @@ const Card: React.FC<{
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5, delay, ease: [0.23, 1, 0.32, 1] }}
     className={cn(
-      'relative flex flex-col overflow-hidden rounded-3xl p-6',
+      'relative flex flex-col overflow-hidden rounded-3xl p-4 sm:p-6',
       'bg-[#0a0c10]/80 backdrop-blur-md border border-white/10',
       className,
     )}
@@ -47,17 +47,17 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed }) => 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
       {/* Hero — Life Trajectory with circular gauge */}
-      <Card className="items-center justify-center py-10" delay={0.1}>
+      <Card className="items-center justify-center py-6 sm:py-10" delay={0.1}>
         <Label text="Life Trajectory Score" />
         <CircularProgress
           value={trajectory?.total ?? 0}
-          size={160}
+          size={130}
           strokeWidth={10}
           color="stroke-emerald-400"
           delay={0.2}
         />
         {trajectory && (
-          <div className="flex items-center justify-center gap-6 text-xs text-white/40 font-medium mt-6">
+          <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap text-[11px] sm:text-xs text-white/40 font-medium mt-4 sm:mt-6">
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
               Goals {trajectory.goalScore}%
@@ -81,8 +81,8 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed }) => 
           <Label text="Goal Progress" />
           <CircularProgress
             value={detailed?.bestGoal?.progress ?? cache.top_goal.progress}
-            size={110}
-            strokeWidth={8}
+            size={90}
+            strokeWidth={7}
             color="stroke-emerald-400"
             label={detailed?.bestGoal?.name ?? cache.top_goal.name}
             sublabel="Top Active Goal"
@@ -101,8 +101,8 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed }) => 
           <Label text="Habit Strength" />
           <CircularProgress
             value={detailed?.bestHabit?.consistency ?? 0}
-            size={110}
-            strokeWidth={8}
+            size={90}
+            strokeWidth={7}
             color="stroke-blue-400"
             label={detailed?.bestHabit?.name ?? '—'}
             sublabel="Strongest Habit"
@@ -121,8 +121,8 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed }) => 
           <Label text="Week Execution" />
           <CircularProgress
             value={detailed?.bestWeek?.efficiency ?? 0}
-            size={110}
-            strokeWidth={8}
+            size={90}
+            strokeWidth={7}
             color="stroke-amber-400"
             label={detailed?.bestWeek?.weekKey ?? '—'}
             sublabel="Best Week"
@@ -202,10 +202,10 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed }) => 
 
         <Card className="md:col-span-2" delay={0.65}>
           <Label text="Top Goal Velocity" />
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <CircularProgress
               value={cache.top_goal.progress}
-              size={80}
+              size={70}
               strokeWidth={6}
               color="stroke-primary"
               delay={0.7}

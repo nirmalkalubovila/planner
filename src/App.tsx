@@ -15,10 +15,9 @@ const TodayPage = React.lazy(() => import('./features/today/today-page').then(m 
 const LoginPage = React.lazy(() => import('./features/auth/login-page').then(m => ({ default: m.LoginPage })));
 const SignupPage = React.lazy(() => import('./features/auth/signup-page').then(m => ({ default: m.SignupPage })));
 const ProfilePage = React.lazy(() => import('./features/profile/profile-page').then(m => ({ default: m.ProfilePage })));
-const PersonalizePage = React.lazy(() => import('./features/auth/personalize-page').then(m => ({ default: m.PersonalizePage })));
+const StatisticsPage = React.lazy(() => import('./features/statistics/statistics-page').then(m => ({ default: m.StatisticsPage })));
 const ForgotPasswordPage = React.lazy(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = React.lazy(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
-const StatisticsPage = React.lazy(() => import('./features/statistics/statistics-page').then(m => ({ default: m.StatisticsPage })));
 
 const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={<PageLoader />}>{children}</Suspense>
@@ -64,6 +63,7 @@ const router = createBrowserRouter(
       <Route path="/signup" element={<AuthRoute><SuspenseWrapper><SignupPage /></SuspenseWrapper></AuthRoute>} />
       <Route path="/forgot-password" element={<AuthRoute><SuspenseWrapper><ForgotPasswordPage /></SuspenseWrapper></AuthRoute>} />
       <Route path="/reset-password" element={<SuspenseWrapper><ResetPasswordPage /></SuspenseWrapper>} />
+      <Route path="/personalize" element={<Navigate to="/" replace />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
@@ -74,7 +74,6 @@ const router = createBrowserRouter(
           <Route path="/profile" element={<SuspenseWrapper><ProfilePage /></SuspenseWrapper>} />
           <Route path="/statistics" element={<SuspenseWrapper><StatisticsPage /></SuspenseWrapper>} />
         </Route>
-        <Route path="/personalize" element={<SuspenseWrapper><PersonalizePage /></SuspenseWrapper>} />
       </Route>
     </Route>
   )

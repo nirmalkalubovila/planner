@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/auth-context';
 import { Habit } from '@/types/global-types';
-import { timeToMinutes, isTimeOverlapping, isSleepOverlapping } from '@/utils/time';
+import { timeToMinutes, minutesToTime, isTimeOverlapping, isSleepOverlapping } from '@/utils/time';
 
 interface ConflictCheckParams {
     startTime: string;
@@ -8,6 +8,13 @@ interface ConflictCheckParams {
     daysOfWeek: string[];
     startDate: string;
     endDate: string;
+}
+
+function resolvePlanEndTime(meta: any): string {
+    if (meta?.planEndTime) return meta.planEndTime;
+    const startTime = meta?.planStartTime || '21:00';
+    const packs = Number(meta?.planDurationPacks) || 2;
+    return minutesToTime(timeToMinutes(startTime) + packs * 30);
 }
 
 export function useHabitConflicts(habits: Habit[], editingHabitId?: string) {
@@ -23,9 +30,7 @@ export function useHabitConflicts(habits: Habit[], editingHabitId?: string) {
 
         const planDay = user?.user_metadata?.planDay || 'Sunday';
         const planStartTime = user?.user_metadata?.planStartTime || '21:00';
-        const planDurationPacks = Number(user?.user_metadata?.planDurationPacks) || 2;
-        const planEndMin = timeToMinutes(planStartTime) + planDurationPacks * 30;
-        const planEndTime = `${Math.floor((planEndMin % 1440) / 60).toString().padStart(2, '0')}:${(planEndMin % 60).toString().padStart(2, '0')}`;
+        const planEndTime = resolvePlanEndTime(user?.user_metadata);
 
         if (values.daysOfWeek.includes(planDay)) {
             if (isTimeOverlapping(values.startTime, values.endTime, planStartTime, planEndTime)) {

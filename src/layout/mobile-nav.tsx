@@ -26,8 +26,8 @@ export const MobileNav: React.FC = () => {
                             )
                         }
                     >
-                        <item.icon size={20} className={cn("mb-0.5")} />
-                        <span className="sr-only sm:not-sr-only sm:text-[10px]">{item.name}</span>
+                        <item.icon size={20} className="mb-0.5" />
+                        <span className="text-[9px] sm:text-[10px]">{item.name}</span>
                     </NavLink>
                 ))}
             </div>

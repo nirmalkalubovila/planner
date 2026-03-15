@@ -67,7 +67,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onRequireOtp 
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
-                options: { redirectTo: `${window.location.origin}/personalize` }
+                options: { redirectTo: `${window.location.origin}/` }
             });
             if (error) throw error;
         } catch (error: any) {

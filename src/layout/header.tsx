@@ -23,7 +23,7 @@ export const Header: React.FC = () => {
 
     return (
         <header className="sticky top-0 z-[100] w-full border-b border-white/5 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-            <div className="grid grid-cols-3 items-center h-12 px-4 md:px-8">
+            <div className="grid grid-cols-3 items-center h-12 px-2 sm:px-4 md:px-8">
 
                 {/* Left: Beautiful Logo & Title (Anchored to home) */}
                 <div className="flex justify-start">
@@ -52,11 +52,11 @@ export const Header: React.FC = () => {
                 {/* Middle: Timer (Logo-style Text) */}
                 <div className="flex flex-col items-center justify-center font-bold text-white tracking-widest leading-tight">
                     <div className="flex flex-col items-center group cursor-default">
-                        <span className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-white/40 group-hover:text-primary transition-colors">
+                        <span className="text-[9px] sm:text-[10px] md:text-[11px] uppercase tracking-[0.15em] sm:tracking-[0.2em] text-white/40 group-hover:text-primary transition-colors">
                             {format(time, 'yyyy, MMM dd')}
                         </span>
                         <div className="flex items-center gap-2">
-                            <span className="text-lg md:text-xl font-mono">
+                            <span className="text-base sm:text-lg md:text-xl font-mono">
                                 {format(time, 'HH:mm:ss')}
                             </span>
                         </div>

@@ -1,8 +1,14 @@
 import React from 'react';
-import { Edit2, Trash2, Calendar as CalendarIcon } from 'lucide-react';
-import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card';
+import { Edit2, Trash2, Clock, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Habit } from '@/types/global-types';
+import { cn } from '@/lib/utils';
+
+const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_MAP: Record<string, string> = {
+    Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed',
+    Thursday: 'Thu', Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun',
+};
 
 interface HabitCardProps {
     habit: Habit;
@@ -11,56 +17,117 @@ interface HabitCardProps {
 }
 
 export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete }) => {
+    const activeDays = new Set((habit.daysOfWeek || []).map(d => DAY_MAP[d] || d.substring(0, 3)));
+    const frequency = activeDays.size;
+    const isEveryday = frequency === 7;
+
+    const intensityOpacity = Math.max(0.4, frequency / 7);
+
     return (
-        <Card className="group hover:border-primary/40 transition-all hover:shadow-sm relative overflow-hidden flex flex-col h-full">
-            <div className="absolute top-0 left-0 w-1 h-full bg-primary/80"></div>
-            <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-                <div className="flex items-start justify-between">
-                    <h3 className="font-bold text-sm leading-tight pr-2">{habit.name}</h3>
-                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => onEdit(habit)}>
-                            <Edit2 size={14} />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => onDelete(habit.id!)}>
-                            <Trash2 size={14} />
-                        </Button>
+        <div
+            className={cn(
+                'group relative rounded-2xl border overflow-hidden flex flex-col h-full',
+                'bg-white/[0.03] border-white/10 hover:border-primary/40',
+                'transition-[border-color,box-shadow] duration-150',
+                frequency >= 5 && 'hover:shadow-[0_0_24px_rgba(var(--primary-rgb,99,102,241),0.12)]',
+            )}
+        >
+            {/* Accent bar - intensity scales with frequency */}
+            <div
+                className="absolute top-0 left-0 w-1 h-full bg-primary rounded-l-2xl"
+                style={{ opacity: intensityOpacity }}
+            />
+
+            {/* Action buttons */}
+            <div className="absolute top-2.5 right-2.5 flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-100 z-10">
+                <Button
+                    variant="ghost" size="icon"
+                    className="h-7 w-7 rounded-lg text-white/30 hover:text-primary hover:bg-white/10"
+                    onClick={() => onEdit(habit)}
+                >
+                    <Edit2 size={13} />
+                </Button>
+                <Button
+                    variant="ghost" size="icon"
+                    className="h-7 w-7 rounded-lg text-white/30 hover:text-destructive hover:bg-white/10"
+                    onClick={() => onDelete(habit.id!)}
+                >
+                    <Trash2 size={13} />
+                </Button>
+            </div>
+
+            <div className="p-4 pl-5 flex flex-col gap-3 flex-1">
+                {/* Row 1: Name + everyday badge */}
+                <div className="flex items-start gap-2 pr-14">
+                    <h3 className="font-bold text-[15px] leading-snug text-white/90 tracking-tight">
+                        {habit.name}
+                    </h3>
+                    {isEveryday && (
+                        <span className="shrink-0 mt-0.5 text-[8px] font-black uppercase tracking-widest bg-primary/15 text-primary border border-primary/20 px-1.5 py-0.5 rounded">
+                            Daily
+                        </span>
+                    )}
+                </div>
+
+                {/* Row 2: Time pill */}
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-1.5">
+                        <Clock size={13} className="text-primary/70 shrink-0" />
+                        <span className="text-sm font-bold text-white/80 font-mono tracking-tight">
+                            {habit.startTime}
+                        </span>
+                        <span className="text-white/20 text-xs">→</span>
+                        <span className="text-sm font-bold text-white/80 font-mono tracking-tight">
+                            {habit.endTime}
+                        </span>
                     </div>
                 </div>
-                {(habit.purpose) && (
-                    <CardDescription className="line-clamp-2 mt-1 italic text-muted-foreground/80 font-medium">
-                        "{habit.purpose}"
-                    </CardDescription>
-                )}
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0">
-                <div className="flex flex-col gap-2 text-xs text-foreground/80 font-medium">
-                    <div className="grid grid-cols-2 gap-2 mt-1">
-                        <div className="flex items-center justify-between bg-accent/30 p-1.5 px-2 rounded border border-border/50 col-span-2">
-                            <span className="text-[9px] uppercase text-muted-foreground tracking-wider">Time</span>
-                            <span className="font-bold text-primary">{habit.startTime} - {habit.endTime}</span>
-                        </div>
-                    </div>
 
-                    {habit.startDate && habit.endDate && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1 bg-background pt-1">
-                            <CalendarIcon size={12} className="text-primary/60" />
-                            <span>{habit.startDate}</span>
-                            <span className="mx-1 font-light">&rarr;</span>
-                            <span>{habit.endDate}</span>
-                        </div>
-                    )}
-
-                    {habit.daysOfWeek && habit.daysOfWeek.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                            {habit.daysOfWeek.map(day => (
-                                <span key={day} className="text-[9px] uppercase font-bold tracking-widest bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-1.5 py-0.5 rounded-sm">
-                                    {day.substring(0, 3)}
+                {/* Row 3: Week frequency dots */}
+                <div className="flex items-center gap-1">
+                    {ALL_DAYS.map(day => {
+                        const active = activeDays.has(day);
+                        return (
+                            <div key={day} className="flex flex-col items-center gap-1">
+                                <div
+                                    className={cn(
+                                        'w-[26px] h-[6px] rounded-full transition-colors',
+                                        active
+                                            ? 'bg-primary/80'
+                                            : 'bg-white/[0.06]'
+                                    )}
+                                />
+                                <span className={cn(
+                                    'text-[8px] font-bold uppercase tracking-wide',
+                                    active ? 'text-white/50' : 'text-white/15'
+                                )}>
+                                    {day.charAt(0)}
                                 </span>
-                            ))}
-                        </div>
-                    )}
+                            </div>
+                        );
+                    })}
+                    <span className="text-[9px] font-black text-white/25 ml-1.5 uppercase tracking-widest">
+                        {frequency}/7
+                    </span>
                 </div>
-            </CardContent>
-        </Card>
+
+                {/* Row 4: Purpose */}
+                {habit.purpose && (
+                    <p className="text-[11px] text-white/30 italic leading-relaxed line-clamp-2">
+                        "{habit.purpose}"
+                    </p>
+                )}
+
+                {/* Row 5: Date range footer */}
+                {habit.startDate && habit.endDate && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-white/20 mt-auto pt-1">
+                        <CalendarIcon size={10} className="text-white/15 shrink-0" />
+                        <span>{habit.startDate}</span>
+                        <span className="text-white/10">→</span>
+                        <span>{habit.endDate}</span>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 };

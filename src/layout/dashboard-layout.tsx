@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Header } from './header';
 import { DashboardSidebar } from './dashboard-sidebar';
 import { MobileNav } from './mobile-nav';
+import { PersonalizeModal } from '@/features/auth/personalize-page';
 
 export const DashboardLayout: React.FC = () => {
     return (
@@ -17,6 +18,7 @@ export const DashboardLayout: React.FC = () => {
                 </main>
                 <MobileNav />
             </div>
+            <PersonalizeModal />
         </div>
     );
 };

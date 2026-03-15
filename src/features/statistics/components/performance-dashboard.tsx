@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/auth-context';
 import { useUserStats } from '../hooks/use-user-stats';
 import { useDetailedAnalytics } from '../hooks/use-detailed-stats';
-import { FeedbackLoader } from '@/components/ui/feedback-loader';
+import { PageLoader } from '@/components/common/page-loader';
 import { SummaryView } from './summary-view';
 import { DetailedView } from './detailed-view';
 
@@ -15,25 +14,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'detailed', label: 'Detailed' },
 ];
 
-const OracleHeader: React.FC<{
-  userName: string;
-  burnoutWarning: string | null;
-}> = ({ burnoutWarning }) => (
-  <header className="flex flex-col space-y-1">
-    
-    {burnoutWarning && (
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="text-sm text-rose-400 font-medium"
-      >
-        {burnoutWarning}
-      </motion.p>
-    )}
-  </header>
-);
-
 const TabSwitcher: React.FC<{ active: Tab; onChange: (t: Tab) => void }> = ({ active, onChange }) => (
   <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10 w-fit">
     {TABS.map(tab => (
@@ -42,7 +22,7 @@ const TabSwitcher: React.FC<{ active: Tab; onChange: (t: Tab) => void }> = ({ ac
         type="button"
         onClick={() => onChange(tab.id)}
         className={cn(
-          'relative px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-full transition-colors duration-200',
+          'relative px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-full transition-colors duration-150',
           active === tab.id ? 'text-white' : 'text-white/40 hover:text-white/70',
         )}
       >
@@ -60,9 +40,6 @@ const TabSwitcher: React.FC<{ active: Tab; onChange: (t: Tab) => void }> = ({ ac
 );
 
 export const PerformanceDashboard: React.FC = () => {
-  const { user } = useAuth();
-  const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'Voyager';
-
   const { data: cache, isLoading: cacheLoading } = useUserStats();
 
   const [activeTab, setActiveTab] = useState<Tab>('summary');
@@ -75,17 +52,25 @@ export const PerformanceDashboard: React.FC = () => {
   const { data: detailed, isLoading: detailedLoading } = useDetailedAnalytics(detailedEnabled);
 
   if (cacheLoading || !cache) {
-    return (
-      <div className="flex flex-col w-full h-full items-center justify-center space-y-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-        <p className="text-white/40 text-sm">Loading insights…</p>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
-    <div className="flex flex-col w-full max-w-[1200px] mx-auto p-4 md:p-8 space-y-6 pb-20 animate-in fade-in duration-500">
-      <OracleHeader userName={userName} burnoutWarning={cache.predictive_burnout_warning} />
+    <div className="flex flex-col w-full max-w-[1200px] mx-auto px-2 pt-8 sm:pt-12 sm:px-4 md:px-8 space-y-6 pb-20">
+
+      <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Performance</h2>
+          <div className="flex items-center gap-2">
+            <div className="h-1 w-12 bg-primary/40 rounded-full" />
+            {cache.predictive_burnout_warning && (
+              <span className="text-[10px] font-black text-rose-400/60 uppercase tracking-widest">
+                {cache.predictive_burnout_warning}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
 
       <TabSwitcher active={activeTab} onChange={setActiveTab} />
 
@@ -93,28 +78,28 @@ export const PerformanceDashboard: React.FC = () => {
         {activeTab === 'summary' && (
           <motion.div
             key="summary"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
-            <FeedbackLoader isLoading={detailedLoading} message="Calculating analytics…">
-              <SummaryView cache={cache} detailed={detailed} />
-            </FeedbackLoader>
+            <SummaryView cache={cache} detailed={detailed} />
           </motion.div>
         )}
 
         {activeTab === 'detailed' && (
           <motion.div
             key="detailed"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
-            <FeedbackLoader isLoading={detailedLoading || !detailed} message="Calculating analytics…">
-              {detailed ? <DetailedView data={detailed} /> : <div className="min-h-[300px]" />}
-            </FeedbackLoader>
+            {detailedLoading || !detailed ? (
+              <PageLoader />
+            ) : (
+              <DetailedView data={detailed} />
+            )}
           </motion.div>
         )}
       </AnimatePresence>

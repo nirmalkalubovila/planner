@@ -44,7 +44,6 @@ export function useCreateHabit() {
         },
         onError: (err) => { toast.error("Failed to create habit: " + err.message); },
         onSuccess: () => {
-            toast.success("Habit created successfully!");
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
     });

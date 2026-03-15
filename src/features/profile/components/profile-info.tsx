@@ -13,7 +13,7 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, signOut }) => {
         : user.email?.substring(0, 2).toUpperCase() || 'U';
 
     return (
-        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-6 space-y-6 shadow-xl">
+        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6 shadow-xl">
             {/* Avatar + Name */}
             <div className="flex items-center gap-4">
                 <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg uppercase">

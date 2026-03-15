@@ -1,33 +1,32 @@
 import React from 'react';
-import { AuthLayout, AuthHeader } from '@/components/ui/auth-layout';
+import { Sparkles } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
 import { PersonalizeForm } from './forms/personalize-form';
+import { StandardDialog } from '@/components/common/standard-dialog';
 
-export const PersonalizePage: React.FC = () => {
+export const PersonalizeModal: React.FC = () => {
+    const { user } = useAuth();
+    const isOpen = !!user && !user.user_metadata?.isPersonalized;
 
-    const handleSuccess = () => {
-        window.location.href = '/habits';
-    };
-
-    const handleSkip = () => {
-        window.location.href = '/habits';
+    const handleDone = () => {
+        window.location.reload();
     };
 
     return (
-        <AuthLayout maxWidth="3xl">
-            <div className="flex flex-col gap-3">
-                <AuthHeader
-                    icon={
-                        <img src="/ai-animation-white.gif" alt="AI" className="w-12 h-12 object-contain" />
-                    }
-                    title="Personalize Your Planner"
-                    description="Our AI uses these details to craft plans that fit your lifestyle. Takes under 2 minutes."
-                />
-
-                <PersonalizeForm
-                    onSuccess={handleSuccess}
-                    onSkip={handleSkip}
-                />
+        <StandardDialog
+            isOpen={isOpen}
+            onClose={() => {}}
+            title="Personalize Your Planner"
+            subtitle="Takes under 2 minutes"
+            icon={Sparkles}
+            maxWidth="6xl"
+            hideClose
+            closeOnBackdrop={false}
+            scrollable={false}
+        >
+            <div className="p-4 md:p-5">
+                <PersonalizeForm onSuccess={handleDone} onSkip={handleDone} />
             </div>
-        </AuthLayout>
+        </StandardDialog>
     );
 };
