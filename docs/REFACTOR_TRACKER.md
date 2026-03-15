@@ -60,9 +60,3 @@ All changes are logged here with date, file, action, and reasoning.
 | 2026-03-15 | `src/features/statistics/components/summary-view.tsx` | Created | Feature: Macro Bento layout — Hero trajectory score, Singles vs Aggregates (Goal/Habit/Execution), Heatmap, Bio-Sync, Legacy Pulse |
 | 2026-03-15 | `src/features/statistics/components/detailed-view.tsx` | Created | Feature: Micro deep-dive — collapsible Habit-by-Habit, Goal-by-Goal, Time Overviews panels with streak/velocity data |
 | 2026-03-15 | `src/features/statistics/components/performance-dashboard.tsx` | Rewritten as tab wrapper | Scalability: Oracle header + Summary/Detailed tab switcher with AnimatePresence + FeedbackLoader |
-| 2026-03-15 | `src/components/ui/circular-progress.tsx` | Created | Feature: Reusable SVG donut chart with animated stroke, configurable size/color/label |
-| 2026-03-15 | `src/features/statistics/components/summary-view.tsx` | Redesigned with circular charts | UX: Replaced linear bars with donut charts, removed excessive icons, cleaner bento layout |
-| 2026-03-15 | `src/features/statistics/components/detailed-view.tsx` | Redesigned with circular charts | UX: Each habit/goal row now has a mini donut; simplified panel headers, removed icon clutter |
-| 2026-03-15 | `src/features/statistics/components/performance-dashboard.tsx` | Simplified wrapper | Cleanup: Removed icon imports from tabs, streamlined Oracle header |
-| 2026-03-15 | `src/features/statistics/hooks/use-user-stats.ts` | Added fallback for missing cache | Fix: Handles PGRST116 (0 rows) by computing stats from raw tables |
-| 2026-03-15 | `src/features/statistics/STATISTICS_DOCS.md` | Created | Docs: Explains all indicators, calculation formulas, DB tables used, and data flow architecture |

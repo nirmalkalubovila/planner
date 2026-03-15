@@ -114,12 +114,6 @@ export function useToggleCompletedTask() {
             }
             toast.error("Failed to update task: " + _err.message);
         },
-        onSuccess: () => {
-            // we can display a toast for success, checking if it was a completion or an undo
-            // but we don't have the previous length here unless we pass it from onMutate or calculate it.
-            // Simple approach:
-            toast.success("Task progress logged!");
-        },
         onSettled: (_, __, variables) => {
             queryClient.invalidateQueries({ queryKey: ["completed", variables.dayStr] });
         },
