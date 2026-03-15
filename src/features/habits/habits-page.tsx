@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { Plus, ChevronUp, Target } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Target, Repeat } from 'lucide-react';
 import { useGetHabits, useCreateHabit, useDeleteHabit, useUpdateHabit } from '@/api/services/habit-service';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Habit } from '@/types/global-types';
 import { toast } from 'sonner';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
+import { StandardDialog } from '@/components/common/standard-dialog';
 import { PageLoader } from '@/components/common/page-loader';
 import { HabitCard } from './components/habit-card';
 import { HabitDefinitionForm, HabitFormValues } from './forms/habit-definition-form';
 import { useHabitConflicts } from './hooks/use-habit-conflicts';
 
 export const HabitsPage: React.FC = () => {
+    const navigate = useNavigate();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
     const [conflictError, setConflictError] = useState<string | null>(null);
@@ -25,6 +27,12 @@ export const HabitsPage: React.FC = () => {
     const deleteHabit = useDeleteHabit();
 
     const { checkConflicts } = useHabitConflicts(habits, editingHabit?.id);
+
+    const closeDialog = () => {
+        setIsFormOpen(false);
+        setEditingHabit(null);
+        setConflictError(null);
+    };
 
     const onSubmit = (values: HabitFormValues) => {
         setConflictError(null);
@@ -55,15 +63,16 @@ export const HabitsPage: React.FC = () => {
 
         if (editingHabit?.id) {
             updateHabit.mutate({ ...habitData, id: editingHabit.id } as Habit, {
-                onSuccess: () => {
-                    setIsFormOpen(false);
-                    setEditingHabit(null);
-                }
+                onSuccess: () => closeDialog()
             });
         } else {
             createHabit.mutate(habitData as Habit, {
                 onSuccess: () => {
-                    setIsFormOpen(false);
+                    closeDialog();
+                    toast.success('Habit added to your planner', {
+                        description: 'Recurring schedule updated',
+                        action: { label: 'Open Planner', onClick: () => navigate('/planner') },
+                    });
                 }
             });
         }
@@ -86,59 +95,27 @@ export const HabitsPage: React.FC = () => {
                     </div>
                 </div>
                 <Button
-                    onClick={() => { setIsFormOpen(!isFormOpen); setEditingHabit(null); }}
+                    onClick={() => { setEditingHabit(null); setConflictError(null); setIsFormOpen(true); }}
                     variant="ghost"
-                    className="h-10 w-10 p-0 rounded-full text-white hover:bg-white/10 transition-all duration-300 active:scale-95"
-                    title={isFormOpen ? "Close Panel" : "Architect Habit"}
+                    className="h-10 w-10 p-0 rounded-full text-white hover:bg-white/10 transition-all duration-150 active:scale-95"
+                    title="New Habit"
                 >
-                    {isFormOpen ? <ChevronUp size={22} className="opacity-60" /> : <Plus size={26} strokeWidth={2.5} />}
+                    <Plus size={26} strokeWidth={2.5} />
                 </Button>
             </div>
-
-            {isFormOpen && (
-                <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-                    <Card className="border-white/10 bg-white/[0.02] backdrop-blur-md rounded-3xl overflow-hidden shadow-2xl">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-xl font-bold tracking-tight text-white/90">{editingHabit ? "Refine Habit" : "New Habit Definition"}</CardTitle>
-                            <CardDescription className="text-white/40">Define the recurring cycles of your legacy.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <HabitDefinitionForm
-                                key={editingHabit?.id || 'new'}
-                                initialValues={editingHabit ? {
-                                    name: editingHabit.name,
-                                    purpose: editingHabit.purpose || '',
-                                    startTime: editingHabit.startTime,
-                                    endTime: editingHabit.endTime,
-                                    startDate: editingHabit.startDate || new Date().toISOString().split('T')[0],
-                                    endDate: editingHabit.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-                                    daysOfWeek: editingHabit.daysOfWeek || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-                                } : undefined}
-                                onSubmit={onSubmit}
-                                isPending={createHabit.isPending || updateHabit.isPending}
-                            />
-                            {conflictError && (
-                                <div className="mt-4 p-4 text-xs font-bold uppercase tracking-widest text-destructive bg-destructive/5 border border-destructive/20 rounded-2xl">
-                                    {conflictError}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                 {isLoading ? (
                     <div className="col-span-full"><PageLoader /></div>
                 ) : habits.length === 0 ? (
-                    <div className="col-span-full py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm">
-                        <Target className="w-16 h-16 text-white/10 mx-auto mb-6 opacity-50" strokeWidth={1} />
-                        <h3 className="text-xl font-bold text-white/60 tracking-tight">System Empty</h3>
-                        <p className="text-sm text-white/20 mt-2 max-w-xs mx-auto">Initialize your first habit to begin the architectural process.</p>
+                    <div className="col-span-full py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm group hover:border-white/10 transition-colors">
+                        <Target className="w-16 h-16 text-white/5 mx-auto mb-6 group-hover:scale-110 group-hover:text-white/10 transition-all duration-500" strokeWidth={1} />
+                        <h3 className="text-xl font-bold text-white/40 tracking-tight leading-none">System Empty</h3>
+                        <p className="text-sm text-white/20 mt-3 max-w-xs mx-auto">Initialize your first habit to begin the architectural process.</p>
                         <Button
                             onClick={() => setIsFormOpen(true)}
                             variant="link"
-                            className="mt-6 text-primary font-bold uppercase tracking-widest text-[10px]"
+                            className="mt-6 text-primary font-bold uppercase tracking-widest text-[10px] hover:text-primary/80"
                         >
                             + Begin Initialization
                         </Button>
@@ -154,6 +131,37 @@ export const HabitsPage: React.FC = () => {
                     ))
                 )}
             </div>
+
+            <StandardDialog
+                isOpen={isFormOpen}
+                onClose={closeDialog}
+                title={editingHabit ? 'Edit Habit' : 'New Habit'}
+                subtitle="Define recurring cycles"
+                icon={Repeat}
+                maxWidth="lg"
+            >
+                <div className="p-4 sm:p-6">
+                    <HabitDefinitionForm
+                        key={editingHabit?.id || 'new'}
+                        initialValues={editingHabit ? {
+                            name: editingHabit.name,
+                            purpose: editingHabit.purpose || '',
+                            startTime: editingHabit.startTime,
+                            endTime: editingHabit.endTime,
+                            startDate: editingHabit.startDate || new Date().toISOString().split('T')[0],
+                            endDate: editingHabit.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                            daysOfWeek: editingHabit.daysOfWeek || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                        } : undefined}
+                        onSubmit={onSubmit}
+                        isPending={createHabit.isPending || updateHabit.isPending}
+                    />
+                    {conflictError && (
+                        <div className="mt-4 p-3 text-xs font-bold uppercase tracking-widest text-destructive bg-destructive/5 border border-destructive/20 rounded-xl">
+                            {conflictError}
+                        </div>
+                    )}
+                </div>
+            </StandardDialog>
 
             <ConfirmationDialog
                 isOpen={showDeleteConfirm}
