@@ -18,6 +18,7 @@ const ProfilePage = React.lazy(() => import('./features/profile/profile-page').t
 const PersonalizePage = React.lazy(() => import('./features/auth/personalize-page').then(m => ({ default: m.PersonalizePage })));
 const ForgotPasswordPage = React.lazy(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = React.lazy(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
+const StatisticsPage = React.lazy(() => import('./features/statistics/statistics-page').then(m => ({ default: m.StatisticsPage })));
 
 const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={<PageLoader />}>{children}</Suspense>
@@ -71,6 +72,7 @@ const router = createBrowserRouter(
           <Route path="/goals" element={<SuspenseWrapper><GoalsPage /></SuspenseWrapper>} />
           <Route path="/planner" element={<SuspenseWrapper><PlannerPage /></SuspenseWrapper>} />
           <Route path="/profile" element={<SuspenseWrapper><ProfilePage /></SuspenseWrapper>} />
+          <Route path="/statistics" element={<SuspenseWrapper><StatisticsPage /></SuspenseWrapper>} />
         </Route>
         <Route path="/personalize" element={<SuspenseWrapper><PersonalizePage /></SuspenseWrapper>} />
       </Route>
