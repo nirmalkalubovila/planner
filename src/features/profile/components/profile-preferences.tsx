@@ -49,7 +49,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
     user, isEditing, setIsEditing, loading, onSave, formData
 }) => {
     return (
-        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-6">
             <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold">Planner Preferences</h3>
                 {!isEditing && (
@@ -192,7 +192,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                 </div>
             ) : (
                 <div className="animate-in fade-in duration-300">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
+                    <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-4 sm:gap-y-5">
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Sleep</p>
                             <p className="text-sm font-medium">{user.user_metadata?.sleepStart || '22:00'} ({user.user_metadata?.sleepDuration || '8'}h)</p>

@@ -124,7 +124,7 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
                             const isSelected = currentDays.includes(day);
                             return (
                                 <label key={day} className={cn(
-                                    "cursor-pointer px-4 py-2 rounded-full text-xs font-bold transition-all border select-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+                                    "cursor-pointer px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-[11px] sm:text-xs font-bold transition-all border select-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
                                     isSelected ? "bg-primary text-primary-foreground border-primary shadow-md" : "bg-card text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground"
                                 )}>
                                     <input

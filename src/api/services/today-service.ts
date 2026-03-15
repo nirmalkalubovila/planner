@@ -69,30 +69,22 @@ export function useToggleCompletedTask() {
         onMutate: async ({ dayStr, taskId }) => {
             await queryClient.cancelQueries({ queryKey: ["completed", dayStr] });
 
-            const previousTasks = queryClient.getQueryData<string[]>(["completed", dayStr]);
+            const previousTasks = queryClient.getQueryData<string[]>(["completed", dayStr]) || [];
 
-            queryClient.setQueryData(["completed", dayStr], (old: string[] | undefined) => {
-                const current = old || [];
-                const isCompleted = current.includes(taskId);
-                if (isCompleted) {
-                    return current.filter(id => id !== taskId);
-                } else {
-                    return [...current, taskId];
-                }
-            });
+            const isCompleted = previousTasks.includes(taskId);
+            const optimistic = isCompleted
+                ? previousTasks.filter(id => id !== taskId)
+                : [...previousTasks, taskId];
+
+            queryClient.setQueryData(["completed", dayStr], optimistic);
 
             return { previousTasks };
         },
-        mutationFn: async ({ dayStr, taskId }: { dayStr: string; taskId: string }) => {
-            const current = await getCompletedTasks(dayStr);
-            const isCompleted = current.includes(taskId);
-            const updated = isCompleted
-                ? current.filter(id => id !== taskId)
-                : [...current, taskId];
+        mutationFn: async ({ dayStr }: { dayStr: string; taskId: string }) => {
+            const updated = queryClient.getQueryData<string[]>(["completed", dayStr]) || [];
 
             const { data: { session } } = await supabase.auth.getSession();
             const userId = session?.user?.id;
-
             if (!userId) throw new Error("Not authenticated");
 
             const { error } = await supabase
@@ -102,20 +94,17 @@ export function useToggleCompletedTask() {
                     { onConflict: 'dayStr' }
                 );
 
-            if (error) {
-                console.error("Error updating completed tasks:", error);
-                throw new Error(error.message);
-            }
+            if (error) throw new Error(error.message);
             return updated;
         },
         onError: (_err, variables, context) => {
             if (context?.previousTasks) {
                 queryClient.setQueryData(["completed", variables.dayStr], context.previousTasks);
             }
-            toast.error("Failed to update task: " + _err.message);
+            toast.error("Failed to update task");
         },
-        onSettled: (_, __, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["completed", variables.dayStr] });
+        onSuccess: (data, variables) => {
+            queryClient.setQueryData(["completed", variables.dayStr], data);
         },
     });
 }

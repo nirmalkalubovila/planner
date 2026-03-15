@@ -66,7 +66,7 @@ export const ProfileSecurity: React.FC<ProfileSecurityProps> = ({ user }) => {
     };
 
     return (
-        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-6 shadow-xl space-y-8">
+        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 sm:p-6 shadow-xl space-y-6 sm:space-y-8">
             <h3 className="text-base font-bold">Account Security</h3>
 
             {/* Email Change */}
@@ -78,7 +78,7 @@ export const ProfileSecurity: React.FC<ProfileSecurityProps> = ({ user }) => {
                 <p className="text-xs text-muted-foreground/60">
                     Current: <span className="text-foreground font-medium">{user.email}</span>
                 </p>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                     <Input
                         type="email"
                         value={newEmail}

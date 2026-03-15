@@ -120,10 +120,10 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     return (
         <Card className={cn(
             "overflow-hidden border-border/60 hover:border-primary/40 transition-all group flex flex-col select-none w-full",
-            !isExpanded ? "h-[260px]" : "min-h-[260px]"
+            !isExpanded ? "h-[240px] sm:h-[260px]" : "min-h-[240px] sm:min-h-[260px]"
         )}>
             <div className={cn(
-                "bg-accent/40 px-4 pt-4 pb-3 flex flex-col border-b group/card transition-all duration-300",
+                "bg-accent/40 px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 flex flex-col border-b group/card transition-all duration-300",
                 !isExpanded && "flex-1"
             )}>
                 <div className="flex flex-row items-center justify-between gap-3 mb-2">
@@ -158,13 +158,13 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     </div>
                 </div>
 
-                <div className="px-1 h-[48px] overflow-hidden mb-2">
+                <div className="px-1 h-[40px] sm:h-[48px] overflow-hidden mb-1.5 sm:mb-2">
                     <p className="text-[11px] text-muted-foreground/70 leading-relaxed line-clamp-3">
                         {goal.name}
                     </p>
                 </div>
 
-                <div className="text-[9px] text-muted-foreground/40 px-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-bold uppercase tracking-widest">
+                <div className="text-[9px] text-muted-foreground/40 px-1 mb-2 sm:mb-4 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-bold uppercase tracking-widest">
                     <span className="flex items-center gap-1"><Calendar size={10} /> {goal.startDate ? format(parseISO(goal.startDate), 'MMM d') : 'N/A'}</span>
                     <span className="flex items-center gap-1">End: {goal.endDate ? format(parseISO(goal.endDate), 'MMM d') : 'N/A'}</span>
                 </div>
@@ -181,7 +181,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 <CardContent className="p-0 border-t border-border/50">
                     {/* Weekly Tasks For This Goal */}
                     {weeklyTasks.length > 0 && (
-                        <div className="bg-indigo-500/5 p-4 border-b border-indigo-500/10">
+                        <div className="bg-indigo-500/5 p-3 sm:p-4 border-b border-indigo-500/10">
                             <div className="flex items-center justify-between mb-3">
                                 <h4 className="text-[10px] md:text-xs font-bold uppercase text-indigo-500 tracking-widest">Tasks Scheduled</h4>
                                 <span className="text-xs font-bold text-muted-foreground">{completedWeeklyTasksCount} / {weeklyTasks.length} Done</span>
