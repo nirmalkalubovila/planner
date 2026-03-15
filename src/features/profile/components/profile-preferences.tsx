@@ -28,8 +28,8 @@ interface ProfilePreferencesProps {
         setPlanDay: (val: string) => void;
         planStartTime: string;
         setPlanStartTime: (val: string) => void;
-        planDurationPacks: string;
-        setPlanDurationPacks: (val: string) => void;
+        planEndTime: string;
+        setPlanEndTime: (val: string) => void;
         primaryLifeFocus: string;
         setPrimaryLifeFocus: (val: string) => void;
         currentProfession: string;
@@ -50,7 +50,6 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
 }) => {
     return (
         <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-6 shadow-xl space-y-6">
-            {/* Section header */}
             <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold">Planner Preferences</h3>
                 {!isEditing && (
@@ -68,7 +67,6 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
 
             {isEditing ? (
                 <div className="space-y-5 animate-in fade-in duration-300">
-                    {/* Personal */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Full Name</label>
@@ -84,7 +82,6 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         </div>
                     </div>
 
-                    {/* Sleep */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Sleep Start Time</label>
@@ -96,39 +93,26 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         </div>
                     </div>
 
-                    {/* Schedule */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Week Starts On</label>
                             <Select value={formData.weekStart} onValueChange={formData.setWeekStart}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select day" />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Monday">Monday</SelectItem>
-                                    <SelectItem value="Tuesday">Tuesday</SelectItem>
-                                    <SelectItem value="Wednesday">Wednesday</SelectItem>
-                                    <SelectItem value="Thursday">Thursday</SelectItem>
-                                    <SelectItem value="Friday">Friday</SelectItem>
-                                    <SelectItem value="Saturday">Saturday</SelectItem>
-                                    <SelectItem value="Sunday">Sunday</SelectItem>
+                                    {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => (
+                                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-1.5">
                             <label className={labelClass}>Planning Day</label>
                             <Select value={formData.planDay} onValueChange={formData.setPlanDay}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select day" />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Monday">Monday</SelectItem>
-                                    <SelectItem value="Tuesday">Tuesday</SelectItem>
-                                    <SelectItem value="Wednesday">Wednesday</SelectItem>
-                                    <SelectItem value="Thursday">Thursday</SelectItem>
-                                    <SelectItem value="Friday">Friday</SelectItem>
-                                    <SelectItem value="Saturday">Saturday</SelectItem>
-                                    <SelectItem value="Sunday">Sunday</SelectItem>
+                                    {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => (
+                                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -140,12 +124,11 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                             <SimpleTimePicker value={formData.planStartTime} onChange={formData.setPlanStartTime} />
                         </div>
                         <div className="space-y-1.5">
-                            <label className={labelClass}>Planning Duration (30m packs)</label>
-                            <Input type="number" min="1" max="10" value={formData.planDurationPacks} onChange={(e) => formData.setPlanDurationPacks(e.target.value)} placeholder="2" className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
+                            <label className={labelClass}>Planning End Time</label>
+                            <SimpleTimePicker value={formData.planEndTime} onChange={formData.setPlanEndTime} />
                         </div>
                     </div>
 
-                    {/* Focus */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Primary Life Focus</label>
@@ -157,14 +140,11 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         </div>
                     </div>
 
-                    {/* Metrics */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-white/5">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Energy Peak</label>
                             <Select value={formData.energyPeakTime} onValueChange={formData.setEnergyPeakTime}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select peak" />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Select peak" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Morning">Morning</SelectItem>
                                     <SelectItem value="Afternoon">Afternoon</SelectItem>
@@ -176,9 +156,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         <div className="space-y-1.5">
                             <label className={labelClass}>Focus Ability</label>
                             <Select value={formData.focusAbility} onValueChange={formData.setFocusAbility}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select level" />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="very low">Very Low</SelectItem>
                                     <SelectItem value="low">Low</SelectItem>
@@ -191,9 +169,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         <div className="space-y-1.5">
                             <label className={labelClass}>Task Switching</label>
                             <Select value={formData.taskShiftingAbility} onValueChange={formData.setTaskShiftingAbility}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select level" />
-                                </SelectTrigger>
+                                <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="very low">Very Low</SelectItem>
                                     <SelectItem value="low">Low</SelectItem>
@@ -205,7 +181,6 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex gap-3 pt-4">
                         <Button onClick={onSave} disabled={loading} className="flex-1 h-10 rounded-xl font-semibold">
                             <Check className="h-4 w-4 mr-1.5" /> Save Changes
@@ -228,7 +203,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Planning</p>
-                            <p className="text-sm font-medium">{user.user_metadata?.planDay || 'Sunday'} {user.user_metadata?.planStartTime || '21:00'} ({user.user_metadata?.planDurationPacks || 2}×30m)</p>
+                            <p className="text-sm font-medium">{user.user_metadata?.planDay || 'Sunday'} {user.user_metadata?.planStartTime || '21:00'} - {user.user_metadata?.planEndTime || '22:00'}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Focus</p>

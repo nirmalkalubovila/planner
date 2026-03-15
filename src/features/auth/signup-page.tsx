@@ -16,7 +16,8 @@ export const SignupPage: React.FC = () => {
 
     const handleSuccess = () => {
         // Force a full page load so AuthProvider re-initializes with the new session
-        window.location.href = '/personalize';
+        // Dashboard shows PersonalizeModal when user is not yet personalized
+        window.location.href = '/';
     };
 
     if (showOtp) {

@@ -4,9 +4,9 @@ import { useGetHabits, useCreateHabit, useDeleteHabit, useUpdateHabit } from '@/
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Habit } from '@/types/global-types';
-import { timeToMinutes, minutesToTime } from '@/utils/time';
 import { toast } from 'sonner';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
+import { PageLoader } from '@/components/common/page-loader';
 import { HabitCard } from './components/habit-card';
 import { HabitDefinitionForm, HabitFormValues } from './forms/habit-definition-form';
 import { useHabitConflicts } from './hooks/use-habit-conflicts';
@@ -28,13 +28,10 @@ export const HabitsPage: React.FC = () => {
 
     const onSubmit = (values: HabitFormValues) => {
         setConflictError(null);
-        const startMin = timeToMinutes(values.startTime);
-        const endMin = startMin + values.durationPacks * 30;
-        const endTime = minutesToTime(endMin);
 
         const error = checkConflicts({
             startTime: values.startTime,
-            endTime,
+            endTime: values.endTime,
             daysOfWeek: values.daysOfWeek,
             startDate: values.startDate,
             endDate: values.endDate,
@@ -50,7 +47,7 @@ export const HabitsPage: React.FC = () => {
             name: values.name,
             purpose: values.purpose,
             startTime: values.startTime,
-            endTime: endTime,
+            endTime: values.endTime,
             startDate: values.startDate,
             endDate: values.endDate,
             daysOfWeek: values.daysOfWeek,
@@ -112,7 +109,7 @@ export const HabitsPage: React.FC = () => {
                                     name: editingHabit.name,
                                     purpose: editingHabit.purpose || '',
                                     startTime: editingHabit.startTime,
-                                    durationPacks: Math.max(1, Math.round(((timeToMinutes(editingHabit.endTime) < timeToMinutes(editingHabit.startTime) ? (timeToMinutes(editingHabit.endTime) + 1440 - timeToMinutes(editingHabit.startTime)) : (timeToMinutes(editingHabit.endTime) - timeToMinutes(editingHabit.startTime)))) / 30)),
+                                    endTime: editingHabit.endTime,
                                     startDate: editingHabit.startDate || new Date().toISOString().split('T')[0],
                                     endDate: editingHabit.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
                                     daysOfWeek: editingHabit.daysOfWeek || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
@@ -132,9 +129,7 @@ export const HabitsPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                 {isLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-48 rounded-3xl bg-white/[0.02] border border-white/5 animate-pulse" />
-                    ))
+                    <div className="col-span-full"><PageLoader /></div>
                 ) : habits.length === 0 ? (
                     <div className="col-span-full py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm">
                         <Target className="w-16 h-16 text-white/10 mx-auto mb-6 opacity-50" strokeWidth={1} />

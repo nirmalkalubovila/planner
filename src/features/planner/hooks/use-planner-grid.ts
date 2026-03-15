@@ -4,6 +4,14 @@ import { useGetHabits } from '@/api/services/habit-service';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState, Habit } from '@/types/global-types';
 import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@/constants/scheduling';
+import { timeToMinutes, minutesToTime } from '@/utils/time';
+
+function resolvePlanEndTime(meta: any): string {
+    if (meta?.planEndTime) return meta.planEndTime;
+    const startTime = meta?.planStartTime || '21:00';
+    const packs = Number(meta?.planDurationPacks) || 2;
+    return minutesToTime(timeToMinutes(startTime) + packs * 30);
+}
 
 export function usePlannerGrid(currentWeek: string, localGridState: GridState) {
     const { user } = useAuth();
@@ -33,13 +41,19 @@ export function usePlannerGrid(currentWeek: string, localGridState: GridState) {
         if (!user) return set;
         const planDay = user.user_metadata?.planDay || 'Sunday';
         const planStartTimeStr = user.user_metadata?.planStartTime || '21:00';
-        const durationSlots = Number(user.user_metadata?.planDurationPacks) || 2;
+        const planEndTimeStr = resolvePlanEndTime(user.user_metadata);
         const targetDayIdx = DAYS_OF_WEEK.indexOf(planDay);
         if (targetDayIdx === -1) return set;
+
         const [pH, pM] = planStartTimeStr.split(':').map(Number);
         const startSlot = pH * 2 + (pM >= 30 ? 1 : 0);
-        for (let s = startSlot; s < startSlot + durationSlots; s++) {
-            set.add(`${targetDayIdx}-${s}`);
+
+        const [eH, eM] = planEndTimeStr.split(':').map(Number);
+        const endSlot = eH * 2 + (eM >= 30 ? 1 : 0);
+
+        const totalSlots = endSlot > startSlot ? endSlot - startSlot : endSlot + SLOTS_PER_DAY - startSlot;
+        for (let i = 0; i < totalSlots; i++) {
+            set.add(`${targetDayIdx}-${(startSlot + i) % SLOTS_PER_DAY}`);
         }
         return set;
     }, [user]);

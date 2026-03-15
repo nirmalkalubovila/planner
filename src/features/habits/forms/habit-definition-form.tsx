@@ -3,13 +3,12 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { cn } from '@/lib/utils';
-import { timeToMinutes, minutesToTime } from '@/utils/time-utils';
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -17,7 +16,7 @@ export const habitSchema = z.object({
     name: z.string().min(1, "Name is required"),
     purpose: z.string().min(1, "Purpose is required"),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
-    durationPacks: z.number().min(1, "At least 1 pack (30 min) is required"),
+    endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format"),
     startDate: z.string().min(1, "Starting date is required"),
     endDate: z.string().min(1, "Ending date is required"),
     daysOfWeek: z.array(z.string()).min(1, "Select at least one day"),
@@ -42,18 +41,12 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
             name: initialValues?.name || '',
             purpose: initialValues?.purpose || '',
             startTime: initialValues?.startTime || '06:00',
-            durationPacks: initialValues?.durationPacks || 2,
+            endTime: initialValues?.endTime || '07:00',
             startDate: initialValues?.startDate || new Date().toISOString().split('T')[0],
             endDate: initialValues?.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
             daysOfWeek: initialValues?.daysOfWeek || DAYS_OF_WEEK,
         },
     });
-
-    const watchedStartTime = form.watch('startTime');
-    const watchedPacks = form.watch('durationPacks');
-    const computedEndTime = watchedStartTime && watchedPacks
-        ? minutesToTime(timeToMinutes(watchedStartTime) + watchedPacks * 30)
-        : '';
 
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -101,31 +94,26 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Start Time <span className="text-destructive">*</span></label>
+                    <label className="text-sm font-medium flex items-center gap-2"><Clock size={14} /> Start Time <span className="text-destructive">*</span></label>
                     <Controller
                         control={form.control}
                         name="startTime"
                         render={({ field }) => (
-                            <SimpleTimePicker
-                                value={field.value}
-                                onChange={field.onChange}
-                            />
+                            <SimpleTimePicker value={field.value} onChange={field.onChange} />
                         )}
                     />
                     {form.formState.errors.startTime && <p className="text-xs text-destructive">{form.formState.errors.startTime.message}</p>}
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Number of Packs (30 min each) <span className="text-destructive">*</span></label>
-                    <Input
-                        type="number"
-                        min="1"
-                        {...form.register('durationPacks', { valueAsNumber: true })}
-                        placeholder="e.g., 2 for 1 hour"
+                    <label className="text-sm font-medium flex items-center gap-2"><Clock size={14} /> End Time <span className="text-destructive">*</span></label>
+                    <Controller
+                        control={form.control}
+                        name="endTime"
+                        render={({ field }) => (
+                            <SimpleTimePicker value={field.value} onChange={field.onChange} />
+                        )}
                     />
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                        Calculated End Time: <span className="font-bold text-primary">{computedEndTime}</span>
-                    </p>
-                    {form.formState.errors.durationPacks && <p className="text-xs text-destructive">{form.formState.errors.durationPacks.message}</p>}
+                    {form.formState.errors.endTime && <p className="text-xs text-destructive">{form.formState.errors.endTime.message}</p>}
                 </div>
 
                 <div className="space-y-2 md:col-span-2 border rounded-xl p-4 bg-background">

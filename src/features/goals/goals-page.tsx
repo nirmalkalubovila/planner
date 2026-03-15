@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Target, Loader2, Edit2, ChevronDown, Plus } from 'lucide-react';
+import { Target, Edit2, ChevronDown, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetGoals, useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/api/services/goal-service';
 import { useAuth } from '@/contexts/auth-context';
@@ -14,6 +14,7 @@ import { WeekUtils } from '@/utils/week-utils';
 import { useGetWeekPlan } from '@/api/services/planner-service';
 import { useGetWeekCompletedTasks } from '@/api/services/today-service';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
+import { PageLoader } from '@/components/common/page-loader';
 import { MilestoneStrategyDialog } from './components/strategy-choice-dialog';
 import { ManualPlanStep } from './forms/manual-plan-step';
 import { AILoadingPopup } from '@/components/common/ai-loading-popup';
@@ -235,9 +236,7 @@ export const GoalsPage: React.FC = () => {
             )}
 
             {isLoading ? (
-                <div className="flex items-center justify-center p-24 bg-white/[0.01] border border-white/5 rounded-[40px] animate-pulse">
-                    <Loader2 className="animate-spin text-white/20" size={32} />
-                </div>
+                <PageLoader />
             ) : goals.length === 0 ? (
                 <div className="py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm group hover:border-white/10 transition-colors">
                     <Target className="w-16 h-16 text-white/5 mx-auto mb-6 group-hover:scale-110 group-hover:text-white/10 transition-all duration-500" strokeWidth={1} />

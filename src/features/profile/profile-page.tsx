@@ -20,7 +20,7 @@ export const ProfilePage: React.FC = () => {
     const [weekStart, setWeekStart] = useState('');
     const [planDay, setPlanDay] = useState('');
     const [planStartTime, setPlanStartTime] = useState('');
-    const [planDurationPacks, setPlanDurationPacks] = useState('');
+    const [planEndTime, setPlanEndTime] = useState('');
     const [primaryLifeFocus, setPrimaryLifeFocus] = useState('');
     const [currentProfession, setCurrentProfession] = useState('');
     const [energyPeakTime, setEnergyPeakTime] = useState('');
@@ -36,7 +36,7 @@ export const ProfilePage: React.FC = () => {
             setWeekStart(user.user_metadata?.weekStart || 'Monday');
             setPlanDay(user.user_metadata?.planDay || 'Sunday');
             setPlanStartTime(user.user_metadata?.planStartTime || '21:00');
-            setPlanDurationPacks(String(user.user_metadata?.planDurationPacks || '2'));
+            setPlanEndTime(user.user_metadata?.planEndTime || '22:00');
             setPrimaryLifeFocus(user.user_metadata?.primaryLifeFocus || '');
             setCurrentProfession(user.user_metadata?.currentProfession || '');
             setEnergyPeakTime(user.user_metadata?.energyPeakTime || 'Morning');
@@ -56,7 +56,7 @@ export const ProfilePage: React.FC = () => {
                 weekStart,
                 planDay,
                 planStartTime,
-                planDurationPacks: Number(planDurationPacks) || 2,
+                planEndTime,
                 primaryLifeFocus,
                 currentProfession,
                 energyPeakTime,
@@ -84,7 +84,7 @@ export const ProfilePage: React.FC = () => {
         weekStart, setWeekStart,
         planDay, setPlanDay,
         planStartTime, setPlanStartTime,
-        planDurationPacks, setPlanDurationPacks,
+        planEndTime, setPlanEndTime,
         primaryLifeFocus, setPrimaryLifeFocus,
         currentProfession, setCurrentProfession,
         energyPeakTime, setEnergyPeakTime,

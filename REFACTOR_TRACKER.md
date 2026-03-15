@@ -53,16 +53,3 @@ All changes are logged here with date, file, action, and reasoning.
 | 2026-03-14 | `src/layout/` | Max-width & Padding Removal | UX: Content (Header & Grid) now utilizes 100% of the screen width and height |
 | 2026-03-14 | `src/features/planner/components/planner-toolbar.tsx` | Fixed height & scroll refinements | UX: Enhanced space for library tasks on large screens |
 | 2026-03-14 | `src/features/planner/components/planner-toolbar.tsx` | Static Actions & Cloud Sync Status | UX: Undo/Redo/Clear/Save are now always pinned; Green Cloud = Saved, Red = Syncing/Pending |
-| 2026-03-15 | `src/utils/analytics-engine.ts` | Created | Scalability: Pure math functions for Life Trajectory Score (goals 40%, habits 35%, execution 25%), aggregate & single-best calculators |
-| 2026-03-15 | `src/features/statistics/hooks/use-user-stats.ts` | Rewritten (lightweight) | Performance: Reads single pre-aggregated row from user_stats_cache for <50ms initial render |
-| 2026-03-15 | `src/features/statistics/hooks/use-detailed-stats.ts` | Rewritten (deferred heavy) | Performance: Fetches goals + habits + completed_tasks + week_plans with analytics-engine scoring; enabled flag for lazy load |
-| 2026-03-15 | `src/components/ui/feedback-loader.tsx` | Created | Scalability: Reusable glassmorphic overlay loader with framer-motion, accepts isLoading + message props |
-| 2026-03-15 | `src/features/statistics/components/summary-view.tsx` | Created | Feature: Macro Bento layout — Hero trajectory score, Singles vs Aggregates (Goal/Habit/Execution), Heatmap, Bio-Sync, Legacy Pulse |
-| 2026-03-15 | `src/features/statistics/components/detailed-view.tsx` | Created | Feature: Micro deep-dive — collapsible Habit-by-Habit, Goal-by-Goal, Time Overviews panels with streak/velocity data |
-| 2026-03-15 | `src/features/statistics/components/performance-dashboard.tsx` | Rewritten as tab wrapper | Scalability: Oracle header + Summary/Detailed tab switcher with AnimatePresence + FeedbackLoader |
-| 2026-03-15 | `src/components/ui/circular-progress.tsx` | Created | Feature: Reusable SVG donut chart with animated stroke, configurable size/color/label |
-| 2026-03-15 | `src/features/statistics/components/summary-view.tsx` | Redesigned with circular charts | UX: Replaced linear bars with donut charts, removed excessive icons, cleaner bento layout |
-| 2026-03-15 | `src/features/statistics/components/detailed-view.tsx` | Redesigned with circular charts | UX: Each habit/goal row now has a mini donut; simplified panel headers, removed icon clutter |
-| 2026-03-15 | `src/features/statistics/components/performance-dashboard.tsx` | Simplified wrapper | Cleanup: Removed icon imports from tabs, streamlined Oracle header |
-| 2026-03-15 | `src/features/statistics/hooks/use-user-stats.ts` | Added fallback for missing cache | Fix: Handles PGRST116 (0 rows) by computing stats from raw tables |
-| 2026-03-15 | `src/features/statistics/STATISTICS_DOCS.md` | Created | Docs: Explains all indicators, calculation formulas, DB tables used, and data flow architecture |

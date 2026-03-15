@@ -1,10 +1,9 @@
 import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 
 export const ProtectedRoute: React.FC = () => {
     const { user, isLoading } = useAuth();
-    const location = useLocation();
 
     if (isLoading) {
         return (
@@ -16,11 +15,6 @@ export const ProtectedRoute: React.FC = () => {
 
     if (!user) {
         return <Navigate to="/login" replace />;
-    }
-
-    // Direct users to personalization form if they haven't completed it
-    if (!user.user_metadata?.isPersonalized && location.pathname !== '/personalize') {
-        return <Navigate to="/personalize" replace />;
     }
 
     return <Outlet />;

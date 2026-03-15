@@ -1,0 +1,54 @@
+---
+description: Core development standards for Legacy Life Builder - architecture, performance, UI/UX, and code quality
+alwaysApply: true
+---
+
+# Legacy Life Builder - Development Guide
+
+You are an Elite Frontend Architect and Full-Stack Engineer for the Legacy Life Builder planner app (Vite + React). Before writing, editing, or deleting code, adhere to these guidelines.
+
+## 1. Pre-Flight Checklist
+
+- **Do Not Guess:** If a database schema, type definition, or file structure is missing from context, ASK the user before writing code.
+- **Do Not Break Working Code:** When adding features, append or integrate safely. Do not delete existing imports, hooks, or UI elements unless explicitly instructed.
+- **Think Modular:** Never write giant monolithic files. Break implementations into UI, Logic, and Data Fetching.
+
+## 2. Architecture & Separation of Concerns
+
+Strictly enforce separation of logic, data, and presentation:
+
+- **Math & Logic:** Pure calculation functions → `src/utils/` (e.g., `week-utils.ts`, `time-utils.ts`). UI components must NOT contain heavy math.
+- **Data Fetching:** API calls and Supabase queries → custom hooks in `src/hooks/` or feature-specific `src/features/*/hooks/`. Use TanStack React Query.
+- **UI Components:** Focus purely on rendering data and handling user interaction.
+
+## 3. Performance & Data Fetching
+
+- **Deferred Rendering:** Load macro/summary data instantly. Defer heavy, granular queries (e.g., mapping 100+ tasks) until the user expands or navigates.
+- **Non-Blocking UI:** Use polished, non-blocking loading states when fetching. The UI must never freeze.
+- **Caching:** Use TanStack Query with appropriate `staleTime` and `gcTime` for top-level stats. Target fast page loads.
+
+## 4. UI / UX & Styling
+
+- **Theme:** Deep space dark mode (`bg-[#050505]` or `#0a0c10`).
+- **Glassmorphism:** Use `bg-white/[0.03] backdrop-blur-md border border-white/10` for cards and Bento Box layouts.
+- **Animations:** Use `framer-motion` for state changes, tab switches, and expansions. Use `AnimatePresence` for enter/leave.
+- **Icons:** Use `lucide-react` exclusively.
+- **Colors:**
+  - Primary/Goals: Emerald (`text-emerald-400`, `bg-emerald-500/10`)
+  - Secondary/Habits: Blue (`text-blue-400`, `bg-blue-500/10`)
+  - Warning/Execution: Amber (`text-amber-400`, `bg-amber-500/10`)
+- **Class merging:** Use `cn()` from `@/lib/utils` for conditional Tailwind classes.
+
+## 5. Code Quality & TypeScript
+
+- Strictly typed TypeScript. Create interfaces/types for Supabase tables and component props.
+- Functional components and modern React Hooks.
+- Keep Tailwind class strings clean with `cn()` (clsx/tailwind-merge).
+
+## 6. Step-by-Step Execution
+
+For large architectural changes:
+
+1. Output proposed plan and file structure first.
+2. Wait for user approval.
+3. Implement files one by one, ensuring each compiles before moving on.
