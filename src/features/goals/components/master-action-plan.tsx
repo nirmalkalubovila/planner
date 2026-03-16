@@ -163,32 +163,45 @@ const SubPlanRow = ({
             ) : (
                 <div className="group select-text">
                     <div
-                        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer"
+                        className={cn(
+                            "relative px-3 sm:px-4 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer",
+                            "flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
+                        )}
                         onClick={() => setExpanded(prev => !prev)}
                     >
-                        {/* Expand chevron — mobile only */}
-                        <ChevronRight size={12} className={cn(
-                            "shrink-0 text-muted-foreground transition-transform duration-150 sm:hidden",
-                            expanded && "rotate-90"
-                        )} />
-
-                        {/* Badges */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={cn(
-                                "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md whitespace-nowrap",
-                                depth === 0 ? "bg-violet-500/10 text-violet-400/80" : "bg-cyan-500/10 text-cyan-400/80"
-                            )}>
-                                <CalendarDays size={10} />
-                                {formatDateCompact(slot.date)}
-                            </span>
-                            {slot.estimatedHours && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-1 rounded-md bg-blue-500/10 text-blue-400/80 whitespace-nowrap">
-                                    <Clock size={9} /> {slot.estimatedHours}h
+                        {/* 1) Badges — date + duration. Mobile: row 1 with edit on right */}
+                        <div className="flex items-center justify-between sm:justify-start gap-1.5 shrink-0 w-full sm:w-auto">
+                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                <ChevronRight size={12} className={cn(
+                                    "shrink-0 text-muted-foreground transition-transform duration-150 sm:hidden",
+                                    expanded && "rotate-90"
+                                )} />
+                                <span className={cn(
+                                    "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md whitespace-nowrap",
+                                    depth === 0 ? "bg-violet-500/10 text-violet-400/80" : "bg-cyan-500/10 text-cyan-400/80"
+                                )}>
+                                    <CalendarDays size={10} />
+                                    {formatDateCompact(slot.date)}
                                 </span>
-                            )}
+                                {slot.estimatedHours && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-1 rounded-md bg-blue-500/10 text-blue-400/80 whitespace-nowrap">
+                                        <Clock size={9} /> {slot.estimatedHours}h
+                                    </span>
+                                )}
+                            </div>
+                            <Button
+                                size="icon" variant="ghost"
+                                className={cn(
+                                    "h-7 w-7 shrink-0 sm:absolute sm:right-2 text-muted-foreground hover:text-intent-goal hover:bg-intent-goal-muted transition-all",
+                                    expanded ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                )}
+                                onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+                            >
+                                <Edit3 size={12} />
+                            </Button>
                         </div>
 
-                        {/* Content — single line on collapsed, full on expanded */}
+                        {/* 2) Task + description. Mobile: row 2 */}
                         <div className="flex-1 min-w-0">
                             <p className={cn(
                                 "text-sm font-semibold text-foreground leading-tight",
@@ -201,18 +214,6 @@ const SubPlanRow = ({
                                 )}>{slot.description}</p>
                             )}
                         </div>
-
-                        {/* Edit — hover on desktop, always visible on mobile when expanded */}
-                        <Button
-                            size="icon" variant="ghost"
-                            className={cn(
-                                "h-7 w-7 shrink-0 text-muted-foreground hover:text-intent-goal hover:bg-intent-goal-muted transition-all",
-                                expanded ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                            )}
-                            onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-                        >
-                            <Edit3 size={12} />
-                        </Button>
                     </div>
                 </div>
             )}

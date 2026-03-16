@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -63,11 +64,11 @@ export const StandardDialog: React.FC<StandardDialogProps> = ({
         };
     }, [isOpen, handleEscape]);
 
-    return (
+    const dialogContent = (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+                    className="fixed inset-0 z-[200] flex items-center justify-center p-4 overflow-y-auto min-h-full"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -126,4 +127,6 @@ export const StandardDialog: React.FC<StandardDialogProps> = ({
             )}
         </AnimatePresence>
     );
+
+    return createPortal(dialogContent, document.body);
 };

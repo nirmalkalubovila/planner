@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from './contexts/auth-context';
 import { ProtectedRoute } from './components/protected-route';
 import { DashboardLayout } from './layout/dashboard-layout';
 import { useTheme } from 'next-themes';
-import { Toaster } from 'sonner';
+import { ResponsiveToaster } from '@/components/ui/responsive-toaster';
 
 import { PageLoader } from './components/common/page-loader';
 
@@ -52,7 +52,7 @@ const RootLayout = () => {
   const { resolvedTheme } = useTheme();
   return (
     <>
-      <Toaster position="bottom-right" theme={(resolvedTheme as 'light' | 'dark') ?? 'dark'} richColors />
+      <ResponsiveToaster theme={(resolvedTheme as 'light' | 'dark') ?? 'dark'} />
       <Outlet />
     </>
   );
