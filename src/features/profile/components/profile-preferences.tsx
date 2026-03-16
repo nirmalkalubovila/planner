@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface ProfilePreferencesProps {
     user: any;
+    profile: { fullName?: string; dob?: string; sleepStart?: string; sleepDuration?: string; weekStart?: string; planDay?: string; planStartTime?: string; planEndTime?: string; primaryLifeFocus?: string; currentProfession?: string; energyPeakTime?: string; focusAbility?: string; taskShiftingAbility?: string } | null;
     isEditing: boolean;
     setIsEditing: (val: boolean) => void;
     loading: boolean;
@@ -46,7 +47,7 @@ interface ProfilePreferencesProps {
 const labelClass = "text-xs font-semibold text-muted-foreground ml-0.5";
 
 export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
-    user, isEditing, setIsEditing, loading, onSave, formData
+    user, profile, isEditing, setIsEditing, loading, onSave, formData
 }) => {
     return (
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -195,35 +196,35 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                     <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-4 sm:gap-y-5">
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Sleep</p>
-                            <p className="text-sm font-medium">{user.user_metadata?.sleepStart || '22:00'} ({user.user_metadata?.sleepDuration || '8'}h)</p>
+                            <p className="text-sm font-medium">{profile?.sleepStart || user.user_metadata?.sleepStart || '22:00'} ({profile?.sleepDuration || user.user_metadata?.sleepDuration || '8'}h)</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Week Start</p>
-                            <p className="text-sm font-medium">{user.user_metadata?.weekStart || 'Monday'}</p>
+                            <p className="text-sm font-medium">{profile?.weekStart || user.user_metadata?.weekStart || 'Monday'}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Planning</p>
-                            <p className="text-sm font-medium">{user.user_metadata?.planDay || 'Sunday'} {user.user_metadata?.planStartTime || '21:00'} - {user.user_metadata?.planEndTime || '22:00'}</p>
+                            <p className="text-sm font-medium">{profile?.planDay || user.user_metadata?.planDay || 'Sunday'} {profile?.planStartTime || user.user_metadata?.planStartTime || '21:00'} - {profile?.planEndTime || user.user_metadata?.planEndTime || '22:00'}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Focus</p>
-                            <p className="text-sm font-medium">{user.user_metadata?.primaryLifeFocus || 'Not set'}</p>
+                            <p className="text-sm font-medium">{profile?.primaryLifeFocus || user.user_metadata?.primaryLifeFocus || 'Not set'}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Profession</p>
-                            <p className="text-sm font-medium">{user.user_metadata?.currentProfession || 'Not set'}</p>
+                            <p className="text-sm font-medium">{profile?.currentProfession || user.user_metadata?.currentProfession || 'Not set'}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Energy Peak</p>
-                            <p className="text-sm font-medium">{user.user_metadata?.energyPeakTime || 'Morning'}</p>
+                            <p className="text-sm font-medium">{profile?.energyPeakTime || user.user_metadata?.energyPeakTime || 'Morning'}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Focus Level</p>
-                            <p className="text-sm font-medium capitalize">{user.user_metadata?.focusAbility || 'Normal'}</p>
+                            <p className="text-sm font-medium capitalize">{profile?.focusAbility || user.user_metadata?.focusAbility || 'Normal'}</p>
                         </div>
                         <div>
                             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Task Switching</p>
-                            <p className="text-sm font-medium capitalize">{user.user_metadata?.taskShiftingAbility || 'Normal'}</p>
+                            <p className="text-sm font-medium capitalize">{profile?.taskShiftingAbility || user.user_metadata?.taskShiftingAbility || 'Normal'}</p>
                         </div>
                     </div>
                 </div>

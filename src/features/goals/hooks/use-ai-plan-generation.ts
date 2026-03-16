@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
 import { recordGenTime } from '@/components/common/ai-loading-popup';
+import { useUserProfile } from '@/api/services/profile-service';
 
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'arcee-ai/trinity-large-preview:free';
@@ -41,6 +42,7 @@ async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
 }
 
 export function useAiPlanGeneration(user: any) {
+    const { profile } = useUserProfile(user);
     const [generating, setGenerating] = useState(false);
     const [tempPlan, setTempPlan] = useState<AIGeneratedPlanSlot[] | null>(null);
     const genStartRef = useRef(0);
@@ -66,10 +68,10 @@ Target Milestone Dates:
 ${milestoneDatesStr}
 
 User Persona & Preferences:
-- Primary Life Focus: ${user?.user_metadata?.primaryLifeFocus || 'Not set'}
-- Current Profession: ${user?.user_metadata?.currentProfession || 'Not set'}
-- Peak Energy Time: ${user?.user_metadata?.energyPeakTime || 'Morning'}
-- Focus Ability: ${user?.user_metadata?.focusAbility || 'normal'}
+- Primary Life Focus: ${profile?.primaryLifeFocus || user?.user_metadata?.primaryLifeFocus || 'Not set'}
+- Current Profession: ${profile?.currentProfession || user?.user_metadata?.currentProfession || 'Not set'}
+- Peak Energy Time: ${profile?.energyPeakTime || user?.user_metadata?.energyPeakTime || 'Morning'}
+- Focus Ability: ${profile?.focusAbility || user?.user_metadata?.focusAbility || 'normal'}
 
 Based on this, break down the main goal into weighted sub-tasks/sub-goals that need to be accomplished by the end of each milestone period.
 Tailor the nature and pacing of the tasks to fit this specific person's profession, life focus, and energy capabilities.

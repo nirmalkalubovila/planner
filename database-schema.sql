@@ -63,6 +63,28 @@ CREATE TABLE custom_tasks (
   "daysOfWeek" jsonb NOT NULL DEFAULT '[]'::jsonb
 );
 
+-- Create user_profiles table (planner preferences - persists across OAuth sign-in)
+CREATE TABLE user_profiles (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  full_name text,
+  dob text,
+  sleep_start text DEFAULT '22:00',
+  sleep_duration text DEFAULT '8',
+  week_start text DEFAULT 'Monday',
+  plan_day text DEFAULT 'Sunday',
+  plan_start_time text DEFAULT '21:00',
+  plan_end_time text DEFAULT '22:00',
+  primary_life_focus text,
+  current_profession text,
+  energy_peak_time text DEFAULT 'Morning',
+  focus_ability text DEFAULT 'normal',
+  task_shifting_ability text DEFAULT 'normal',
+  is_personalized boolean DEFAULT false
+);
+
 -- Create completed_tasks table
 CREATE TABLE completed_tasks (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -74,12 +96,14 @@ CREATE TABLE completed_tasks (
 );
 
 -- Add explicit Row Level Security (RLS) policies
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE week_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE custom_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE completed_tasks ENABLE ROW LEVEL SECURITY;
 
+CREATE POLICY "Users can manage their own user_profiles" ON user_profiles FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own goals" ON goals FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own habits" ON habits FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own week_plans" ON week_plans FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

@@ -8,6 +8,7 @@ import { Check, Save, X, Edit3, ChevronRight, ChevronDown, BrainCircuit, UserCog
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@/api/services/profile-service';
 import { toast } from 'sonner';
 
 interface MasterActionPlanProps {
@@ -126,12 +127,13 @@ function formatDateCompact(dateStr: string): string {
 
 // ─── Sub-plan row ────────────────────────────────────────────────────────────
 const SubPlanRow = ({
-    slot, path, depth, goal, onUpdateSubPlans, onSaveEdit, user
+    slot, path, depth, goal, onUpdateSubPlans, onSaveEdit, user, profile
 }: {
     slot: AIGeneratedPlanSlot; path: number[]; depth: number; goal: Goal;
     onUpdateSubPlans: (p: number[], sp: AIGeneratedPlanSlot[] | undefined) => void;
     onSaveEdit: (p: number[], e: { title: string; task: string; desc: string }, d: string) => void;
     user: any;
+    profile?: { focusAbility?: string; taskShiftingAbility?: string; primaryLifeFocus?: string; currentProfession?: string; energyPeakTime?: string } | null;
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [expanded, setExpanded] = useState(false);
@@ -222,7 +224,7 @@ const SubPlanRow = ({
                 <BreakdownSection
                     slot={slot} path={path} depth={depth + 1} goal={goal}
                     expansionType={deeperType}
-                    onUpdateSubPlans={onUpdateSubPlans} onSaveEdit={onSaveEdit} user={user}
+                    onUpdateSubPlans={onUpdateSubPlans} onSaveEdit={onSaveEdit} user={user} profile={profile}
                     nested overridePeriodStart={nestedPeriodStart} overridePeriodEnd={nestedPeriodEnd}
                 />
             )}
@@ -232,14 +234,14 @@ const SubPlanRow = ({
 
 // ─── Breakdown Section ───────────────────────────────────────────────────────
 const BreakdownSection = ({
-    slot, path, depth, goal, expansionType, onUpdateSubPlans, onSaveEdit, user, nested,
+    slot, path, depth, goal, expansionType, onUpdateSubPlans, onSaveEdit, user, profile, nested,
     overridePeriodStart, overridePeriodEnd
 }: {
     slot: AIGeneratedPlanSlot; path: number[]; depth: number; goal: Goal;
     expansionType: 'Weeks' | 'Months';
     onUpdateSubPlans: (p: number[], sp: AIGeneratedPlanSlot[] | undefined) => void;
     onSaveEdit: (p: number[], e: { title: string; task: string; desc: string }, d: string) => void;
-    user: any; nested?: boolean;
+    user: any; profile?: { focusAbility?: string; taskShiftingAbility?: string; primaryLifeFocus?: string; currentProfession?: string; energyPeakTime?: string } | null; nested?: boolean;
     overridePeriodStart?: Date; overridePeriodEnd?: Date;
 }) => {
     const [expanded, setExpanded] = useState(false);
@@ -277,8 +279,8 @@ Phase Target Task: ${slot.dayTask}
 Phase Strategy/Description: ${slot.description}
 Phase Timeline Date/Range: ${slot.date}
 System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
-User Preferences: Focus Ability: ${user?.user_metadata?.focusAbility || 'normal'}, Task Shifting: ${user?.user_metadata?.taskShiftingAbility || 'normal'}
-User Persona: Primary Focus: ${user?.user_metadata?.primaryLifeFocus || 'Not set'}, Profession: ${user?.user_metadata?.currentProfession || 'Not set'}, Peak Energy: ${user?.user_metadata?.energyPeakTime || 'Morning'}
+User Preferences: Focus Ability: ${profile?.focusAbility || user?.user_metadata?.focusAbility || 'normal'}, Task Shifting: ${profile?.taskShiftingAbility || user?.user_metadata?.taskShiftingAbility || 'normal'}
+User Persona: Primary Focus: ${profile?.primaryLifeFocus || user?.user_metadata?.primaryLifeFocus || 'Not set'}, Profession: ${profile?.currentProfession || user?.user_metadata?.currentProfession || 'Not set'}, Peak Energy: ${profile?.energyPeakTime || user?.user_metadata?.energyPeakTime || 'Morning'}
 Tailor tasks specifically to fit this person's profession, life focus, and energy cycles when possible.
 Context - The surrounding sibling phases in the overall plan are: ${parentLevelTasks}. Ensure this new breakdown strictly stays within the current phase's boundaries.
 Please break this specific phase down into EXACTLY ${dynamicCount} sequential sub-milestones (representing ${expansionType}).
@@ -357,7 +359,7 @@ NO MARKDOWN. RAW JSON ONLY.`;
                             </div>
                             <div className="flex flex-col rounded-lg border border-border overflow-hidden divide-y divide-border">
                                 {slot.subPlans!.map((subSlot, idx) => (
-                                    <SubPlanRow key={idx} slot={subSlot} path={[...path, idx]} depth={depth} goal={goal} onUpdateSubPlans={onUpdateSubPlans} onSaveEdit={onSaveEdit} user={user} />
+                                    <SubPlanRow key={idx} slot={subSlot} path={[...path, idx]} depth={depth} goal={goal} onUpdateSubPlans={onUpdateSubPlans} onSaveEdit={onSaveEdit} user={user} profile={profile} />
                                 ))}
                             </div>
                             <ConfirmationDialog isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} onConfirm={() => { onUpdateSubPlans(path, undefined); setShowDeleteConfirm(false); }} title={`Delete ${expansionType} Breakdown`} description={`This will remove the entire ${expansionType.toLowerCase()} breakdown. Cannot be undone.`} confirmText="Delete" variant="destructive" />
@@ -465,6 +467,7 @@ const MilestoneCard = ({
 // ─── Main Component ──────────────────────────────────────────────────────────
 export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpdate }) => {
     const { user } = useAuth();
+    const { profile } = useUserProfile(user);
 
     if (!goal.plans || goal.plans.length === 0) {
         return (
@@ -526,7 +529,7 @@ export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpda
                                     slot={slot} path={[idx]} depth={0} goal={goal}
                                     expansionType={expansionType}
                                     onUpdateSubPlans={handleUpdateSubPlans}
-                                    onSaveEdit={handleSaveEdit} user={user}
+                                    onSaveEdit={handleSaveEdit} user={user} profile={profile}
                                 />
                             )}
 

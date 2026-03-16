@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@/api/services/profile-service';
 import { Habit } from '@/types/global-types';
 import { timeToMinutes, minutesToTime, isTimeOverlapping, isSleepOverlapping } from '@/utils/time';
 
@@ -10,27 +11,29 @@ interface ConflictCheckParams {
     endDate: string;
 }
 
-function resolvePlanEndTime(meta: any): string {
+function resolvePlanEndTime(profile: { planEndTime?: string; planStartTime?: string } | null, meta: any): string {
+    if (profile?.planEndTime) return profile.planEndTime;
     if (meta?.planEndTime) return meta.planEndTime;
-    const startTime = meta?.planStartTime || '21:00';
+    const startTime = profile?.planStartTime || meta?.planStartTime || '21:00';
     const packs = Number(meta?.planDurationPacks) || 2;
     return minutesToTime(timeToMinutes(startTime) + packs * 30);
 }
 
 export function useHabitConflicts(habits: Habit[], editingHabitId?: string) {
     const { user } = useAuth();
+    const { profile } = useUserProfile(user);
 
     const checkConflicts = (values: ConflictCheckParams): string | null => {
-        const sleepStart = user?.user_metadata?.sleepStart || '22:00';
-        const sleepDuration = Number(user?.user_metadata?.sleepDuration) || 8;
+        const sleepStart = profile?.sleepStart || user?.user_metadata?.sleepStart || '22:00';
+        const sleepDuration = Number(profile?.sleepDuration || user?.user_metadata?.sleepDuration) || 8;
 
         if (isSleepOverlapping(values.startTime, values.endTime, sleepStart, sleepDuration)) {
             return "This habit overlaps with your sleep schedule.";
         }
 
-        const planDay = user?.user_metadata?.planDay || 'Sunday';
-        const planStartTime = user?.user_metadata?.planStartTime || '21:00';
-        const planEndTime = resolvePlanEndTime(user?.user_metadata);
+        const planDay = profile?.planDay || user?.user_metadata?.planDay || 'Sunday';
+        const planStartTime = profile?.planStartTime || user?.user_metadata?.planStartTime || '21:00';
+        const planEndTime = resolvePlanEndTime(profile, user?.user_metadata);
 
         if (values.daysOfWeek.includes(planDay)) {
             if (isTimeOverlapping(values.startTime, values.endTime, planStartTime, planEndTime)) {
