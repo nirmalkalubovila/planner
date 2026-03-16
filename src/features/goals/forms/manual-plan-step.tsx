@@ -47,7 +47,7 @@ export const ManualPlanStep: React.FC<ManualPlanStepProps> = ({ goal, onSave, on
                 </div>
             </div>
 
-            <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar p-1">
+            <div className="grid gap-4 p-1">
                 {plans.map((plan, index) => {
                     const milestone = goal.milestones?.[index];
                     return (

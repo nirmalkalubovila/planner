@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
+import { recordGenTime } from '@/components/common/ai-loading-popup';
 
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'arcee-ai/trinity-large-preview:free';
@@ -42,10 +43,12 @@ async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
 export function useAiPlanGeneration(user: any) {
     const [generating, setGenerating] = useState(false);
     const [tempPlan, setTempPlan] = useState<AIGeneratedPlanSlot[] | null>(null);
+    const genStartRef = useRef(0);
 
     const generatePlan = async (goal: Goal): Promise<AIGeneratedPlanSlot[] | null> => {
         if (!goal || !user) return null;
         setGenerating(true);
+        genStartRef.current = Date.now();
 
         try {
             const milestoneDatesStr = goal.milestones
@@ -87,6 +90,7 @@ Each object must have exactly these keys:
 \nRETURN ONLY PARSABLE JSON ARRAY FORMAT NO MARKDOWN TAGS.
 `;
             const planSlots = await callAI(prompt);
+            recordGenTime(Date.now() - genStartRef.current);
             setTempPlan(planSlots);
             return planSlots;
         } catch (error: any) {

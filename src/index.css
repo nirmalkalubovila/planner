@@ -23,6 +23,7 @@
     --destructive-foreground: 210 40% 98%;
     --ring: 215 20.2% 65.1%;
     --radius: 0.5rem;
+    color-scheme: dark;
   }
 }
 
@@ -40,9 +41,10 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 3px;
-  height: 2px;
+/* Global thin scrollbar — barely visible, never distracting */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -50,12 +52,24 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.05);
-  border-radius: 10px;
+  background: hsl(var(--muted-foreground) / 0.08);
+  border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.1);
+  background: hsl(var(--muted-foreground) / 0.18);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.08) transparent;
+}
+
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(50%); }
+  100% { transform: translateX(-100%); }
 }
 
 /* Fix native date picker icons for dark mode */

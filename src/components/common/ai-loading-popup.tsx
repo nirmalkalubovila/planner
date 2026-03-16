@@ -1,6 +1,38 @@
-import React from 'react';
-import { Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StandardDialog } from './standard-dialog';
+
+const STATUS_MESSAGES = [
+    "Reading your goal parameters...",
+    "Analyzing your career profile...",
+    "Mapping peak energy hours...",
+    "Cross-referencing existing habits...",
+    "Calculating optimal task splits...",
+    "Building milestone sequences...",
+    "Optimizing for your focus patterns...",
+    "Finalizing your action roadmap...",
+];
+
+const STORAGE_KEY = 'legacy_ai_gen_times';
+
+function getAvgTime(): number | null {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const times: number[] = JSON.parse(raw);
+        if (!times.length) return null;
+        return Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    } catch { return null; }
+}
+
+export function recordGenTime(ms: number) {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const times: number[] = raw ? JSON.parse(raw) : [];
+        times.push(ms);
+        if (times.length > 20) times.shift();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(times));
+    } catch { /* */ }
+}
 
 interface AILoadingPopupProps {
     isOpen: boolean;
@@ -12,36 +44,68 @@ interface AILoadingPopupProps {
 
 export const AILoadingPopup: React.FC<AILoadingPopupProps> = ({
     isOpen,
-    title = "Analyzing Objectives...",
-    subtitle = "Architecting your weekly schedule",
-    message = "Please stay tuned while our AI builds your plan...",
     onClose
 }) => {
+    const [msgIdx, setMsgIdx] = useState(0);
+    const [elapsed, setElapsed] = useState(0);
+    const [slow, setSlow] = useState(false);
+    const startRef = useRef(0);
+    const avgTime = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            startRef.current = Date.now();
+            avgTime.current = getAvgTime();
+            setMsgIdx(0);
+            setElapsed(0);
+            setSlow(false);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const msgInterval = setInterval(() => {
+            setMsgIdx(prev => (prev + 1) % STATUS_MESSAGES.length);
+        }, 2200);
+        const tickInterval = setInterval(() => {
+            const secs = Math.floor((Date.now() - startRef.current) / 1000);
+            setElapsed(secs);
+            const avg = avgTime.current;
+            const threshold = avg ? Math.round(avg / 1000) + 10 : 45;
+            if (secs > threshold) setSlow(true);
+        }, 1000);
+        return () => { clearInterval(msgInterval); clearInterval(tickInterval); };
+    }, [isOpen]);
+
     return (
         <StandardDialog
             isOpen={isOpen}
             onClose={onClose || (() => {})}
-            title="AI Strategy"
-            icon={Sparkles}
+            title="Legacy Planner"
             hideClose={!onClose}
             closeOnBackdrop={false}
-            footer={
-                <p className="text-xs text-muted-foreground italic font-medium text-center">{message}</p>
-            }
+            maxWidth="sm"
         >
-            <div className="p-8 flex flex-col items-center justify-center space-y-6">
-                <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
-                    <div className="bg-card border-4 border-primary/30 rounded-full p-6 relative animate-spin">
-                        <Sparkles className="text-primary" size={48} />
-                    </div>
+            <div className="px-6 py-8 flex flex-col items-center justify-center space-y-5">
+                <img
+                    src="/ai-animation-white.gif"
+                    alt="Legacy Planner"
+                    className="w-20 h-20 object-contain"
+                />
+
+                <div className="text-center space-y-1.5">
+                    <p className="text-sm font-semibold text-white/70 transition-all duration-300 min-h-[20px]">
+                        {slow ? 'Taking longer than expected...' : STATUS_MESSAGES[msgIdx]}
+                    </p>
+                    {slow && (
+                        <p className="text-[11px] text-amber-400/70">
+                            Please check your internet connection
+                        </p>
+                    )}
                 </div>
-                <div className="text-center">
-                    <h3 className="font-black text-xl tracking-tight mb-1">{title}</h3>
-                    <p className="text-sm text-muted-foreground font-medium">{subtitle}</p>
-                </div>
-                <div className="w-full bg-accent/50 rounded-full h-1 overflow-hidden mt-2">
-                    <div className="h-full bg-primary w-2/3 animate-[loading_2s_ease-in-out_infinite]" />
+
+                <div className="w-full bg-white/[0.06] rounded-full h-1 overflow-hidden">
+                    <div className="h-full bg-primary/60 rounded-full animate-[loading_2.5s_ease-in-out_infinite]" />
                 </div>
             </div>
         </StandardDialog>

@@ -16,6 +16,10 @@ export const Header: React.FC = () => {
 
     const { time, duration } = useTimeLived(user?.user_metadata?.dob);
 
+    const fullName: string = user?.user_metadata?.full_name || '';
+    const firstName = fullName.split(' ')[0] || '';
+    const avatarUrl: string | null = user?.user_metadata?.avatar_url || null;
+
     const handleLogout = async () => {
         await signOut();
         navigate('/login');
@@ -63,12 +67,32 @@ export const Header: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Right: Round Profile Icon with Dropdown & Age */}
-                <div className="flex justify-end items-center gap-3 md:gap-4">
+                {/* Right: Age + Name + Avatar Dropdown */}
+                <div className="flex justify-end items-center gap-2 sm:gap-3 md:gap-4">
+                    {/* Live Age Display */}
+                    {duration && (
+                        <div className="hidden sm:flex flex-col items-end min-w-[80px] group cursor-default">
+                            <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] text-white/30 group-hover:text-primary/60 transition-colors font-bold">
+                                <Sparkles size={8} className="animate-pulse" />
+                                <span>{firstName ? `${firstName}'s age` : 'Age'}</span>
+                            </div>
+                            <div className="text-[12px] md:text-sm font-black text-white/80 tabular-nums tracking-wider leading-none mt-0.5 flex items-baseline gap-1">
+                                <span className="text-white">{duration.years}</span><span className="text-white/30 text-[10px] lowercase font-normal">y</span>
+                                <span className="text-white">{duration.months}</span><span className="text-white/30 text-[10px] lowercase font-normal">m</span>
+                                <span className="text-white">{duration.days}</span><span className="text-white/30 text-[10px] lowercase font-normal">d</span>
+                            </div>
+                        </div>
+                    )}
+
+
                     <Popover>
                         <PopoverTrigger asChild>
-                            <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 p-0 hover:bg-white/10 transition-all active:scale-95 focus:outline-none focus:ring-1 focus:ring-white/20">
-                                <UserIcon size={20} className="text-white/80" />
+                            <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 p-0 hover:bg-white/10 transition-all active:scale-95 focus:outline-none focus:ring-1 focus:ring-white/20 overflow-hidden">
+                                {avatarUrl ? (
+                                    <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                                ) : (
+                                    <UserIcon size={20} className="text-white/80" />
+                                )}
                                 {user && (
                                     <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" />
                                 )}
@@ -103,21 +127,6 @@ export const Header: React.FC = () => {
                             </div>
                         </PopoverContent>
                     </Popover>
-
-                    {/* Live Age Display */}
-                    {duration && (
-                        <div className="hidden sm:flex flex-col items-start min-w-[80px] group cursor-default">
-                            <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] text-white/30 group-hover:text-primary/60 transition-colors font-bold">
-                                <Sparkles size={8} className="animate-pulse" />
-                                <span>Time Lived</span>
-                            </div>
-                            <div className="text-[12px] md:text-sm font-black text-white/80 tabular-nums tracking-wider leading-none mt-0.5 flex items-baseline gap-1">
-                                <span className="text-white">{duration.years}</span><span className="text-white/30 text-[10px] lowercase font-normal">y</span>
-                                <span className="text-white">{duration.months}</span><span className="text-white/30 text-[10px] lowercase font-normal">m</span>
-                                <span className="text-white">{duration.days}</span><span className="text-white/30 text-[10px] lowercase font-normal">d</span>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </header>

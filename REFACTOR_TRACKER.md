@@ -53,3 +53,13 @@ All changes are logged here with date, file, action, and reasoning.
 | 2026-03-14 | `src/layout/` | Max-width & Padding Removal | UX: Content (Header & Grid) now utilizes 100% of the screen width and height |
 | 2026-03-14 | `src/features/planner/components/planner-toolbar.tsx` | Fixed height & scroll refinements | UX: Enhanced space for library tasks on large screens |
 | 2026-03-14 | `src/features/planner/components/planner-toolbar.tsx` | Static Actions & Cloud Sync Status | UX: Undo/Redo/Clear/Save are now always pinned; Green Cloud = Saved, Red = Syncing/Pending |
+| 2026-03-16 | `src/features/goals/components/goal-card.tsx` | Glassmorphic redesign matching HabitCard | UX: Consistent card design across goals & habits |
+| 2026-03-16 | `src/features/goals/goals-page.tsx` | StandardDialog for goal creation/edit, instant AI loader | UX: Popup forms, zero-delay loading feedback |
+| 2026-03-16 | `src/features/goals/forms/goal-definition-form.tsx` | CustomDatePicker, dark-themed select dropdown | UX: Consistent date inputs, color-matched dropdowns |
+| 2026-03-16 | `src/features/goals/components/strategy-choice-dialog.tsx` | Legacy Planner branding, concise text | UX: Cleaner strategy selection with AI gif logo |
+| 2026-03-16 | `src/components/common/ai-loading-popup.tsx` | Dynamic messages, "taking longer" feedback | UX: No raw seconds, smart timeout detection |
+| 2026-03-16 | `src/features/goals/components/goal-progress-bar.tsx` | Colored starting point, completion-only milestone highlights | UX: Milestones only light up when passed |
+| 2026-03-16 | `src/features/goals/components/master-action-plan.tsx` | Grid-aligned sub-plan rows, removed hours from milestones | UX: Tabular layout, cleaner milestone cards |
+| 2026-03-16 | `src/features/goals/forms/manual-plan-step.tsx` | Wider dialog, removed inner scrollbar | UX: No double scrollbars in manual plan |
+| 2026-03-16 | `src/features/goals/forms/ai-generation-step.tsx` | Wider preview, removed estimated hours | UX: Hours defined at weekly plan stage |
+| 2026-03-16 | `src/index.css` | color-scheme: dark, global thin scrollbar, loading keyframes | UX: Native dark dropdowns, subtle scrollbars |
