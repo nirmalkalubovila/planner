@@ -27,7 +27,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
         <div
             className={cn(
                 'group relative rounded-2xl border overflow-hidden flex flex-col h-full',
-                'bg-white/[0.03] border-white/10 hover:border-primary/40',
+                'bg-card border-border hover:border-primary/40',
                 'transition-[border-color,box-shadow] duration-150',
                 frequency >= 5 && 'hover:shadow-[0_0_24px_rgba(var(--primary-rgb,99,102,241),0.12)]',
             )}
@@ -42,14 +42,14 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
             <div className="absolute top-2.5 right-2.5 flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-100 z-10">
                 <Button
                     variant="ghost" size="icon"
-                    className="h-7 w-7 rounded-lg text-white/30 hover:text-primary hover:bg-white/10"
+                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent"
                     onClick={() => onEdit(habit)}
                 >
                     <Edit2 size={13} />
                 </Button>
                 <Button
                     variant="ghost" size="icon"
-                    className="h-7 w-7 rounded-lg text-white/30 hover:text-destructive hover:bg-white/10"
+                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-accent"
                     onClick={() => onDelete(habit.id!)}
                 >
                     <Trash2 size={13} />
@@ -59,7 +59,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
             <div className="p-4 pl-5 flex flex-col gap-3 flex-1">
                 {/* Row 1: Name + everyday badge */}
                 <div className="flex items-start gap-2 pr-14">
-                    <h3 className="font-bold text-[15px] leading-snug text-white/90 tracking-tight">
+                    <h3 className="font-bold text-[15px] leading-snug text-foreground tracking-tight">
                         {habit.name}
                     </h3>
                     {isEveryday && (
@@ -71,13 +71,13 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
 
                 {/* Row 2: Time pill */}
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-1.5">
+                    <div className="flex items-center gap-1.5 bg-muted border border-border rounded-lg px-2.5 py-1.5">
                         <Clock size={13} className="text-primary/70 shrink-0" />
-                        <span className="text-sm font-bold text-white/80 font-mono tracking-tight">
+                        <span className="text-sm font-bold text-foreground font-mono tracking-tight">
                             {habit.startTime}
                         </span>
-                        <span className="text-white/20 text-xs">→</span>
-                        <span className="text-sm font-bold text-white/80 font-mono tracking-tight">
+                        <span className="text-muted-foreground text-xs">→</span>
+                        <span className="text-sm font-bold text-foreground font-mono tracking-tight">
                             {habit.endTime}
                         </span>
                     </div>
@@ -93,37 +93,37 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
                                     className={cn(
                                         'w-[26px] h-[6px] rounded-full transition-colors',
                                         active
-                                            ? 'bg-primary/80'
-                                            : 'bg-white/[0.06]'
+                                            ? 'bg-primary'
+                                            : 'bg-muted'
                                     )}
                                 />
                                 <span className={cn(
                                     'text-[8px] font-bold uppercase tracking-wide',
-                                    active ? 'text-white/50' : 'text-white/15'
+                                    active ? 'text-foreground' : 'text-muted-foreground'
                                 )}>
                                     {day.charAt(0)}
                                 </span>
                             </div>
                         );
                     })}
-                    <span className="text-[9px] font-black text-white/25 ml-1.5 uppercase tracking-widest">
+                    <span className="text-[9px] font-black text-foreground ml-1.5 uppercase tracking-widest">
                         {frequency}/7
                     </span>
                 </div>
 
                 {/* Row 4: Purpose */}
                 {habit.purpose && (
-                    <p className="text-[11px] text-white/30 italic leading-relaxed line-clamp-2">
+                    <p className="text-[11px] text-foreground/80 italic leading-relaxed line-clamp-2">
                         "{habit.purpose}"
                     </p>
                 )}
 
                 {/* Row 5: Date range footer */}
                 {habit.startDate && habit.endDate && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-white/20 mt-auto pt-1">
-                        <CalendarIcon size={10} className="text-white/15 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-[10px] text-foreground/70 mt-auto pt-1">
+                        <CalendarIcon size={10} className="text-foreground/70 shrink-0" />
                         <span>{habit.startDate}</span>
-                        <span className="text-white/10">→</span>
+                        <span className="text-muted-foreground/60">→</span>
                         <span>{habit.endDate}</span>
                     </div>
                 )}

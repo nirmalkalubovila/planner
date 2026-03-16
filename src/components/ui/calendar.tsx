@@ -185,7 +185,7 @@ function Calendar({
                         if (view === "years") setYearRangeStart(yearRangeStart - 12)
                     }}
                     className={cn(
-                        "inline-flex items-center justify-center h-7 w-7 rounded-md border border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors",
+                        "inline-flex items-center justify-center h-7 w-7 rounded-md border border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground transition-colors",
                         view === "months" && "opacity-0 pointer-events-none"
                     )}
                 >
@@ -196,7 +196,7 @@ function Calendar({
                     <button
                         type="button"
                         onClick={() => setView(view === "months" ? "calendar" : "months")}
-                        className="px-2 py-1 rounded-md hover:bg-white/5 text-sm font-bold text-white transition-colors"
+                        className="px-2 py-1 rounded-md hover:bg-accent text-sm font-bold text-foreground transition-colors"
                     >
                         {format(currentMonth, "MMMM")}
                     </button>
@@ -210,7 +210,7 @@ function Calendar({
                                 setView("years")
                             }
                         }}
-                        className="px-2 py-1 rounded-md hover:bg-white/5 text-sm font-bold text-white transition-colors"
+                        className="px-2 py-1 rounded-md hover:bg-accent text-sm font-bold text-foreground transition-colors"
                     >
                         {view === "years" ? `${yearRangeStart} - ${yearRangeStart + 11}` : getYear(currentMonth)}
                     </button>
@@ -223,7 +223,7 @@ function Calendar({
                         if (view === "years") setYearRangeStart(yearRangeStart + 12)
                     }}
                     className={cn(
-                        "inline-flex items-center justify-center h-7 w-7 rounded-md border border-white/10 bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground transition-colors",
+                        "inline-flex items-center justify-center h-7 w-7 rounded-md border border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground transition-colors",
                         view === "months" && "opacity-0 pointer-events-none"
                     )}
                 >

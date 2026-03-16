@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { Goal, GridState } from '@/types/global-types';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Target, Calendar, Check, Edit2, Trash2, ChevronDown, Clock } from 'lucide-react';
+import { Target, Calendar as CalendarIcon, Check, Edit2, Trash2, ChevronDown, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { GoalProgressBar } from './goal-progress-bar';
 import { MasterActionPlan } from './master-action-plan';
@@ -33,33 +32,29 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     onUpdateGoal
 }) => {
     const hasPlan = goal.plans && goal.plans.length > 0;
+    const milestones = goal.milestones || [];
+    const totalMilestones = milestones.length;
 
-    // Calculate Weekly Tasks and Progress mathematically
     const { weeklyTasks, progressPercentage, completedWeeklyTasksCount } = useMemo(() => {
         let weeklyTasksList: { id: string, dayStr: string, name: string, time: string, dayName: string }[] = [];
 
         if (weekPlan && currentWeek) {
             const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
             for (let d = 0; d < 7; d++) {
                 let currentTaskName: string | null = null;
                 for (let s = 0; s < 48; s++) {
                     const content = weekPlan[`${d}-${s}`];
                     const isGoalTask = content && content.type === 'goal' && (content as any).goalId === goal.id;
-
                     if (isGoalTask) {
                         if (currentTaskName !== content.name) {
-                            // Start new contiguous block
                             const hour = Math.floor(s / 2);
                             const min = (s % 2) * 30;
-                            const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-
                             weeklyTasksList.push({
                                 id: `goal-${content.name}-${s}`,
                                 dayStr: `${currentWeek}-${d + 1}`,
                                 name: content.name,
                                 dayName: DAYS[d],
-                                time: timeStr
+                                time: `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`
                             });
                             currentTaskName = content.name;
                         }
@@ -70,7 +65,6 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             }
         }
 
-        // Add completed status
         const tasksWithStatus = weeklyTasksList.map(task => {
             const isCompleted = completedDays && completedDays[task.dayStr] && completedDays[task.dayStr].includes(task.id);
             return { ...task, isCompleted: !!isCompleted };
@@ -79,31 +73,17 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         const totalWeekly = tasksWithStatus.length;
         const completedWeekly = tasksWithStatus.filter(t => t.isCompleted).length;
 
-        // Calculate Progress Overall
         let progressOverride = 0;
         if (goal.startDate && goal.endDate) {
             const startObj = parseISO(goal.startDate);
             const endObj = parseISO(goal.endDate);
             const totalDays = Math.max(1, (endObj.getTime() - startObj.getTime()) / (1000 * 3600 * 24));
-
-            if (currentWeek) {
+            if (currentWeek && totalWeekly > 0) {
                 const currentWeekStart = WeekUtils.getDaysForWeek(currentWeek)[0];
                 const daysToWeekStart = (currentWeekStart.getTime() - startObj.getTime()) / (1000 * 3600 * 24);
-
-                let currentWeekProgressDays = 0;
-                if (totalWeekly > 0) {
-                    // Progress based on actual task completions
-                    currentWeekProgressDays = 7 * (completedWeekly / totalWeekly);
-
-                    let totalPassedDays = daysToWeekStart + currentWeekProgressDays;
-                    if (totalPassedDays < 0) totalPassedDays = 0;
-                    if (totalPassedDays > totalDays) totalPassedDays = totalDays;
-
-                    progressOverride = (totalPassedDays / totalDays) * 100;
-                } else {
-                    // If no tasks are planned, progress is 0
-                    progressOverride = 0;
-                }
+                let totalPassedDays = daysToWeekStart + 7 * (completedWeekly / totalWeekly);
+                totalPassedDays = Math.max(0, Math.min(totalPassedDays, totalDays));
+                progressOverride = (totalPassedDays / totalDays) * 100;
             }
         }
 
@@ -114,93 +94,123 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         };
     }, [goal, weekPlan, completedDays, currentWeek]);
 
-
-
+    const intensityOpacity = totalMilestones > 0
+        ? Math.max(0.4, progressPercentage / 100)
+        : 0.4;
 
     return (
-        <Card className={cn(
-            "overflow-hidden border-border/60 hover:border-primary/40 transition-all group flex flex-col select-none w-full",
-            !isExpanded ? "h-[240px] sm:h-[260px]" : "min-h-[240px] sm:min-h-[260px]"
-        )}>
-            <div className={cn(
-                "bg-accent/40 px-3 pt-3 pb-2 sm:px-4 sm:pt-4 sm:pb-3 flex flex-col border-b group/card transition-all duration-300",
-                !isExpanded && "flex-1"
-            )}>
-                <div className="flex flex-row items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover/card:bg-primary group-hover/card:text-white transition-all duration-500 shadow-inner">
-                            <Target size={20} />
-                        </div>
-                        <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                                <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold uppercase tracking-tighter">{goal.goalType}</span>
-                                {hasPlan && <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 font-bold flex items-center uppercase tracking-tighter"><Check size={8} className="mr-0.5" /> Plan</span>}
-                                {weeklyTasks.length > 0 && (
-                                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 font-bold border border-indigo-500/20 uppercase tracking-tighter">
-                                        {completedWeeklyTasksCount}/{weeklyTasks.length} Done
-                                    </span>
-                                )}
-                            </div>
-                            <h3 className="font-bold text-sm sm:text-base leading-tight truncate">{goal.title || goal.name}</h3>
-                        </div>
-                    </div>
+        <div className="flex flex-col w-full">
+            {/* Main card */}
+            <div
+                className={cn(
+                    'group relative rounded-2xl border overflow-hidden flex flex-col',
+                    'bg-card border-border hover:border-primary/40',
+                    'transition-[border-color,box-shadow] duration-150',
+                    progressPercentage >= 40 && 'hover:shadow-[0_0_24px_rgba(var(--primary-rgb,99,102,241),0.12)]',
+                )}
+            >
+                {/* Left accent bar */}
+                <div
+                    className="absolute top-0 left-0 w-1 h-full bg-primary rounded-l-2xl"
+                    style={{ opacity: intensityOpacity }}
+                />
 
-                    <div className="flex items-center gap-0.5 bg-background/50 rounded-full p-1 backdrop-blur-sm shadow-sm border border-white/5">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/60 hover:text-primary transition-colors" onClick={() => onToggle(goal.id!)}>
-                            <ChevronDown size={14} className={cn("transition-transform duration-300", isExpanded && "rotate-180")} />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/60 hover:text-primary transition-colors" onClick={() => onEdit(goal)}>
-                            <Edit2 size={12} />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground/60 hover:text-destructive transition-colors" onClick={() => onDelete(goal.id!)}>
-                            <Trash2 size={12} />
-                        </Button>
-                    </div>
+                {/* Action buttons - habit card style */}
+                <div className="absolute top-2.5 right-2.5 flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-100 z-10">
+                    <Button
+                        variant="ghost" size="icon"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent"
+                        onClick={() => onToggle(goal.id!)}
+                    >
+                        <ChevronDown size={13} className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
+                    </Button>
+                    <Button
+                        variant="ghost" size="icon"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent"
+                        onClick={() => onEdit(goal)}
+                    >
+                        <Edit2 size={13} />
+                    </Button>
+                    <Button
+                        variant="ghost" size="icon"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-accent"
+                        onClick={() => onDelete(goal.id!)}
+                    >
+                        <Trash2 size={13} />
+                    </Button>
                 </div>
 
-                <div className="px-1 h-[40px] sm:h-[48px] overflow-hidden mb-1.5 sm:mb-2">
-                    <p className="text-[11px] text-muted-foreground/70 leading-relaxed line-clamp-3">
+                <div className="p-4 pl-5 flex flex-col gap-2.5">
+                    {/* Row 1: Badges */}
+                    <div className="flex flex-wrap items-center gap-1.5 pr-24">
+                        <span className="text-[8px] font-black uppercase tracking-widest bg-primary/15 text-primary border border-primary/20 px-1.5 py-0.5 rounded">
+                            {goal.goalType}
+                        </span>
+                        {hasPlan && (
+                            <span className="text-[8px] font-black uppercase tracking-widest bg-intent-goal-muted text-intent-goal border border-intent-goal/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                <Check size={8} /> Plan
+                            </span>
+                        )}
+                        {weeklyTasks.length > 0 && (
+                            <span className="text-[8px] font-black uppercase tracking-widest bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded">
+                                {completedWeeklyTasksCount}/{weeklyTasks.length} Done
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Row 2: Title */}
+                    <h3 className="font-bold text-[15px] leading-snug text-foreground tracking-tight">
+                        {goal.title || goal.name}
+                    </h3>
+
+                    {/* Row 3: Description */}
+                    <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
                         {goal.name}
                     </p>
-                </div>
 
-                <div className="text-[9px] text-muted-foreground/40 px-1 mb-2 sm:mb-4 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-bold uppercase tracking-widest">
-                    <span className="flex items-center gap-1"><Calendar size={10} /> {goal.startDate ? format(parseISO(goal.startDate), 'MMM d') : 'N/A'}</span>
-                    <span className="flex items-center gap-1">End: {goal.endDate ? format(parseISO(goal.endDate), 'MMM d') : 'N/A'}</span>
-                </div>
+                    {/* Row 4: Date range */}
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <CalendarIcon size={10} className="text-muted-foreground shrink-0" />
+                        <span>{goal.startDate ? format(parseISO(goal.startDate), 'MMM d') : 'N/A'}</span>
+                        <span className="text-muted-foreground/60">→</span>
+                        <span>End: {goal.endDate ? format(parseISO(goal.endDate), 'MMM d') : 'N/A'}</span>
+                    </div>
 
-                <div className="mt-auto">
-                    <GoalProgressBar 
-                        milestones={goal.milestones || []}
+                    {/* Row 5: Milestone timeline */}
+                    <GoalProgressBar
+                        milestones={milestones}
                         progressPercentage={progressPercentage}
+                        startDate={goal.startDate}
                     />
                 </div>
             </div>
 
+            {/* Expanded content */}
             {isExpanded && (
-                <CardContent className="p-0 border-t border-border/50">
-                    {/* Weekly Tasks For This Goal */}
+                <div className="mt-1 rounded-2xl border border-border bg-muted/50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                     {weeklyTasks.length > 0 && (
-                        <div className="bg-indigo-500/5 p-3 sm:p-4 border-b border-indigo-500/10">
+                        <div className="p-3 sm:p-4 border-b border-border">
                             <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-[10px] md:text-xs font-bold uppercase text-indigo-500 tracking-widest">Tasks Scheduled</h4>
-                                <span className="text-xs font-bold text-muted-foreground">{completedWeeklyTasksCount} / {weeklyTasks.length} Done</span>
+                                <h4 className="text-[10px] md:text-xs font-bold uppercase text-primary tracking-widest">This Week's Tasks</h4>
+                                <span className="text-xs font-bold text-muted-foreground">{completedWeeklyTasksCount} / {weeklyTasks.length}</span>
                             </div>
                             <div className="grid gap-2 grid-cols-1 xs:grid-cols-2 md:grid-cols-3">
                                 {weeklyTasks.map((task, idx) => (
                                     <div key={idx} className={cn(
-                                        "flex flex-col gap-1 p-3 rounded-lg border shadow-sm transition-all",
-                                        task.isCompleted ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-card/50 border-border/50'
+                                        "flex flex-col gap-1 p-3 rounded-lg border transition-all duration-100",
+                                        task.isCompleted
+                                            ? 'bg-emerald-500/10 border-emerald-500/20'
+                                            : 'bg-card border-border'
                                     )}>
                                         <div className="flex items-center justify-between">
                                             <span className={cn(
                                                 "text-xs font-semibold truncate flex-1",
-                                                task.isCompleted ? "text-foreground line-through opacity-70" : "text-foreground"
+                                                task.isCompleted ? "text-muted-foreground line-through" : "text-foreground"
                                             )}>{task.name}</span>
-                                            {task.isCompleted && <Check size={12} className="text-emerald-500 ml-2" />}
+                                            {task.isCompleted && <Check size={12} className="text-intent-goal ml-2" />}
                                         </div>
                                         <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
-                                            <Calendar size={10} /> {task.dayName} <Clock size={10} className="ml-1" /> {task.time}
+                                            <CalendarIcon size={10} /> {task.dayName} <Clock size={10} className="ml-1" /> {task.time}
                                         </span>
                                     </div>
                                 ))}
@@ -209,8 +219,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     )}
 
                     <MasterActionPlan goal={goal} onUpdate={onUpdateGoal} />
-                </CardContent>
+                </div>
             )}
-        </Card>
+        </div>
     );
 };

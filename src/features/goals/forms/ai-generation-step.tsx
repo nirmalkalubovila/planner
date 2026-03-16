@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Check, X, RotateCw, Calendar } from 'lucide-react';
+import { Check, X, RotateCw, Calendar, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AIGeneratedPlanSlot } from '@/types/global-types';
 import { cn } from '@/lib/utils';
@@ -19,54 +19,71 @@ export const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
     onConfirm,
     onCancelPreview
 }) => {
-    if (previewPlan) {
-        return (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center justify-between border-b pb-4">
+    if (!previewPlan) return null;
+
+    return (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
+                <div className="flex items-center gap-2">
+                    <img src="/ai-animation-white.gif" alt="" className="w-7 h-7 object-contain" />
                     <div>
-                        <h3 className="text-xl font-bold flex items-center gap-2">
-                            <Sparkles className="text-primary w-5 h-5" />
-                            AI Proposed Plan
-                        </h3>
-                        <p className="text-sm text-muted-foreground">Review your milestones before saving.</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={onCancelPreview} disabled={generating}>
-                            <X size={14} className="mr-1" /> Cancel
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={onGenerate} disabled={generating}>
-                            <RotateCw size={14} className={cn("mr-1", generating && "animate-spin")} />
-                            {generating ? "Generating..." : "Remake"}
-                        </Button>
-                        <Button size="sm" onClick={onConfirm} disabled={generating} className="bg-emerald-600 hover:bg-emerald-700">
-                            <Check size={14} className="mr-1" /> Save Plan
-                        </Button>
+                        <h3 className="text-base font-bold text-foreground">Your Roadmap</h3>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Legacy Planner crafted {previewPlan.length} milestones</p>
                     </div>
                 </div>
-
-                <div className="grid gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {previewPlan.map((slot, index) => (
-                        <div key={index} className="flex gap-4 p-4 rounded-xl border bg-card/50 hover:border-primary/30 transition-all group">
-                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-                                {index + 1}
-                            </div>
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-foreground">{slot.dayTask}</span>
-                                    <span className="text-[10px] uppercase tracking-wider bg-accent px-2 py-0.5 rounded-full text-muted-foreground flex items-center gap-1">
-                                        <Calendar size={10} /> {slot.date}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-muted-foreground leading-relaxed">
-                                    {slot.description}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
+                <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={onCancelPreview} disabled={generating} className="text-xs h-7 text-muted-foreground hover:text-foreground">
+                        <X size={13} className="mr-1" /> Cancel
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={onGenerate} disabled={generating} className="text-xs h-7 text-muted-foreground hover:text-foreground">
+                        <RotateCw size={13} className={cn("mr-1", generating && "animate-spin")} />
+                        Remake
+                    </Button>
+                    <Button size="sm" onClick={onConfirm} disabled={generating} className="text-xs h-7 bg-intent-goal hover:bg-intent-goal/90 text-intent-goal-foreground">
+                        <Check size={13} className="mr-1" /> Save Plan
+                    </Button>
                 </div>
             </div>
-        );
-    }
 
-    return null;
+            {/* Plan cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[55vh] overflow-y-auto pr-1 py-1">
+                {previewPlan.map((slot, index) => (
+                    <div
+                        key={index}
+                        className="group relative rounded-xl border border-border bg-card hover:border-primary/30 hover:bg-muted/30 transition-all duration-150 overflow-hidden"
+                    >
+                        <div className="absolute top-0 left-0 w-1 h-full bg-primary/40 rounded-l-xl" />
+
+                        <div className="p-4 pl-5 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-3">
+                                    <div className="shrink-0 w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-sm text-primary">
+                                        {index + 1}
+                                    </div>
+                                    <span className="font-bold text-sm text-foreground leading-snug">{slot.dayTask}</span>
+                                </div>
+                            </div>
+
+                            <p className="text-[12px] text-muted-foreground leading-relaxed pl-11">
+                                {slot.description}
+                            </p>
+
+                            <div className="flex flex-wrap items-center gap-2 pl-11">
+                                <span className="text-[9px] uppercase tracking-wider bg-muted border border-border px-2 py-0.5 rounded text-muted-foreground flex items-center gap-1 font-bold">
+                                    <Calendar size={9} /> {slot.date}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-center gap-2 pt-2 text-[10px] text-muted-foreground">
+                <Sparkles size={10} />
+                <span>Generated by Legacy Planner based on your profile</span>
+            </div>
+        </div>
+    );
 };

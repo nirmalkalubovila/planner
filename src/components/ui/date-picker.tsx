@@ -34,7 +34,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                 <Button
                     variant={"outline"}
                     className={cn(
-                        "w-full flex items-center justify-between text-left font-normal h-9 px-3 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 transition-colors",
+                        "w-full flex items-center justify-between text-left font-normal h-9 px-3 rounded-lg border-border bg-muted hover:bg-accent transition-colors",
                         !selected && "text-muted-foreground",
                         className
                     )}
@@ -42,7 +42,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                     <span className="truncate">
                         {selected ? format(selected, "PPP") : placeholderText}
                     </span>
-                    <CalendarIcon className="h-4 w-4 text-white shrink-0" />
+                    <CalendarIcon className="h-4 w-4 text-foreground shrink-0" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">

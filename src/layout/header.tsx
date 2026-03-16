@@ -2,6 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { Settings, LogOut, User as UserIcon, Sparkles } from 'lucide-react';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuth } from '@/contexts/auth-context';
 import { useTimeLived } from '@/hooks/use-time-lived';
 import {
@@ -16,13 +17,20 @@ export const Header: React.FC = () => {
 
     const { time, duration } = useTimeLived(user?.user_metadata?.dob);
 
+    const fullName: string = user?.user_metadata?.full_name || '';
+    const firstName = fullName.split(' ')[0] || '';
+    const avatarUrl: string | null = user?.user_metadata?.avatar_url || null;
+    const initials = fullName
+        ? fullName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+        : user?.email?.substring(0, 2).toUpperCase() || 'U';
+
     const handleLogout = async () => {
         await signOut();
         navigate('/login');
     };
 
     return (
-        <header className="sticky top-0 z-[100] w-full border-b border-white/5 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-[100] w-full border-b border-border bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
             <div className="grid grid-cols-3 items-center h-12 px-2 sm:px-4 md:px-8">
 
                 {/* Left: Beautiful Logo & Title (Anchored to home) */}
@@ -37,11 +45,11 @@ export const Header: React.FC = () => {
                             <img
                                 src="/white-logo.svg"
                                 alt="Legacy Life Builder Logo"
-                                className="h-9 w-9 md:h-8 md:w-8 object-contain relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+                                className="h-9 w-9 md:h-8 md:w-8 object-contain relative z-10 drop-shadow-[0_0_8px_hsl(var(--foreground)/0.3)] invert dark:invert-0"
                             />
                         </div>
                         <div className="hidden md:flex flex-col">
-                            <span className="text-sm md:text-lg font-bold tracking-[-0.03em] leading-none uppercase bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
+                            <span className="text-sm md:text-lg font-bold tracking-[-0.03em] leading-none uppercase bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
                                 Legacy Life Builder
                             </span>
                             <div className="h-[1.5px] w-0 group-hover:w-full bg-gradient-to-r from-primary/80 to-transparent transition-all duration-500 ease-out" />
@@ -50,9 +58,9 @@ export const Header: React.FC = () => {
                 </div>
 
                 {/* Middle: Timer (Logo-style Text) */}
-                <div className="flex flex-col items-center justify-center font-bold text-white tracking-widest leading-tight">
+                <div className="flex flex-col items-center justify-center font-bold text-foreground tracking-widest leading-tight">
                     <div className="flex flex-col items-center group cursor-default">
-                        <span className="text-[9px] sm:text-[10px] md:text-[11px] uppercase tracking-[0.15em] sm:tracking-[0.2em] text-white/40 group-hover:text-primary transition-colors">
+                        <span className="text-[9px] sm:text-[10px] md:text-[11px] uppercase tracking-[0.15em] sm:tracking-[0.2em] text-muted-foreground group-hover:text-primary transition-colors">
                             {format(time, 'yyyy, MMM dd')}
                         </span>
                         <div className="flex items-center gap-2">
@@ -63,30 +71,51 @@ export const Header: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Right: Round Profile Icon with Dropdown & Age */}
-                <div className="flex justify-end items-center gap-3 md:gap-4">
+                {/* Right: Age + Name + Avatar Dropdown */}
+                <div className="flex justify-end items-center gap-2 sm:gap-3 md:gap-4">
+                    <ThemeToggle />
+                    {/* Live Age Display */}
+                    {duration && (
+                        <div className="hidden sm:flex flex-col items-end min-w-[80px] group cursor-default">
+                            <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] text-muted-foreground group-hover:text-primary/60 transition-colors font-bold">
+                                <Sparkles size={8} className="animate-pulse" />
+                                <span>{firstName ? `${firstName}'s age` : 'Age'}</span>
+                            </div>
+                            <div className="text-[12px] md:text-sm font-black text-foreground tabular-nums tracking-wider leading-none mt-0.5 flex items-baseline gap-1">
+                                <span className="text-foreground">{duration.years}</span><span className="text-muted-foreground text-[10px] lowercase font-normal">y</span>
+                                <span className="text-foreground">{duration.months}</span><span className="text-muted-foreground text-[10px] lowercase font-normal">m</span>
+                                <span className="text-foreground">{duration.days}</span><span className="text-muted-foreground text-[10px] lowercase font-normal">d</span>
+                            </div>
+                        </div>
+                    )}
+
+
                     <Popover>
                         <PopoverTrigger asChild>
-                            <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 p-0 hover:bg-white/10 transition-all active:scale-95 focus:outline-none focus:ring-1 focus:ring-white/20">
-                                <UserIcon size={20} className="text-white/80" />
+                            <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-muted p-0 hover:bg-accent transition-all active:scale-95 focus:outline-none focus:ring-1 focus:ring-ring overflow-hidden">
+                                {avatarUrl ? (
+                                    <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                                ) : (
+                                    <span className="text-xs font-bold text-foreground select-none">{initials}</span>
+                                )}
                                 {user && (
-                                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" />
+                                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-intent-goal" />
                                 )}
                             </button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-52 p-1.5 border-white/10 bg-background/95 backdrop-blur-xl shadow-2xl" align="end">
-                            <div className="px-3 py-2.5 border-b border-white/5 mb-1.5 bg-white/5 -mx-1.5 -mt-1.5 rounded-t-lg">
+                        <PopoverContent className="w-52 p-1.5 border-border bg-popover/95 backdrop-blur-xl shadow-2xl" align="end">
+                            <div className="px-3 py-2.5 border-b border-border mb-1.5 bg-muted -mx-1.5 -mt-1.5 rounded-t-lg">
                                 <p className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Signed in as</p>
-                                <p className="text-xs text-white truncate max-w-full font-medium mt-1">
+                                <p className="text-xs text-foreground truncate max-w-full font-medium mt-1">
                                     {user?.email}
                                 </p>
                             </div>
                             <div className="space-y-0.5">
                                 <button
                                     onClick={() => navigate('/profile')}
-                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/10 transition-all rounded-md group"
+                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-all rounded-md group"
                                 >
-                                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white/5 group-hover:bg-primary/20 transition-colors">
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted group-hover:bg-primary/20 transition-colors">
                                         <Settings size={14} className="group-hover:rotate-45 transition-transform duration-500" />
                                     </div>
                                     <span className="font-medium">Settings</span>
@@ -103,21 +132,6 @@ export const Header: React.FC = () => {
                             </div>
                         </PopoverContent>
                     </Popover>
-
-                    {/* Live Age Display */}
-                    {duration && (
-                        <div className="hidden sm:flex flex-col items-start min-w-[80px] group cursor-default">
-                            <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] text-white/30 group-hover:text-primary/60 transition-colors font-bold">
-                                <Sparkles size={8} className="animate-pulse" />
-                                <span>Time Lived</span>
-                            </div>
-                            <div className="text-[12px] md:text-sm font-black text-white/80 tabular-nums tracking-wider leading-none mt-0.5 flex items-baseline gap-1">
-                                <span className="text-white">{duration.years}</span><span className="text-white/30 text-[10px] lowercase font-normal">y</span>
-                                <span className="text-white">{duration.months}</span><span className="text-white/30 text-[10px] lowercase font-normal">m</span>
-                                <span className="text-white">{duration.days}</span><span className="text-white/30 text-[10px] lowercase font-normal">d</span>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </header>

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/auth-context';
 import { ProtectedRoute } from './components/protected-route';
 import { DashboardLayout } from './layout/dashboard-layout';
+import { useTheme } from 'next-themes';
 import { Toaster } from 'sonner';
 
 import { PageLoader } from './components/common/page-loader';
@@ -48,9 +49,10 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const RootLayout = () => {
+  const { resolvedTheme } = useTheme();
   return (
     <>
-      <Toaster position="bottom-right" theme="dark" richColors />
+      <Toaster position="bottom-right" theme={(resolvedTheme as 'light' | 'dark') ?? 'dark'} richColors />
       <Outlet />
     </>
   );

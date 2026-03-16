@@ -80,7 +80,7 @@ export const StandardDialog: React.FC<StandardDialogProps> = ({
 
                     <motion.div
                         className={cn(
-                            'relative bg-card border shadow-2xl rounded-2xl w-full overflow-hidden flex flex-col',
+                            'relative bg-card border border-border shadow-2xl rounded-2xl w-full overflow-hidden flex flex-col',
                             maxWidthMap[maxWidth],
                             !scrollable && 'max-h-[90vh]',
                             className

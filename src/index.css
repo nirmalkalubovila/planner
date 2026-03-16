@@ -1,7 +1,9 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+/* Theme contract: CSS variables for Light/Dark (scalable for future Pro themes) */
 @layer base {
+  /* Default: dark theme (prevents flash before next-themes hydrates) */
   :root {
     --background: 224 71% 4%;
     --foreground: 213 31% 91%;
@@ -23,6 +25,93 @@
     --destructive-foreground: 210 40% 98%;
     --ring: 215 20.2% 65.1%;
     --radius: 0.5rem;
+    /* Intent tokens (goals/habits/warning) — replace hardcoded emerald/blue/amber */
+    --intent-goal: 142 71% 45%;
+    --intent-goal-foreground: 0 0% 100%;
+    --intent-goal-muted: 142 71% 45%;
+    --intent-habit: 217 91% 60%;
+    --intent-habit-foreground: 0 0% 100%;
+    --intent-habit-muted: 217 91% 60%;
+    --intent-warning: 38 92% 50%;
+    --intent-warning-foreground: 0 0% 0%;
+    --intent-warning-muted: 38 92% 50%;
+    /* Effect tokens for glass/shadows */
+    --primary-rgb: 99 102 241;
+    --glass: 0 0% 100%;
+    --surface-elevated: 224 71% 6%;
+    color-scheme: dark;
+  }
+
+  /* Dark theme (explicit) */
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+    --accent: 216 34% 17%;
+    --accent-foreground: 210 40% 98%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 215 20.2% 65.1%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 1.2%;
+    --secondary: 222.2 47.4% 11.2%;
+    --secondary-foreground: 210 40% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --ring: 215 20.2% 65.1%;
+    --intent-goal: 142 71% 45%;
+    --intent-goal-foreground: 0 0% 100%;
+    --intent-goal-muted: 142 71% 45%;
+    --intent-habit: 217 91% 60%;
+    --intent-habit-foreground: 0 0% 100%;
+    --intent-habit-muted: 217 91% 60%;
+    --intent-warning: 38 92% 50%;
+    --intent-warning-foreground: 0 0% 0%;
+    --intent-warning-muted: 38 92% 50%;
+    --primary-rgb: 99 102 241;
+    --glass: 0 0% 100%;
+    --surface-elevated: 224 71% 6%;
+    color-scheme: dark;
+  }
+
+  /* Light theme */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --ring: 222.2 84% 4.9%;
+    --intent-goal: 142 76% 36%;
+    --intent-goal-foreground: 0 0% 100%;
+    --intent-goal-muted: 142 76% 36%;
+    --intent-habit: 217 91% 60%;
+    --intent-habit-foreground: 0 0% 100%;
+    --intent-habit-muted: 217 91% 60%;
+    --intent-warning: 38 92% 50%;
+    --intent-warning-foreground: 0 0% 0%;
+    --intent-warning-muted: 38 92% 50%;
+    --primary-rgb: 30 27 75;
+    --glass: 0 0% 0%;
+    --surface-elevated: 0 0% 98%;
+    color-scheme: light;
   }
 }
 
@@ -40,9 +129,10 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 3px;
-  height: 2px;
+/* Global thin scrollbar — barely visible, never distracting */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -50,22 +140,35 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.05);
-  border-radius: 10px;
+  background: hsl(var(--muted-foreground) / 0.08);
+  border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.1);
+  background: hsl(var(--muted-foreground) / 0.18);
 }
 
-/* Fix native date picker icons for dark mode */
-input[type="date"]::-webkit-calendar-picker-indicator {
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.08) transparent;
+}
+
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(50%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Native date picker icons: invert in dark, normal in light */
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0.6;
   transition: opacity 0.2s;
 }
-
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }

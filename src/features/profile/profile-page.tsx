@@ -94,12 +94,12 @@ export const ProfilePage: React.FC = () => {
 
     return (
         <div className="flex flex-col w-full max-w-[1200px] mx-auto px-2 pt-8 sm:pt-12 sm:px-4 md:px-8 space-y-6 pb-20">
-            <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
+            <div className="flex justify-between items-end mb-4 border-b border-border pb-6">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Profile</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground leading-none">Profile</h2>
                     <div className="flex items-center gap-2">
                         <div className="h-1 w-12 bg-primary/40 rounded-full" />
-                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">SETTINGS</span>
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">SETTINGS</span>
                     </div>
                 </div>
             </div>
