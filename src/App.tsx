@@ -17,6 +17,7 @@ const LoginPage = React.lazy(() => import('./features/auth/login-page').then(m =
 const SignupPage = React.lazy(() => import('./features/auth/signup-page').then(m => ({ default: m.SignupPage })));
 const ProfilePage = React.lazy(() => import('./features/profile/profile-page').then(m => ({ default: m.ProfilePage })));
 const StatisticsPage = React.lazy(() => import('./features/statistics/statistics-page').then(m => ({ default: m.StatisticsPage })));
+const VaultPage = React.lazy(() => import('./features/vault/vault-page').then(m => ({ default: m.VaultPage })));
 const ForgotPasswordPage = React.lazy(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = React.lazy(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
 
@@ -75,6 +76,7 @@ const router = createBrowserRouter(
           <Route path="/planner" element={<SuspenseWrapper><PlannerPage /></SuspenseWrapper>} />
           <Route path="/profile" element={<SuspenseWrapper><ProfilePage /></SuspenseWrapper>} />
           <Route path="/statistics" element={<SuspenseWrapper><StatisticsPage /></SuspenseWrapper>} />
+          <Route path="/vault" element={<SuspenseWrapper><VaultPage /></SuspenseWrapper>} />
         </Route>
       </Route>
     </Route>

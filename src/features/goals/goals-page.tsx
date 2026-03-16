@@ -209,7 +209,7 @@ export const GoalsPage: React.FC = () => {
             {isLoading ? (
                 <PageLoader />
             ) : goals.length === 0 ? (
-                <div className="py-24 text-center border border-border rounded-[40px] bg-muted/50 backdrop-blur-sm group hover:border-border transition-colors">
+                <div className="py-24 text-center">
                     <Target className="w-16 h-16 text-muted-foreground/30 mx-auto mb-6 group-hover:scale-110 group-hover:text-muted-foreground transition-all duration-500" strokeWidth={1} />
                     <h3 className="text-xl font-bold text-muted-foreground tracking-tight leading-none">Matrix Inactive</h3>
                     <p className="text-sm text-muted-foreground mt-3 max-w-xs mx-auto">Initialize a strategic objective to begin legacy construction.</p>

@@ -5,8 +5,8 @@ import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
 import { recordGenTime } from '@/components/common/ai-loading-popup';
 import { useUserProfile } from '@/api/services/profile-service';
 
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'arcee-ai/trinity-large-preview:free';
+const DEFAULT_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const DEFAULT_MODEL = 'arcee-ai/trinity-large-preview:free';
 
 function cleanJsonResponse(text: string): string {
     return text
@@ -18,7 +18,9 @@ function cleanJsonResponse(text: string): string {
 
 async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    const response = await fetch(API_URL, {
+    const apiUrl = import.meta.env.VITE_AI_API_URL ?? DEFAULT_API_URL;
+    const model = import.meta.env.VITE_AI_MODEL ?? DEFAULT_MODEL;
+    const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${apiKey}`,
@@ -27,7 +29,7 @@ async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
             'X-Title': 'Legacy Life Builder Planner'
         },
         body: JSON.stringify({
-            model: MODEL,
+            model,
             messages: [{ role: 'user', content: prompt }]
         })
     });
