@@ -21,6 +21,7 @@ export interface UserProfile {
     focusAbility: string;
     taskShiftingAbility: string;
     isPersonalized: boolean;
+    avatarUrl: string;
 }
 
 const DEFAULTS: UserProfile = {
@@ -38,6 +39,7 @@ const DEFAULTS: UserProfile = {
     focusAbility: "normal",
     taskShiftingAbility: "normal",
     isPersonalized: false,
+    avatarUrl: "",
 };
 
 function metaToProfile(meta: Record<string, unknown> | null): Partial<UserProfile> {
@@ -57,6 +59,7 @@ function metaToProfile(meta: Record<string, unknown> | null): Partial<UserProfil
         focusAbility: (meta.focusAbility as string) ?? "normal",
         taskShiftingAbility: (meta.taskShiftingAbility as string) ?? "normal",
         isPersonalized: (meta.isPersonalized as boolean) ?? false,
+        avatarUrl: (meta.avatar_url as string) ?? "",
     };
 }
 
@@ -77,6 +80,7 @@ function dbRowToProfile(row: Record<string, unknown> | null): Partial<UserProfil
         focusAbility: (row.focus_ability as string) ?? "normal",
         taskShiftingAbility: (row.task_shifting_ability as string) ?? "normal",
         isPersonalized: (row.is_personalized as boolean) ?? false,
+        avatarUrl: (row.avatar_url as string) ?? "",
     };
 }
 
@@ -140,6 +144,7 @@ export function useUserProfile(user: User | null) {
             if (updates.focusAbility !== undefined) row.focus_ability = updates.focusAbility;
             if (updates.taskShiftingAbility !== undefined) row.task_shifting_ability = updates.taskShiftingAbility;
             if (updates.isPersonalized !== undefined) row.is_personalized = updates.isPersonalized;
+            if (updates.avatarUrl !== undefined) row.avatar_url = updates.avatarUrl;
 
             const { error } = await supabase.from(TABLE_NAME).upsert(row, {
                 onConflict: "user_id",

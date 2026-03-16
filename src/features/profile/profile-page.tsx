@@ -101,7 +101,7 @@ export const ProfilePage: React.FC = () => {
 
             <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6 items-start">
                 {/* Left: Profile Info */}
-                <ProfileInfo user={user} profile={profile} />
+                <ProfileInfo user={user} profile={profile} saveProfile={saveProfile} />
 
                 {/* Right: Preferences + Security stacked */}
                 <div className="space-y-6">

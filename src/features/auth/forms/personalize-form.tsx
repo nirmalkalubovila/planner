@@ -115,11 +115,11 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                 </Text>
             </div>
 
-            <div className="rounded-xl border border-border/50 bg-card/30 p-4">
+            <div className="rounded-xl border border-border/50 bg-card/30 p-3 sm:p-4">
                 <AuthError message={error} />
 
                 <form onSubmit={handleSave} className="space-y-2">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
                         <SectionLabel>Sleep & Rest</SectionLabel>
                         <FormField label="Sleep start" icon={<Moon className="w-3 h-3" />}>
                             <SimpleTimePicker value={sleepStart} onChange={setSleepStart} />

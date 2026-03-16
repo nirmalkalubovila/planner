@@ -22,7 +22,8 @@ export const Header: React.FC = () => {
 
     const fullName: string = profile?.fullName || user?.user_metadata?.full_name || '';
     const firstName = fullName.split(' ')[0] || '';
-    const avatarUrl: string | null = user?.user_metadata?.avatar_url || null;
+    // Prefer user_profiles.avatar_url (persists across OAuth) over user_metadata.avatar_url (overwritten on login)
+    const avatarUrl: string | null = profile?.avatarUrl || user?.user_metadata?.avatar_url || null;
     const initials = fullName
         ? fullName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
         : user?.email?.substring(0, 2).toUpperCase() || 'U';
