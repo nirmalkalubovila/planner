@@ -148,11 +148,11 @@ const SubPlanRow = ({
     return (
         <div className="flex flex-col">
             {isEditing ? (
-                <div className="mx-2 my-1 px-4 py-3 bg-white/[0.04] ring-1 ring-primary/20 rounded-lg space-y-2">
-                    <Input value={editValues.task} onChange={e => setEditValues({ ...editValues, task: e.target.value })} className="h-7 text-xs" placeholder="Task name" />
+                <div className="mx-2 my-1 px-4 py-3 bg-muted/50 ring-1 ring-primary/20 rounded-lg space-y-2">
+                    <Input value={editValues.task} onChange={e => setEditValues({ ...editValues, task: e.target.value })} className="h-7 text-xs bg-background" placeholder="Task name" />
                     <textarea value={editValues.desc} onChange={e => setEditValues({ ...editValues, desc: e.target.value })} className="w-full text-xs bg-background border rounded-md p-2 min-h-[48px] resize-none focus:outline-none focus:ring-1 focus:ring-primary" />
                     <div className="flex gap-1 justify-end">
-                        <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-400 hover:bg-emerald-500/10" onClick={() => { onSaveEdit(path, editValues, slot.date); setIsEditing(false); }}>
+                        <Button size="icon" variant="ghost" className="h-6 w-6 text-intent-goal hover:bg-intent-goal-muted" onClick={() => { onSaveEdit(path, editValues, slot.date); setIsEditing(false); }}>
                             <Save size={12} />
                         </Button>
                         <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => setIsEditing(false)}>
@@ -163,12 +163,12 @@ const SubPlanRow = ({
             ) : (
                 <div className="group select-text">
                     <div
-                        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 hover:bg-white/[0.03] transition-colors cursor-pointer"
+                        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer"
                         onClick={() => setExpanded(prev => !prev)}
                     >
                         {/* Expand chevron — mobile only */}
                         <ChevronRight size={12} className={cn(
-                            "shrink-0 text-white/20 transition-transform duration-150 sm:hidden",
+                            "shrink-0 text-muted-foreground transition-transform duration-150 sm:hidden",
                             expanded && "rotate-90"
                         )} />
 
@@ -191,12 +191,12 @@ const SubPlanRow = ({
                         {/* Content — single line on collapsed, full on expanded */}
                         <div className="flex-1 min-w-0">
                             <p className={cn(
-                                "text-sm font-semibold text-white/90 leading-tight",
+                                "text-sm font-semibold text-foreground leading-tight",
                                 !expanded && "truncate"
                             )}>{slot.dayTask}</p>
                             {slot.description && (
                                 <p className={cn(
-                                    "text-[11px] text-white/35 mt-0.5 leading-snug",
+                                    "text-[11px] text-muted-foreground mt-0.5 leading-snug",
                                     !expanded && "line-clamp-1"
                                 )}>{slot.description}</p>
                             )}
@@ -206,7 +206,7 @@ const SubPlanRow = ({
                         <Button
                             size="icon" variant="ghost"
                             className={cn(
-                                "h-7 w-7 shrink-0 text-white/20 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all",
+                                "h-7 w-7 shrink-0 text-muted-foreground hover:text-intent-goal hover:bg-intent-goal-muted transition-all",
                                 expanded ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                             )}
                             onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
@@ -321,7 +321,7 @@ NO MARKDOWN. RAW JSON ONLY.`;
     };
 
     return (
-        <div className={cn("relative", nested ? "ml-4 pl-3 border-l border-dashed border-white/10 my-1" : "")}>
+        <div className={cn("relative", nested ? "ml-4 pl-3 border-l border-dashed border-border my-1" : "")}>
             <button
                 onClick={() => setExpanded(!expanded)}
                 className={cn(
@@ -336,13 +336,13 @@ NO MARKDOWN. RAW JSON ONLY.`;
             {expanded && (
                 <div className="animate-in fade-in duration-150">
                     {!hasSubPlans ? (
-                        <div className="p-4 mx-3 mb-2 rounded-xl border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center gap-3">
-                            <p className="text-[11px] text-white/30 text-center">No {expansionType.toLowerCase()} breakdown yet.</p>
+                        <div className="p-4 mx-3 mb-2 rounded-xl border border-dashed border-border bg-muted/30 flex flex-col items-center gap-3">
+                            <p className="text-[11px] text-muted-foreground text-center">No {expansionType.toLowerCase()} breakdown yet.</p>
                             <div className="flex flex-wrap items-center justify-center gap-2">
                                 <Button size="sm" onClick={handleGenerate} disabled={generating} className="bg-primary/15 text-primary hover:bg-primary hover:text-primary-foreground border-transparent shadow-none text-xs h-7">
                                     <BrainCircuit size={13} className="mr-1.5" /> AI Generate
                                 </Button>
-                                <Button size="sm" variant="outline" onClick={handleManualGen} disabled={generating} className="text-xs h-7 border-white/10">
+                                <Button size="sm" variant="outline" onClick={handleManualGen} disabled={generating} className="text-xs h-7 border-border">
                                     <UserCog size={13} className="mr-1.5" /> Manual
                                 </Button>
                             </div>
@@ -350,11 +350,11 @@ NO MARKDOWN. RAW JSON ONLY.`;
                     ) : (
                         <div className="mx-2 mb-2">
                             <div className="flex justify-end px-1 mb-1">
-                                <Button size="icon" variant="ghost" className="h-6 w-6 text-white/15 hover:text-red-400 hover:bg-red-500/10 transition-all" onClick={() => setShowDeleteConfirm(true)}>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all" onClick={() => setShowDeleteConfirm(true)}>
                                     <Trash2 size={12} />
                                 </Button>
                             </div>
-                            <div className="flex flex-col rounded-lg border border-white/[0.05] overflow-hidden divide-y divide-white/[0.04]">
+                            <div className="flex flex-col rounded-lg border border-border overflow-hidden divide-y divide-border">
                                 {slot.subPlans!.map((subSlot, idx) => (
                                     <SubPlanRow key={idx} slot={subSlot} path={[...path, idx]} depth={depth} goal={goal} onUpdateSubPlans={onUpdateSubPlans} onSaveEdit={onSaveEdit} user={user} />
                                 ))}
@@ -385,21 +385,21 @@ const MilestoneCard = ({
     return (
         <div className={cn(
             "group relative rounded-xl border p-3 sm:p-4 transition-all duration-100",
-            isStart ? "bg-emerald-500/5 border-emerald-500/20" :
-                isCompleted ? "bg-emerald-500/5 border-emerald-500/20" :
-                    "bg-white/[0.02] border-white/10",
+            isStart ? "bg-intent-goal-muted border-intent-goal/20" :
+                isCompleted ? "bg-intent-goal-muted border-intent-goal/20" :
+                    "bg-card border-border",
         )}>
             {/* Header row */}
             <div className="flex items-center gap-2 mb-2">
                 <div className={cn(
                     "w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center shrink-0",
-                    isStart ? "border-emerald-400 bg-emerald-500/20" :
-                        isCompleted ? "border-emerald-500 bg-emerald-500/15" :
-                            "border-white/15 bg-white/[0.04]"
+                    isStart ? "border-intent-goal bg-intent-goal-muted" :
+                        isCompleted ? "border-intent-goal bg-intent-goal-muted" :
+                            "border-border bg-muted"
                 )}>
-                    {isStart ? <Play size={8} className="text-emerald-400 ml-0.5" /> :
-                        isCompleted ? <Check size={9} strokeWidth={3} className="text-emerald-400" /> :
-                            <span className="text-[7px] font-black text-white/30">{path ? path[0] + 1 : ''}</span>
+                    {isStart ? <Play size={8} className="text-intent-goal ml-0.5" /> :
+                        isCompleted ? <Check size={9} strokeWidth={3} className="text-intent-goal" /> :
+                            <span className="text-[7px] font-black text-muted-foreground">{path ? path[0] + 1 : ''}</span>
                     }
                 </div>
 
@@ -409,8 +409,8 @@ const MilestoneCard = ({
                     ) : (
                         <span className={cn(
                             "text-[11px] uppercase font-bold tracking-wider",
-                            isStart ? "text-emerald-400/80" :
-                                isCompleted ? "text-emerald-400/80" : "text-white/40"
+                            isStart ? "text-intent-goal" :
+                                isCompleted ? "text-intent-goal" : "text-muted-foreground"
                         )}>
                             {milestoneTitle}
                         </span>
@@ -423,7 +423,7 @@ const MilestoneCard = ({
                     <div className="shrink-0">
                         {isEditing ? (
                             <div className="flex gap-0.5">
-                                <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-400 hover:bg-emerald-500/10" onClick={() => { onSaveEdit(path, editValues, slot.date); setIsEditing(false); }}>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-intent-goal hover:bg-intent-goal-muted" onClick={() => { onSaveEdit(path, editValues, slot.date); setIsEditing(false); }}>
                                     <Save size={11} />
                                 </Button>
                                 <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => setIsEditing(false)}>
@@ -431,7 +431,7 @@ const MilestoneCard = ({
                                 </Button>
                             </div>
                         ) : (
-                            <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-white/30 hover:text-primary transition-opacity" onClick={() => setIsEditing(true)}>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity" onClick={() => setIsEditing(true)}>
                                 <Edit3 size={11} />
                             </Button>
                         )}
@@ -449,9 +449,9 @@ const MilestoneCard = ({
                         </div>
                     ) : (
                         <>
-                            <span className="text-sm font-semibold text-white/80 leading-tight">{slot.dayTask}</span>
+                            <span className="text-sm font-semibold text-foreground leading-tight">{slot.dayTask}</span>
                             {slot.description && (
-                                <p className="text-[11px] text-white/25 leading-relaxed mt-1">{slot.description}</p>
+                                <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">{slot.description}</p>
                             )}
                         </>
                     )}
@@ -467,7 +467,7 @@ export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpda
 
     if (!goal.plans || goal.plans.length === 0) {
         return (
-            <div className="p-6 text-center text-[11px] text-white/25">
+            <div className="p-6 text-center text-[11px] text-muted-foreground">
                 No plan generated yet. Edit the goal to create one.
             </div>
         );
@@ -498,8 +498,8 @@ export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpda
     return (
         <div className="p-3 sm:p-4">
             <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[10px] md:text-xs font-bold uppercase text-white/40 tracking-widest">Action Plan</h4>
-                <span className="text-[9px] font-bold text-white/25 bg-white/[0.05] px-2 py-0.5 rounded">
+                <h4 className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground tracking-widest">Action Plan</h4>
+                <span className="text-[9px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded">
                     {goal.plans.length} milestones
                 </span>
             </div>

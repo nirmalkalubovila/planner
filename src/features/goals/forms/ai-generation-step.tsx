@@ -24,23 +24,23 @@ export const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
     return (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-white/10">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
                 <div className="flex items-center gap-2">
                     <img src="/ai-animation-white.gif" alt="" className="w-7 h-7 object-contain" />
                     <div>
-                        <h3 className="text-base font-bold text-white/90">Your Roadmap</h3>
-                        <p className="text-[10px] text-white/30 uppercase tracking-widest">Legacy Planner crafted {previewPlan.length} milestones</p>
+                        <h3 className="text-base font-bold text-foreground">Your Roadmap</h3>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Legacy Planner crafted {previewPlan.length} milestones</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={onCancelPreview} disabled={generating} className="text-xs h-7 text-white/40 hover:text-white/70">
+                    <Button variant="ghost" size="sm" onClick={onCancelPreview} disabled={generating} className="text-xs h-7 text-muted-foreground hover:text-foreground">
                         <X size={13} className="mr-1" /> Cancel
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={onGenerate} disabled={generating} className="text-xs h-7 text-white/40 hover:text-white/70">
+                    <Button variant="ghost" size="sm" onClick={onGenerate} disabled={generating} className="text-xs h-7 text-muted-foreground hover:text-foreground">
                         <RotateCw size={13} className={cn("mr-1", generating && "animate-spin")} />
                         Remake
                     </Button>
-                    <Button size="sm" onClick={onConfirm} disabled={generating} className="text-xs h-7 bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Button size="sm" onClick={onConfirm} disabled={generating} className="text-xs h-7 bg-intent-goal hover:bg-intent-goal/90 text-intent-goal-foreground">
                         <Check size={13} className="mr-1" /> Save Plan
                     </Button>
                 </div>
@@ -51,7 +51,7 @@ export const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
                 {previewPlan.map((slot, index) => (
                     <div
                         key={index}
-                        className="group relative rounded-xl border border-white/10 bg-white/[0.03] hover:border-primary/30 hover:bg-white/[0.05] transition-all duration-150 overflow-hidden"
+                        className="group relative rounded-xl border border-border bg-card hover:border-primary/30 hover:bg-muted/30 transition-all duration-150 overflow-hidden"
                     >
                         <div className="absolute top-0 left-0 w-1 h-full bg-primary/40 rounded-l-xl" />
 
@@ -61,16 +61,16 @@ export const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
                                     <div className="shrink-0 w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-sm text-primary">
                                         {index + 1}
                                     </div>
-                                    <span className="font-bold text-sm text-white/90 leading-snug">{slot.dayTask}</span>
+                                    <span className="font-bold text-sm text-foreground leading-snug">{slot.dayTask}</span>
                                 </div>
                             </div>
 
-                            <p className="text-[12px] text-white/35 leading-relaxed pl-11">
+                            <p className="text-[12px] text-muted-foreground leading-relaxed pl-11">
                                 {slot.description}
                             </p>
 
                             <div className="flex flex-wrap items-center gap-2 pl-11">
-                                <span className="text-[9px] uppercase tracking-wider bg-white/[0.06] border border-white/10 px-2 py-0.5 rounded text-white/40 flex items-center gap-1 font-bold">
+                                <span className="text-[9px] uppercase tracking-wider bg-muted border border-border px-2 py-0.5 rounded text-muted-foreground flex items-center gap-1 font-bold">
                                     <Calendar size={9} /> {slot.date}
                                 </span>
                             </div>
@@ -80,7 +80,7 @@ export const AIGenerationStep: React.FC<AIGenerationStepProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-center gap-2 pt-2 text-[10px] text-white/20">
+            <div className="flex items-center justify-center gap-2 pt-2 text-[10px] text-muted-foreground">
                 <Sparkles size={10} />
                 <span>Generated by Legacy Planner based on your profile</span>
             </div>

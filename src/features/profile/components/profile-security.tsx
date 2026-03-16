@@ -66,7 +66,7 @@ export const ProfileSecurity: React.FC<ProfileSecurityProps> = ({ user }) => {
     };
 
     return (
-        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 sm:p-6 shadow-xl space-y-6 sm:space-y-8">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 shadow-xl space-y-6 sm:space-y-8">
             <h3 className="text-base font-bold">Account Security</h3>
 
             {/* Email Change */}
@@ -84,7 +84,7 @@ export const ProfileSecurity: React.FC<ProfileSecurityProps> = ({ user }) => {
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
                         placeholder="New email address"
-                        className="h-10 rounded-xl bg-white/[0.02] border-white/5 flex-1"
+                        className="h-10 rounded-xl bg-muted border-border flex-1"
                     />
                     <Button
                         onClick={handleEmailChange}
@@ -98,7 +98,7 @@ export const ProfileSecurity: React.FC<ProfileSecurityProps> = ({ user }) => {
             </div>
 
             {/* Password Change */}
-            <div className="space-y-3 pt-4 border-t border-white/5">
+            <div className="space-y-3 pt-4 border-t border-border">
                 <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                     <KeyRound className="h-4 w-4" />
                     Change Password
@@ -110,7 +110,7 @@ export const ProfileSecurity: React.FC<ProfileSecurityProps> = ({ user }) => {
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
                             placeholder="New password"
-                            className="h-10 rounded-xl bg-white/[0.02] border-white/5 pr-10"
+                            className="h-10 rounded-xl bg-muted border-border pr-10"
                         />
                         <button
                             type="button"
@@ -125,7 +125,7 @@ export const ProfileSecurity: React.FC<ProfileSecurityProps> = ({ user }) => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Confirm new password"
-                        className="h-10 rounded-xl bg-white/[0.02] border-white/5"
+                        className="h-10 rounded-xl bg-muted border-border"
                     />
                     <Button
                         onClick={handlePasswordChange}

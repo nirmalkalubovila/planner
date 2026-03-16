@@ -188,18 +188,18 @@ export const GoalsPage: React.FC = () => {
     return (
         <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
 
-            <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
+            <div className="flex justify-between items-end mb-4 border-b border-border pb-6">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Goal Matrix</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground leading-none">Goal Matrix</h2>
                     <div className="flex items-center gap-2">
                         <div className="h-1 w-12 bg-primary/40 rounded-full" />
-                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{goals.length} STRATEGIC OBJECTIVES</span>
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{goals.length} STRATEGIC OBJECTIVES</span>
                     </div>
                 </div>
                 <Button
                     onClick={openNewGoal}
                     variant="ghost"
-                    className="h-10 w-10 p-0 rounded-full text-white hover:bg-white/10 transition-all duration-150 active:scale-95"
+                    className="h-10 w-10 p-0 rounded-full text-foreground hover:bg-accent transition-all duration-150 active:scale-95"
                     title="New Goal"
                 >
                     <Plus size={26} strokeWidth={2.5} />
@@ -209,10 +209,10 @@ export const GoalsPage: React.FC = () => {
             {isLoading ? (
                 <PageLoader />
             ) : goals.length === 0 ? (
-                <div className="py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm group hover:border-white/10 transition-colors">
-                    <Target className="w-16 h-16 text-white/5 mx-auto mb-6 group-hover:scale-110 group-hover:text-white/10 transition-all duration-500" strokeWidth={1} />
-                    <h3 className="text-xl font-bold text-white/40 tracking-tight leading-none">Matrix Inactive</h3>
-                    <p className="text-sm text-white/20 mt-3 max-w-xs mx-auto">Initialize a strategic objective to begin legacy construction.</p>
+                <div className="py-24 text-center border border-border rounded-[40px] bg-muted/50 backdrop-blur-sm group hover:border-border transition-colors">
+                    <Target className="w-16 h-16 text-muted-foreground/30 mx-auto mb-6 group-hover:scale-110 group-hover:text-muted-foreground transition-all duration-500" strokeWidth={1} />
+                    <h3 className="text-xl font-bold text-muted-foreground tracking-tight leading-none">Matrix Inactive</h3>
+                    <p className="text-sm text-muted-foreground mt-3 max-w-xs mx-auto">Initialize a strategic objective to begin legacy construction.</p>
                     <Button
                         onClick={openNewGoal}
                         variant="link"

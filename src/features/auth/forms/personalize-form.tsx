@@ -199,7 +199,7 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                         </FormField>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-white/5 mt-3">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-border mt-3">
                         <button
                             type="button"
                             onClick={handleSkipClick}

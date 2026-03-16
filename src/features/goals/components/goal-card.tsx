@@ -104,7 +104,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             <div
                 className={cn(
                     'group relative rounded-2xl border overflow-hidden flex flex-col',
-                    'bg-white/[0.03] border-white/10 hover:border-primary/40',
+                    'bg-card border-border hover:border-primary/40',
                     'transition-[border-color,box-shadow] duration-150',
                     progressPercentage >= 40 && 'hover:shadow-[0_0_24px_rgba(var(--primary-rgb,99,102,241),0.12)]',
                 )}
@@ -119,21 +119,21 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 <div className="absolute top-2.5 right-2.5 flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-100 z-10">
                     <Button
                         variant="ghost" size="icon"
-                        className="h-7 w-7 rounded-lg text-white/30 hover:text-primary hover:bg-white/10"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent"
                         onClick={() => onToggle(goal.id!)}
                     >
                         <ChevronDown size={13} className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
                     </Button>
                     <Button
                         variant="ghost" size="icon"
-                        className="h-7 w-7 rounded-lg text-white/30 hover:text-primary hover:bg-white/10"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent"
                         onClick={() => onEdit(goal)}
                     >
                         <Edit2 size={13} />
                     </Button>
                     <Button
                         variant="ghost" size="icon"
-                        className="h-7 w-7 rounded-lg text-white/30 hover:text-destructive hover:bg-white/10"
+                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-accent"
                         onClick={() => onDelete(goal.id!)}
                     >
                         <Trash2 size={13} />
@@ -147,7 +147,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                             {goal.goalType}
                         </span>
                         {hasPlan && (
-                            <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                            <span className="text-[8px] font-black uppercase tracking-widest bg-intent-goal-muted text-intent-goal border border-intent-goal/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                                 <Check size={8} /> Plan
                             </span>
                         )}
@@ -159,20 +159,20 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     </div>
 
                     {/* Row 2: Title */}
-                    <h3 className="font-bold text-[15px] leading-snug text-white/90 tracking-tight">
+                    <h3 className="font-bold text-[15px] leading-snug text-foreground tracking-tight">
                         {goal.title || goal.name}
                     </h3>
 
                     {/* Row 3: Description */}
-                    <p className="text-[11px] text-white/30 leading-relaxed line-clamp-2">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
                         {goal.name}
                     </p>
 
                     {/* Row 4: Date range */}
-                    <div className="flex items-center gap-1.5 text-[10px] text-white/20">
-                        <CalendarIcon size={10} className="text-white/15 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <CalendarIcon size={10} className="text-muted-foreground shrink-0" />
                         <span>{goal.startDate ? format(parseISO(goal.startDate), 'MMM d') : 'N/A'}</span>
-                        <span className="text-white/10">→</span>
+                        <span className="text-muted-foreground/60">→</span>
                         <span>End: {goal.endDate ? format(parseISO(goal.endDate), 'MMM d') : 'N/A'}</span>
                     </div>
 
@@ -187,12 +187,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
             {/* Expanded content */}
             {isExpanded && (
-                <div className="mt-1 rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="mt-1 rounded-2xl border border-border bg-muted/50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                     {weeklyTasks.length > 0 && (
-                        <div className="p-3 sm:p-4 border-b border-white/5">
+                        <div className="p-3 sm:p-4 border-b border-border">
                             <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-[10px] md:text-xs font-bold uppercase text-indigo-400 tracking-widest">This Week's Tasks</h4>
-                                <span className="text-xs font-bold text-white/40">{completedWeeklyTasksCount} / {weeklyTasks.length}</span>
+                                <h4 className="text-[10px] md:text-xs font-bold uppercase text-primary tracking-widest">This Week's Tasks</h4>
+                                <span className="text-xs font-bold text-muted-foreground">{completedWeeklyTasksCount} / {weeklyTasks.length}</span>
                             </div>
                             <div className="grid gap-2 grid-cols-1 xs:grid-cols-2 md:grid-cols-3">
                                 {weeklyTasks.map((task, idx) => (
@@ -200,16 +200,16 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                                         "flex flex-col gap-1 p-3 rounded-lg border transition-all duration-100",
                                         task.isCompleted
                                             ? 'bg-emerald-500/10 border-emerald-500/20'
-                                            : 'bg-white/[0.03] border-white/10'
+                                            : 'bg-card border-border'
                                     )}>
                                         <div className="flex items-center justify-between">
                                             <span className={cn(
                                                 "text-xs font-semibold truncate flex-1",
-                                                task.isCompleted ? "text-white/50 line-through" : "text-white/80"
+                                                task.isCompleted ? "text-muted-foreground line-through" : "text-foreground"
                                             )}>{task.name}</span>
-                                            {task.isCompleted && <Check size={12} className="text-emerald-400 ml-2" />}
+                                            {task.isCompleted && <Check size={12} className="text-intent-goal ml-2" />}
                                         </div>
-                                        <span className="text-[9px] uppercase font-bold tracking-wider text-white/25 flex items-center gap-1">
+                                        <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
                                             <CalendarIcon size={10} /> {task.dayName} <Clock size={10} className="ml-1" /> {task.time}
                                         </span>
                                     </div>

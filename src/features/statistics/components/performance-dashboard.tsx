@@ -15,7 +15,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 const TabSwitcher: React.FC<{ active: Tab; onChange: (t: Tab) => void }> = ({ active, onChange }) => (
-  <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10 w-fit">
+  <div className="flex items-center gap-1 p-1 rounded-full bg-muted border border-border w-fit">
     {TABS.map(tab => (
       <button
         key={tab.id}
@@ -23,13 +23,13 @@ const TabSwitcher: React.FC<{ active: Tab; onChange: (t: Tab) => void }> = ({ ac
         onClick={() => onChange(tab.id)}
         className={cn(
           'relative px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-full transition-colors duration-150',
-          active === tab.id ? 'text-white' : 'text-white/40 hover:text-white/70',
+          active === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
         )}
       >
         {active === tab.id && (
           <motion.span
             layoutId="active-tab-pill"
-            className="absolute inset-0 rounded-full bg-white/10 border border-white/10"
+            className="absolute inset-0 rounded-full bg-accent border border-border"
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           />
         )}
@@ -58,9 +58,9 @@ export const PerformanceDashboard: React.FC = () => {
   return (
     <div className="flex flex-col w-full max-w-[1200px] mx-auto px-2 pt-8 sm:pt-12 sm:px-4 md:px-8 space-y-6 pb-20">
 
-      <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
+      <div className="flex justify-between items-end mb-4 border-b border-border pb-6">
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Performance</h2>
+          <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground leading-none">Performance</h2>
           <div className="flex items-center gap-2">
             <div className="h-1 w-12 bg-primary/40 rounded-full" />
             {cache.predictive_burnout_warning && (

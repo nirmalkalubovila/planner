@@ -24,7 +24,7 @@ export const DashboardSidebar: React.FC = () => {
 
     return (
         <div className={cn(
-            "flex h-full flex-col border-r border-white/5 bg-background text-foreground transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] relative z-50",
+            "flex h-full flex-col border-r border-border bg-background text-foreground transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] relative z-50",
             isCollapsed ? "w-14" : "w-50"
         )}>
             {/* Header / Brand area placeholder */}
@@ -33,14 +33,14 @@ export const DashboardSidebar: React.FC = () => {
                 isCollapsed ? "justify-center" : "justify-between"
             )}>
                 {!isCollapsed && (
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 select-none">
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground select-none">
                         Navigation
                     </span>
                 )}
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-full pl-2 hover:bg-white/5 text-white/30 hover:text-white transition-all duration-300"
+                    className="h-8 w-8 rounded-full pl-2 hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-300"
                     onClick={() => setIsCollapsed(!isCollapsed)}
                 >
                     {isCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
@@ -56,8 +56,8 @@ export const DashboardSidebar: React.FC = () => {
                             cn(
                                 "flex items-center gap-4 rounded-xl px-4 py-3.5 transition-all duration-500 group relative overflow-hidden",
                                 isActive
-                                    ? "bg-white/[0.03] text-primary shadow-sm"
-                                    : "text-white/40 hover:text-white hover:bg-white/[0.02]",
+                                    ? "bg-glass text-primary shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-accent",
                                 isCollapsed ? "justify-center" : "justify-start"
                             )
                         }

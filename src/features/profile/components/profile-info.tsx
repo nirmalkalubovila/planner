@@ -67,7 +67,7 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, signOut }) => {
     };
 
     return (
-        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6 shadow-xl">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6 shadow-xl">
             {/* Avatar + Name */}
             <div className="flex items-center gap-4">
                 <div className="relative group">
@@ -78,16 +78,16 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, signOut }) => {
                             className="h-14 w-14 rounded-2xl object-cover border border-primary/20"
                         />
                     ) : (
-                        <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                            <UserIcon size={24} className="text-primary/70" />
+                        <div className="h-14 w-14 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center">
+                            <span className="text-lg font-bold text-primary tracking-tight select-none">{initials}</span>
                         </div>
                     )}
                     <button
                         onClick={() => fileRef.current?.click()}
                         disabled={uploading}
-                        className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        className="absolute inset-0 rounded-2xl bg-background/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                     >
-                        <Camera size={16} className="text-white/80" />
+                        <Camera size={16} className="text-foreground" />
                     </button>
                     <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} />
                 </div>
@@ -98,7 +98,7 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, signOut }) => {
             </div>
 
             {/* Details */}
-            <div className="space-y-3 pt-4 border-t border-white/5">
+            <div className="space-y-3 pt-4 border-t border-border">
                 <div className="flex items-center gap-3 text-sm">
                     <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-muted-foreground">{user.email}</span>
@@ -117,7 +117,7 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, signOut }) => {
             <Button
                 onClick={signOut}
                 variant="ghost"
-                className="w-full h-10 rounded-xl text-sm font-semibold text-destructive hover:bg-destructive/10 border border-white/5 hover:border-destructive/20 transition-all"
+                className="w-full h-10 rounded-xl text-sm font-semibold text-destructive hover:bg-destructive/10 border border-border hover:border-destructive/20 transition-all"
             >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out

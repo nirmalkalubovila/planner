@@ -49,7 +49,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
     user, isEditing, setIsEditing, loading, onSave, formData
 }) => {
     return (
-        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-6">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-6">
             <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold">Planner Preferences</h3>
                 {!isEditing && (
@@ -70,7 +70,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Full Name</label>
-                            <Input value={formData.fullName} onChange={(e) => formData.setFullName(e.target.value)} className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
+                            <Input value={formData.fullName} onChange={(e) => formData.setFullName(e.target.value)} className="h-10 rounded-xl bg-muted border-border" />
                         </div>
                         <div className="space-y-1.5">
                             <label className={labelClass}>Date of Birth</label>
@@ -82,18 +82,18 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Sleep Start Time</label>
                             <SimpleTimePicker value={formData.sleepStart} onChange={formData.setSleepStart} />
                         </div>
                         <div className="space-y-1.5">
                             <label className={labelClass}>Sleep Duration (hours)</label>
-                            <Input type="number" min="1" max="24" value={formData.sleepDuration} onChange={(e) => formData.setSleepDuration(e.target.value)} className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
+                            <Input type="number" min="1" max="24" value={formData.sleepDuration} onChange={(e) => formData.setSleepDuration(e.target.value)} className="h-10 rounded-xl bg-muted border-border" />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Week Starts On</label>
                             <Select value={formData.weekStart} onValueChange={formData.setWeekStart}>
@@ -129,18 +129,18 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Primary Life Focus</label>
-                            <Input value={formData.primaryLifeFocus} onChange={(e) => formData.setPrimaryLifeFocus(e.target.value)} placeholder="e.g., Career, Health" className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
+                            <Input value={formData.primaryLifeFocus} onChange={(e) => formData.setPrimaryLifeFocus(e.target.value)} placeholder="e.g., Career, Health" className="h-10 rounded-xl bg-muted border-border" />
                         </div>
                         <div className="space-y-1.5">
                             <label className={labelClass}>Profession / Status</label>
-                            <Input value={formData.currentProfession} onChange={(e) => formData.setCurrentProfession(e.target.value)} placeholder="e.g., Engineer, Student" className="h-10 rounded-xl bg-white/[0.02] border-white/5" />
+                            <Input value={formData.currentProfession} onChange={(e) => formData.setCurrentProfession(e.target.value)} placeholder="e.g., Engineer, Student" className="h-10 rounded-xl bg-muted border-border" />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-white/5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-border">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Energy Peak</label>
                             <Select value={formData.energyPeakTime} onValueChange={formData.setEnergyPeakTime}>
@@ -185,7 +185,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
                         <Button onClick={onSave} disabled={loading} className="flex-1 h-10 rounded-xl font-semibold">
                             <Check className="h-4 w-4 mr-1.5" /> Save Changes
                         </Button>
-                        <Button variant="outline" onClick={() => setIsEditing(false)} disabled={loading} className="flex-1 h-10 rounded-xl font-semibold border-white/10">
+                        <Button variant="outline" onClick={() => setIsEditing(false)} disabled={loading} className="flex-1 h-10 rounded-xl font-semibold border-border">
                             <X className="h-4 w-4 mr-1.5" /> Cancel
                         </Button>
                     </div>

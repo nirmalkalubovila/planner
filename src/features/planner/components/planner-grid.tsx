@@ -84,26 +84,26 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                         {/* Eye toggle - stays in flow with w-0 when hidden to keep Monday in its correct column */}
                         <div 
                             className={cn(
-                                "h-10 sticky left-0 z-[75] flex items-center justify-center cursor-pointer transition-all duration-300 group border-[#1e293b] overflow-visible",
-                                isTimeColumnVisible ? "w-[45px] bg-black border-r border-b shadow-[2px_0_8px_rgba(0,0,0,0.5)]" : "w-0"
+                                "h-10 sticky left-0 z-[75] flex items-center justify-center cursor-pointer transition-all duration-300 group border-border overflow-visible",
+                                isTimeColumnVisible ? "w-[45px] bg-background border-r border-b shadow-lg" : "w-0"
                             )}
                             onClick={() => setIsTimeColumnVisible(!isTimeColumnVisible)}
                             title={isTimeColumnVisible ? "Hide time column" : "Show time column"}
                         >
                             <div className={cn(
                                 "flex items-center justify-center transition-all duration-300",
-                                !isTimeColumnVisible ? "absolute left-0 w-8 h-10 bg-black/80 backdrop-blur-md rounded-br-lg border-r border-b border-white/10 shadow-2xl" : "w-full h-full"
+                                !isTimeColumnVisible ? "absolute left-0 w-8 h-10 bg-background/80 backdrop-blur-md rounded-br-lg border-r border-b border-border shadow-2xl" : "w-full h-full"
                             )}>
                                 {isTimeColumnVisible ? (
-                                    <EyeOff size={10} className="text-white/30 group-hover:text-white" />
+                                    <EyeOff size={10} className="text-muted-foreground group-hover:text-foreground" />
                                 ) : (
-                                    <Eye size={10} className="text-white/30 group-hover:text-white" />
+                                    <Eye size={10} className="text-muted-foreground group-hover:text-foreground" />
                                 )}
                             </div>
                         </div>
 
                         {weekDates.map((date, dayIdx) => (
-                            <div key={dayIdx} className="h-10 flex flex-col items-center justify-center font-bold text-[9px] md:text-[11px] uppercase tracking-widest border-r border-white/[0.05] relative bg-card">
+                            <div key={dayIdx} className="h-10 flex flex-col items-center justify-center font-bold text-[9px] md:text-[11px] uppercase tracking-widest border-r border-border relative bg-card">
                                 <span className={cn(
                                     "px-2 rounded-lg",
                                     date.toDateString() === new Date().toDateString() ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground"
@@ -135,12 +135,12 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                     <div 
                                         className={cn(
                                             "h-10 flex flex-col items-center justify-center text-[10px] text-muted-foreground transition-all duration-300 select-none z-[50] font-mono",
-                                            isTimeColumnVisible ? "w-[45px] bg-black border-r border-[#1e293b] sticky left-0 opacity-100 shadow-[2px_0_8px_rgba(0,0,0,0.5)]" : "w-0 opacity-0 pointer-events-none",
-                                            isTimeColumnVisible && (isHourStart ? "border-b border-[#000]" : "border-b border-white/[0.02]"),
+                                            isTimeColumnVisible ? "w-[45px] bg-background border-r border-border sticky left-0 opacity-100 shadow-lg" : "w-0 opacity-0 pointer-events-none",
+                                            isTimeColumnVisible && (isHourStart ? "border-b border-border" : "border-b border-border/50"),
                                         )}
                                     >
                                         <span className={cn(
-                                            "font-semibold text-[9px] text-white/50 whitespace-nowrap transition-opacity duration-200",
+                                            "font-semibold text-[9px] text-muted-foreground whitespace-nowrap transition-opacity duration-200",
                                             isTimeColumnVisible ? "opacity-100" : "opacity-0"
                                         )}>{timeStr}</span>
                                     </div>
@@ -191,13 +191,14 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     }
                                                 }}
                                                 className={cn(
-                                                    "h-10 transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group relative border-b border-r border-white/[0.05]",
+                                                    "h-10 transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group relative border-b border-r border-border",
                                                     isToday && "bg-primary/[0.02]",
                                                     isToday && !content && "hover:bg-primary/10",
-                                                    content && !isSameAsPrev && "border-t border-white/[0.1] z-[11]",
+                                                    content && !isSameAsPrev && "border-t border-border z-[11]",
                                                     content?.type === 'preview' && "bg-blue-500/10 text-blue-800 border-blue-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-blue-500/50 rounded-lg m-px z-20",
                                                     content?.type === 'preview-free' && "bg-amber-500/10 text-amber-800 border-amber-500 border-dashed border-b-2 cursor-pointer animate-pulse ring-1 ring-inset ring-amber-500/50 rounded-lg m-px z-20",
                                                     content?.type === 'sleep' && "bg-indigo-950 text-indigo-300/80 cursor-not-allowed z-10",
+                                                    content?.type === 'plan' && "bg-sky-950 text-sky-300/90 cursor-not-allowed z-10",
                                                     content?.type === 'goal' && "bg-blue-600 text-white cursor-grab active:cursor-grabbing hover:brightness-110 z-10",
                                                     content?.type === 'custom' && "bg-amber-500 text-amber-950 cursor-grab active:cursor-grabbing hover:brightness-110 z-10",
                                                     content?.type === 'habit' && "bg-emerald-950 text-emerald-400/90 cursor-grab active:cursor-grabbing hover:brightness-110 z-10",

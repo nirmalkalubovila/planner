@@ -53,6 +53,28 @@ export default {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
+                /* Intent tokens (goals/habits/warning) — replace hardcoded emerald/blue/amber */
+                intent: {
+                    goal: {
+                        DEFAULT: "hsl(var(--intent-goal))",
+                        foreground: "hsl(var(--intent-goal-foreground))",
+                        muted: "hsl(var(--intent-goal-muted) / 0.1)",
+                    },
+                    habit: {
+                        DEFAULT: "hsl(var(--intent-habit))",
+                        foreground: "hsl(var(--intent-habit-foreground))",
+                        muted: "hsl(var(--intent-habit-muted) / 0.1)",
+                    },
+                    warning: {
+                        DEFAULT: "hsl(var(--intent-warning))",
+                        foreground: "hsl(var(--intent-warning-foreground))",
+                        muted: "hsl(var(--intent-warning-muted) / 0.1)",
+                    },
+                },
+                /* Effect tokens for glass/surface */
+                glass: "hsl(var(--glass) / 0.03)",
+                "glass-border": "hsl(var(--glass) / 0.1)",
+                "surface-elevated": "hsl(var(--surface-elevated))",
             },
             borderRadius: {
                 lg: "var(--radius)",

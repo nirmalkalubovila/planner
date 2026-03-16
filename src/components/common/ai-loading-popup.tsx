@@ -94,7 +94,7 @@ export const AILoadingPopup: React.FC<AILoadingPopupProps> = ({
                 />
 
                 <div className="text-center space-y-1.5">
-                    <p className="text-sm font-semibold text-white/70 transition-all duration-300 min-h-[20px]">
+                    <p className="text-sm font-semibold text-muted-foreground transition-all duration-300 min-h-[20px]">
                         {slow ? 'Taking longer than expected...' : STATUS_MESSAGES[msgIdx]}
                     </p>
                     {slow && (
@@ -104,7 +104,7 @@ export const AILoadingPopup: React.FC<AILoadingPopupProps> = ({
                     )}
                 </div>
 
-                <div className="w-full bg-white/[0.06] rounded-full h-1 overflow-hidden">
+                <div className="w-full bg-muted rounded-full h-1 overflow-hidden">
                     <div className="h-full bg-primary/60 rounded-full animate-[loading_2.5s_ease-in-out_infinite]" />
                 </div>
             </div>

@@ -54,17 +54,17 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-medium">Goal Title <span className="text-muted-foreground font-normal text-xs">(short unique name)</span></label>
-                    <Input {...form.register('title')} placeholder="e.g., Master Node.js" className="bg-background" maxLength={60} />
+                    <Input {...form.register('title')} placeholder="e.g., Master Node.js" className="bg-muted/50" maxLength={60} />
                     {form.formState.errors.title && <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>}
                 </div>
                 <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-medium">Mission / Description</label>
-                    <textarea {...form.register('name')} placeholder="e.g., Master core Node.js concepts including modules, async programming..." className="flex min-h-[70px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none" />
+                    <textarea {...form.register('name')} placeholder="e.g., Master core Node.js concepts including modules, async programming..." className="flex min-h-[70px] w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none" />
                     {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
                 </div>
                 <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-medium">Purpose (Why?)</label>
-                    <Input {...form.register('purpose')} placeholder="e.g., To build better frontend applications faster" className="bg-background" />
+                    <Input {...form.register('purpose')} placeholder="e.g., To build better frontend applications faster" className="bg-muted/50" />
                     {form.formState.errors.purpose && <p className="text-xs text-destructive">{form.formState.errors.purpose.message}</p>}
                 </div>
                 <div className="space-y-2">
@@ -84,10 +84,10 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Goal Type</label>
-                    <select {...form.register('goalType')} className="flex h-9 w-full rounded-lg border border-white/10 bg-[hsl(224,71%,6%)] px-3 py-2 text-sm hover:border-white/20 transition-colors appearance-none cursor-pointer" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}>
-                        <option value="Week" className="bg-[hsl(224,71%,6%)] text-white/80">Week Goal (1-4 weeks)</option>
-                        <option value="Month" className="bg-[hsl(224,71%,6%)] text-white/80">Month Goal (2-12 months)</option>
-                        <option value="Year" className="bg-[hsl(224,71%,6%)] text-white/80">Year Goal (2-10 years)</option>
+                    <select {...form.register('goalType')} className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground hover:border-border transition-colors appearance-none cursor-pointer [&>option]:bg-background [&>option]:text-foreground" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}>
+                        <option value="Week">Week Goal (1-4 weeks)</option>
+                        <option value="Month">Month Goal (2-12 months)</option>
+                        <option value="Year">Year Goal (2-10 years)</option>
                     </select>
                 </div>
                 <div className="space-y-2 md:col-span-2">
@@ -97,7 +97,7 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
                         {...form.register('durationValue', { valueAsNumber: true })}
                         min={watchedGoalType === 'Week' ? 1 : 2}
                         max={watchedGoalType === 'Week' ? 4 : watchedGoalType === 'Month' ? 12 : 10}
-                        className="bg-background"
+                        className="bg-muted/50"
                     />
                     {form.formState.errors.durationValue && <p className="text-xs text-destructive">{form.formState.errors.durationValue.message}</p>}
                 </div>

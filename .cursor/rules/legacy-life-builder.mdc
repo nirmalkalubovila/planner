@@ -29,14 +29,14 @@ Strictly enforce separation of logic, data, and presentation:
 
 ## 4. UI / UX & Styling
 
-- **Theme:** Deep space dark mode (`bg-[#050505]` or `#0a0c10`).
-- **Glassmorphism:** Use `bg-white/[0.03] backdrop-blur-md border border-white/10` for cards and Bento Box layouts.
+- **Theme:** Light/Dark via CSS variables and `next-themes`. Use semantic tokens (`bg-background`, `bg-card`, `text-foreground`, `border-border`, `bg-glass`, `bg-muted`, `bg-accent`). Never hardcode hex or `text-white/*` / `border-white/*`.
+- **Glassmorphism:** Use `bg-glass backdrop-blur-md border border-border` for cards and Bento Box layouts.
 - **Animations:** Use `framer-motion` for state changes, tab switches, and expansions. Use `AnimatePresence` for enter/leave.
 - **Icons:** Use `lucide-react` exclusively.
-- **Colors:**
-  - Primary/Goals: Emerald (`text-emerald-400`, `bg-emerald-500/10`)
-  - Secondary/Habits: Blue (`text-blue-400`, `bg-blue-500/10`)
-  - Warning/Execution: Amber (`text-amber-400`, `bg-amber-500/10`)
+- **Colors:** Use intent tokens (theme-aware):
+  - Goals: `text-intent-goal`, `bg-intent-goal-muted`
+  - Habits: `text-intent-habit`, `bg-intent-habit-muted`
+  - Warning/Execution: `text-intent-warning`, `bg-intent-warning-muted`
 - **Class merging:** Use `cn()` from `@/lib/utils` for conditional Tailwind classes.
 
 ## 5. Code Quality & TypeScript

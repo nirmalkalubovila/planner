@@ -10,6 +10,6 @@ export const PageLoader: React.FC = () => (
             animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.8, 0.4] }}
             transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
         />
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/20 animate-pulse">Loading</p>
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Loading</p>
     </div>
 );

@@ -19,7 +19,7 @@ export const MilestoneStrategyDialog: React.FC<MilestoneStrategyDialogProps> = (
             maxWidth="md"
         >
             <div className="p-6 space-y-5">
-                <p className="text-sm text-white/40 text-center">How should we create your action plan?</p>
+                <p className="text-sm text-muted-foreground text-center">How should we create your action plan?</p>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                     <button
@@ -36,7 +36,7 @@ export const MilestoneStrategyDialog: React.FC<MilestoneStrategyDialogProps> = (
                         />
                         <div>
                             <h3 className="text-base font-black">Legacy Planner</h3>
-                            <p className="text-[11px] text-white/35 mt-1 leading-relaxed">
+                            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
                                 AI builds your milestones based on your profile & schedule.
                             </p>
                         </div>
@@ -44,14 +44,14 @@ export const MilestoneStrategyDialog: React.FC<MilestoneStrategyDialogProps> = (
 
                     <button
                         onClick={() => onSelect('manual')}
-                        className="group flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 transition-all duration-200 text-center space-y-3"
+                        className="group flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/30 transition-all duration-200 text-center space-y-3"
                     >
-                        <div className="p-3.5 bg-white/[0.06] rounded-full text-white/50 group-hover:scale-110 transition-transform duration-300">
+                        <div className="p-3.5 bg-muted rounded-full text-muted-foreground group-hover:scale-110 transition-transform duration-300">
                             <UserCog size={28} />
                         </div>
                         <div>
-                            <h3 className="text-base font-black text-white/70">Manual Craft</h3>
-                            <p className="text-[11px] text-white/35 mt-1 leading-relaxed">
+                            <h3 className="text-base font-black text-foreground">Manual Craft</h3>
+                            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
                                 Define your own milestones and tasks step by step.
                             </p>
                         </div>

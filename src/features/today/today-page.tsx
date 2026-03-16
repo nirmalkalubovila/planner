@@ -32,25 +32,25 @@ export const TodayPage: React.FC = () => {
     return (
         <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
 
-            <div className="flex justify-between items-end mb-4 border-b border-white/5 pb-6">
+            <div className="flex justify-between items-end mb-4 border-b border-border pb-6">
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-white/40 leading-none">Today's Schedule</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground leading-none">Today's Schedule</h2>
                     <div className="flex items-center gap-2">
                         <div className="h-1 w-12 bg-primary/40 rounded-full" />
-                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                             {tasks.length} TASKS
                         </span>
                     </div>
                 </div>
                 {tasks.length > 0 && (
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest hidden sm:inline">Progress</span>
-                        <div className="flex items-center gap-1.5 sm:gap-2 bg-white/5 border border-white/10 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-sm">
-                            <span className="text-xs font-bold text-white">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:inline">Progress</span>
+                        <div className="flex items-center gap-1.5 sm:gap-2 bg-muted border border-border px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-sm">
+                            <span className="text-xs font-bold text-foreground">
                                 {(completedTasks || []).length}
                             </span>
-                            <span className="text-[10px] text-white/30 font-bold">/</span>
-                            <span className="text-xs font-bold text-white/50">
+                            <span className="text-[10px] text-muted-foreground font-bold">/</span>
+                            <span className="text-xs font-bold text-muted-foreground">
                                 {tasks.length}
                             </span>
                         </div>
@@ -71,10 +71,10 @@ export const TodayPage: React.FC = () => {
             )}
 
                 {tasks.length === 0 ? (
-                    <div className="py-24 text-center border border-white/5 rounded-[40px] bg-white/[0.01] backdrop-blur-sm group hover:border-white/10 transition-colors">
-                        <Clock className="w-16 h-16 text-white/5 mx-auto mb-6 group-hover:scale-110 group-hover:text-white/10 transition-all duration-500" strokeWidth={1} />
-                        <h3 className="text-xl font-bold text-white/40 tracking-tight leading-none">No Tasks for Today</h3>
-                        <p className="text-sm text-white/20 mt-3 max-w-xs mx-auto">Your schedule is clear. Use the Week Planner to architect your legacy.</p>
+                    <div className="py-24 text-center border border-border rounded-[40px] bg-muted/50 backdrop-blur-sm group hover:border-border transition-colors">
+                        <Clock className="w-16 h-16 text-muted-foreground/30 mx-auto mb-6 group-hover:scale-110 group-hover:text-muted-foreground transition-all duration-500" strokeWidth={1} />
+                        <h3 className="text-xl font-bold text-muted-foreground tracking-tight leading-none">No Tasks for Today</h3>
+                        <p className="text-sm text-muted-foreground mt-3 max-w-xs mx-auto">Your schedule is clear. Use the Week Planner to architect your legacy.</p>
                         <Button
                             onClick={() => navigate('/planner')}
                             variant="link"
@@ -95,18 +95,18 @@ export const TodayPage: React.FC = () => {
                                         "group relative flex items-center justify-between p-4 md:p-5 rounded-2xl border cursor-pointer overflow-hidden",
                                         "transition-[border-color,opacity,background-color] duration-100",
                                         completed
-                                            ? "bg-white/[0.01] border-white/5 opacity-50"
-                                            : "bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.05] active:scale-[0.98] active:duration-75"
+                                            ? "bg-muted/30 border-border opacity-50"
+                                            : "bg-glass border-border hover:border-border hover:bg-accent active:scale-[0.98] active:duration-75"
                                     )}
                                 >
                                     <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                                         <div className="flex-shrink-0 flex items-center justify-center">
                                             {completed ? (
-                                                <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                                                <div className="w-6 h-6 rounded-full bg-intent-goal-muted text-intent-goal flex items-center justify-center border border-intent-goal/30">
                                                     <Check size={14} strokeWidth={3} />
                                                 </div>
                                             ) : (
-                                                <div className="w-6 h-6 rounded-full border-2 border-white/20 group-hover:border-primary transition-colors duration-100 flex items-center justify-center">
+                                                <div className="w-6 h-6 rounded-full border-2 border-border group-hover:border-primary transition-colors duration-100 flex items-center justify-center">
                                                     <div className="w-2 h-2 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-100" />
                                                 </div>
                                             )}
@@ -114,13 +114,13 @@ export const TodayPage: React.FC = () => {
                                         <div className="flex flex-col min-w-0">
                                             <span className={cn(
                                                 "font-bold text-sm sm:text-base tracking-tight leading-tight truncate",
-                                                completed ? "text-white/40 line-through" : "text-white/90"
+                                                completed ? "text-muted-foreground line-through" : "text-foreground"
                                             )}>
                                                 {task.name}
                                             </span>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-white/40">
-                                                    <Clock size={11} className="text-white/20" />
+                                                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                                    <Clock size={11} className="text-muted-foreground" />
                                                     {task.startTime} - {task.endTime}
                                                 </span>
                                             </div>

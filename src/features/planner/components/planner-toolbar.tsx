@@ -83,16 +83,16 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
             {/* DESKTOP LAYOUT (visible on md and above)  */}
             {/* ========================================= */}
             <div className={cn(
-                "hidden md:flex flex-col bg-background/95 backdrop-blur-2xl border-white/10 z-[80] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] shrink-0 h-full relative top-0 right-0 rounded-none border-y-0 border-r-0 border-l translate-y-0 text-foreground shadow-none",
+                "hidden md:flex flex-col bg-background/95 backdrop-blur-2xl border-border z-[80] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] shrink-0 h-full relative top-0 right-0 rounded-none border-y-0 border-r-0 border-l translate-y-0 text-foreground shadow-none",
                 isCollapsed ? "w-20" : "w-64"
             )}>
                 {/* Toggle Handle - matches DashboardSidebar */}
                 <div className={cn(
                     "flex items-center shrink-0 w-full",
-                    isCollapsed ? "h-16 px-6 justify-center" : "h-16 px-6 justify-between border-b border-white/5"
+                    isCollapsed ? "h-16 px-6 justify-center" : "h-16 px-6 justify-between border-b border-border"
                 )}>
                     {!isCollapsed && (
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 select-none">
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground select-none">
                             Tools
                         </span>
                     )}
@@ -103,8 +103,8 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                         className={cn(
                             "transition-all duration-300 shrink-0 h-8 w-8 rounded-full",
                             isCollapsed
-                                ? "bg-transparent text-white/30 hover:bg-white/5 hover:text-white md:shadow-none"
-                                : "hover:bg-white/5 text-white/30 hover:text-white"
+                                ? "bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground md:shadow-none"
+                                : "hover:bg-accent text-muted-foreground hover:text-foreground"
                         )}
                     >
                         {isCollapsed ? <PanelRightOpen size={16} className="pointer-events-none" /> : <PanelRightClose size={16} />}
@@ -130,7 +130,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             )}>
 
                                 {/* Group 1: Modifiers (Erase, Duplicate) */}
-                                <div className={cn("flex", isCollapsed ? "flex-col gap-3 mt-2 pt-5 border-t border-white/10 relative" : "flex-row items-center gap-1.5 bg-primary/5 p-1.5 rounded-xl border border-primary/20 shadow-inner flex-1 justify-center")}>
+                                <div className={cn("flex", isCollapsed ? "flex-col gap-3 mt-2 pt-5 border-t border-border relative" : "flex-row items-center gap-1.5 bg-primary/5 p-1.5 rounded-xl border border-primary/20 shadow-inner flex-1 justify-center")}>
                                     <Button
                                         variant={selectedTool === 'erase' ? 'secondary' : 'ghost'}
                                         size="icon"
@@ -173,7 +173,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                 </div>
 
                                 {/* Group 2: Creators (Goal, Custom Task) */}
-                                <div className={cn("flex", isCollapsed ? "flex-col gap-3 mt-2 pt-5 border-t border-white/10 relative" : "flex-row items-center gap-1.5 bg-primary/5 p-1.5 rounded-xl border border-primary/20 shadow-inner flex-1 justify-center")}>
+                                <div className={cn("flex", isCollapsed ? "flex-col gap-3 mt-2 pt-5 border-t border-border relative" : "flex-row items-center gap-1.5 bg-primary/5 p-1.5 rounded-xl border border-primary/20 shadow-inner flex-1 justify-center")}>
                                     {isCollapsed && <div className="absolute -top-[10px] left-1/2 -translate-x-1/2 bg-background/80 px-1 text-[8px] font-black text-muted-foreground/50 rounded uppercase">Add</div>}
                                     <Button
                                         variant={selectedTool === 'goal' ? 'secondary' : 'ghost'}
@@ -212,7 +212,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                         {!isCollapsed && (
                             <div className="flex flex-col gap-1.5 mb-6 animate-in fade-in slide-in-from-right-3 duration-500 delay-100">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-1">History</span>
-                                <div className="flex items-center gap-2 bg-muted/20 p-2 rounded-xl border border-white/5 shadow-inner">
+                                <div className="flex items-center gap-2 bg-muted/20 p-2 rounded-xl border border-border shadow-inner">
                                     <Button variant="ghost" className="h-8 flex-1 rounded-lg text-muted-foreground text-[10px] font-bold disabled:opacity-30 bg-background/50" onClick={onUndo} disabled={!canUndo}>
                                         <Undo2 size={14} className="mr-1.5" /> UNDO
                                     </Button>
@@ -231,7 +231,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                     <Button size="sm" variant="ghost" className="h-8 flex-1 text-[11px] font-bold text-destructive hover:bg-destructive/10 rounded-lg" onClick={onCancelPreview}>
                                         <RotateCcw size={14} className="mr-1.5" /> Revert
                                     </Button>
-                                    <Button size="sm" className="h-8 flex-1 text-[11px] font-black bg-primary text-white shadow-lg shadow-primary/20 rounded-lg" onClick={commitPreviewPlan}>
+                                    <Button size="sm" className="h-8 flex-1 text-[11px] font-black bg-primary text-primary-foreground shadow-lg shadow-primary/20 rounded-lg" onClick={commitPreviewPlan}>
                                         <Check size={14} className="mr-1.5" strokeWidth={3} /> Commit
                                     </Button>
                                 </div>
@@ -250,7 +250,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
 
                 {/* Footer: Actions & Save Status - STATIC (outside scrollable area) */}
                 <div className={cn(
-                    "flex flex-col border-t border-white/5 p-3 sm:p-4 gap-3 bg-muted/10 shrink-0",
+                    "flex flex-col border-t border-border p-3 sm:p-4 gap-3 bg-muted/10 shrink-0",
                     !isCollapsed && "animate-in slide-in-from-bottom-5 duration-500 delay-200"
                 )}>
                     {isCollapsed ? (
@@ -261,7 +261,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30 hover:bg-muted" onClick={onRedo} disabled={!canRedo} title="Redo">
                                 <Redo2 size={14} />
                             </Button>
-                            <div className="w-6 h-px bg-white/10 my-1" />
+                            <div className="w-6 h-px bg-border my-1" />
                             <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-destructive hover:bg-destructive/10" onClick={onClear} title="Clear All">
                                 <RotateCcw size={14} />
                             </Button>
@@ -272,7 +272,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                         </Button>
                     )}
 
-                    <div className={cn("flex items-center justify-center gap-1.5 pt-2 border-t border-white/5 mt-1", isCollapsed ? "flex-col" : "flex-row")}>
+                    <div className={cn("flex items-center justify-center gap-1.5 pt-2 border-t border-border mt-1", isCollapsed ? "flex-col" : "flex-row")}>
                         {saveStatus === 'saving' ? (
                             <>
                                 <Loader2 size={14} className="animate-spin text-red-500" />
@@ -307,7 +307,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     <Button
                         size="icon"
                         onClick={() => setIsCollapsed(false)}
-                        className="h-12 w-12 rounded-full shadow-2xl shadow-black/50 bg-primary hover:bg-primary/90 text-primary-foreground border border-white/10"
+                        className="h-12 w-12 rounded-full shadow-2xl shadow-black/50 bg-primary hover:bg-primary/90 text-primary-foreground border border-border"
                     >
                         <PanelRightOpen size={20} className="w-5 h-5 pointer-events-none" />
                     </Button>
@@ -316,7 +316,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                 {/* 2) Expanded Horizontal Toolbar (Bottom) when NOT collapsed */}
                 <div 
                     className={cn(
-                        "absolute bottom-4 left-2 right-2 flex flex-row items-center justify-around p-2 rounded-2xl bg-card/95 backdrop-blur-2xl border border-white/10 shadow-[0_20px_60px_-10px_rgba(0,0,0,0.8)] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-auto",
+                        "absolute bottom-4 left-2 right-2 flex flex-row items-center justify-around p-2 rounded-2xl bg-card/95 backdrop-blur-2xl border border-border shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] pointer-events-auto",
                         isCollapsed ? "opacity-0 translate-y-20 pointer-events-none" : "opacity-100 translate-y-0"
                     )}
                 >
@@ -378,7 +378,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                         </Button>
                     </div>
 
-                    <div className="w-px h-8 bg-white/15 mx-1" />
+                    <div className="w-px h-8 bg-border mx-1" />
 
                     <div className="flex items-center gap-1">
                         <div className="flex items-center justify-center w-8">
@@ -401,12 +401,12 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                         </Button>
                     </div>
                 
-                    <div className="w-px h-8 bg-white/15 mx-1" />
+                    <div className="w-px h-8 bg-border mx-1" />
 
                     <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-10 w-10 rounded-full shrink-0 border border-white/5 bg-background/50 hover:bg-background/80 hover:text-primary"
+                        className="h-10 w-10 rounded-full shrink-0 border border-border bg-background/50 hover:bg-background/80 hover:text-primary"
                         onClick={() => setIsCollapsed(true)}
                     >
                         <ChevronDown size={20} />

@@ -44,7 +44,7 @@ export const SelectTrigger = React.forwardRef<
             <button
                 ref={ref}
                 className={cn(
-                    "flex h-10 w-full items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 text-sm font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50",
+                    "flex h-10 w-full items-center justify-between rounded-xl border border-border bg-muted px-3 py-2 text-sm font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50",
                     className
                 )}
                 {...props}
@@ -66,7 +66,7 @@ export const SelectValue = ({ placeholder }: { placeholder?: string }) => {
 export const SelectContent = ({ children, className }: { children: React.ReactNode, className?: string }) => {
     return (
         <PopoverContent
-            className={cn("w-[--radix-popover-trigger-width] min-w-[8rem] overflow-hidden rounded-xl border border-white/10 bg-[#0c0c0c] p-1 text-white shadow-2xl backdrop-blur-xl", className)}
+            className={cn("w-[--radix-popover-trigger-width] min-w-[8rem] overflow-hidden rounded-xl border border-border bg-popover p-1 text-foreground shadow-2xl backdrop-blur-xl", className)}
             align="start"
             sideOffset={4}
         >
@@ -95,8 +95,8 @@ export const SelectItem = ({
         <button
             type="button"
             className={cn(
-                "relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-3 pr-9 text-xs font-semibold outline-none transition-colors hover:bg-white/5 focus:bg-white/5 disabled:pointer-events-none disabled:opacity-50",
-                isSelected ? "text-primary bg-primary/10" : "text-white/60",
+                "relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-3 pr-9 text-xs font-semibold outline-none transition-colors hover:bg-accent focus:bg-accent disabled:pointer-events-none disabled:opacity-50",
+                isSelected ? "text-primary bg-primary/10" : "text-muted-foreground",
                 className
             )}
             onClick={() => {

@@ -19,7 +19,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   size = 120,
   strokeWidth = 8,
   color = 'stroke-primary',
-  trackColor = 'stroke-white/5',
+  trackColor = 'stroke-muted',
   label,
   sublabel,
   className,
@@ -57,11 +57,11 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-black text-white/90">{clamped}%</span>
+          <span className="text-xl font-black text-foreground">{clamped}%</span>
         </div>
       </div>
-      {label && <p className="text-xs font-medium text-white/70 text-center mt-1">{label}</p>}
-      {sublabel && <p className="text-[10px] text-white/30 text-center">{sublabel}</p>}
+      {label && <p className="text-xs font-medium text-muted-foreground text-center mt-1">{label}</p>}
+      {sublabel && <p className="text-[10px] text-muted-foreground text-center">{sublabel}</p>}
     </div>
   );
 };
