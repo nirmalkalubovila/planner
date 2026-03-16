@@ -85,6 +85,17 @@ CREATE TABLE user_profiles (
   is_personalized boolean DEFAULT false
 );
 
+-- Create vault_notes table (The Vault - lightning-fast notes)
+CREATE TABLE vault_notes (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  content text NOT NULL DEFAULT '',
+  tags jsonb DEFAULT '[]'::jsonb,
+  is_pinned boolean DEFAULT false,
+  "createdAt" timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  "updatedAt" timestamp with time zone
+);
+
 -- Create completed_tasks table
 CREATE TABLE completed_tasks (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -101,8 +112,10 @@ ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE week_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE custom_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vault_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE completed_tasks ENABLE ROW LEVEL SECURITY;
 
+CREATE POLICY "Users can manage their own vault_notes" ON vault_notes FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own user_profiles" ON user_profiles FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own goals" ON goals FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own habits" ON habits FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

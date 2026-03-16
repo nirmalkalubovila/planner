@@ -291,10 +291,12 @@ Each object: { "date": "string", "dayTask": "string - short title", "description
 NO MARKDOWN. RAW JSON ONLY.`;
 
             const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            const apiUrl = import.meta.env.VITE_AI_API_URL ?? 'https://openrouter.ai/api/v1/chat/completions';
+            const model = import.meta.env.VITE_AI_MODEL ?? 'arcee-ai/trinity-large-preview:free';
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': window.location.origin, 'X-Title': 'Legacy Life Builder Planner' },
-                body: JSON.stringify({ model: "arcee-ai/trinity-large-preview:free", messages: [{ role: "user", content: prompt }] })
+                body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }] })
             });
 
             const rawResult = await response.json();
