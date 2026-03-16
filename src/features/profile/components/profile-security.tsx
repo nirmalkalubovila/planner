@@ -66,7 +66,7 @@ export const ProfileSecurity: React.FC<ProfileSecurityProps> = ({ user }) => {
     };
 
     return (
-        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 shadow-xl space-y-6 sm:space-y-8">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 space-y-6 sm:space-y-8">
             <h3 className="text-base font-bold">Account Security</h3>
 
             {/* Email Change */}

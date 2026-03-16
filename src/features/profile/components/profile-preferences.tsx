@@ -49,7 +49,7 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
     user, isEditing, setIsEditing, loading, onSave, formData
 }) => {
     return (
-        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-6">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
             <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold">Planner Preferences</h3>
                 {!isEditing && (

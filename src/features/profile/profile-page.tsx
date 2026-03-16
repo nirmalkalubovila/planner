@@ -7,7 +7,7 @@ import { ProfilePreferences } from './components/profile-preferences';
 import { ProfileSecurity } from './components/profile-security';
 
 export const ProfilePage: React.FC = () => {
-    const { user, signOut } = useAuth();
+    const { user } = useAuth();
 
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -106,7 +106,7 @@ export const ProfilePage: React.FC = () => {
 
             <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6 items-start">
                 {/* Left: Profile Info */}
-                <ProfileInfo user={user} signOut={signOut} />
+                <ProfileInfo user={user} />
 
                 {/* Right: Preferences + Security stacked */}
                 <div className="space-y-6">

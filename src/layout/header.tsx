@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
-import { Settings, LogOut, User as UserIcon, Sparkles } from 'lucide-react';
+import { Settings, LogOut, Sparkles } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuth } from '@/contexts/auth-context';
 import { useTimeLived } from '@/hooks/use-time-lived';
@@ -14,6 +14,7 @@ import {
 export const Header: React.FC = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const [profileOpen, setProfileOpen] = useState(false);
 
     const { time, duration } = useTimeLived(user?.user_metadata?.dob);
 
@@ -25,8 +26,14 @@ export const Header: React.FC = () => {
         : user?.email?.substring(0, 2).toUpperCase() || 'U';
 
     const handleLogout = async () => {
+        setProfileOpen(false);
         await signOut();
         navigate('/login');
+    };
+
+    const handleSettings = () => {
+        setProfileOpen(false);
+        navigate('/profile');
     };
 
     return (
@@ -90,7 +97,7 @@ export const Header: React.FC = () => {
                     )}
 
 
-                    <Popover>
+                    <Popover open={profileOpen} onOpenChange={setProfileOpen}>
                         <PopoverTrigger asChild>
                             <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-muted p-0 hover:bg-accent transition-all active:scale-95 focus:outline-none focus:ring-1 focus:ring-ring overflow-hidden">
                                 {avatarUrl ? (
@@ -112,7 +119,7 @@ export const Header: React.FC = () => {
                             </div>
                             <div className="space-y-0.5">
                                 <button
-                                    onClick={() => navigate('/profile')}
+                                    onClick={handleSettings}
                                     className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-all rounded-md group"
                                 >
                                     <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted group-hover:bg-primary/20 transition-colors">
@@ -121,6 +128,7 @@ export const Header: React.FC = () => {
                                     <span className="font-medium">Settings</span>
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleLogout}
                                     className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all rounded-md group"
                                 >

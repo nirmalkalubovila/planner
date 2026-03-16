@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ListTodo, Target, CalendarDays, BarChart2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Home, ListTodo, Target, CalendarDays, BarChart2, PanelLeftClose, PanelLeftOpen, LogOut } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/auth-context';
 
 const navigation = [
     { name: 'Today Tasks', href: '/', icon: Home, label: 'Execution' },
@@ -13,6 +14,7 @@ const navigation = [
 ];
 
 export const DashboardSidebar: React.FC = () => {
+    const { signOut } = useAuth();
     const [isCollapsed, setIsCollapsed] = useState(() => {
         const saved = localStorage.getItem('sidebar-collapsed');
         return saved === 'true';
@@ -102,6 +104,21 @@ export const DashboardSidebar: React.FC = () => {
                     </NavLink>
                 ))}
             </nav>
+
+            {/* Sign Out - bottom of sidebar */}
+            <div className={cn("px-4 pb-4 pt-2 border-t border-border", isCollapsed && "px-2")}>
+                <Button
+                    onClick={() => signOut()}
+                    variant="ghost"
+                    className={cn(
+                        "w-full h-10 rounded-xl text-sm font-semibold text-destructive hover:bg-destructive/10 border border-border hover:border-destructive/20 transition-all",
+                        isCollapsed && "justify-center px-0"
+                    )}
+                >
+                    <LogOut className={cn("h-4 w-4 shrink-0", isCollapsed ? "" : "mr-2")} />
+                    {!isCollapsed && "Sign Out"}
+                </Button>
+            </div>
         </div>
     );
 };
