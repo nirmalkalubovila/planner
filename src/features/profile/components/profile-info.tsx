@@ -12,16 +12,18 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 interface ProfileInfoProps {
     user: any;
-    profile?: { fullName?: string; dob?: string } | null;
+    profile?: { fullName?: string; dob?: string; avatarUrl?: string } | null;
+    saveProfile?: (updates: { avatarUrl: string }) => Promise<void>;
 }
 
-export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, profile }) => {
+export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, profile, saveProfile }) => {
     const displayName = profile?.fullName || user.user_metadata?.full_name || '';
     const initials = displayName
         ? displayName.substring(0, 2).toUpperCase()
         : user.email?.substring(0, 2).toUpperCase() || 'U';
 
-    const avatarUrl = user.user_metadata?.avatar_url || null;
+    // Prefer user_profiles.avatar_url (persists across OAuth) over user_metadata.avatar_url (overwritten on login)
+    const avatarUrl = profile?.avatarUrl || user.user_metadata?.avatar_url || null;
     const [previewUrl, setPreviewUrl] = useState<string | null>(avatarUrl);
     const [uploading, setUploading] = useState(false);
     const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -34,6 +36,15 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, profile }) => {
     useEffect(() => {
         setPreviewUrl(avatarUrl);
     }, [avatarUrl]);
+
+    // Migrate: persist user_metadata.avatar_url to user_profiles so it survives OAuth re-login
+    useEffect(() => {
+        const metaUrl = user.user_metadata?.avatar_url;
+        if (metaUrl && !profile?.avatarUrl && saveProfile) {
+            saveProfile({ avatarUrl: metaUrl }).catch(() => {});
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when meta has avatar but profile doesn't
+    }, [user.user_metadata?.avatar_url, profile?.avatarUrl]);
 
     const onCropComplete = useCallback((_croppedArea: Area, area: Area) => {
         setCroppedAreaPixels(area);
@@ -97,6 +108,9 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, profile }) => {
             } else {
                 setPreviewUrl(urlWithBust);
                 await supabase.auth.refreshSession();
+                if (saveProfile) {
+                    await saveProfile({ avatarUrl: urlWithBust });
+                }
                 toast.success('Profile picture updated');
             }
         } catch (err: unknown) {

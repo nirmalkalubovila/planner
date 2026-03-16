@@ -83,7 +83,7 @@ export const StandardDialog: React.FC<StandardDialogProps> = ({
                         className={cn(
                             'relative bg-card border border-border shadow-2xl rounded-2xl w-full overflow-hidden flex flex-col',
                             maxWidthMap[maxWidth],
-                            !scrollable && 'max-h-[90vh]',
+                            scrollable ? 'max-h-[90dvh] sm:max-h-[90vh]' : 'max-h-[90vh]',
                             className
                         )}
                         initial={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -113,7 +113,7 @@ export const StandardDialog: React.FC<StandardDialogProps> = ({
                             )}
                         </div>
 
-                        <div className={cn('flex-1 min-h-0', scrollable ? 'max-h-[70vh] overflow-y-auto' : 'overflow-hidden')}>
+                        <div className={cn('flex-1 min-h-0', scrollable ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden')}>
                             {children}
                         </div>
 

@@ -24,9 +24,9 @@ export const PersonalizeModal: React.FC = () => {
             maxWidth="6xl"
             hideClose
             closeOnBackdrop={false}
-            scrollable={false}
+            scrollable={true}
         >
-            <div className="p-4 md:p-5">
+            <div className="p-4 sm:p-5">
                 <PersonalizeForm onSuccess={handleDone} onSkip={handleDone} />
             </div>
         </StandardDialog>

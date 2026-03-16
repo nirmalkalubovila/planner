@@ -82,7 +82,8 @@ CREATE TABLE user_profiles (
   energy_peak_time text DEFAULT 'Morning',
   focus_ability text DEFAULT 'normal',
   task_shifting_ability text DEFAULT 'normal',
-  is_personalized boolean DEFAULT false
+  is_personalized boolean DEFAULT false,
+  avatar_url text
 );
 
 -- Create vault_notes table (The Vault - lightning-fast notes)
