@@ -1,27 +1,30 @@
 import { useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@/api/services/profile-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState, Habit } from '@/types/global-types';
 import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@/constants/scheduling';
 import { timeToMinutes, minutesToTime } from '@/utils/time';
 
-function resolvePlanEndTime(meta: any): string {
+function resolvePlanEndTime(profile: { planEndTime?: string; planStartTime?: string } | null, meta: any): string {
+    if (profile?.planEndTime) return profile.planEndTime;
     if (meta?.planEndTime) return meta.planEndTime;
-    const startTime = meta?.planStartTime || '21:00';
+    const startTime = profile?.planStartTime || meta?.planStartTime || '21:00';
     const packs = Number(meta?.planDurationPacks) || 2;
     return minutesToTime(timeToMinutes(startTime) + packs * 30);
 }
 
 export function usePlannerGrid(currentWeek: string, localGridState: GridState) {
     const { user } = useAuth();
+    const { profile } = useUserProfile(user);
     const { data: habits } = useGetHabits();
 
     const sleepSlots = useMemo(() => {
         const set = new Set<number>();
         if (!user) return set;
-        const sleepStartStr = user.user_metadata?.sleepStart || '22:00';
-        const sleepDuration = Number(user.user_metadata?.sleepDuration) || 8;
+        const sleepStartStr = profile?.sleepStart || user.user_metadata?.sleepStart || '22:00';
+        const sleepDuration = Number(profile?.sleepDuration || user.user_metadata?.sleepDuration) || 8;
         const [sH, sM] = sleepStartStr.split(':').map(Number);
         const startSlot = sH * 2 + (sM >= 30 ? 1 : 0);
         const durationSlots = Math.round(sleepDuration * 2);
@@ -29,7 +32,7 @@ export function usePlannerGrid(currentWeek: string, localGridState: GridState) {
             set.add((startSlot + i) % SLOTS_PER_DAY);
         }
         return set;
-    }, [user]);
+    }, [user, profile]);
 
     const isSleepSlot = useCallback(
         (slotIdx: number) => sleepSlots.has(slotIdx),
@@ -39,9 +42,9 @@ export function usePlannerGrid(currentWeek: string, localGridState: GridState) {
     const planSlotKeys = useMemo(() => {
         const set = new Set<string>();
         if (!user) return set;
-        const planDay = user.user_metadata?.planDay || 'Sunday';
-        const planStartTimeStr = user.user_metadata?.planStartTime || '21:00';
-        const planEndTimeStr = resolvePlanEndTime(user.user_metadata);
+        const planDay = profile?.planDay || user.user_metadata?.planDay || 'Sunday';
+        const planStartTimeStr = profile?.planStartTime || user.user_metadata?.planStartTime || '21:00';
+        const planEndTimeStr = resolvePlanEndTime(profile, user.user_metadata);
         const targetDayIdx = DAYS_OF_WEEK.indexOf(planDay);
         if (targetDayIdx === -1) return set;
 
@@ -56,7 +59,7 @@ export function usePlannerGrid(currentWeek: string, localGridState: GridState) {
             set.add(`${targetDayIdx}-${(startSlot + i) % SLOTS_PER_DAY}`);
         }
         return set;
-    }, [user]);
+    }, [user, profile]);
 
     const isPlanSlot = useCallback(
         (dayIdx: number, slotIdx: number) => planSlotKeys.has(`${dayIdx}-${slotIdx}`),

@@ -12,11 +12,13 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 interface ProfileInfoProps {
     user: any;
+    profile?: { fullName?: string; dob?: string } | null;
 }
 
-export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user }) => {
-    const initials = user.user_metadata?.full_name
-        ? user.user_metadata.full_name.substring(0, 2).toUpperCase()
+export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, profile }) => {
+    const displayName = profile?.fullName || user.user_metadata?.full_name || '';
+    const initials = displayName
+        ? displayName.substring(0, 2).toUpperCase()
         : user.email?.substring(0, 2).toUpperCase() || 'U';
 
     const avatarUrl = user.user_metadata?.avatar_url || null;
@@ -142,7 +144,7 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user }) => {
                     <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileSelect} />
                 </div>
                 <div>
-                    <h3 className="font-bold text-lg">{user.user_metadata?.full_name || 'User'}</h3>
+                    <h3 className="font-bold text-lg">{displayName || 'User'}</h3>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
             </div>
@@ -155,7 +157,7 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user }) => {
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                     <UserIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">DOB: {user.user_metadata?.dob || 'Not set'}</span>
+                    <span className="text-muted-foreground">DOB: {profile?.dob || user.user_metadata?.dob || 'Not set'}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />

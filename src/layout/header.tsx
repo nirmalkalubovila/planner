@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Settings, LogOut, Sparkles } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@/api/services/profile-service';
 import { useTimeLived } from '@/hooks/use-time-lived';
 import {
     Popover,
@@ -13,12 +14,13 @@ import {
 
 export const Header: React.FC = () => {
     const { user, signOut } = useAuth();
+    const { profile } = useUserProfile(user);
     const navigate = useNavigate();
     const [profileOpen, setProfileOpen] = useState(false);
 
-    const { time, duration } = useTimeLived(user?.user_metadata?.dob);
+    const { time, duration } = useTimeLived(profile?.dob || user?.user_metadata?.dob);
 
-    const fullName: string = user?.user_metadata?.full_name || '';
+    const fullName: string = profile?.fullName || user?.user_metadata?.full_name || '';
     const firstName = fullName.split(' ')[0] || '';
     const avatarUrl: string | null = user?.user_metadata?.avatar_url || null;
     const initials = fullName

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@/api/services/profile-service';
 import { ProfileInfo } from './components/profile-info';
 import { ProfilePreferences } from './components/profile-preferences';
 import { ProfileSecurity } from './components/profile-security';
 
 export const ProfilePage: React.FC = () => {
     const { user } = useAuth();
+    const { profile, saveProfile, isSaving } = useUserProfile(user);
 
     const [isEditing, setIsEditing] = useState(false);
-    const [loading, setLoading] = useState(false);
 
     // Form state
     const [fullName, setFullName] = useState('');
@@ -28,28 +28,27 @@ export const ProfilePage: React.FC = () => {
     const [taskShiftingAbility, setTaskShiftingAbility] = useState('');
 
     useEffect(() => {
-        if (user) {
-            setFullName(user.user_metadata?.full_name || '');
-            setDob(user.user_metadata?.dob || '');
-            setSleepStart(user.user_metadata?.sleepStart || '22:00');
-            setSleepDuration(user.user_metadata?.sleepDuration || '8');
-            setWeekStart(user.user_metadata?.weekStart || 'Monday');
-            setPlanDay(user.user_metadata?.planDay || 'Sunday');
-            setPlanStartTime(user.user_metadata?.planStartTime || '21:00');
-            setPlanEndTime(user.user_metadata?.planEndTime || '22:00');
-            setPrimaryLifeFocus(user.user_metadata?.primaryLifeFocus || '');
-            setCurrentProfession(user.user_metadata?.currentProfession || '');
-            setEnergyPeakTime(user.user_metadata?.energyPeakTime || 'Morning');
-            setFocusAbility(user.user_metadata?.focusAbility || 'normal');
-            setTaskShiftingAbility(user.user_metadata?.taskShiftingAbility || 'normal');
+        if (profile) {
+            setFullName(profile.fullName || '');
+            setDob(profile.dob || '');
+            setSleepStart(profile.sleepStart || '22:00');
+            setSleepDuration(profile.sleepDuration || '8');
+            setWeekStart(profile.weekStart || 'Monday');
+            setPlanDay(profile.planDay || 'Sunday');
+            setPlanStartTime(profile.planStartTime || '21:00');
+            setPlanEndTime(profile.planEndTime || '22:00');
+            setPrimaryLifeFocus(profile.primaryLifeFocus || '');
+            setCurrentProfession(profile.currentProfession || '');
+            setEnergyPeakTime(profile.energyPeakTime || 'Morning');
+            setFocusAbility(profile.focusAbility || 'normal');
+            setTaskShiftingAbility(profile.taskShiftingAbility || 'normal');
         }
-    }, [user, isEditing]);
+    }, [profile, isEditing]);
 
     const handleSave = async () => {
-        setLoading(true);
-        const { error } = await supabase.auth.updateUser({
-            data: {
-                full_name: fullName,
+        try {
+            await saveProfile({
+                fullName,
                 dob,
                 sleepStart,
                 sleepDuration,
@@ -62,15 +61,11 @@ export const ProfilePage: React.FC = () => {
                 energyPeakTime,
                 focusAbility,
                 taskShiftingAbility,
-            }
-        });
-
-        setLoading(false);
-        if (!error) {
+            });
             setIsEditing(false);
             toast.success('Profile updated successfully!');
-        } else {
-            toast.error('Failed to update: ' + error.message);
+        } catch {
+            // Error handled by mutation
         }
     };
 
@@ -106,15 +101,16 @@ export const ProfilePage: React.FC = () => {
 
             <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6 items-start">
                 {/* Left: Profile Info */}
-                <ProfileInfo user={user} />
+                <ProfileInfo user={user} profile={profile} />
 
                 {/* Right: Preferences + Security stacked */}
                 <div className="space-y-6">
                     <ProfilePreferences
                         user={user}
+                        profile={profile}
                         isEditing={isEditing}
                         setIsEditing={setIsEditing}
-                        loading={loading}
+                        loading={isSaving}
                         onSave={handleSave}
                         formData={formData}
                     />

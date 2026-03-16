@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@/api/services/profile-service';
 import { AuthError } from '@/components/ui/auth-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onSkip }) => {
     const { user } = useAuth();
+    const { saveProfile } = useUserProfile(user);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -58,22 +60,23 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
         const finalDob = dob || (user?.user_metadata?.dob ? new Date(user.user_metadata.dob) : new Date(2002, 11, 23));
 
         if (user) {
+            await saveProfile({
+                sleepStart: finalSleepStart,
+                sleepDuration: finalSleepDuration,
+                weekStart,
+                planDay,
+                planStartTime: finalPlanStartTime,
+                planEndTime: finalPlanEndTime,
+                primaryLifeFocus: finalPrimaryFocus,
+                currentProfession: finalProfession,
+                energyPeakTime,
+                focusAbility,
+                taskShiftingAbility,
+                isPersonalized: true,
+                dob: format(finalDob, 'yyyy-MM-dd'),
+            });
             const { error: updateError } = await supabase.auth.updateUser({
-                data: {
-                    sleepStart: finalSleepStart,
-                    sleepDuration: finalSleepDuration,
-                    weekStart,
-                    planDay,
-                    planStartTime: finalPlanStartTime,
-                    planEndTime: finalPlanEndTime,
-                    primaryLifeFocus: finalPrimaryFocus,
-                    currentProfession: finalProfession,
-                    energyPeakTime,
-                    focusAbility,
-                    taskShiftingAbility,
-                    isPersonalized: true,
-                    dob: format(finalDob, 'yyyy-MM-dd'),
-                }
+                data: { isPersonalized: true }
             });
             if (updateError) {
                 setError(updateError.message);
@@ -88,17 +91,16 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
     const handleSkipClick = async () => {
         setLoading(true);
         if (user) {
-            await supabase.auth.updateUser({
-                data: {
-                    isPersonalized: true,
-                    sleepStart: sleepStart || '22:00',
-                    sleepDuration: sleepDuration || '8',
-                    planDay: planDay || 'Sunday',
-                    planStartTime: planStartTime || '21:00',
-                    planEndTime: planEndTime || '22:00',
-                    dob: user.user_metadata?.dob || '2002-11-23'
-                }
+            await saveProfile({
+                isPersonalized: true,
+                sleepStart: sleepStart || '22:00',
+                sleepDuration: sleepDuration || '8',
+                planDay: planDay || 'Sunday',
+                planStartTime: planStartTime || '21:00',
+                planEndTime: planEndTime || '22:00',
+                dob: user.user_metadata?.dob || '2002-11-23'
             });
+            await supabase.auth.updateUser({ data: { isPersonalized: true } });
         }
         setLoading(false);
         onSkip();
