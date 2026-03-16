@@ -5,8 +5,33 @@ import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
 import { recordGenTime } from '@/components/common/ai-loading-popup';
 import { useUserProfile } from '@/api/services/profile-service';
 
-const DEFAULT_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = 'arcee-ai/trinity-large-preview:free';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const OPENROUTER_MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
+
+/** Free-tier Gemini models for text generation, ordered by preference. Try next on quota/rate-limit. */
+const GEMINI_FREE_MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash-lite-preview-09-2025',
+    'gemini-3-flash-preview',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite'
+];
+
+function isQuotaOrRetryableError(err: unknown): boolean {
+    const msg = String(err instanceof Error ? err.message : err).toLowerCase();
+    return (
+        msg.includes('quota') ||
+        msg.includes('rate limit') ||
+        msg.includes('resource exhausted') ||
+        msg.includes('429') ||
+        msg.includes('not found') ||
+        msg.includes('not supported')
+    );
+}
 
 function cleanJsonResponse(text: string): string {
     return text
@@ -16,11 +41,33 @@ function cleanJsonResponse(text: string): string {
         .trim();
 }
 
-async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    const apiUrl = import.meta.env.VITE_AI_API_URL ?? DEFAULT_API_URL;
-    const model = import.meta.env.VITE_AI_MODEL ?? DEFAULT_MODEL;
-    const response = await fetch(apiUrl, {
+function isGeminiKey(key: string): boolean {
+    return key?.startsWith('AIza');
+}
+
+async function callNativeGemini(prompt: string, apiKey: string, model: string): Promise<AIGeneratedPlanSlot[]> {
+    const url = `${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
+        })
+    });
+
+    const rawResult = await response.json();
+    const text = rawResult.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!response.ok || !text) {
+        throw new Error(rawResult.error?.message || 'Gemini API error');
+    }
+
+    const cleanJson = cleanJsonResponse(text);
+    return JSON.parse(cleanJson) as AIGeneratedPlanSlot[];
+}
+
+async function callOpenRouter(prompt: string, apiKey: string, model: string): Promise<AIGeneratedPlanSlot[]> {
+    const response = await fetch(OPENROUTER_URL, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${apiKey}`,
@@ -35,12 +82,50 @@ async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
     });
 
     const rawResult = await response.json();
-    if (!response.ok || !rawResult.choices?.[0]?.message?.content) {
-        throw new Error(rawResult.error?.message || 'AI response error');
+    const text = rawResult.choices?.[0]?.message?.content;
+    if (!response.ok || !text) {
+        throw new Error(rawResult.error?.message || 'OpenRouter API error');
     }
 
-    const cleanJson = cleanJsonResponse(rawResult.choices[0].message.content);
+    const cleanJson = cleanJsonResponse(text);
     return JSON.parse(cleanJson) as AIGeneratedPlanSlot[];
+}
+
+async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
+    const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+
+    if (!geminiKey && !openRouterKey) {
+        throw new Error('Missing API key. Add VITE_GEMINI_API_KEY or VITE_OPENROUTER_API_KEY to .env');
+    }
+
+    if (geminiKey && isGeminiKey(geminiKey)) {
+        let lastError: Error | null = null;
+        for (const model of GEMINI_FREE_MODELS) {
+            try {
+                return await callNativeGemini(prompt, geminiKey, model);
+            } catch (err) {
+                lastError = err instanceof Error ? err : new Error(String(err));
+                if (isQuotaOrRetryableError(err)) continue;
+                throw lastError;
+            }
+        }
+        if (openRouterKey) {
+            try {
+                return await callOpenRouter(prompt, openRouterKey, OPENROUTER_MODEL);
+            } catch (openRouterErr) {
+                throw openRouterErr;
+            }
+        }
+        throw lastError ?? new Error('All Gemini models failed');
+    }
+
+    if (openRouterKey) {
+        const model = import.meta.env.VITE_AI_MODEL ?? OPENROUTER_MODEL;
+        return await callOpenRouter(prompt, openRouterKey, model);
+    }
+
+    throw new Error('No valid API key found');
 }
 
 export function useAiPlanGeneration(user: any) {

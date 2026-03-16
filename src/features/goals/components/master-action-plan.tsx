@@ -290,20 +290,8 @@ Return ONLY a JSON array with exactly ${dynamicCount} objects.
 Each object: { "date": "string", "dayTask": "string - short title", "description": "string - 1-2 sentences", "estimatedHours": number }
 NO MARKDOWN. RAW JSON ONLY.`;
 
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-            const apiUrl = import.meta.env.VITE_AI_API_URL ?? 'https://openrouter.ai/api/v1/chat/completions';
-            const model = import.meta.env.VITE_AI_MODEL ?? 'arcee-ai/trinity-large-preview:free';
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': window.location.origin, 'X-Title': 'Legacy Life Builder Planner' },
-                body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }] })
-            });
-
-            const rawResult = await response.json();
-            if (!response.ok || !rawResult.choices?.[0]?.message?.content) throw new Error(rawResult.error?.message || "AI response error");
-
-            let cleanJson = rawResult.choices[0].message.content.replace(/^```json\n?/gm, '').replace(/```$/gm, '').replace(/^```\n?/gm, '').trim();
-            const subPlans: AIGeneratedPlanSlot[] = JSON.parse(cleanJson);
+            const { callAI: callAIFn } = await import('@/features/goals/hooks/use-ai-plan-generation');
+            const subPlans = await callAIFn(prompt);
             recordGenTime(Date.now() - genStart);
             onUpdateSubPlans(path, subPlans);
             setExpanded(true);
