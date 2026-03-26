@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { getCurrentUserId, getOptionalUserId } from '@/api/helpers/auth-helpers';
 import { toast } from 'sonner';
-import { VaultNote } from '@/types/vault';
+import { VaultNote, VaultCategory } from '@/types/vault';
 
 const TABLE_NAME = 'vault_notes';
 const QUERY_KEY = [TABLE_NAME];
@@ -26,6 +26,9 @@ async function getNotes(): Promise<VaultNote[]> {
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => ({
     ...row,
+    title: row.title || '',
+    category: row.category || 'ideas',
+    is_draft: false,
     tags: Array.isArray(row.tags) ? row.tags : (row.tags ? JSON.parse(row.tags as unknown as string) : []),
   }));
 }
@@ -34,39 +37,54 @@ export function useNotes() {
   return useQuery({
     queryKey: QUERY_KEY,
     queryFn: getNotes,
-    staleTime: 30 * 1000, // 30s for snappy feel
+    staleTime: 30 * 1000,
   });
+}
+
+interface CreateNoteInput {
+  title: string;
+  content: string;
+  category: VaultCategory;
 }
 
 export function useAddNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async (input: CreateNoteInput) => {
       const userId = await getCurrentUserId();
-      const tags = parseTags(content);
+      const tags = parseTags(input.content);
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .insert([{ user_id: userId, content, tags }])
+        .insert([{
+          user_id: userId,
+          title: input.title,
+          content: input.content,
+          category: input.category,
+          tags,
+        }])
         .select()
         .single();
       if (error) throw new Error(error.message);
-      return { ...data, tags } as VaultNote;
+      return { ...data, tags, is_draft: false } as VaultNote;
     },
-    onMutate: async (content) => {
+    onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<VaultNote[]>(QUERY_KEY);
       const optimisticNote: VaultNote = {
         id: `temp-${Date.now()}`,
-        content,
-        tags: parseTags(content),
+        title: input.title,
+        content: input.content,
+        category: input.category,
+        tags: parseTags(input.content),
         is_pinned: false,
+        is_draft: false,
         createdAt: new Date().toISOString(),
       };
       queryClient.setQueryData<VaultNote[]>(QUERY_KEY, (old = []) => [optimisticNote, ...old]);
       return { previous };
     },
-    onError: (_err, _content, context) => {
+    onError: (_err, _input, context) => {
       if (context?.previous) {
         queryClient.setQueryData(QUERY_KEY, context.previous);
       }
@@ -94,35 +112,69 @@ export function useTogglePinNote() {
       if (error) throw new Error(error.message);
       return data as VaultNote;
     },
-    onSuccess: () => {
+    onMutate: async ({ id, is_pinned }) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEY });
+      const previous = queryClient.getQueryData<VaultNote[]>(QUERY_KEY);
+      queryClient.setQueryData<VaultNote[]>(QUERY_KEY, (old = []) =>
+        old.map((n) => (n.id === id ? { ...n, is_pinned } : n))
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(QUERY_KEY, context.previous);
+      toast.error('Failed to pin note');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     },
-    onError: (err) => toast.error('Failed to update note: ' + err.message),
   });
+}
+
+interface UpdateNoteInput {
+  id: string;
+  title?: string;
+  content?: string;
+  category?: VaultCategory;
 }
 
 export function useUpdateNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+    mutationFn: async ({ id, title, content, category }: UpdateNoteInput) => {
       const userId = await getCurrentUserId();
-      const tags = parseTags(content);
+      const updatePayload: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+      if (title !== undefined) updatePayload.title = title;
+      if (content !== undefined) {
+        updatePayload.content = content;
+        updatePayload.tags = parseTags(content);
+      }
+      if (category !== undefined) updatePayload.category = category;
+
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .update({ content, tags, updatedAt: new Date().toISOString() })
+        .update(updatePayload)
         .eq('id', id)
         .eq('user_id', userId)
         .select()
         .single();
       if (error) throw new Error(error.message);
-      return { ...data, tags } as VaultNote;
+      return { ...data, tags: updatePayload.tags ?? data.tags } as VaultNote;
     },
-    onMutate: async ({ id, content }) => {
+    onMutate: async ({ id, title, content, category }) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<VaultNote[]>(QUERY_KEY);
       queryClient.setQueryData<VaultNote[]>(QUERY_KEY, (old = []) =>
-        old.map((n) => (n.id === id ? { ...n, content, tags: parseTags(content), updatedAt: new Date().toISOString() } : n))
+        old.map((n) => {
+          if (n.id !== id) return n;
+          return {
+            ...n,
+            ...(title !== undefined && { title }),
+            ...(content !== undefined && { content, tags: parseTags(content) }),
+            ...(category !== undefined && { category }),
+            updatedAt: new Date().toISOString(),
+          };
+        })
       );
       return { previous };
     },

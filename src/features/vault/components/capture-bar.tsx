@@ -1,27 +1,31 @@
-import React, { useRef, useEffect, useCallback } from 'react';
-import { Send, X } from 'lucide-react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { Send, X, Loader2, Check, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-interface MainTag {
-  tag: string;
-  count: number;
-}
+
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface CaptureBarProps {
-  onSubmit: (content: string) => void;
+  /** Manual submit — used for send button / Ctrl+S. In new-note mode with an
+   *  active draft, the draftId is forwarded so the parent can skip creating a
+   *  duplicate. */
+  onSubmit: (content: string, draftId?: string) => void;
+  /** Background auto-save. Returns the persisted note ID (needed to turn a new
+   *  note into an update on subsequent saves). */
+  onAutoSave?: (id: string | null, content: string) => Promise<string>;
   disabled?: boolean;
   placeholder?: string;
   className?: string;
-  /** Edit mode: pre-filled content, show Cancel */
   editNote?: { id: string; content: string } | null;
   onCancelEdit?: () => void;
-  /** Main hashtags to show inside the bar for instant add */
-  mainTags?: MainTag[];
+  mainTags?: { tag: string; count: number }[];
 }
 
 export const CaptureBar: React.FC<CaptureBarProps> = ({
   onSubmit,
+  onAutoSave,
   disabled = false,
   placeholder = 'Capture a thought... (Ctrl+S or Cmd+Enter to save)',
   className,
@@ -30,21 +34,50 @@ export const CaptureBar: React.FC<CaptureBarProps> = ({
   mainTags = [],
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [value, setValue] = React.useState(editNote?.content ?? '');
+  const [value, setValue] = useState(editNote?.content ?? '');
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedContentRef = useRef<string>(editNote?.content ?? '');
 
   const isEditMode = !!editNote;
 
+  // Sync value when switching to a different note (by id) or entering/exiting edit mode
   useEffect(() => {
     setValue(editNote?.content ?? '');
-  }, [editNote?.id, editNote?.content]);
+    lastSavedContentRef.current = editNote?.content ?? '';
+    setSaveStatus('idle');
+    // When entering edit mode, clear any new-note draft tracking
+    if (editNote) setDraftId(null);
+  }, [editNote?.id]);
 
+  // Reset draft tracking when exiting edit mode
+  useEffect(() => {
+    if (!editNote) {
+      setDraftId(null);
+      lastSavedContentRef.current = '';
+    }
+  }, [editNote]);
+
+  // Manual submit: send button or Ctrl+S
   const submit = useCallback(() => {
     const trimmed = value.trim();
     if (!trimmed || disabled) return;
-    onSubmit(trimmed);
-    if (!isEditMode) setValue('');
-  }, [value, disabled, onSubmit, isEditMode]);
 
+    if (isEditMode) {
+      // Edit mode manual submit = save & exit
+      onSubmit(trimmed);
+    } else {
+      // New note mode — pass draftId so parent knows it's already persisted
+      onSubmit(trimmed, draftId ?? undefined);
+      setValue('');
+      setDraftId(null);
+      lastSavedContentRef.current = '';
+      setSaveStatus('idle');
+    }
+  }, [value, disabled, onSubmit, isEditMode, draftId]);
+
+  // Auto-resize textarea
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -52,12 +85,39 @@ export const CaptureBar: React.FC<CaptureBarProps> = ({
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [value]);
 
-  // Debounced auto-save when editing (cloud save like planner)
+  // Background auto-save — works for BOTH new notes (drafts) and edits
   useEffect(() => {
-    if (!isEditMode || !editNote || value.trim() === editNote.content.trim()) return;
-    const t = setTimeout(() => submit(), 1500);
+    if (!onAutoSave) return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    if (trimmed === lastSavedContentRef.current.trim()) return;
+
+    const noteId = isEditMode ? editNote!.id : draftId;
+
+    const t = setTimeout(async () => {
+      setSaveStatus('saving');
+      try {
+        const savedId = await onAutoSave(noteId, trimmed);
+        lastSavedContentRef.current = trimmed;
+        // If this was a new draft, store its ID for future updates
+        if (!isEditMode && !draftId) {
+          setDraftId(savedId);
+        }
+        setSaveStatus('saved');
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
+      } catch {
+        setSaveStatus('error');
+      }
+    }, 1500);
+
     return () => clearTimeout(t);
-  }, [value, isEditMode, editNote?.id, editNote?.content]);
+  }, [value, isEditMode, editNote?.id, draftId, onAutoSave]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); };
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -77,11 +137,14 @@ export const CaptureBar: React.FC<CaptureBarProps> = ({
     textareaRef.current?.focus();
   };
 
+  const hasDraft = !!draftId && !isEditMode;
+
   return (
     <div
       className={cn(
         'flex flex-col gap-2 bg-glass border border-border rounded-2xl p-4 transition-colors focus-within:border-primary/40',
         isEditMode && 'ring-1 ring-primary/20',
+        hasDraft && 'ring-1 ring-emerald-500/20',
         className
       )}
     >
@@ -97,7 +160,30 @@ export const CaptureBar: React.FC<CaptureBarProps> = ({
           rows={1}
           className="flex-1 min-h-[44px] max-h-[200px] resize-none bg-transparent text-foreground placeholder:text-muted-foreground text-sm leading-relaxed outline-none"
         />
-        <div className="flex gap-1 shrink-0">
+        <div className="flex gap-1 shrink-0 items-center">
+          {/* Save status indicator */}
+          {saveStatus !== 'idle' && (
+            <span className="flex items-center gap-1 text-[10px] mr-1 animate-in fade-in duration-200">
+              {saveStatus === 'saving' && (
+                <>
+                  <Loader2 size={12} className="animate-spin text-muted-foreground" />
+                  <span className="text-muted-foreground hidden sm:inline">Saving</span>
+                </>
+              )}
+              {saveStatus === 'saved' && (
+                <>
+                  <Check size={12} className="text-emerald-400" />
+                  <span className="text-emerald-400 hidden sm:inline">Saved</span>
+                </>
+              )}
+              {saveStatus === 'error' && (
+                <>
+                  <WifiOff size={12} className="text-destructive" />
+                  <span className="text-destructive hidden sm:inline">Failed</span>
+                </>
+              )}
+            </span>
+          )}
           {isEditMode && onCancelEdit && (
             <Button
               variant="ghost"

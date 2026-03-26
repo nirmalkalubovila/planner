@@ -39,7 +39,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onRequireOtp 
             return;
         }
 
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -49,17 +49,21 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onRequireOtp 
             },
         });
 
-        if (error) {
-            setError(error.message);
-        } else {
-            if (data.session) {
-                // Auto-confirmed session
-                onSuccess();
-            } else {
-                // Email confirmation required — show OTP screen
-                onRequireOtp(email);
-            }
+        if (signUpError) {
+            setError(signUpError.message);
+            setLoading(false);
+            return;
         }
+
+        if (data.session) {
+            // Auto-confirmed session (email confirmations disabled)
+            onSuccess();
+        } else {
+            // Email confirmation required — signUp already sends the OTP email,
+            // so just transition to the OTP verification screen.
+            onRequireOtp(email);
+        }
+
         setLoading(false);
     };
 
