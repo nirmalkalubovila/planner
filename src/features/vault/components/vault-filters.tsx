@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { CATEGORY_META, VaultCategory } from '@/types/vault';
 
 interface VaultFiltersProps {
   tags: { tag: string; count: number }[];
@@ -23,21 +24,25 @@ export const VaultFilters: React.FC<VaultFiltersProps> = ({ tags, activeTag, onS
       >
         All
       </button>
-      {tags.map(({ tag, count }) => (
-        <button
-          key={tag}
-          type="button"
-          onClick={() => onSelectTag(tag)}
-          className={cn(
-            'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border',
-            activeTag === tag
-              ? 'bg-primary/10 text-primary border-primary/30'
-              : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-accent border-transparent'
-          )}
-        >
-          #{tag} <span className="opacity-60">({count})</span>
-        </button>
-      ))}
+      {tags.map(({ tag, count }) => {
+        const meta = CATEGORY_META[tag as VaultCategory];
+        if (!meta) return null;
+        return (
+          <button
+            key={tag}
+            type="button"
+            onClick={() => onSelectTag(tag)}
+            className={cn(
+              'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border',
+              activeTag === tag
+                ? `${meta.bgClass} ${meta.color}`
+                : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-accent border-transparent'
+            )}
+          >
+            {meta.label} <span className="opacity-60">({count})</span>
+          </button>
+        );
+      })}
     </div>
   );
 };

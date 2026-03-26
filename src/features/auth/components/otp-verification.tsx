@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { AuthLayout, AuthHeader, AuthError } from '@/components/ui/auth-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/typography';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+
+const RESEND_COOLDOWN = 60; // seconds
 
 interface OtpVerificationProps {
     email: string;
@@ -17,7 +19,30 @@ export const OtpVerification: React.FC<OtpVerificationProps> = ({ email, onSucce
     const [otp, setOtp] = useState(['', '', '', '', '', '', '', '']);
     const [verifying, setVerifying] = useState(false);
     const [error, setError] = useState('');
+    const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
+    const [resendSuccess, setResendSuccess] = useState(false);
     const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Start countdown on mount (signUp already sent the first OTP)
+    const startCooldown = useCallback(() => {
+        setCooldown(RESEND_COOLDOWN);
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setCooldown((prev) => {
+                if (prev <= 1) {
+                    if (timerRef.current) clearInterval(timerRef.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    }, []);
+
+    useEffect(() => {
+        startCooldown();
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }, [startCooldown]);
 
     const handleOtpChange = (index: number, value: string) => {
         if (value.length > 1) {
@@ -70,18 +95,28 @@ export const OtpVerification: React.FC<OtpVerificationProps> = ({ email, onSucce
     };
 
     const handleResendOtp = async () => {
+        if (cooldown > 0) return;
         setError('');
+        setResendSuccess(false);
+
         const { error } = await supabase.auth.resend({
             type: 'signup',
             email,
         });
+
         if (error) {
             setError(error.message);
         } else {
             setOtp(['', '', '', '', '', '', '', '']);
             otpRefs.current[0]?.focus();
+            setResendSuccess(true);
+            startCooldown();
+            // Auto-hide success message after 4s
+            setTimeout(() => setResendSuccess(false), 4000);
         }
     };
+
+    const canResend = cooldown === 0;
 
     return (
         <AuthLayout>
@@ -94,7 +129,14 @@ export const OtpVerification: React.FC<OtpVerificationProps> = ({ email, onSucce
 
                     <AuthError message={error} />
 
-                    <div className="flex justify-center gap-2">
+                    {resendSuccess && (
+                        <div className="flex items-center gap-2 p-3 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-md animate-in fade-in slide-in-from-top-1 duration-200">
+                            <CheckCircle2 className="w-4 h-4 shrink-0" />
+                            A new code has been sent to your email.
+                        </div>
+                    )}
+
+                    <div className="flex justify-center gap-1.5 md:gap-2">
                         {otp.map((digit, i) => (
                             <input
                                 key={i}
@@ -105,7 +147,7 @@ export const OtpVerification: React.FC<OtpVerificationProps> = ({ email, onSucce
                                 value={digit}
                                 onChange={(e) => handleOtpChange(i, e.target.value)}
                                 onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                                className="w-10 h-12 text-center text-lg font-bold rounded-md border border-input bg-transparent text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+                                className="w-8 h-10 md:w-10 md:h-12 text-center text-base md:text-lg font-bold rounded-md border border-input bg-transparent text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
                                 autoFocus={i === 0}
                             />
                         ))}
@@ -122,13 +164,19 @@ export const OtpVerification: React.FC<OtpVerificationProps> = ({ email, onSucce
                     <div className="text-center space-y-2">
                         <Text variant="small">
                             Didn't receive the code?{' '}
-                            <button
-                                type="button"
-                                onClick={handleResendOtp}
-                                className="text-primary hover:underline font-medium"
-                            >
-                                Resend
-                            </button>
+                            {canResend ? (
+                                <button
+                                    type="button"
+                                    onClick={handleResendOtp}
+                                    className="text-primary hover:underline font-medium"
+                                >
+                                    Resend
+                                </button>
+                            ) : (
+                                <span className="text-muted-foreground/60">
+                                    Resend in <span className="font-semibold tabular-nums text-muted-foreground">{cooldown}s</span>
+                                </span>
+                            )}
                         </Text>
                         <button
                             type="button"
