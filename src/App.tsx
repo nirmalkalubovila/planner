@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, createRoutesFromElements, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/auth-context';
 import { ProtectedRoute } from './components/protected-route';
@@ -29,6 +29,8 @@ const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
 const HomeRoute = () => {
   const { user, isLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const bypass = searchParams.get('bypass') === 'true';
 
   React.useEffect(() => {
     if (user) {
@@ -44,7 +46,7 @@ const HomeRoute = () => {
     return <Navigate to="/today" replace />;
   }
 
-  if (localStorage.getItem('has_logged_in') === 'true') {
+  if (!bypass && localStorage.getItem('has_logged_in') === 'true') {
     return <Navigate to="/login" replace />;
   }
 
