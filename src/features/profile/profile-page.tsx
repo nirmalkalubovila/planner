@@ -28,7 +28,7 @@ export const ProfilePage: React.FC = () => {
     const [taskShiftingAbility, setTaskShiftingAbility] = useState('');
 
     useEffect(() => {
-        if (profile) {
+        if (profile && !isEditing) {
             setFullName(profile.fullName || '');
             setDob(profile.dob || '');
             setSleepStart(profile.sleepStart || '22:00');
