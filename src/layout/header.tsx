@@ -55,7 +55,7 @@ export const Header: React.FC = () => {
                             <img
                                 src="/white-logo.svg"
                                 alt="Legacy Life Builder Logo"
-                                className="h-9 w-9 md:h-8 md:w-8 object-contain relative z-10 drop-shadow-[0_0_8px_hsl(var(--foreground)/0.3)]"
+                                className="h-9 w-9 md:h-8 md:w-8 object-contain relative z-10 drop-shadow-[0_0_8px_hsl(var(--foreground)/0.3)] invert dark:invert-0"
                             />
                         </div>
                         <div className="hidden md:flex flex-col">

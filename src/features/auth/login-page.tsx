@@ -39,7 +39,7 @@ export const LoginPage: React.FC = () => {
                         LEGACY LIFE BUILDER
                     </span>
                     <Link
-                        to="/"
+                        to="/?bypass=true"
                         className="text-[10px] font-bold text-muted-foreground border border-border px-3 py-1.5 rounded-lg hover:bg-accent hover:text-foreground transition-all duration-200"
                     >
                         What is Legacy Life Builder?
