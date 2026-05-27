@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const navigation = [
     { name: 'Habits', href: '/habits', icon: ListTodo },
     { name: 'Goals', href: '/goals', icon: Target },
-    { name: 'Today', href: '/', icon: Home },
+    { name: 'Today', href: '/today', icon: Home },
     { name: 'Vault', href: '/vault', icon: Vault },
     { name: 'Stats', href: '/statistics', icon: BarChart2 },
     { name: 'Planner', href: '/planner', icon: CalendarDays },

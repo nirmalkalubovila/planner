@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 
 const navigation = [
-    { name: 'Today Tasks', href: '/', icon: Home, label: 'Execution' },
+    { name: 'Today Tasks', href: '/today', icon: Home, label: 'Execution' },
     { name: 'Habits', href: '/habits', icon: ListTodo, label: 'Consistency' },
     { name: 'Goals', href: '/goals', icon: Target, label: 'Vision' },
     { name: 'Planner', href: '/planner', icon: CalendarDays, label: 'Strategy' },
