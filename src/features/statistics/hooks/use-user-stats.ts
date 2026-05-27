@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
+import { WeekUtils } from '@/utils/week';
 
 export interface UserStatsCache {
   predictive_burnout_warning: string | null;
@@ -43,16 +44,25 @@ const fetchUserStatsCache = async (): Promise<UserStatsCache> => {
 
   // Fallback: compute from raw tables when cache row doesn't exist
   const today = new Date();
+
+  // Build a list of the last 30 days with both ISO date (for display) and dayStr (for DB lookup)
   const last30Days = Array.from({ length: 30 }).map((_, i) => {
     const d = new Date(today.getTime() - (29 - i) * 86400000);
-    return d.toISOString().split('T')[0];
+    const isoDate = d.toISOString().split('T')[0];
+    // dayStr format matching today-service: "YYYY-WW-D" (e.g. "2026-22-3")
+    const weekKey = WeekUtils.getWeekFromDate(d);
+    const dayNum = d.getDay() === 0 ? 7 : d.getDay();
+    const dayStr = `${weekKey}-${dayNum}`;
+    return { isoDate, dayStr };
   });
+
+  const dayStrs = last30Days.map(d => d.dayStr);
 
   const [completedRes, goalsRes] = await Promise.all([
     supabase
       .from('completed_tasks')
       .select('dayStr, taskIds')
-      .in('dayStr', last30Days)
+      .in('dayStr', dayStrs)
       .eq('user_id', userId),
     supabase
       .from('goals')
@@ -66,9 +76,9 @@ const fetchUserStatsCache = async (): Promise<UserStatsCache> => {
     completedMap[row.dayStr] = row.taskIds?.length || 0;
   }
 
-  const habit_heatmap = last30Days.map(dateStr => ({
-    date: dateStr,
-    count: completedMap[dateStr] || 0,
+  const habit_heatmap = last30Days.map(day => ({
+    date: day.isoDate,
+    count: completedMap[day.dayStr] || 0,
   }));
 
   const totalCompleted = habit_heatmap.reduce((s, d) => s + d.count, 0);

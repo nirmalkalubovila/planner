@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserStats } from '../hooks/use-user-stats';
 import { useDetailedAnalytics } from '../hooks/use-detailed-stats';
@@ -68,6 +70,23 @@ export const PerformanceDashboard: React.FC = () => {
                 {cache.predictive_burnout_warning}
               </span>
             )}
+          </div>
+        </div>
+
+        {/* Small Question Mark with Tooltip on Hover */}
+        <div className="relative group mb-1">
+          <Link
+            to="/statistics/calculations"
+            className="flex items-center justify-center p-1.5 rounded-full hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-200"
+            aria-label="How calculations work"
+          >
+            <HelpCircle size={16} />
+          </Link>
+          
+          <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-50">
+            <div className="bg-popover text-popover-foreground border border-border text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap">
+              How calculations work
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import type { Goal, Habit, Milestone } from '@/types/global-types';
 import type { GridState } from '@/types/planner';
+import { WeekUtils } from '@/utils/week';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -127,6 +128,7 @@ function computeHabitConsistency(
   let longestStreak = 0;
 
   const habitId = habit.id ?? '';
+  const habitName = habit.name;
 
   for (let i = windowDays - 1; i >= 0; i--) {
     const d = new Date(today.getTime() - i * 86400000);
@@ -134,9 +136,19 @@ function computeHabitConsistency(
     if (!activeDayIndices.has(dayOfWeek)) continue;
 
     expectedDays++;
-    const dateStr = d.toISOString().split('T')[0];
-    const dayTasks = completedMap[dateStr] ?? [];
-    const wasCompleted = dayTasks.includes(habitId) || dayTasks.includes(`habit-${habitId}`);
+    // Build the dayStr key in the same format used by today-service: "YYYY-WW-D"
+    const weekKey = WeekUtils.getWeekFromDate(d);
+    const dayNum = dayOfWeek === 0 ? 7 : dayOfWeek;
+    const dayStr = `${weekKey}-${dayNum}`;
+    const dayTasks = completedMap[dayStr] ?? [];
+
+    // Task IDs from today page are: "habit-{name}-{startSlot}" (e.g. "habit-Wake up at 5 A.M.-10")
+    // Also check legacy UUID-based IDs as fallback
+    const wasCompleted = dayTasks.some(tid =>
+      tid.startsWith(`habit-${habitName}-`) ||
+      tid === habitId ||
+      tid === `habit-${habitId}`
+    );
 
     if (wasCompleted) {
       completedDays++;
@@ -190,18 +202,75 @@ export function analyzeAllHabits(
 // Execution / week plan helpers
 // ---------------------------------------------------------------------------
 
+// Helper to resolve weekKey (which might be a display string like "May 25 - May 31, 2026")
+// back to the standard week code format "2026-22".
+function getWeekKeyFromDisplay(display: string): string {
+  if (/^\d{4}-\d{2}$/.test(display)) {
+    return WeekUtils.normalizeWeek(display);
+  }
+
+  try {
+    const parts = display.split('-');
+    const endDatePart = parts[parts.length - 1].trim();
+    const date = new Date(endDatePart);
+    if (!isNaN(date.getTime())) {
+      const weekKey = WeekUtils.getWeekFromDate(date);
+      if (weekKey) return weekKey;
+    }
+  } catch (e) {
+    console.error('Error parsing week display:', e);
+  }
+
+  // Robust search fallback using formatWeekDisplay matching
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear - 2; y <= currentYear + 2; y++) {
+    for (let w = 1; w <= 53; w++) {
+      const weekStr = `${y}-${String(w).padStart(2, '0')}`;
+      try {
+        if (WeekUtils.formatWeekDisplay(weekStr) === display) {
+          return weekStr;
+        }
+      } catch {}
+    }
+  }
+
+  return display;
+}
+
 export function analyzeWeekExecution(
   weekKey: string,
   state: GridState,
   completedMap: Record<string, string[]>,
 ): WeekExecution {
-  const planned = Object.keys(state).length;
-
-  let completed = 0;
-  for (const taskIds of Object.values(completedMap)) {
-    completed += taskIds.length;
+  // Count unique planned tasks by grouping consecutive same-type+name slots per day
+  const plannedTasks = new Set<string>();
+  for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+    let prevKey = '';
+    for (let slot = 0; slot < 48; slot++) {
+      const cell = state[`${dayIdx}-${slot}`];
+      if (cell) {
+        const key = `${dayIdx}-${cell.type}-${cell.name}`;
+        if (key !== prevKey) {
+          plannedTasks.add(`${dayIdx}-${cell.type}-${cell.name}-${slot}`);
+        }
+        prevKey = key;
+      } else {
+        prevKey = '';
+      }
+    }
   }
 
+  const actualWeekKey = getWeekKeyFromDisplay(weekKey);
+
+  // Count completed tasks only for this specific week's days
+  let completed = 0;
+  for (let dayNum = 1; dayNum <= 7; dayNum++) {
+    const dayStr = `${actualWeekKey}-${dayNum}`;
+    const dayTasks = completedMap[dayStr] ?? [];
+    completed += dayTasks.length;
+  }
+
+  const planned = plannedTasks.size;
   const efficiency = planned > 0 ? Math.round((completed / planned) * 100) : 0;
   return { weekKey, planned, completed, efficiency: Math.min(efficiency, 100) };
 }

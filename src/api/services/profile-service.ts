@@ -44,44 +44,62 @@ const DEFAULTS: UserProfile = {
 
 function metaToProfile(meta: Record<string, unknown> | null): Partial<UserProfile> {
     if (!meta) return {};
-    return {
-        fullName: (meta.full_name as string) ?? "",
-        dob: (meta.dob as string) ?? "",
-        sleepStart: (meta.sleepStart as string) ?? "22:00",
-        sleepDuration: (meta.sleepDuration as string) ?? "8",
-        weekStart: (meta.weekStart as string) ?? "Monday",
-        planDay: (meta.planDay as string) ?? "Sunday",
-        planStartTime: (meta.planStartTime as string) ?? "21:00",
-        planEndTime: (meta.planEndTime as string) ?? "22:00",
-        primaryLifeFocus: (meta.primaryLifeFocus as string) ?? "",
-        currentProfession: (meta.currentProfession as string) ?? "",
-        energyPeakTime: (meta.energyPeakTime as string) ?? "Morning",
-        focusAbility: (meta.focusAbility as string) ?? "normal",
-        taskShiftingAbility: (meta.taskShiftingAbility as string) ?? "normal",
-        isPersonalized: (meta.isPersonalized as boolean) ?? false,
-        avatarUrl: (meta.avatar_url as string) ?? "",
-    };
+    const res: Partial<UserProfile> = {};
+    if (meta.full_name !== null && meta.full_name !== undefined) res.fullName = meta.full_name as string;
+    if (meta.fullName !== null && meta.fullName !== undefined) res.fullName = meta.fullName as string;
+    if (meta.dob !== null && meta.dob !== undefined) res.dob = meta.dob as string;
+    if (meta.sleepStart !== null && meta.sleepStart !== undefined) res.sleepStart = meta.sleepStart as string;
+    if (meta.sleepDuration !== null && meta.sleepDuration !== undefined) res.sleepDuration = meta.sleepDuration as string;
+    if (meta.weekStart !== null && meta.weekStart !== undefined) res.weekStart = meta.weekStart as string;
+    if (meta.planDay !== null && meta.planDay !== undefined) res.planDay = meta.planDay as string;
+    if (meta.planStartTime !== null && meta.planStartTime !== undefined) res.planStartTime = meta.planStartTime as string;
+    if (meta.planEndTime !== null && meta.planEndTime !== undefined) res.planEndTime = meta.planEndTime as string;
+    if (meta.primaryLifeFocus !== null && meta.primaryLifeFocus !== undefined) res.primaryLifeFocus = meta.primaryLifeFocus as string;
+    if (meta.currentProfession !== null && meta.currentProfession !== undefined) res.currentProfession = meta.currentProfession as string;
+    if (meta.energyPeakTime !== null && meta.energyPeakTime !== undefined) res.energyPeakTime = meta.energyPeakTime as string;
+    
+    if (meta.focusAbility !== null && meta.focusAbility !== undefined) {
+        const focus = (meta.focusAbility as string).toLowerCase();
+        res.focusAbility = focus === "normal" ? "normal" : focus === "high" ? "high" : focus === "low" ? "low" : focus;
+    }
+    if (meta.taskShiftingAbility !== null && meta.taskShiftingAbility !== undefined) {
+        const shifting = (meta.taskShiftingAbility as string).toLowerCase();
+        res.taskShiftingAbility = shifting === "fast" || shifting === "high" ? "high" : shifting === "slow" || shifting === "low" ? "low" : "normal";
+    }
+    
+    if (meta.isPersonalized !== null && meta.isPersonalized !== undefined) res.isPersonalized = meta.isPersonalized as boolean;
+    if (meta.avatar_url !== null && meta.avatar_url !== undefined) res.avatarUrl = meta.avatar_url as string;
+    if (meta.avatarUrl !== null && meta.avatarUrl !== undefined) res.avatarUrl = meta.avatarUrl as string;
+    return res;
 }
 
 function dbRowToProfile(row: Record<string, unknown> | null): Partial<UserProfile> {
     if (!row) return {};
-    return {
-        fullName: (row.full_name as string) ?? "",
-        dob: (row.dob as string) ?? "",
-        sleepStart: (row.sleep_start as string) ?? "22:00",
-        sleepDuration: (row.sleep_duration as string) ?? "8",
-        weekStart: (row.week_start as string) ?? "Monday",
-        planDay: (row.plan_day as string) ?? "Sunday",
-        planStartTime: (row.plan_start_time as string) ?? "21:00",
-        planEndTime: (row.plan_end_time as string) ?? "22:00",
-        primaryLifeFocus: (row.primary_life_focus as string) ?? "",
-        currentProfession: (row.current_profession as string) ?? "",
-        energyPeakTime: (row.energy_peak_time as string) ?? "Morning",
-        focusAbility: (row.focus_ability as string) ?? "normal",
-        taskShiftingAbility: (row.task_shifting_ability as string) ?? "normal",
-        isPersonalized: (row.is_personalized as boolean) ?? false,
-        avatarUrl: (row.avatar_url as string) ?? "",
-    };
+    const res: Partial<UserProfile> = {};
+    if (row.full_name !== null && row.full_name !== undefined) res.fullName = row.full_name as string;
+    if (row.dob !== null && row.dob !== undefined) res.dob = row.dob as string;
+    if (row.sleep_start !== null && row.sleep_start !== undefined) res.sleepStart = row.sleep_start as string;
+    if (row.sleep_duration !== null && row.sleep_duration !== undefined) res.sleepDuration = row.sleep_duration as string;
+    if (row.week_start !== null && row.week_start !== undefined) res.weekStart = row.week_start as string;
+    if (row.plan_day !== null && row.plan_day !== undefined) res.planDay = row.plan_day as string;
+    if (row.plan_start_time !== null && row.plan_start_time !== undefined) res.planStartTime = row.plan_start_time as string;
+    if (row.plan_end_time !== null && row.plan_end_time !== undefined) res.planEndTime = row.plan_end_time as string;
+    if (row.primary_life_focus !== null && row.primary_life_focus !== undefined) res.primaryLifeFocus = row.primary_life_focus as string;
+    if (row.current_profession !== null && row.current_profession !== undefined) res.currentProfession = row.current_profession as string;
+    if (row.energy_peak_time !== null && row.energy_peak_time !== undefined) res.energyPeakTime = row.energy_peak_time as string;
+    
+    if (row.focus_ability !== null && row.focus_ability !== undefined) {
+        const focus = (row.focus_ability as string).toLowerCase();
+        res.focusAbility = focus === "normal" ? "normal" : focus === "high" ? "high" : focus === "low" ? "low" : focus;
+    }
+    if (row.task_shifting_ability !== null && row.task_shifting_ability !== undefined) {
+        const shifting = (row.task_shifting_ability as string).toLowerCase();
+        res.taskShiftingAbility = shifting === "fast" || shifting === "high" ? "high" : shifting === "slow" || shifting === "low" ? "low" : "normal";
+    }
+    
+    if (row.is_personalized !== null && row.is_personalized !== undefined) res.isPersonalized = row.is_personalized as boolean;
+    if (row.avatar_url !== null && row.avatar_url !== undefined) res.avatarUrl = row.avatar_url as string;
+    return res;
 }
 
 function mergeProfile(...sources: Partial<UserProfile>[]): UserProfile {
@@ -117,7 +135,7 @@ export function useUserProfile(user: User | null) {
         enabled: !!user?.id,
     });
 
-    const profile: UserProfile | null = query.data ?? null;
+    const profile: Partial<UserProfile> | null = query.data ?? null;
 
     const mergedProfile = user
         ? mergeProfile(DEFAULTS, metaToProfile(user.user_metadata as Record<string, unknown>), profile ?? {})
@@ -146,9 +164,27 @@ export function useUserProfile(user: User | null) {
             if (updates.isPersonalized !== undefined) row.is_personalized = updates.isPersonalized;
             if (updates.avatarUrl !== undefined) row.avatar_url = updates.avatarUrl;
 
-            const { error } = await supabase.from(TABLE_NAME).upsert(row, {
-                onConflict: "user_id",
-            });
+            const { data: existing, error: fetchErr } = await supabase
+                .from(TABLE_NAME)
+                .select("id")
+                .eq("user_id", userId)
+                .maybeSingle();
+
+            if (fetchErr) throw new Error(fetchErr.message);
+
+            let error;
+            if (existing) {
+                const { error: err } = await supabase
+                    .from(TABLE_NAME)
+                    .update(row)
+                    .eq("user_id", userId);
+                error = err;
+            } else {
+                const { error: err } = await supabase
+                    .from(TABLE_NAME)
+                    .insert(row);
+                error = err;
+            }
 
             if (error) throw new Error(error.message);
         },
