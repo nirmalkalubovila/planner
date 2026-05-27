@@ -21,10 +21,35 @@ const StatsCalculationsPage = React.lazy(() => import('./features/statistics/cal
 const VaultPage = React.lazy(() => import('./features/vault/vault-page').then(m => ({ default: m.VaultPage })));
 const ForgotPasswordPage = React.lazy(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = React.lazy(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
+const LandingPage = React.lazy(() => import('./features/(public)/landing-page').then(m => ({ default: m.LandingPage })));
 
 const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={<PageLoader />}>{children}</Suspense>
 );
+
+const HomeRoute = () => {
+  const { user, isLoading } = useAuth();
+
+  React.useEffect(() => {
+    if (user) {
+      localStorage.setItem('has_logged_in', 'true');
+    }
+  }, [user]);
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  if (user) {
+    return <Navigate to="/today" replace />;
+  }
+
+  if (localStorage.getItem('has_logged_in') === 'true') {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <SuspenseWrapper><LandingPage /></SuspenseWrapper>;
+};
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,15 +88,17 @@ const RootLayout = () => {
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<RootLayout />}>
+      <Route path="/" element={<HomeRoute />} />
+
       <Route path="/login" element={<AuthRoute><SuspenseWrapper><LoginPage /></SuspenseWrapper></AuthRoute>} />
       <Route path="/signup" element={<AuthRoute><SuspenseWrapper><SignupPage /></SuspenseWrapper></AuthRoute>} />
       <Route path="/forgot-password" element={<AuthRoute><SuspenseWrapper><ForgotPasswordPage /></SuspenseWrapper></AuthRoute>} />
       <Route path="/reset-password" element={<SuspenseWrapper><ResetPasswordPage /></SuspenseWrapper>} />
-      <Route path="/personalize" element={<Navigate to="/" replace />} />
+      <Route path="/personalize" element={<Navigate to="/today" replace />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
-          <Route path="/" element={<SuspenseWrapper><TodayPage /></SuspenseWrapper>} />
+          <Route path="/today" element={<SuspenseWrapper><TodayPage /></SuspenseWrapper>} />
           <Route path="/habits" element={<SuspenseWrapper><HabitsPage /></SuspenseWrapper>} />
           <Route path="/goals" element={<SuspenseWrapper><GoalsPage /></SuspenseWrapper>} />
           <Route path="/planner" element={<SuspenseWrapper><PlannerPage /></SuspenseWrapper>} />
