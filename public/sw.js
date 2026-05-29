@@ -5,7 +5,7 @@ const SW_VERSION = '1.0.0';
 const CACHE_NAME = `llb-cache-v${SW_VERSION}`;
 
 // ─── Install ─────────────────────────────────────────────
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
