@@ -16,7 +16,7 @@ export default function Footer() {
             to="/login"
             className="inline-flex items-center justify-center bg-white text-black text-xs font-bold px-6 py-3.5 rounded-xl hover:bg-zinc-200 transition-all hover:scale-[1.02] active:scale-95 duration-200 shadow-xl shadow-white/5"
           >
-            Start Now — It's Free
+            Start Now - It's Free
           </Link>
         </div>
 
@@ -55,9 +55,7 @@ export default function Footer() {
 
             {/* Info Badges */}
             <div className="flex gap-4 text-[11px] text-zinc-500 font-semibold tracking-wide md:pt-1">
-              <span>0 Ads</span>
               <span>100% Private</span>
-              <span>Data never sold</span>
             </div>
           </div>
 

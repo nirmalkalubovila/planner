@@ -1,0 +1,19 @@
+{
+  "name": "Legacy Life Builder",
+  "short_name": "Legacy LB",
+  "description": "Plan your goals, build daily habits, and leave a legacy. An AI-powered life planner.",
+  "start_url": "/today",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "any",
+  "categories": ["productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "/white-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

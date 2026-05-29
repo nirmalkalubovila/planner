@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client'
 import { ThemeProvider } from 'next-themes'
 import App from './App'
 import './index.css'
+import { registerServiceWorker } from './lib/notification-service'
+
+// Register Service Worker for push notifications & PWA
+registerServiceWorker();
 
 const rootElement = document.getElementById('root')!
 

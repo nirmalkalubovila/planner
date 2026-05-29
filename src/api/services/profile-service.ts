@@ -22,6 +22,8 @@ export interface UserProfile {
     taskShiftingAbility: string;
     isPersonalized: boolean;
     avatarUrl: string;
+    notificationPrefs?: any;
+    notifications?: any;
 }
 
 const DEFAULTS: UserProfile = {
@@ -40,6 +42,8 @@ const DEFAULTS: UserProfile = {
     taskShiftingAbility: "normal",
     isPersonalized: false,
     avatarUrl: "",
+    notificationPrefs: {},
+    notifications: [],
 };
 
 function metaToProfile(meta: Record<string, unknown> | null): Partial<UserProfile> {
@@ -99,6 +103,8 @@ function dbRowToProfile(row: Record<string, unknown> | null): Partial<UserProfil
     
     if (row.is_personalized !== null && row.is_personalized !== undefined) res.isPersonalized = row.is_personalized as boolean;
     if (row.avatar_url !== null && row.avatar_url !== undefined) res.avatarUrl = row.avatar_url as string;
+    if (row.notification_prefs !== null && row.notification_prefs !== undefined) res.notificationPrefs = row.notification_prefs;
+    if (row.notifications !== null && row.notifications !== undefined) res.notifications = row.notifications;
     return res;
 }
 
@@ -163,6 +169,8 @@ export function useUserProfile(user: User | null) {
             if (updates.taskShiftingAbility !== undefined) row.task_shifting_ability = updates.taskShiftingAbility;
             if (updates.isPersonalized !== undefined) row.is_personalized = updates.isPersonalized;
             if (updates.avatarUrl !== undefined) row.avatar_url = updates.avatarUrl;
+            if (updates.notificationPrefs !== undefined) row.notification_prefs = updates.notificationPrefs;
+            if (updates.notifications !== undefined) row.notifications = updates.notifications;
 
             const { data: existing, error: fetchErr } = await supabase
                 .from(TABLE_NAME)
