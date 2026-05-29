@@ -5,6 +5,7 @@ import { useUserProfile } from '@/api/services/profile-service';
 import { ProfileInfo } from './components/profile-info';
 import { ProfilePreferences } from './components/profile-preferences';
 import { ProfileSecurity } from './components/profile-security';
+import { NotificationPreferencesSection } from './notification-preferences';
 
 export const ProfilePage: React.FC = () => {
     const { user } = useAuth();
@@ -114,6 +115,7 @@ export const ProfilePage: React.FC = () => {
                         onSave={handleSave}
                         formData={formData}
                     />
+                    <NotificationPreferencesSection />
                     <ProfileSecurity user={user} />
                 </div>
             </div>

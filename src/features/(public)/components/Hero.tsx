@@ -15,21 +15,10 @@ export default function Hero() {
 
       <div className="max-w-4xl mx-auto w-full relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
+
           {/* Headline and Copy (Left column on large screens) */}
           <div className="lg:col-span-7 flex flex-col justify-center text-left">
-            {/* Badge */}
-            <div className="mb-6 inline-flex items-center gap-3 bg-zinc-900/60 border border-zinc-800/50 px-4 py-2 rounded-full w-fit">
-              <img 
-                src="/KONIK NEW - WHITE.png" 
-                alt="KONIK Logo" 
-                className="h-4 w-auto object-contain" 
-              />
-              <div className="w-px h-3 bg-zinc-800" />
-              <span className="text-[9px] font-bold tracking-[0.22em] text-zinc-400 font-mono uppercase">
-                Average Is A Choice
-              </span>
-            </div>
+
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-none mb-6">
@@ -44,7 +33,7 @@ export default function Hero() {
 
             {/* Sub-headline */}
             <p className="text-sm sm:text-base text-zinc-400 leading-relaxed mb-8 max-w-xl">
-              Turn your 1-week to 10-year goals into a clear daily schedule — with
+              Turn your 1-week to 10-year goals into a clear daily schedule with
               AI doing the heavy lifting in under 5 minutes. No more brain power
               lost on planning.
             </p>
@@ -64,16 +53,11 @@ export default function Hero() {
                 See How It Works
               </a>
             </div>
-
-            {/* Trust line */}
-            <p className="text-[11px] text-zinc-500 font-medium tracking-wide">
-              0 ads · 100% private · Your data is never sold
-            </p>
           </div>
 
           {/* Interactive Demo Showcase (Right column on large screens) */}
           <div className="lg:col-span-5 w-full flex flex-col items-center justify-center">
-            
+
             {/* 1. DESKTOP / TABLET VIDEO CONTAINER (Visible on MD and up) */}
             <div className="hidden md:block w-full max-w-md aspect-[16/10] bg-zinc-950/80 rounded-2xl border border-zinc-800/80 shadow-2xl p-2 relative group overflow-hidden">
               {/* Browser bar decoration */}
@@ -102,7 +86,7 @@ export default function Hero() {
               <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-4 bg-zinc-800 rounded-full z-20 flex items-center justify-center">
                 <div className="w-2 h-2 rounded-full bg-zinc-900 absolute right-4" />
               </div>
-              
+
               <div className="relative w-full h-full rounded-[28px] overflow-hidden bg-black">
                 <video
                   src={mobileVideoUrl}
@@ -115,9 +99,9 @@ export default function Hero() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
               </div>
             </div>
-            
+
           </div>
-          
+
         </div>
       </div>
     </section>

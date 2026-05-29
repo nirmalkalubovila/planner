@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { Settings, LogOut, Sparkles } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { NotificationBell } from '@/components/common/notification-bell';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
 import { useTimeLived } from '@/hooks/use-time-lived';
@@ -84,6 +85,7 @@ export const Header: React.FC = () => {
                 {/* Right: Age + Name + Avatar Dropdown */}
                 <div className="flex justify-end items-center gap-2 sm:gap-3 md:gap-4">
                     <ThemeToggle />
+                    <NotificationBell />
                     {/* Live Age Display */}
                     {duration && (
                         <div className="hidden sm:flex flex-col items-end min-w-[80px] group cursor-default">

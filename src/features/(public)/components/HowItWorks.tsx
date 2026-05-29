@@ -3,7 +3,7 @@ const steps = [
     step: "1",
     title: "Set your goal",
     description:
-      'Tell the app your goal and timeline — e.g. "Master Node.js in 2 weeks". AI builds your milestone roadmap instantly.',
+      'Tell the app your goal and timeline, e.g. "Master Node.js in 2 weeks. Already I have learned basics". AI builds your milestone roadmap instantly.',
   },
   {
     step: "2",
@@ -15,13 +15,13 @@ const steps = [
     step: "3",
     title: "Let the planner sync",
     description:
-      "Your week fills up automatically based on your goals, habits, and personal defaults. AI suggests what to work on and how long.",
+      "Your week fills up automatically based on your goals, habits, and personal defaults. AI suggests what to work on and how long in each goal when you add goal's tasks to planner.",
   },
   {
     step: "4",
     title: "Execute daily",
     description:
-      "Open the app each day. Your to-do list is already built. No decisions needed — just start working and track your progress.",
+      "Open the app each day. Your to-do list is already built. No decisions needed, just start working and track your progress.",
   },
 ];
 

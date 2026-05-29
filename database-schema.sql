@@ -83,7 +83,9 @@ CREATE TABLE user_profiles (
   focus_ability text DEFAULT 'normal',
   task_shifting_ability text DEFAULT 'normal',
   is_personalized boolean DEFAULT false,
-  avatar_url text
+  avatar_url text,
+  notification_prefs jsonb DEFAULT '{}'::jsonb,
+  notifications jsonb DEFAULT '[]'::jsonb
 );
 
 -- Create vault_notes table (The Vault - lightning-fast notes)
