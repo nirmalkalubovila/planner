@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
 import { useNotificationStore } from '@/lib/notification-store';
-import { getPermissionStatus } from '@/lib/notification-service';
+import { getPermissionStatus, subscribeToPush } from '@/lib/notification-service';
 import { useTaskNotifications } from '@/hooks/use-task-notifications';
 import { useStatsNotifications } from '@/hooks/use-stats-notifications';
 import { useGoalNotifications } from '@/hooks/use-goal-notifications';
@@ -116,6 +116,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setPermissionStatus(status);
     }
   }, [setPermissionStatus]);
+
+  // 5. Auto-subscribe to Web Push when permission is granted
+  const pushSubscribed = useRef(false);
+  useEffect(() => {
+    if (!user || pushSubscribed.current) return;
+    if (!preferences.enabled) return;
+
+    const status = getPermissionStatus();
+    if (status !== 'granted') return;
+
+    pushSubscribed.current = true;
+    subscribeToPush(user.id).then((ok) => {
+      if (ok) console.log('Web Push subscription active');
+    });
+  }, [user, preferences.enabled]);
 
   return (
     <>

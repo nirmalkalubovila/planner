@@ -30,6 +30,9 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // Keep task reminders visible until user interacts (important on mobile)
+  const isTaskNotif = (data.tag || '').startsWith('task-');
+
   const options = {
     body: data.body,
     icon: '/white-logo.svg',
@@ -42,7 +45,7 @@ self.addEventListener('push', (event) => {
     ],
     tag: data.tag || `llb-${Date.now()}`,
     renotify: true,
-    requireInteraction: false,
+    requireInteraction: isTaskNotif, // Keep task notifications persistent
     silent: false,
   };
 
@@ -70,6 +73,27 @@ self.addEventListener('notificationclick', (event) => {
       // Otherwise open a new window
       return self.clients.openWindow(url);
     })
+  );
+});
+
+// ─── Push Subscription Change (auto-renewal) ─────────────
+self.addEventListener('pushsubscriptionchange', (event) => {
+  // When the browser rotates/expires the push subscription,
+  // re-subscribe with the same VAPID key and notify the main thread
+  event.waitUntil(
+    self.registration.pushManager
+      .subscribe(event.oldSubscription?.options || { userVisibleOnly: true })
+      .then((newSubscription) => {
+        // Notify all open clients to save the new subscription
+        return self.clients.matchAll().then((clients) => {
+          clients.forEach((client) => {
+            client.postMessage({
+              type: 'PUSH_SUBSCRIPTION_CHANGED',
+              subscription: newSubscription.toJSON(),
+            });
+          });
+        });
+      })
   );
 });
 
