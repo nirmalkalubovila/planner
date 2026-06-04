@@ -6,7 +6,10 @@ import {
   getPermissionStatus,
   requestNotificationPermission,
   sendNotification,
+  subscribeToPush,
+  unsubscribeFromPush,
 } from '@/lib/notification-service';
+import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
 
 interface ToggleProps {
@@ -53,6 +56,7 @@ export const NotificationPreferencesSection: React.FC = () => {
   const preferences = useNotificationStore((s) => s.preferences);
   const updatePreferences = useNotificationStore((s) => s.updatePreferences);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
+  const { user } = useAuth();
 
   const currentPermission = getPermissionStatus();
   const isGranted = currentPermission === 'granted';
@@ -62,6 +66,22 @@ export const NotificationPreferencesSection: React.FC = () => {
     const result = await requestNotificationPermission();
     if (result !== 'unsupported') {
       setPermissionStatus(result);
+      // Auto-subscribe to push after granting permission
+      if (result === 'granted' && user) {
+        subscribeToPush(user.id);
+      }
+    }
+  };
+
+  /** Toggle master switch — also manages push subscription */
+  const handleMasterToggle = async (val: boolean) => {
+    updatePreferences({ enabled: val });
+    if (user) {
+      if (val && isGranted) {
+        subscribeToPush(user.id);
+      } else if (!val) {
+        unsubscribeFromPush(user.id);
+      }
     }
   };
 
@@ -112,7 +132,7 @@ export const NotificationPreferencesSection: React.FC = () => {
           description="Master switch for all notification types"
           icon={preferences.enabled ? <Bell size={14} /> : <BellOff size={14} />}
           enabled={preferences.enabled}
-          onChange={(val) => updatePreferences({ enabled: val })}
+          onChange={handleMasterToggle}
         />
 
         <div className="h-px bg-border mx-3 my-2" />
