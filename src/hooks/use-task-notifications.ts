@@ -12,15 +12,53 @@ import {
 } from '@/lib/notification-service';
 import { TASK_REMINDER_MINUTES } from '@/types/notification-types';
 
-/**
- * Parses a time string like "09:30" to a Date object for today.
- */
+const NOTIFIED_TASKS_KEY_PREFIX = 'llb-notified-tasks-';
+const NOTIFIED_BATCH_KEY_PREFIX = 'llb-notified-batch-';
+
 function timeToTodayDate(timeStr: string): Date {
   const [h, m] = timeStr.split(':').map(Number);
   const d = new Date();
   d.setHours(h, m, 0, 0);
   return d;
 }
+
+const getNotifiedTasks = (dayStr: string): Set<string> => {
+  try {
+    const val = localStorage.getItem(`${NOTIFIED_TASKS_KEY_PREFIX}${dayStr}`);
+    return val ? new Set(JSON.parse(val)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const saveNotifiedTasks = (dayStr: string, set: Set<string>) => {
+  try {
+    localStorage.setItem(`${NOTIFIED_TASKS_KEY_PREFIX}${dayStr}`, JSON.stringify(Array.from(set)));
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const getNotifiedBatch = (dayStr: string): boolean => {
+  return localStorage.getItem(`${NOTIFIED_BATCH_KEY_PREFIX}${dayStr}`) === 'true';
+};
+
+const saveNotifiedBatch = (dayStr: string, val: boolean) => {
+  localStorage.setItem(`${NOTIFIED_BATCH_KEY_PREFIX}${dayStr}`, val ? 'true' : 'false');
+};
+
+const cleanOldTaskNotifKeys = (currentDay: string) => {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith(NOTIFIED_TASKS_KEY_PREFIX) || key.startsWith(NOTIFIED_BATCH_KEY_PREFIX))) {
+        if (!key.endsWith(currentDay)) {
+          localStorage.removeItem(key);
+        }
+      }
+    }
+  } catch {}
+};
 
 /**
  * Monitors today's tasks and:
@@ -42,19 +80,24 @@ export function useTaskNotifications() {
   const addNotification = useNotificationStore((s) => s.addNotification);
 
   const scheduledRef = useRef<Set<string>>(new Set());
-  const overdueCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const notifiedOverdueRef = useRef<Set<string>>(new Set());
 
   // Schedule "task starting" notifications
   useEffect(() => {
-    if (!preferences.taskReminders || !preferences.enabled) return;
+    if (!preferences.enabled) return;
 
+    const { shownKeys, deletedKeys } = useNotificationStore.getState();
     const newScheduled = new Set<string>();
 
     tasks.forEach((task: TaskItem) => {
       const startTime = timeToTodayDate(task.startTime);
       const reminderTime = new Date(startTime.getTime() - TASK_REMINDER_MINUTES * 60 * 1000);
       const notifId = `task-start-${task.id}`;
+      const dedupKey = `task-start-${task.id}-${currentDayStr}`;
+
+      // Skip scheduling if notification already shown or deleted
+      if (shownKeys.includes(dedupKey) || deletedKeys.includes(dedupKey)) {
+        return;
+      }
 
       // Only schedule if the reminder is in the future
       if (reminderTime.getTime() > Date.now()) {
@@ -73,13 +116,14 @@ export function useTaskNotifications() {
 
         // Also add to in-app notifications when it fires
         const delay = reminderTime.getTime() - Date.now();
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           addNotification({
             type: 'task_starting',
             title: `${task.name} starts in ${TASK_REMINDER_MINUTES} min`,
             body: `Scheduled for ${task.startTime} - ${task.endTime}`,
             icon: '📋',
             actionUrl: '/today',
+            dedupKey,
           });
         }, delay);
 
@@ -98,33 +142,45 @@ export function useTaskNotifications() {
     return () => {
       newScheduled.forEach((id) => cancelScheduledNotification(id));
     };
-  }, [tasks, preferences, addNotification]);
+  }, [tasks, preferences, addNotification, currentDayStr]);
 
   // Check for overdue tasks every 60 seconds
   useEffect(() => {
-    if (!preferences.taskReminders || !preferences.enabled) return;
+    if (!preferences.enabled) return;
 
     const checkOverdue = () => {
       const now = new Date();
+      const { shownKeys, deletedKeys } = useNotificationStore.getState();
 
-      tasks.forEach((task: TaskItem) => {
+      const overdueTasks = tasks.filter((task: TaskItem) => {
         const endTime = timeToTodayDate(task.endTime);
-        const taskId = task.id;
-        const isCompleted = (completedTasks || []).includes(taskId);
+        const isCompleted = (completedTasks || []).includes(task.id);
+        const isOverdue = now > endTime && !isCompleted;
+        return isOverdue;
+      });
 
-        if (
-          now > endTime &&
-          !isCompleted &&
-          !notifiedOverdueRef.current.has(taskId)
-        ) {
-          notifiedOverdueRef.current.add(taskId);
+      if (overdueTasks.length === 0) return;
+
+      cleanOldTaskNotifKeys(currentDayStr);
+
+      const notifiedTasks = getNotifiedTasks(currentDayStr);
+      const notifiedBatch = getNotifiedBatch(currentDayStr);
+
+      if (overdueTasks.length > 2) {
+        // If there are more than 2 overdue tasks, show a single batch notification
+        const batchDedupKey = `task-overdue-batch-${currentDayStr}`;
+        if (!notifiedBatch && !shownKeys.includes(batchDedupKey) && !deletedKeys.includes(batchDedupKey)) {
+          // Mark all these overdue tasks as notified
+          overdueTasks.forEach((t) => notifiedTasks.add(t.id));
+          saveNotifiedTasks(currentDayStr, notifiedTasks);
+          saveNotifiedBatch(currentDayStr, true);
 
           sendNotification(
-            `⚠️ ${task.name} isn't completed`,
+            `⚠️ Uncompleted Tasks`,
             {
-              body: `Was scheduled for ${task.startTime} - ${task.endTime}. Tap to mark it done.`,
+              body: `You have ${overdueTasks.length} uncompleted tasks today. Tap to complete them.`,
               url: '/today',
-              tag: `task-overdue-${taskId}`,
+              tag: 'task-overdue-batch',
               notificationType: 'task_overdue',
             },
             preferences,
@@ -132,26 +188,64 @@ export function useTaskNotifications() {
 
           addNotification({
             type: 'task_overdue',
-            title: `${task.name} isn't completed`,
-            body: `Was scheduled for ${task.startTime} - ${task.endTime}`,
+            title: `Uncompleted Tasks`,
+            body: `You have ${overdueTasks.length} uncompleted tasks today.`,
             icon: '⚠️',
             actionUrl: '/today',
+            dedupKey: batchDedupKey,
           });
         }
-      });
+      } else {
+        // Show individual notifications for overdue tasks
+        let updated = false;
+
+        overdueTasks.forEach((task: TaskItem) => {
+          const taskId = task.id;
+          const taskDedupKey = `task-overdue-${taskId}-${currentDayStr}`;
+
+          if (
+            !notifiedTasks.has(taskId) &&
+            !shownKeys.includes(taskDedupKey) &&
+            !deletedKeys.includes(taskDedupKey) &&
+            !notifiedBatch
+          ) {
+            notifiedTasks.add(taskId);
+            updated = true;
+
+            sendNotification(
+              `⚠️ ${task.name} isn't completed`,
+              {
+                body: `Was scheduled for ${task.startTime} - ${task.endTime}. Tap to mark it done.`,
+                url: '/today',
+                tag: `task-overdue-${taskId}`,
+                notificationType: 'task_overdue',
+              },
+              preferences,
+            );
+
+            addNotification({
+              type: 'task_overdue',
+              title: `${task.name} isn't completed`,
+              body: `Was scheduled for ${task.startTime} - ${task.endTime}`,
+              icon: '⚠️',
+              actionUrl: '/today',
+              dedupKey: taskDedupKey,
+            });
+          }
+        });
+
+        if (updated) {
+          saveNotifiedTasks(currentDayStr, notifiedTasks);
+        }
+      }
     };
 
     // Check immediately, then every 60s
     checkOverdue();
-    overdueCheckRef.current = setInterval(checkOverdue, 60_000);
+    const interval = setInterval(checkOverdue, 60_000);
 
     return () => {
-      if (overdueCheckRef.current) clearInterval(overdueCheckRef.current);
+      clearInterval(interval);
     };
-  }, [tasks, completedTasks, preferences, addNotification]);
-
-  // Reset overdue tracking daily
-  useEffect(() => {
-    notifiedOverdueRef.current.clear();
-  }, [currentDayStr]);
+  }, [tasks, completedTasks, preferences, addNotification, currentDayStr]);
 }

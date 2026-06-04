@@ -30,7 +30,7 @@ export function useDailyBriefing() {
 
   // Send daily briefing
   useEffect(() => {
-    if (!preferences.enabled || !preferences.dailyBriefing) return;
+    if (!preferences.enabled) return;
     if (!weekPlan || !habits) return; // Wait for data
 
     const today = new Date().toDateString();
@@ -64,6 +64,8 @@ export function useDailyBriefing() {
       ? `You have ${taskCount} task${taskCount !== 1 ? 's' : ''} scheduled today.${yesterdayText} Let's build your legacy!`
       : `No tasks scheduled for today.${yesterdayText} Use the planner to add some!`;
 
+    const dedupKey = `daily-briefing-${today}`;
+
     // Small delay so the app has time to render first
     setTimeout(() => {
       sendNotification(title, {
@@ -79,6 +81,7 @@ export function useDailyBriefing() {
         body,
         icon: '☀️',
         actionUrl: '/today',
+        dedupKey,
       });
     }, 2000);
   }, [weekPlan, habits, tasks.length, preferences, addNotification]);
@@ -98,7 +101,7 @@ export function useDailyBriefing() {
 
   // Weekly summary — fires on Mondays
   useEffect(() => {
-    if (!preferences.enabled || !preferences.weeklySummary) return;
+    if (!preferences.enabled) return;
 
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon
@@ -123,6 +126,8 @@ export function useDailyBriefing() {
       }
     }
 
+    const dedupKey = `weekly-summary-${currentWeek}`;
+
     setTimeout(() => {
       sendNotification('📊 Weekly Performance Summary', {
         body: summaryBody,
@@ -137,6 +142,7 @@ export function useDailyBriefing() {
         body: summaryBody,
         icon: '📊',
         actionUrl: '/statistics',
+        dedupKey,
       });
     }, 5000);
   }, [currentWeek, preferences, addNotification]);

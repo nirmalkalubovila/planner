@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
 import { useNotificationStore } from '@/lib/notification-store';
@@ -7,6 +8,7 @@ import { useTaskNotifications } from '@/hooks/use-task-notifications';
 import { useStatsNotifications } from '@/hooks/use-stats-notifications';
 import { useGoalNotifications } from '@/hooks/use-goal-notifications';
 import { useDailyBriefing } from '@/hooks/use-daily-briefing';
+import { useDaySummary } from '@/hooks/use-day-summary';
 import { NotificationPermissionBanner } from './notification-permission-banner';
 import { InstallPWAPrompt } from './install-pwa-prompt';
 
@@ -24,9 +26,47 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const preferences = useNotificationStore((s) => s.preferences);
   const syncFromCloud = useNotificationStore((s) => s.syncFromCloud);
   const clearStore = useNotificationStore((s) => s.clearStore);
-
+  const queryClient = useQueryClient();
   const hasSynced = useRef(false);
   const lastUser = useRef<string | null>(null);
+
+  // Invalidate queries and check for SW updates when tab becomes visible (PWA open/focus)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        queryClient.invalidateQueries();
+
+        // Also check for Service Worker updates when the app is focused/opened
+        try {
+          const reg = await navigator.serviceWorker?.getRegistration();
+          if (reg) {
+            await reg.update();
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to check for Service Worker update:', err);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [queryClient]);
+
+  // Reload page when new service worker takes control
+  useEffect(() => {
+    const handleControllerChange = () => {
+      window.location.reload();
+    };
+    navigator.serviceWorker?.addEventListener('controllerchange', handleControllerChange);
+    return () => {
+      navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange);
+    };
+  }, []);
 
   // 1. Handle login state, logout state, and cloud hydration
   useEffect(() => {
@@ -151,5 +191,6 @@ const NotificationHooks: React.FC = () => {
   useStatsNotifications();
   useGoalNotifications();
   useDailyBriefing();
+  useDaySummary();
   return null;
 };

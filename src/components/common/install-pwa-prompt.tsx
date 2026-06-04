@@ -44,6 +44,8 @@ export const InstallPWAPrompt: React.FC = () => {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      (window as any).deferredInstallPrompt = e;
+      window.dispatchEvent(new CustomEvent('pwa-prompt-available'));
       setTimeout(() => setVisible(true), 5000);
     };
 
@@ -57,6 +59,8 @@ export const InstallPWAPrompt: React.FC = () => {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setVisible(false);
+        (window as any).deferredInstallPrompt = null;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-installed'));
         localStorage.setItem(DISMISS_KEY, 'permanent');
       }
       setDeferredPrompt(null);

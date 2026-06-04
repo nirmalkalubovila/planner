@@ -23,12 +23,13 @@ export function useStatsNotifications() {
 
   // Consistency grade change detection
   useEffect(() => {
-    if (!stats || !preferences.enabled || !preferences.statsAlerts) return;
+    if (!stats || !preferences.enabled) return;
     if (hasChecked.current) return; // Only check once per app session to avoid spam
     hasChecked.current = true;
 
     const currentGrade = stats.consistency_grade;
     const previousGrade = localStorage.getItem(STORAGE_KEY_GRADE);
+    const today = new Date().toDateString();
 
     if (previousGrade && previousGrade !== currentGrade) {
       const gradeOrder = ['F', 'D', 'C', 'B', 'B+', 'A', 'A+'];
@@ -43,6 +44,8 @@ export function useStatsNotifications() {
         ? `Great work! You moved from ${previousGrade} to ${currentGrade}. Keep the momentum!`
         : `Your grade went from ${previousGrade} to ${currentGrade}. Time to get back on track!`;
 
+      const dedupKey = `stats-grade-change-${currentGrade}-${today}`;
+
       sendNotification(title, {
         body,
         url: '/statistics',
@@ -56,6 +59,7 @@ export function useStatsNotifications() {
         body,
         icon: improved ? '📈' : '📉',
         actionUrl: '/statistics',
+        dedupKey,
       });
     }
 
@@ -64,7 +68,7 @@ export function useStatsNotifications() {
 
   // Burnout warning
   useEffect(() => {
-    if (!stats || !preferences.enabled || !preferences.burnoutWarnings) return;
+    if (!stats || !preferences.enabled) return;
     if (!stats.predictive_burnout_warning) return;
 
     const lastShown = localStorage.getItem(STORAGE_KEY_BURNOUT);
@@ -73,6 +77,8 @@ export function useStatsNotifications() {
     if (lastShown === today) return; // Already shown today
 
     localStorage.setItem(STORAGE_KEY_BURNOUT, today);
+
+    const dedupKey = `burnout-warning-${today}`;
 
     sendNotification('🔥 Burnout Alert', {
       body: stats.predictive_burnout_warning,
@@ -87,12 +93,13 @@ export function useStatsNotifications() {
       body: stats.predictive_burnout_warning,
       icon: '🔥',
       actionUrl: '/statistics',
+      dedupKey,
     });
   }, [stats, preferences, addNotification]);
 
   // Streak milestones
   useEffect(() => {
-    if (!stats || !preferences.enabled || !preferences.streakAlerts) return;
+    if (!stats || !preferences.enabled) return;
 
     const heatmap = stats.habit_heatmap || [];
     // Count consecutive active days from the end
@@ -117,6 +124,8 @@ export function useStatsNotifications() {
         ? `Amazing! ${milestone} consecutive days of productivity. You're on fire!`
         : `Nice! ${milestone} days in a row. Keep going!`;
 
+      const dedupKey = `streak-milestone-${milestone}`;
+
       sendNotification(title, {
         body,
         url: '/statistics',
@@ -130,6 +139,7 @@ export function useStatsNotifications() {
         body,
         icon: '🔥',
         actionUrl: '/statistics',
+        dedupKey,
       });
     }
   }, [stats, preferences, addNotification]);

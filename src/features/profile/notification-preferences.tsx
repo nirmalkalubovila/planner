@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellOff, Clock, BarChart3, Target, Flame, Sun, FileText, AlertTriangle, TestTube } from 'lucide-react';
+import { Bell, BellOff, Clock, TestTube } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNotificationStore } from '@/lib/notification-store';
 import {
@@ -23,30 +23,34 @@ interface ToggleProps {
 
 const Toggle: React.FC<ToggleProps> = ({ label, description, icon, enabled, onChange, disabled }) => (
   <div className={cn(
-    'flex items-center justify-between gap-3 py-3 px-3 rounded-xl transition-colors',
-    disabled ? 'opacity-40' : 'hover:bg-accent/50'
+    'flex items-center justify-between gap-3 py-3.5 px-3.5 rounded-xl transition-all duration-200 border border-transparent',
+    disabled ? 'opacity-40' : 'hover:bg-accent/40 hover:border-border/10'
   )}>
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground">
+    <div className="flex items-center gap-3.5 min-w-0">
+      <div className="flex-shrink-0 w-8.5 h-8.5 rounded-xl bg-muted border border-border/80 flex items-center justify-center text-muted-foreground shadow-sm">
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-bold text-foreground">{label}</p>
-        <p className="text-[10px] text-muted-foreground leading-relaxed">{description}</p>
+        <p className="text-xs font-bold text-foreground tracking-wide">{label}</p>
+        <p className="text-[10px] text-muted-foreground/80 mt-0.5 leading-relaxed font-medium">{description}</p>
       </div>
     </div>
     <button
       onClick={() => !disabled && onChange(!enabled)}
       disabled={disabled}
       className={cn(
-        'relative flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200',
-        enabled ? 'bg-emerald-500' : 'bg-rose-500'
+        'relative flex-shrink-0 w-10 h-6 rounded-full transition-all duration-300 outline-none border border-border/40',
+        disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+        enabled ? 'bg-emerald-500/90 shadow-sm shadow-emerald-500/10' : 'bg-muted/80'
       )}
     >
       <motion.div
         animate={{ x: enabled ? 18 : 2 }}
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm"
+        className={cn(
+          "absolute top-[2px] w-4.5 h-4.5 rounded-full shadow-sm",
+          enabled ? "bg-white" : "bg-muted-foreground/60"
+        )}
       />
     </button>
   </div>
@@ -91,6 +95,7 @@ export const NotificationPreferencesSection: React.FC = () => {
       url: '/profile',
       tag: 'test-notification',
       notificationType: 'achievement',
+      bypassChecks: true,
     }, preferences);
   };
 
@@ -106,7 +111,7 @@ export const NotificationPreferencesSection: React.FC = () => {
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">Notifications</h3>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                {isGranted ? 'Enabled' : isDenied ? 'Blocked by browser' : 'Not yet enabled'}
+                {preferences.enabled ? 'Available' : 'Unavailable'}
               </p>
             </div>
           </div>
@@ -120,7 +125,7 @@ export const NotificationPreferencesSection: React.FC = () => {
               ? 'bg-red-500/10 border-red-500/20 text-red-400'
               : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
           )}>
-            {isGranted ? 'Granted' : isDenied ? 'Blocked' : 'Pending'}
+            {isGranted ? 'Grantable' : isDenied ? 'Blocked' : 'Pending'}
           </div>
         </div>
       </div>
@@ -133,72 +138,6 @@ export const NotificationPreferencesSection: React.FC = () => {
           icon={preferences.enabled ? <Bell size={14} /> : <BellOff size={14} />}
           enabled={preferences.enabled}
           onChange={handleMasterToggle}
-        />
-
-        <div className="h-px bg-border mx-3 my-2" />
-
-        {/* Individual toggles */}
-        <Toggle
-          label="Task Reminders"
-          description="5 min before tasks start + overdue alerts"
-          icon={<Clock size={14} />}
-          enabled={preferences.taskReminders}
-          onChange={(val) => updatePreferences({ taskReminders: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Statistics Alerts"
-          description="Consistency grade changes and improvements"
-          icon={<BarChart3 size={14} />}
-          enabled={preferences.statsAlerts}
-          onChange={(val) => updatePreferences({ statsAlerts: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Goal Deadlines"
-          description="Warnings at 7, 3, and 1 day before deadlines"
-          icon={<Target size={14} />}
-          enabled={preferences.goalDeadlines}
-          onChange={(val) => updatePreferences({ goalDeadlines: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Streak Milestones"
-          description="Celebrations at 3, 7, 14, 30, 60, 100 days"
-          icon={<Flame size={14} />}
-          enabled={preferences.streakAlerts}
-          onChange={(val) => updatePreferences({ streakAlerts: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Daily Briefing"
-          description="Morning summary of today's schedule"
-          icon={<Sun size={14} />}
-          enabled={preferences.dailyBriefing}
-          onChange={(val) => updatePreferences({ dailyBriefing: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Weekly Summary"
-          description="Performance recap at the start of each week"
-          icon={<FileText size={14} />}
-          enabled={preferences.weeklySummary}
-          onChange={(val) => updatePreferences({ weeklySummary: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Burnout Warnings"
-          description="Alerts when overwork is detected"
-          icon={<AlertTriangle size={14} />}
-          enabled={preferences.burnoutWarnings}
-          onChange={(val) => updatePreferences({ burnoutWarnings: val })}
-          disabled={!preferences.enabled}
         />
 
         <div className="h-px bg-border mx-3 my-2" />
