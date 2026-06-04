@@ -1,12 +1,21 @@
 // Legacy Life Builder — Service Worker
 // Handles push notifications, notification clicks, and basic caching.
 
-const SW_VERSION = '1.0.0';
+const SW_VERSION = '1.0.1';
 const CACHE_NAME = `llb-cache-v${SW_VERSION}`;
 
 // ─── Install ─────────────────────────────────────────────
-self.addEventListener('install', () => {
+self.addEventListener('install', (event) => {
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll([
+        '/',
+        '/index.html',
+        '/white-logo.svg',
+      ]).catch((err) => console.warn('Failed to precache default assets:', err));
+    })
+  );
 });
 
 // ─── Activate ────────────────────────────────────────────
@@ -16,6 +25,64 @@ self.addEventListener('activate', (event) => {
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
+});
+
+// ─── Fetch Strategy ──────────────────────────────────────
+self.addEventListener('fetch', (event) => {
+  // Only handle GET requests
+  if (event.request.method !== 'GET') return;
+
+  const requestUrl = new URL(event.request.url);
+
+  // Skip browser extensions and non-http protocols
+  if (!requestUrl.protocol.startsWith('http')) return;
+
+  const isNavigation = event.request.mode === 'navigate';
+  const isAPI = requestUrl.pathname.includes('/api/') || requestUrl.host.includes('supabase.co');
+
+  if (isNavigation || isAPI) {
+    // Network-first (Network Falling Back to Cache)
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the latest page structure
+          if (isNavigation && response.status === 200) {
+            const cacheCopy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cacheCopy));
+          }
+          return response;
+        })
+        .catch(() => {
+          // If offline, serve from cache
+          return caches.match(event.request).then((cachedResponse) => {
+            if (cachedResponse) return cachedResponse;
+            // Fallback for navigation requests when offline
+            if (isNavigation) {
+              return caches.match('/index.html') || caches.match('/');
+            }
+          });
+        })
+    );
+  } else {
+    // Cache-first (Cache Falling Back to Network)
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+
+        return fetch(event.request).then((response) => {
+          // Only cache successful requests
+          if (response.status === 200) {
+            const cacheCopy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cacheCopy));
+          }
+          return response;
+        }).catch(() => {
+          // Offline fallback
+          return new Response('Network error occurred', { status: 408, headers: { 'Content-Type': 'text/plain' } });
+        });
+      })
+    );
+  }
 });
 
 // ─── Push Notification Received ──────────────────────────

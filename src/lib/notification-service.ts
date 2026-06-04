@@ -117,31 +117,14 @@ export interface NotificationOptions {
   silent?: boolean;
   /** Notification type for preference checking */
   notificationType?: NotificationType;
+  bypassChecks?: boolean;
 }
 
 /**
  * Check if a notification of this type is enabled in user preferences.
  */
-function isTypeEnabled(type: NotificationType | undefined, prefs: NotificationPreferences): boolean {
-  if (!prefs.enabled) return false;
-  if (!type) return true;
-
-  const typeMap: Partial<Record<NotificationType, keyof NotificationPreferences>> = {
-    task_starting: 'taskReminders',
-    task_overdue: 'taskReminders',
-    stats_changed: 'statsAlerts',
-    streak_milestone: 'streakAlerts',
-    daily_briefing: 'dailyBriefing',
-    goal_deadline: 'goalDeadlines',
-    goal_completed: 'goalDeadlines',
-    weekly_summary: 'weeklySummary',
-    burnout_warning: 'burnoutWarnings',
-    achievement: 'statsAlerts',
-  };
-
-  const prefKey = typeMap[type];
-  if (prefKey && prefs[prefKey] === false) return false;
-  return true;
+function isTypeEnabled(_type: NotificationType | undefined, prefs: NotificationPreferences): boolean {
+  return prefs.enabled;
 }
 
 /**
@@ -154,19 +137,19 @@ export async function sendNotification(
   preferences: NotificationPreferences,
 ): Promise<boolean> {
   // Check if notifications are enabled
-  if (!preferences.enabled) return false;
+  if (!options.bypassChecks && !preferences.enabled) return false;
 
   // Check type preference
-  if (!isTypeEnabled(options.notificationType, preferences)) return false;
+  if (!options.bypassChecks && !isTypeEnabled(options.notificationType, preferences)) return false;
 
   // Check permission
   if (getPermissionStatus() !== 'granted') return false;
 
   // Check quiet hours
-  if (isQuietHours(preferences)) return false;
+  if (!options.bypassChecks && isQuietHours(preferences)) return false;
 
   // Check rate limit
-  if (isRateLimited()) return false;
+  if (!options.bypassChecks && isRateLimited()) return false;
 
   recordNotification();
 
@@ -270,7 +253,7 @@ export async function subscribeToPush(userId: string): Promise<boolean> {
     if (!subscription) {
       subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as any,
       });
     }
 

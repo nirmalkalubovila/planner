@@ -22,7 +22,7 @@ export function useGoalNotifications() {
 
   // Goal deadline notifications
   useEffect(() => {
-    if (!goals || !preferences.enabled || !preferences.goalDeadlines) return;
+    if (!goals || !preferences.enabled) return;
     if (hasChecked.current) return;
     hasChecked.current = true;
 
@@ -62,6 +62,8 @@ export function useGoalNotifications() {
             ? `You're at ${progress}% progress. ${diffDays <= 1 ? 'Final push!' : 'Keep working on it!'}`
             : `Deadline approaching. Start making progress on your milestones!`;
 
+          const dedupKey = `goal-deadline-${goalId}-${threshold}`;
+
           sendNotification(title, {
             body,
             url: '/goals',
@@ -75,6 +77,7 @@ export function useGoalNotifications() {
             body,
             icon: '🎯',
             actionUrl: '/goals',
+            dedupKey,
           });
 
           // Record that we've notified for this threshold
@@ -95,6 +98,8 @@ export function useGoalNotifications() {
         const title = `🏆 Goal "${goal.name}" completed!`;
         const body = `Congratulations! You've finished all ${milestones.length} milestones. Time to set a new goal!`;
 
+        const dedupKey = `goal-completed-${goalId}`;
+
         sendNotification(title, {
           body,
           url: '/goals',
@@ -108,6 +113,7 @@ export function useGoalNotifications() {
           body,
           icon: '🏆',
           actionUrl: '/goals',
+          dedupKey,
         });
       }
     });

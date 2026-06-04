@@ -4,6 +4,7 @@ export type NotificationType =
   | 'stats_changed'
   | 'streak_milestone'
   | 'daily_briefing'
+  | 'day_summary'
   | 'goal_deadline'
   | 'goal_completed'
   | 'weekly_summary'
@@ -20,17 +21,11 @@ export interface AppNotification {
   read: boolean;
   actionUrl?: string;
   data?: Record<string, unknown>;
+  dedupKey?: string;
 }
 
 export interface NotificationPreferences {
   enabled: boolean;
-  taskReminders: boolean;
-  statsAlerts: boolean;
-  dailyBriefing: boolean;
-  streakAlerts: boolean;
-  goalDeadlines: boolean;
-  weeklySummary: boolean;
-  burnoutWarnings: boolean;
   quietHoursEnabled: boolean;
   /** Derived from user's sleepStart profile field */
   quietHoursStart: string;
@@ -40,13 +35,6 @@ export interface NotificationPreferences {
 
 export const DEFAULT_PREFERENCES: NotificationPreferences = {
   enabled: true,
-  taskReminders: true,
-  statsAlerts: true,
-  dailyBriefing: true,
-  streakAlerts: true,
-  goalDeadlines: true,
-  weeklySummary: true,
-  burnoutWarnings: true,
   quietHoursEnabled: true,
   quietHoursStart: '22:00',
   quietHoursEnd: '06:00',
@@ -59,6 +47,7 @@ export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
   stats_changed: '📈',
   streak_milestone: '🔥',
   daily_briefing: '☀️',
+  day_summary: '🌙',
   goal_deadline: '🎯',
   goal_completed: '🏆',
   weekly_summary: '📊',
