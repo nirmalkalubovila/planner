@@ -6,6 +6,7 @@ import { WeekUtils } from '@/utils/week-utils';
 import { Goal, CustomTask } from '@/types/global-types';
 import { useGetCustomTasks, useDeleteCustomTask } from '@/api/services/custom-task-service';
 import { useGetMissedTasks, useDeleteMissedTask } from '@/api/services/missed-task-service';
+import { useNotes, useDeleteNote } from '@/api/services/vault-service';
 
 import { PlannerToolbar } from './components/planner-toolbar';
 import { PlannerGrid } from './components/planner-grid';
@@ -43,8 +44,10 @@ export const PlannerPage: React.FC = () => {
     const { data: goals } = useGetGoals();
     const { data: libraryTasks } = useGetCustomTasks();
     const { data: missedLibraryTasks } = useGetMissedTasks();
+    const { data: notes = [] } = useNotes();
     const deleteLibraryTask = useDeleteCustomTask();
     const deleteMissedTask = useDeleteMissedTask();
+    const deleteNote = useDeleteNote();
 
     usePrefetchAdjacentWeeks(currentWeek);
 
@@ -63,6 +66,21 @@ export const PlannerPage: React.FC = () => {
             return WeekUtils.compareWeeks(startWk, currentWeek) <= 0 && WeekUtils.compareWeeks(endWk, currentWeek) >= 0;
         });
     }, [goals, currentWeek]);
+
+    const combinedBacklog = useMemo<CustomTask[]>(() => {
+        const missed = missedLibraryTasks || [];
+        const notesAsTasks: CustomTask[] = (notes || [])
+            .filter((n) => n.category === 'nextweek')
+            .map((n) => ({
+                id: `note-${n.id}`,
+                name: n.title || 'Untitled Note',
+                description: n.content,
+                startTime: '09:00',
+                endTime: '10:00',
+                daysOfWeek: [] as string[]
+            }));
+        return [...missed, ...notesAsTasks];
+    }, [missedLibraryTasks, notes]);
 
     const handlers = createPlannerHandlers({
         localGridState, updateGridState,
@@ -100,8 +118,13 @@ export const PlannerPage: React.FC = () => {
 
     const executeLibraryDelete = () => {
         if (idToDeleteFromLibrary) {
-            deleteLibraryTask.mutate(idToDeleteFromLibrary);
-            deleteMissedTask.mutate(idToDeleteFromLibrary);
+            if (idToDeleteFromLibrary.startsWith('note-')) {
+                const noteId = idToDeleteFromLibrary.replace('note-', '');
+                deleteNote.mutate(noteId);
+            } else {
+                deleteLibraryTask.mutate(idToDeleteFromLibrary);
+                deleteMissedTask.mutate(idToDeleteFromLibrary);
+            }
             setIdToDeleteFromLibrary(null);
             setShowLibraryDeleteConfirm(false);
         }
@@ -143,7 +166,7 @@ export const PlannerPage: React.FC = () => {
                         setIsCustomTaskDialogOpen(true);
                     }}
                     libraryTasks={libraryTasks || []}
-                    missedTasks={missedLibraryTasks || []}
+                    missedTasks={combinedBacklog}
                     previewPlan={null}
                     onCancelPreview={() => { }}
                     commitPreviewPlan={() => { }}
@@ -214,9 +237,11 @@ export const PlannerPage: React.FC = () => {
                 isOpen={showLibraryDeleteConfirm}
                 onClose={() => setShowLibraryDeleteConfirm(false)}
                 onConfirm={executeLibraryDelete}
-                title="Remove from Library?"
-                description="Are you sure you want to remove this task from your library? This will not remove existing tasks from your planner grid, but you won't be able to quickly schedule it again."
-                confirmText="Remove Task"
+                title={idToDeleteFromLibrary?.startsWith('note-') ? "Delete Note?" : "Remove from Library?"}
+                description={idToDeleteFromLibrary?.startsWith('note-') 
+                    ? "Are you sure you want to delete this note from the vault? This cannot be undone." 
+                    : "Are you sure you want to remove this task from your library? This will not remove existing tasks from your planner grid, but you won't be able to quickly schedule it again."}
+                confirmText={idToDeleteFromLibrary?.startsWith('note-') ? "Delete Note" : "Remove Task"}
                 variant="destructive"
             />
         </div>

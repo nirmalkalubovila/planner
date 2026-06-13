@@ -18,11 +18,13 @@ const noteSchema = z.object({
 export type NoteFormValues = z.infer<typeof noteSchema>;
 
 interface NoteFormProps {
+  id?: string;
   initialValues?: Partial<NoteFormValues>;
   onSubmit: (values: NoteFormValues) => void;
   isPending?: boolean;
   /** When true, form auto-saves to localStorage on change */
   enableDraft?: boolean;
+  hideSubmitButton?: boolean;
 }
 
 /** Save draft to localStorage */
@@ -57,10 +59,12 @@ export function clearNoteDraft() {
 }
 
 export const NoteForm: React.FC<NoteFormProps> = ({
+  id,
   initialValues,
   onSubmit,
   isPending,
   enableDraft = false,
+  hideSubmitButton = false,
 }) => {
   const form = useForm<NoteFormValues>({
     resolver: zodResolver(noteSchema),
@@ -89,8 +93,8 @@ export const NoteForm: React.FC<NoteFormProps> = ({
   };
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
-      <div className="space-y-2">
+    <form id={id} onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full space-y-4 sm:space-y-5">
+      <div className="space-y-2 shrink-0">
         <label className="text-sm font-medium">Title <span className="text-destructive">*</span></label>
         <Input
           {...form.register('title')}
@@ -100,7 +104,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
         {form.formState.errors.title && <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 shrink-0">
         <label className="text-sm font-medium">Category <span className="text-destructive">*</span></label>
         <div className="flex flex-wrap gap-2">
           {VAULT_CATEGORIES.map((cat) => {
@@ -131,20 +135,21 @@ export const NoteForm: React.FC<NoteFormProps> = ({
         {form.formState.errors.category && <p className="text-xs text-destructive">{form.formState.errors.category.message}</p>}
       </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Your Thought <span className="text-destructive">*</span></label>
+      <div className="space-y-2 flex-1 flex flex-col min-h-0">
+        <label className="text-sm font-medium shrink-0">Your Thought <span className="text-destructive">*</span></label>
         <textarea
           {...form.register('content')}
           placeholder="Capture your thought, idea, or plan..."
-          rows={4}
-          className="w-full min-h-[100px] max-h-[300px] resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+          className="w-full flex-1 min-h-[150px] sm:min-h-[350px] resize-none sm:resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
         />
         {form.formState.errors.content && <p className="text-xs text-destructive">{form.formState.errors.content.message}</p>}
       </div>
 
-      <Button type="submit" className="w-full md:w-auto px-8" disabled={isPending}>
-        {initialValues?.title ? 'Update Note' : 'Save to Vault'}
-      </Button>
+      {!hideSubmitButton && (
+        <Button type="submit" className="w-full sm:w-auto px-8 shrink-0 mt-auto" disabled={isPending}>
+          {initialValues?.title ? 'Update Note' : 'Save to Vault'}
+        </Button>
+      )}
     </form>
   );
 };

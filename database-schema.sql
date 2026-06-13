@@ -160,3 +160,21 @@ BEGIN
   DELETE FROM notification_sent_log WHERE sent_at < now() - interval '24 hours';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Feedback/Issues table
+CREATE TABLE feedbacks (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  category text NOT NULL DEFAULT 'General Feedback',
+  subject text NOT NULL,
+  message text NOT NULL,
+  status text NOT NULL DEFAULT 'open',
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+
+ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can insert own feedback" ON feedbacks FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can read own feedback" ON feedbacks FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Admin can read all feedbacks" ON feedbacks FOR SELECT USING (auth.jwt() ->> 'email' = 'legacylifebuilder.konik@email.com');
+CREATE POLICY "Admin can update feedbacks" ON feedbacks FOR UPDATE USING (auth.jwt() ->> 'email' = 'legacylifebuilder.konik@email.com');
+CREATE POLICY "Admin can read all profiles" ON user_profiles FOR SELECT USING (auth.jwt() ->> 'email' = 'legacylifebuilder.konik@email.com');

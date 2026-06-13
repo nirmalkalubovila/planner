@@ -22,6 +22,7 @@ const VaultPage = React.lazy(() => import('./features/vault/vault-page').then(m 
 const ForgotPasswordPage = React.lazy(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = React.lazy(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
 const LandingPage = React.lazy(() => import('./features/(public)/landing-page').then(m => ({ default: m.LandingPage })));
+const AdminPage = React.lazy(() => import('./features/admin/admin-page').then(m => ({ default: m.AdminPage })));
 
 const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={<PageLoader />}>{children}</Suspense>
@@ -109,6 +110,7 @@ const router = createBrowserRouter(
           <Route path="/statistics/calculations" element={<SuspenseWrapper><StatsCalculationsPage /></SuspenseWrapper>} />
           <Route path="/vault" element={<SuspenseWrapper><VaultPage /></SuspenseWrapper>} />
         </Route>
+        <Route path="/admin" element={<SuspenseWrapper><AdminPage /></SuspenseWrapper>} />
       </Route>
     </Route>
   )

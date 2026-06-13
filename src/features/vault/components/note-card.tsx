@@ -11,9 +11,10 @@ interface NoteCardProps {
   onPin: (id: string, is_pinned: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (note: VaultNote) => void;
+  onClick: (note: VaultNote) => void;
 }
 
-export const NoteCard: React.FC<NoteCardProps> = ({ note, onPin, onDelete, onEdit }) => {
+export const NoteCard: React.FC<NoteCardProps> = ({ note, onPin, onDelete, onEdit, onClick }) => {
   const date = new Date(note.createdAt);
   const meta = CATEGORY_META[note.category] || CATEGORY_META.ideas;
 
@@ -23,7 +24,8 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onPin, onDelete, onEdi
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="group relative rounded-2xl border overflow-hidden flex flex-col bg-card border-border hover:border-primary/40 transition-[border-color,box-shadow] duration-150"
+      onClick={() => onClick(note)}
+      className="group relative rounded-2xl border overflow-hidden flex flex-col bg-card border-border hover:border-primary/40 transition-[border-color,box-shadow] duration-150 cursor-pointer"
     >
       {/* Category accent bar */}
       <div className={cn('h-1 w-full', meta.bgClass.replace('/10', '/40'))} />
@@ -54,7 +56,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onPin, onDelete, onEdi
       </div>
 
       {/* Always-visible action bar at the bottom */}
-      <div className="flex items-center justify-end gap-1 px-3 py-1.5 border-t border-border/50">
+      <div className="flex items-center justify-end gap-1 px-3 py-1.5 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent" onClick={() => onEdit(note)} aria-label="Edit">
           <Edit2 size={13} />
         </Button>

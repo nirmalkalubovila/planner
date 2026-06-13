@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand } from 'lucide-react';
+import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand, FolderHeart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomTask } from '@/types/global-types';
 import { cn } from '@/lib/utils';
+import { StandardDialog } from '@/components/common/standard-dialog';
 
 interface PlannerToolbarProps {
     selectedTool: 'erase' | 'goal' | 'duplicate' | 'drag' | null;
@@ -33,6 +34,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
 }) => {
     // Shrinked by default for a cleaner landing
     const [isCollapsed, setIsCollapsed] = useState(true);
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
 
     const renderLibraryItems = (tasks: CustomTask[], title: string, colorClass: string, icon: React.ReactNode) => {
         const displayTasks = tasks.slice(0, 10);
@@ -255,6 +257,15 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                 )}>
                     {isCollapsed ? (
                         <div className="flex flex-col gap-3 items-center pt-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground hover:bg-muted"
+                                onClick={() => setIsPopupOpen(true)}
+                                title="Show Library & Backlog"
+                            >
+                                <FolderHeart size={18} />
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30 hover:bg-muted" onClick={onUndo} disabled={!canUndo} title="Undo">
                                 <Undo2 size={14} />
                             </Button>
@@ -272,24 +283,26 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                         </Button>
                     )}
 
-                    <div className={cn("flex items-center justify-center gap-1.5 pt-2 border-t border-border mt-1", isCollapsed ? "flex-col" : "flex-row")}>
-                        {saveStatus === 'saving' ? (
-                            <>
-                                <Loader2 size={14} className="animate-spin text-red-500" />
-                                {!isCollapsed && <span className="text-[10px] text-red-500 font-bold select-none uppercase tracking-tighter">Syncing...</span>}
-                            </>
-                        ) : saveStatus === 'saved' ? (
-                            <>
-                                <Cloud size={14} className="text-emerald-500" />
-                                {!isCollapsed && <span className="text-[10px] text-emerald-500 font-bold select-none uppercase tracking-tighter">Plan Saved</span>}
-                            </>
-                        ) : (
-                            <>
-                                <Cloud size={14} className="text-red-500 opacity-50" />
-                                {!isCollapsed && <span className="text-[10px] text-red-500/50 font-bold select-none uppercase tracking-tighter">Pending</span>}
-                            </>
-                        )}
-                    </div>
+                    {!isCollapsed && (
+                        <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-border mt-1">
+                            {saveStatus === 'saving' ? (
+                                <>
+                                    <Loader2 size={14} className="animate-spin text-red-500" />
+                                    <span className="text-[10px] text-red-500 font-bold select-none uppercase tracking-tighter">Syncing...</span>
+                                </>
+                            ) : saveStatus === 'saved' ? (
+                                <>
+                                    <Cloud size={14} className="text-emerald-500" />
+                                    <span className="text-[10px] text-emerald-500 font-bold select-none uppercase tracking-tighter">Plan Saved</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Cloud size={14} className="text-red-500 opacity-50" />
+                                    <span className="text-[10px] text-red-500/50 font-bold select-none uppercase tracking-tighter">Pending</span>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -381,15 +394,15 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     <div className="w-px h-8 bg-border mx-1" />
 
                     <div className="flex items-center gap-1">
-                        <div className="flex items-center justify-center w-8">
-                            {saveStatus === 'saving' ? (
-                                <Loader2 size={16} className="animate-spin text-red-500" />
-                            ) : saveStatus === 'saved' ? (
-                                <Cloud size={16} className="text-emerald-500" />
-                            ) : (
-                                <Cloud size={16} className="text-red-500 opacity-50" />
-                            )}
-                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground hover:bg-muted"
+                            onClick={() => setIsPopupOpen(true)}
+                            title="Show Library & Backlog"
+                        >
+                            <FolderHeart size={18} />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl text-muted-foreground disabled:opacity-30" onClick={onUndo} disabled={!canUndo}>
                             <Undo2 size={18} />
                         </Button>
@@ -413,6 +426,84 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     </Button>
                 </div>
             </div>
+            {/* Task Library & Backlog Popup */}
+            <StandardDialog
+                isOpen={isPopupOpen}
+                onClose={() => setIsPopupOpen(false)}
+                title="Task Library & Backlog"
+                icon={FolderHeart}
+                maxWidth="xl"
+            >
+                <div className="p-6 space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {/* Library Section */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-xs uppercase tracking-wider">
+                                <BookmarkPlus size={14} />
+                                <span>Saved Templates</span>
+                                <span className="ml-auto bg-emerald-500/20 px-2 py-0.5 rounded-md text-[10px]">{libraryTasks.length}</span>
+                            </div>
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                                {libraryTasks.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground italic p-2 text-center">No saved tasks available</p>
+                                ) : (
+                                    libraryTasks.map(task => (
+                                        <button
+                                            key={task.id}
+                                            onClick={() => {
+                                                onCreateCustomTask(task);
+                                                setIsPopupOpen(false);
+                                            }}
+                                            className="w-full text-left p-3 border border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all rounded-xl flex items-center justify-between group cursor-pointer"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-semibold truncate group-hover:text-emerald-400 transition-colors">{task.name}</p>
+                                                {task.description && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{task.description}</p>}
+                                            </div>
+                                            <span className="text-[10px] text-muted-foreground shrink-0 ml-3 bg-muted px-2 py-1 rounded-md font-mono">
+                                                {task.startTime}-{task.endTime}
+                                            </span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Backlog Section */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 font-bold text-xs uppercase tracking-wider">
+                                <Layers size={14} />
+                                <span>Backlog Tasks</span>
+                                <span className="ml-auto bg-orange-500/20 px-2 py-0.5 rounded-md text-[10px]">{missedTasks.length}</span>
+                            </div>
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                                {missedTasks.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground italic p-2 text-center">No backlog items</p>
+                                ) : (
+                                    missedTasks.map(task => (
+                                        <button
+                                            key={task.id}
+                                            onClick={() => {
+                                                onCreateCustomTask(task);
+                                                setIsPopupOpen(false);
+                                            }}
+                                            className="w-full text-left p-3 border border-border hover:border-orange-500/50 hover:bg-orange-500/5 transition-all rounded-xl flex items-center justify-between group cursor-pointer"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-semibold truncate group-hover:text-orange-400 transition-colors">{task.name}</p>
+                                                {task.description && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{task.description}</p>}
+                                            </div>
+                                            <span className="text-[10px] text-muted-foreground shrink-0 ml-3 bg-muted px-2 py-1 rounded-md font-mono">
+                                                {task.startTime}-{task.endTime}
+                                            </span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </StandardDialog>
         </>
     );
 };

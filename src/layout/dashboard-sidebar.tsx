@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ListTodo, Target, CalendarDays, BarChart2, PanelLeftClose, PanelLeftOpen, LogOut, Vault } from 'lucide-react';
+import { Home, ListTodo, Target, CalendarDays, BarChart2, PanelLeftClose, PanelLeftOpen, LogOut, Vault, Shield } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
+import { isAdminEmail } from '@/features/admin/admin-constants';
 
 const navigation = [
     { name: 'Today Tasks', href: '/today', icon: Home, label: 'Execution' },
@@ -15,11 +16,16 @@ const navigation = [
 ];
 
 export const DashboardSidebar: React.FC = () => {
-    const { signOut } = useAuth();
+    const { user, signOut } = useAuth();
     const [isCollapsed, setIsCollapsed] = useState(() => {
         const saved = localStorage.getItem('sidebar-collapsed');
         return saved === 'true';
     });
+
+    const menuItems = [
+        ...navigation,
+        ...(isAdminEmail(user?.email) ? [{ name: 'Admin Panel', href: '/admin', icon: Shield, label: 'Management' }] : [])
+    ];
 
     useEffect(() => {
         localStorage.setItem('sidebar-collapsed', String(isCollapsed));
@@ -51,7 +57,7 @@ export const DashboardSidebar: React.FC = () => {
             </div>
 
             <nav className="flex-1 px-4 space-y-1 mt-4">
-                {navigation.map((item) => (
+                {menuItems.map((item) => (
                     <NavLink
                         key={item.name}
                         to={item.href}
