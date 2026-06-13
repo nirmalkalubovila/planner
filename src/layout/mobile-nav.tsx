@@ -1,7 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ListTodo, Target, CalendarDays, BarChart2, Vault } from 'lucide-react';
+import { Home, ListTodo, Target, CalendarDays, BarChart2, Vault, Shield } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { useAuth } from '@/contexts/auth-context';
+import { isAdminEmail } from '@/features/admin/admin-constants';
 
 const navigation = [
     { name: 'Habits', href: '/habits', icon: ListTodo },
@@ -13,10 +15,16 @@ const navigation = [
 ];
 
 export const MobileNav: React.FC = () => {
+    const { user } = useAuth();
+    const menuItems = [
+        ...navigation,
+        ...(isAdminEmail(user?.email) ? [{ name: 'Admin', href: '/admin', icon: Shield }] : [])
+    ];
+
     return (
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 safe-area-bottom">
             <div className="flex items-center justify-around h-16">
-                {navigation.map((item) => (
+                {menuItems.map((item) => (
                     <NavLink
                         key={item.name}
                         to={item.href}

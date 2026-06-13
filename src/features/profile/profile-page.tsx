@@ -7,6 +7,7 @@ import { ProfilePreferences } from './components/profile-preferences';
 import { ProfileSecurity } from './components/profile-security';
 import { NotificationPreferencesSection } from './notification-preferences';
 import { InstallAppSection } from './install-app-section';
+import { FeedbackSection } from './feedback-section';
 
 export const ProfilePage: React.FC = () => {
     const { user } = useAuth();
@@ -118,6 +119,7 @@ export const ProfilePage: React.FC = () => {
                     />
                     <NotificationPreferencesSection />
                     <InstallAppSection />
+                    <FeedbackSection />
                     <ProfileSecurity user={user} />
                 </div>
             </div>
