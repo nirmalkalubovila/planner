@@ -4,7 +4,8 @@ import { Plus, Vault, Lightbulb, FileText, X } from 'lucide-react';
 import { useNotes, useAddNote, useUpdateNote, useTogglePinNote, useDeleteNote } from '@/api/services/vault-service';
 import { VaultFilters } from '@/features/vault/components/vault-filters';
 import { NoteCard } from './components/note-card';
-import { NoteForm, NoteFormValues, clearNoteDraft, loadDraft, hasDraft, saveDraft } from './forms/note-form';
+import { NoteViewDialog } from './components/note-view-dialog';
+import { NoteForm, NoteFormValues, clearNoteDraft, loadDraft, hasDraft } from './forms/note-form';
 import { VaultNote, VaultCategory, VAULT_CATEGORIES, CATEGORY_META } from '@/types/vault';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { StandardDialog } from '@/components/common/standard-dialog';
@@ -41,6 +42,7 @@ export const VaultPage: React.FC = () => {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<VaultNote | null>(null);
+  const [viewingNote, setViewingNote] = useState<VaultNote | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   // Track whether we're opening from draft or fresh
@@ -62,6 +64,11 @@ export const VaultPage: React.FC = () => {
     }
     return groupByCategory(filteredNotes);
   }, [filteredNotes, activeTag]);
+
+  const activeViewingNote = useMemo(() => {
+    if (!viewingNote) return null;
+    return notes.find((n) => n.id === viewingNote.id) || viewingNote;
+  }, [notes, viewingNote]);
 
   // Check for draft on mount and after dialog closes
   useEffect(() => {
@@ -265,6 +272,7 @@ export const VaultPage: React.FC = () => {
                         onPin={handlePin}
                         onDelete={(id) => { setDeleteId(id); setShowDeleteConfirm(true); }}
                         onEdit={handleEdit}
+                        onClick={setViewingNote}
                       />
                     ))}
                   </AnimatePresence>
@@ -282,15 +290,30 @@ export const VaultPage: React.FC = () => {
         title={editingNote ? 'Edit Note' : isRestoringDraft ? 'Resume Draft' : 'New Note'}
         subtitle="Capture your thoughts"
         icon={Lightbulb}
-        maxWidth="lg"
+        maxWidth="3xl"
+        fullScreenMobile={true}
+        footer={
+          <div className="flex justify-end w-full">
+            <Button
+              type="submit"
+              form="note-form"
+              className="w-full sm:w-auto px-8 shadow-lg shadow-primary/10"
+              disabled={addNote.isPending || updateNote.isPending}
+            >
+              {editingNote ? 'Update Note' : 'Save to Vault'}
+            </Button>
+          </div>
+        }
       >
-        <div className="p-4 sm:p-6">
+        <div className="p-4 sm:p-6 h-full flex flex-col sm:h-auto sm:block">
           <NoteForm
+            id="note-form"
             key={editingNote?.id || (isRestoringDraft ? 'draft' : 'new-' + Date.now())}
             initialValues={formInitialValues}
             onSubmit={handleSubmit}
             isPending={addNote.isPending || updateNote.isPending}
             enableDraft={!editingNote}
+            hideSubmitButton={true}
           />
         </div>
       </StandardDialog>
@@ -310,6 +333,16 @@ export const VaultPage: React.FC = () => {
         description="This note will be permanently removed from the vault. This cannot be undone."
         confirmText="Delete Note"
         variant="destructive"
+      />
+
+      {/* Full Note View Dialog */}
+      <NoteViewDialog
+        isOpen={viewingNote !== null}
+        onClose={() => setViewingNote(null)}
+        note={activeViewingNote}
+        onPin={handlePin}
+        onDelete={(id) => { setDeleteId(id); setShowDeleteConfirm(true); }}
+        onEdit={handleEdit}
       />
     </div>
   );

@@ -32,6 +32,7 @@ interface StandardDialogProps {
     closeOnBackdrop?: boolean;
     /** When false, body has no max-height or scroll - content must fit viewport */
     scrollable?: boolean;
+    fullScreenMobile?: boolean;
 }
 
 export const StandardDialog: React.FC<StandardDialogProps> = ({
@@ -48,6 +49,7 @@ export const StandardDialog: React.FC<StandardDialogProps> = ({
     hideClose = false,
     closeOnBackdrop = true,
     scrollable = true,
+    fullScreenMobile = false,
 }) => {
     const handleEscape = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Escape') onClose();
@@ -68,7 +70,10 @@ export const StandardDialog: React.FC<StandardDialogProps> = ({
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    className="fixed inset-0 z-[200] flex items-center justify-center p-4 overflow-y-auto min-h-full"
+                    className={cn(
+                        "fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto min-h-full",
+                        fullScreenMobile ? "p-0 sm:p-4" : "p-4"
+                    )}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -81,9 +86,12 @@ export const StandardDialog: React.FC<StandardDialogProps> = ({
 
                     <motion.div
                         className={cn(
-                            'relative bg-card border border-border shadow-2xl rounded-2xl w-full overflow-hidden flex flex-col',
+                            'relative bg-card shadow-2xl w-full overflow-hidden flex flex-col',
+                            fullScreenMobile 
+                                ? 'h-full sm:h-auto max-h-[100dvh] sm:max-h-[90dvh] rounded-none sm:rounded-2xl border-none sm:border' 
+                                : 'border border-border rounded-2xl max-h-[90dvh] sm:max-h-[90vh]',
+                            !fullScreenMobile && (scrollable ? 'max-h-[90dvh] sm:max-h-[90vh]' : 'max-h-[90vh]'),
                             maxWidthMap[maxWidth],
-                            scrollable ? 'max-h-[90dvh] sm:max-h-[90vh]' : 'max-h-[90vh]',
                             className
                         )}
                         initial={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -113,7 +121,12 @@ export const StandardDialog: React.FC<StandardDialogProps> = ({
                             )}
                         </div>
 
-                        <div className={cn('flex-1 min-h-0', scrollable ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden')}>
+                        <div className={cn(
+                            'flex-1 min-h-0',
+                            fullScreenMobile 
+                                ? 'overflow-hidden sm:overflow-y-auto sm:overscroll-contain' 
+                                : (scrollable ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden')
+                        )}>
                             {children}
                         </div>
 
