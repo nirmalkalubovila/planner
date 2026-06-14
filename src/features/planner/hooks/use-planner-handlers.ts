@@ -72,10 +72,32 @@ export function createPlannerHandlers(deps: HandlerDeps) {
         updateGridState(newState);
         setIsGoalToolDialogOpen(false);
         toast.success(`Allocated ${hours} hours for "${targetGoal.title || targetGoal.name}"!`);
-    };
-
-    const handleCustomTaskConfirm = (data: any) => {
+    };    const handleCustomTaskConfirm = (data: any) => {
         const newState = { ...localGridState };
+
+        if (data.isReminder) {
+            const reminders = [...(newState.reminders || [])];
+            if (data.daysOfWeek && data.daysOfWeek.length > 0) {
+                data.daysOfWeek.forEach((dayName: string) => {
+                    const dayIdx = DAYS_OF_WEEK.indexOf(dayName as any);
+                    if (dayIdx !== -1) {
+                        reminders.push({
+                            id: `reminder-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            name: data.name,
+                            description: data.description,
+                            time: data.startTime,
+                            dayIdx,
+                            color: data.color || '#f59e0b',
+                            isReminder: true,
+                        });
+                    }
+                });
+            }
+            newState.reminders = reminders;
+            updateGridState(newState);
+            return;
+        }
+
         const [sH, sM] = data.startTime.split(':').map(Number);
         const [eH, eM] = data.endTime.split(':').map(Number);
         const startSlot = sH * 2 + (sM >= 30 ? 1 : 0);

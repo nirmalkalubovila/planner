@@ -4,8 +4,9 @@ import { cn } from '@/lib/utils';
 import { WeekUtils } from '@/utils/week-utils';
 import { GridState } from '@/types/global-types';
 import { getGoalColor } from '@/utils/color-utils';
-import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ReminderItem } from '@/types/global-types';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SLOTS_PER_DAY = 48;
@@ -19,6 +20,7 @@ interface PlannerGridProps {
     getCellContent: (dayIdx: number, slotIdx: number) => any;
     handleCellClick: (dayIdx: number, slotIdx: number) => void;
     selectedTool: string | null;
+    onEditReminder?: (reminder: ReminderItem) => void;
 }
 
 export const PlannerGrid: React.FC<PlannerGridProps> = ({
@@ -29,11 +31,25 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
     isSleepSlot,
     getCellContent,
     handleCellClick,
-    selectedTool
+    selectedTool,
+    onEditReminder
 }) => {
     const weekDates = useMemo(() => WeekUtils.getDaysForWeek(currentWeek), [currentWeek]);
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isTimeColumnVisible, setIsTimeColumnVisible] = useState(true);
+
+    const remindersByCell = useMemo(() => {
+        const map = new Map<string, ReminderItem[]>();
+        const list = (localGridState.reminders || []) as ReminderItem[];
+        list.forEach(r => {
+            const [h, m] = r.time.split(':').map(Number);
+            const sIdx = h * 2 + (m >= 30 ? 1 : 0);
+            const key = `${r.dayIdx}-${sIdx}`;
+            if (!map.has(key)) map.set(key, []);
+            map.get(key)!.push(r);
+        });
+        return map;
+    }, [localGridState.reminders]);
 
     // Auto-scroll to morning (first non-sleep slot) on mount or week change
     useEffect(() => {
@@ -151,6 +167,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                         const isSameAsPrev = content && prevContent && content.type === prevContent.type && content.name === prevContent.name;
 
                                         const isInteractive = content && (content.type === 'goal' || content.type === 'custom' || content.type === 'habit' || content.type === 'preview' || content.type === 'preview-free');
+                                        const cellReminders = remindersByCell.get(`${dayIdx}-${slotIdx}`) || [];
 
                                         return (
                                             <div
@@ -191,7 +208,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     }
                                                 }}
                                                 className={cn(
-                                                    "h-10 transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center overflow-hidden text-center p-0.5 md:p-1 font-semibold group relative border-b border-r border-border",
+                                                    "h-10 transition-colors cursor-crosshair text-[9px] leading-tight flex items-center justify-center text-center p-0.5 md:p-1 font-semibold group relative border-b border-r border-border",
                                                     isToday && "bg-primary/[0.02]",
                                                     isToday && !content && "hover:bg-primary/10",
                                                     content && !isSameAsPrev && "border-t border-border z-[11]",
@@ -218,6 +235,31 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                 {isToday && (
                                                     <div className="absolute inset-y-0 left-0 w-[2px] bg-primary/20 pointer-events-none" />
                                                 )}
+                                                {cellReminders.map(reminder => {
+                                                    const [h, m] = reminder.time.split(':').map(Number);
+                                                    const slotMins = m % 30;
+                                                    const percent = slotMins / 30;
+                                                    return (
+                                                        <div
+                                                            key={reminder.id}
+                                                            className="absolute left-0 right-0 z-30 flex items-center group/reminder cursor-pointer pointer-events-auto"
+                                                            style={{ top: `calc(${percent * 100}% - 9px)` }}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (onEditReminder) onEditReminder(reminder);
+                                                            }}
+                                                        >
+                                                            <div className="w-full border-t-2 border-rose-500 relative flex items-center">
+                                                                <div className="absolute -left-1.5 bg-rose-500 text-white rounded-full p-0.5 shadow-md hover:scale-110 transition-transform">
+                                                                    <Bell size={6} className="animate-bounce" />
+                                                                </div>
+                                                                <span className="absolute left-3.5 bg-rose-950/90 text-rose-200 border border-rose-500/30 px-1 py-0.5 rounded-[4px] text-[7px] font-black uppercase tracking-wider whitespace-nowrap shadow-lg backdrop-blur-sm pointer-events-none max-w-[80px] truncate z-40 opacity-90 group-hover/reminder:opacity-100 transition-opacity">
+                                                                    {reminder.time} - {reminder.name}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                                 {content ? (
                                                     <span className={cn(
                                                         "truncate w-full block",

@@ -19,6 +19,7 @@ interface CustomTaskDialogProps {
         daysOfWeek: string[];
         color?: string;
         saveToLibrary: boolean;
+        isReminder?: boolean;
     }) => void;
     onDelete?: (id: string) => void;
     initialData?: {
@@ -29,6 +30,7 @@ interface CustomTaskDialogProps {
         endTime: string;
         daysOfWeek: string[];
         color?: string;
+        isReminder?: boolean;
     } | null;
 }
 
@@ -43,6 +45,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
     const [color, setColor] = useState(CUSTOM_TASK_COLORS[0]);
     const [saveToLibrary, setSaveToLibrary] = useState(false);
+    const [isReminder, setIsReminder] = useState(false);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -54,6 +57,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 setSelectedDays(initialData.daysOfWeek || []);
                 setColor(initialData.color || CUSTOM_TASK_COLORS[0]);
                 setSaveToLibrary(false);
+                setIsReminder(!!initialData.isReminder);
             } else {
                 setName('');
                 setDescription('');
@@ -62,6 +66,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 setSelectedDays([]);
                 setColor(CUSTOM_TASK_COLORS[0]);
                 setSaveToLibrary(false);
+                setIsReminder(false);
             }
         }
     }, [isOpen, initialData]);
@@ -74,17 +79,29 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
         );
     };
 
+    const getEndTimeOfReminder = (timeStr: string): string => {
+        const [h, m] = timeStr.split(':').map(Number);
+        const startMinutes = h * 60 + m;
+        const endMinutes = startMinutes + 30;
+        const endH = Math.floor(endMinutes / 60) % 24;
+        const endM = endMinutes % 60;
+        return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+    };
+
     const handleConfirm = () => {
         if (!name) return;
+
+        const resolvedEndTime = isReminder ? getEndTimeOfReminder(startTime) : endTime;
 
         onConfirm({
             name,
             description,
             startTime,
-            endTime,
+            endTime: resolvedEndTime,
             daysOfWeek: selectedDays,
             color,
-            saveToLibrary
+            saveToLibrary,
+            isReminder
         });
 
         if (saveToLibrary) {
@@ -92,9 +109,10 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 name,
                 description,
                 startTime,
-                endTime,
+                endTime: resolvedEndTime,
                 daysOfWeek: selectedDays,
-                color
+                color,
+                isReminder
             } as any);
         }
 
@@ -102,6 +120,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
         setDescription('');
         setSelectedDays([]);
         setSaveToLibrary(false);
+        setIsReminder(false);
         onClose();
     };
 
@@ -149,20 +168,50 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                     <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief details..." className="h-10" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
-                            <Clock size={12} /> Start Time
-                        </label>
-                        <SimpleTimePicker value={startTime} onChange={setStartTime} className="h-10" />
+                <div
+                    className="flex items-center gap-3 p-3 bg-rose-500/5 rounded-xl cursor-pointer select-none group border border-transparent hover:border-rose-500/20 transition-all mb-1"
+                    onClick={() => setIsReminder(!isReminder)}
+                >
+                    <div className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center transition-all",
+                        isReminder ? "bg-rose-500 text-white" : "bg-card border border-border group-hover:border-rose-500/50"
+                    )}>
+                        {isReminder && <Check size={14} strokeWidth={3} />}
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
-                            <Clock size={12} /> End Time
-                        </label>
-                        <SimpleTimePicker value={endTime} onChange={setEndTime} className="h-10" />
+                    <div className="flex flex-col">
+                        <span className="text-sm font-semibold">Is Specific Time Reminder</span>
+                        <span className="text-[10px] text-muted-foreground leading-none">Schedule at a specific moment without a time range</span>
                     </div>
                 </div>
+
+                {isReminder ? (
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
+                            <Clock size={12} /> Reminder Time
+                        </label>
+                        <input
+                            type="time"
+                            value={startTime}
+                            onChange={(e) => setStartTime(e.target.value)}
+                            className="w-full h-11 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none transition-all"
+                        />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
+                                <Clock size={12} /> Start Time
+                            </label>
+                            <SimpleTimePicker value={startTime} onChange={setStartTime} className="h-10" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
+                                <Clock size={12} /> End Time
+                            </label>
+                            <SimpleTimePicker value={endTime} onChange={setEndTime} className="h-10" />
+                        </div>
+                    </div>
+                )}
 
                 <div className="space-y-3">
                     <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">

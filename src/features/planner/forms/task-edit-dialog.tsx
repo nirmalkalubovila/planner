@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Trash2, Tag, Target, FileText } from 'lucide-react';
+import { Check, Trash2, Tag, Target, FileText, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,8 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [goalId, setGoalId] = useState('');
+    const [isReminder, setIsReminder] = useState(false);
+    const [time, setTime] = useState('09:00');
     const { data: goals } = useGetGoals();
 
     useEffect(() => {
@@ -25,6 +27,8 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
             setName(initialData.name || '');
             setDescription(initialData.description || '');
             setGoalId(initialData.goalId || '');
+            setIsReminder(!!initialData.isReminder);
+            setTime(initialData.time || initialData.startTime || '09:00');
         }
     }, [isOpen, initialData]);
 
@@ -33,7 +37,9 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
             ...initialData,
             name,
             description,
-            goalId: initialData.type === 'goal' ? goalId : undefined
+            goalId: initialData.type === 'goal' ? goalId : undefined,
+            isReminder,
+            time,
         });
         onClose();
     };
@@ -44,12 +50,12 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
         <StandardDialog
             isOpen={isOpen}
             onClose={onClose}
-            title={`Edit ${isGoalType ? 'Goal Task' : 'Custom Task'}`}
-            subtitle="Update task details"
-            icon={isGoalType ? Target : Tag}
+            title={`Edit ${isReminder ? 'Reminder' : (isGoalType ? 'Goal Task' : 'Custom Task')}`}
+            subtitle="Update details"
+            icon={isReminder ? Clock : (isGoalType ? Target : Tag)}
             iconClassName={cn(
                 'p-2.5 rounded-xl shadow-sm',
-                isGoalType ? 'bg-amber-500/10 text-amber-500' : 'bg-primary/10 text-primary'
+                isReminder ? 'bg-rose-500/10 text-rose-500' : (isGoalType ? 'bg-amber-500/10 text-amber-500' : 'bg-primary/10 text-primary')
             )}
             footer={
                 <div className="flex items-center justify-between">
@@ -77,7 +83,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
                     <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Working on..." className="text-base h-11 rounded-xl" autoFocus />
                 </div>
 
-                {isGoalType && (
+                {isGoalType && !isReminder && (
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
                             <Target size={12} /> Linked Goal
@@ -92,6 +98,36 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
                                 <option key={goal.id} value={goal.id}>{goal.title || goal.name}</option>
                             ))}
                         </select>
+                    </div>
+                )}
+
+                <div
+                    className="flex items-center gap-3 p-3 bg-rose-500/5 rounded-xl cursor-pointer select-none group border border-transparent hover:border-rose-500/20 transition-all mb-1"
+                    onClick={() => setIsReminder(!isReminder)}
+                >
+                    <div className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center transition-all",
+                        isReminder ? "bg-rose-500 text-white" : "bg-card border border-border group-hover:border-rose-500/50"
+                    )}>
+                        {isReminder && <Check size={14} strokeWidth={3} />}
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-semibold">Is Specific Time Reminder</span>
+                        <span className="text-[10px] text-muted-foreground leading-none">Schedule at a specific moment without a time range</span>
+                    </div>
+                </div>
+
+                {isReminder && (
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
+                            <Clock size={12} /> Reminder Time
+                        </label>
+                        <input
+                            type="time"
+                            value={time}
+                            onChange={(e) => setTime(e.target.value)}
+                            className="w-full h-11 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none transition-all"
+                        />
                     </div>
                 )}
 

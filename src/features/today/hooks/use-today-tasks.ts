@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { Habit } from '@/types/global-types';
+import { Habit, ReminderItem } from '@/types/global-types';
 import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@/constants/scheduling';
 import { slotToTime } from '@/utils/time';
 
@@ -12,13 +12,14 @@ export interface TaskItem {
     endTime: string;
     startSlot: number;
     endSlot: number;
+    isReminder?: boolean;
 }
 
 const BASE_BONUS = 15;
 const HOURLY_WEIGHT = 20;
 
 export function calculateTaskPoints(task: TaskItem) {
-    const durationHours = (task.endSlot - task.startSlot) * 0.5;
+    const durationHours = task.isReminder ? 0.5 : (task.endSlot - task.startSlot) * 0.5;
     return BASE_BONUS + (durationHours * HOURLY_WEIGHT);
 }
 
@@ -79,7 +80,32 @@ export function useTodayTasks(
         }
         if (currentTask) result.push(currentTask);
 
-        return result;
+        // Extract and map specific time reminders
+        const dayReminders = ((weekPlan?.reminders || []) as ReminderItem[])
+            .filter(r => r.dayIdx === dayIdx);
+
+        const reminderTasks: TaskItem[] = dayReminders.map(r => {
+            const [h, m] = r.time.split(':').map(Number);
+            const slotIdx = h * 2 + (m >= 30 ? 1 : 0);
+            return {
+                id: r.id,
+                name: r.name,
+                type: 'reminder',
+                startTime: r.time,
+                endTime: r.time,
+                startSlot: slotIdx,
+                endSlot: slotIdx,
+                isReminder: true,
+            };
+        });
+
+        // Merge and sort chronologically by start time
+        const timeToMin = (t: string) => {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        };
+
+        return [...result, ...reminderTasks].sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
     }, [weekPlan, habits, dayIdx]);
 
     const pointsData = useMemo(() => {

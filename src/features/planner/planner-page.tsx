@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { useGetWeekPlan, usePrefetchAdjacentWeeks } from '@/api/services/planner-service';
 import { useGetGoals } from '@/api/services/goal-service';
 import { WeekUtils } from '@/utils/week-utils';
-import { Goal, CustomTask } from '@/types/global-types';
+import { Goal, CustomTask, ReminderItem } from '@/types/global-types';
 import { useGetCustomTasks, useDeleteCustomTask } from '@/api/services/custom-task-service';
 import { useGetMissedTasks, useDeleteMissedTask } from '@/api/services/missed-task-service';
 import { useNotes, useDeleteNote } from '@/api/services/vault-service';
@@ -38,6 +38,7 @@ export const PlannerPage: React.FC = () => {
     const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false);
     const [editingTaskData, setEditingTaskData] = useState<any>(null);
     const [editingTaskCell, setEditingTaskCell] = useState<{ dayIdx: number; slotIdx: number } | null>(null);
+    const [editingReminder, setEditingReminder] = useState<ReminderItem | null>(null);
 
     // Data queries
     const { data: weekPlan } = useGetWeekPlan(currentWeek);
@@ -149,6 +150,16 @@ export const PlannerPage: React.FC = () => {
                         getCellContent={getCellContent}
                         handleCellClick={handlers.handleCellClick}
                         selectedTool={selectedTool}
+                        onEditReminder={(reminder) => {
+                            setEditingReminder(reminder);
+                            setEditingTaskData({
+                                ...reminder,
+                                type: 'custom',
+                                isReminder: true,
+                            });
+                            setEditingTaskCell(null);
+                            setIsTaskEditDialogOpen(true);
+                        }}
                     />
                 </div>
 
@@ -196,10 +207,68 @@ export const PlannerPage: React.FC = () => {
 
             <TaskEditDialog
                 isOpen={isTaskEditDialogOpen}
-                onClose={() => setIsTaskEditDialogOpen(false)}
-                onSave={(data: any) => {
-                    handlers.handleTaskEditSave(editingTaskCell, data);
+                onClose={() => {
                     setIsTaskEditDialogOpen(false);
+                    setEditingReminder(null);
+                    setEditingTaskCell(null);
+                }}
+                onSave={(data: any) => {
+                    const newState = { ...localGridState };
+                    const reminders = [...(newState.reminders || [])] as ReminderItem[];
+
+                    if (editingTaskCell) {
+                        const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
+                        if (data.isReminder) {
+                            delete newState[key];
+                            reminders.push({
+                                id: `reminder-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                                name: data.name,
+                                description: data.description,
+                                time: data.time || '09:00',
+                                dayIdx: editingTaskCell.dayIdx,
+                                color: data.color || '#f59e0b',
+                                isReminder: true,
+                            });
+                            newState.reminders = reminders;
+                        } else {
+                            newState[key] = {
+                                ...newState[key],
+                                name: data.name,
+                                description: data.description,
+                                goalId: newState[key]?.type === 'goal' ? data.goalId : undefined,
+                            };
+                        }
+                    } else if (editingReminder) {
+                        const idx = reminders.findIndex(r => r.id === editingReminder.id);
+                        if (idx !== -1) {
+                            if (!data.isReminder) {
+                                reminders.splice(idx, 1);
+                                newState.reminders = reminders;
+                                
+                                const [h, m] = (data.time || '09:00').split(':').map(Number);
+                                const slotIdx = h * 2 + (m >= 30 ? 1 : 0);
+                                const key = `${editingReminder.dayIdx}-${slotIdx}`;
+                                newState[key] = {
+                                    type: 'custom',
+                                    name: data.name,
+                                    color: editingReminder.color || '#f59e0b',
+                                };
+                            } else {
+                                reminders[idx] = {
+                                    ...reminders[idx],
+                                    name: data.name,
+                                    description: data.description,
+                                    time: data.time || '09:00',
+                                };
+                                newState.reminders = reminders;
+                            }
+                        }
+                    }
+
+                    updateGridState(newState);
+                    setIsTaskEditDialogOpen(false);
+                    setEditingReminder(null);
+                    setEditingTaskCell(null);
                 }}
                 onDelete={() => setShowTaskDeleteConfirm(true)}
                 initialData={editingTaskData}
@@ -221,15 +290,31 @@ export const PlannerPage: React.FC = () => {
 
             <ConfirmationDialog
                 isOpen={showTaskDeleteConfirm}
-                onClose={() => setShowTaskDeleteConfirm(false)}
+                onClose={() => {
+                    setShowTaskDeleteConfirm(false);
+                    setEditingReminder(null);
+                    setEditingTaskCell(null);
+                }}
                 onConfirm={() => {
-                    handlers.executeTaskDelete(editingTaskCell);
+                    const newState = { ...localGridState };
+                    if (editingTaskCell) {
+                        const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
+                        delete newState[key];
+                    } else if (editingReminder) {
+                        const reminders = [...(newState.reminders || [])] as ReminderItem[];
+                        newState.reminders = reminders.filter(r => r.id !== editingReminder.id);
+                    }
+                    updateGridState(newState);
                     setIsTaskEditDialogOpen(false);
                     setShowTaskDeleteConfirm(false);
+                    setEditingReminder(null);
+                    setEditingTaskCell(null);
                 }}
-                title="Delete Task Slot?"
-                description="Are you sure you want to remove this specific task slot? This will only remove this single 30-minute block."
-                confirmText="Delete Slot"
+                title={editingReminder ? "Delete Reminder?" : "Delete Task Slot?"}
+                description={editingReminder 
+                    ? "Are you sure you want to delete this specific time reminder? This cannot be undone."
+                    : "Are you sure you want to remove this specific task slot? This will only remove this single 30-minute block."}
+                confirmText={editingReminder ? "Delete Reminder" : "Delete Slot"}
                 variant="destructive"
             />
 
