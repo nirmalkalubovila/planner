@@ -1,7 +1,7 @@
 // Legacy Life Builder — Service Worker
 // Handles push notifications, notification clicks, and basic caching.
 
-const SW_VERSION = '1.0.1';
+const SW_VERSION = '1.0.2';
 const CACHE_NAME = `llb-cache-v${SW_VERSION}`;
 
 // ─── Install ─────────────────────────────────────────────
@@ -36,6 +36,13 @@ self.addEventListener('fetch', (event) => {
 
   // Skip browser extensions and non-http protocols
   if (!requestUrl.protocol.startsWith('http')) return;
+
+  // Disable caching on localhost/development to prevent stale asset issues with Vite's bundler
+  const isLocalhost = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+  if (isLocalhost) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   const isNavigation = event.request.mode === 'navigate';
   const isAPI = requestUrl.pathname.includes('/api/') || requestUrl.host.includes('supabase.co');
