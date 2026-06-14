@@ -96,18 +96,31 @@ export const TodayPage: React.FC = () => {
                                         "transition-[border-color,opacity,background-color] duration-100",
                                         completed
                                             ? "bg-muted/30 border-border opacity-50"
-                                            : "bg-glass border-border hover:border-border hover:bg-accent active:scale-[0.98] active:duration-75"
+                                            : task.isReminder
+                                                ? "bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/10 active:scale-[0.98] active:duration-75"
+                                                : "bg-glass border-border hover:border-border hover:bg-accent active:scale-[0.98] active:duration-75"
                                     )}
                                 >
                                     <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                                         <div className="flex-shrink-0 flex items-center justify-center">
                                             {completed ? (
-                                                <div className="w-6 h-6 rounded-full bg-intent-goal-muted text-intent-goal flex items-center justify-center border border-intent-goal/30">
+                                                <div className={cn(
+                                                    "w-6 h-6 rounded-full flex items-center justify-center border",
+                                                    task.isReminder
+                                                        ? "bg-rose-500/10 text-rose-500 border-rose-500/30"
+                                                        : "bg-intent-goal-muted text-intent-goal border-intent-goal/30"
+                                                )}>
                                                     <Check size={14} strokeWidth={3} />
                                                 </div>
                                             ) : (
-                                                <div className="w-6 h-6 rounded-full border-2 border-border group-hover:border-primary transition-colors duration-100 flex items-center justify-center">
-                                                    <div className="w-2 h-2 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-100" />
+                                                <div className={cn(
+                                                    "w-6 h-6 rounded-full border-2 border-border group-hover:border-primary transition-colors duration-100 flex items-center justify-center",
+                                                    task.isReminder && "group-hover:border-rose-500"
+                                                )}>
+                                                    <div className={cn(
+                                                        "w-2 h-2 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-100",
+                                                        task.isReminder && "bg-rose-500"
+                                                    )} />
                                                 </div>
                                             )}
                                         </div>
@@ -120,8 +133,8 @@ export const TodayPage: React.FC = () => {
                                             </span>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                                    <Clock size={11} className="text-muted-foreground" />
-                                                    {task.startTime} - {task.endTime}
+                                                    <Clock size={11} className={cn("text-muted-foreground", task.isReminder && "text-rose-400")} />
+                                                    {task.isReminder ? `At ${task.startTime}` : `${task.startTime} - ${task.endTime}`}
                                                 </span>
                                             </div>
                                         </div>
@@ -130,11 +143,13 @@ export const TodayPage: React.FC = () => {
                                     <div className="shrink-0 ml-2">
                                         <span className={cn(
                                             "text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-tighter border",
-                                            task.type === 'habit' && "bg-blue-500/10 border-blue-500/20 text-blue-400/80",
-                                            task.type === 'goal' && "bg-purple-500/10 border-purple-500/20 text-purple-400/80",
-                                            task.type === 'custom' && "bg-amber-500/10 border-amber-500/20 text-amber-400/80"
+                                            task.isReminder
+                                                ? "bg-rose-500/10 border-rose-500/20 text-rose-400/80"
+                                                : (task.type === 'habit' && "bg-blue-500/10 border-blue-500/20 text-blue-400/80"),
+                                            !task.isReminder && task.type === 'goal' && "bg-purple-500/10 border-purple-500/20 text-purple-400/80",
+                                            !task.isReminder && task.type === 'custom' && "bg-amber-500/10 border-amber-500/20 text-amber-400/80"
                                         )}>
-                                            {task.type}
+                                            {task.isReminder ? 'reminder' : task.type}
                                         </span>
                                     </div>
                                 </div>

@@ -81,10 +81,12 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const RootLayout = () => {
   const { resolvedTheme } = useTheme();
   return (
-    <>
-      <ResponsiveToaster theme={(resolvedTheme as 'light' | 'dark') ?? 'dark'} />
-      <Outlet />
-    </>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ResponsiveToaster theme={(resolvedTheme as 'light' | 'dark') ?? 'dark'} />
+        <Outlet />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 
@@ -118,11 +120,7 @@ const router = createBrowserRouter(
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </QueryClientProvider>
+    <RouterProvider router={router} />
   );
 }
 
