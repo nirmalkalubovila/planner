@@ -39,6 +39,7 @@ export interface NotificationPreferences {
   emailDailyBriefing: boolean;
   emailTaskReminders: boolean;
   emailGoalDeadlines: boolean;
+  timezoneOffset?: number;
 }
 
 export const DEFAULT_PREFERENCES: NotificationPreferences = {

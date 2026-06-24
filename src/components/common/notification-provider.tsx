@@ -125,7 +125,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const sleepStart = profile?.sleepStart || '22:00';
   const sleepDuration = profile?.sleepDuration || '8';
 
-  // 3. Sync quiet hours with user's sleep schedule
+  // 3. Sync quiet hours with user's sleep schedule and timezone offset
   useEffect(() => {
     if (!user || !profile) return;
 
@@ -138,16 +138,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const endM = totalMinutes % 60;
     const sleepEnd = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 
+    const localTimezoneOffset = new Date().getTimezoneOffset();
+
     if (
       preferences.quietHoursStart !== sleepStart ||
-      preferences.quietHoursEnd !== sleepEnd
+      preferences.quietHoursEnd !== sleepEnd ||
+      preferences.timezoneOffset !== localTimezoneOffset
     ) {
       updatePreferences({
         quietHoursStart: sleepStart,
         quietHoursEnd: sleepEnd,
+        timezoneOffset: localTimezoneOffset,
       });
     }
-  }, [user, sleepStart, sleepDuration, preferences.quietHoursStart, preferences.quietHoursEnd, updatePreferences]);
+  }, [user, sleepStart, sleepDuration, preferences.quietHoursStart, preferences.quietHoursEnd, preferences.timezoneOffset, updatePreferences]);
 
   // 4. Sync permission status
   useEffect(() => {
