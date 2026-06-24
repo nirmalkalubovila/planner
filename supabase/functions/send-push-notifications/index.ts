@@ -508,6 +508,13 @@ function getWakeUpMinutes(sleepStart: string, sleepDuration: string): number {
 // ─── Main Handler ─────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
+  const debugLogs: string[] = [];
+  const logDebug = (msg: string, ...args: any[]) => {
+    const formatted = msg + (args.length > 0 ? " " + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(" ") : "");
+    console.log(formatted);
+    debugLogs.push(formatted);
+  };
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -711,6 +718,10 @@ Deno.serve(async (req: Request) => {
 
       // ── A. Task Reminders (5 min before start) + Overdue ──
       const wp = weekPlans.get(`${userId}-${userWeek}`);
+      logDebug(`[DEBUG] User: ${userId} (${userName}), userWeek: ${userWeek}, wp exists: ${!!wp}`);
+      if (wp) {
+        logDebug(`[DEBUG] wp reminders: ${JSON.stringify(wp.state?.reminders || [])}`);
+      }
       const dayPlan = wp?.state?.days?.[userDayIdx];
       const tasks = dayPlan?.tasks || [];
       const completedIds = completed.get(`${userId}-${userDayStr}`) || [];
@@ -741,6 +752,7 @@ Deno.serve(async (req: Request) => {
         }));
 
       const allTasks = [...tasks, ...habitTasks, ...weekReminders];
+      logDebug(`[DEBUG] User ${userId} allTasks count: ${allTasks.length} ${JSON.stringify(allTasks.map(t => ({ id: t.id, name: t.name, start: t.startTime })))}`);
 
       for (const task of allTasks) {
         const [startH, startM] = task.startTime.split(":").map(Number);
@@ -748,6 +760,7 @@ Deno.serve(async (req: Request) => {
         const diffMinutes = taskStartMinutes - userCurrentMinutes;
 
         // --- Task Starting Soon ---
+        logDebug(`[DEBUG] Task ${task.id} (${task.name}) starting check: diffMinutes=${diffMinutes}, threshold=${TASK_REMINDER_MINUTES}`);
         if (diffMinutes > 0 && diffMinutes <= TASK_REMINDER_MINUTES) {
           const datePart = userLocalTime.toISOString().slice(0, 10);
           const tag = `task-start-${task.id}-${datePart}`;
@@ -813,7 +826,9 @@ Deno.serve(async (req: Request) => {
         // --- Task Overdue ---
         const [endH, endM] = task.endTime.split(":").map(Number);
         const taskEndMinutes = endH * 60 + endM;
-        if (userCurrentMinutes > taskEndMinutes && !completedIds.includes(task.id)) {
+        const isOverdue = userCurrentMinutes > taskEndMinutes && !completedIds.includes(task.id);
+        logDebug(`[DEBUG] Task ${task.id} (${task.name}) overdue check: userCurrentMinutes=${userCurrentMinutes}, taskEndMinutes=${taskEndMinutes}, isCompleted=${completedIds.includes(task.id)}, isOverdue=${isOverdue}`);
+        if (isOverdue) {
           const datePart = userLocalTime.toISOString().slice(0, 10);
           const tag = `task-overdue-${task.id}-${datePart}`;
 
@@ -842,6 +857,7 @@ Deno.serve(async (req: Request) => {
 
           // 2. Email notification (overdue tasks get reminder template)
           const emailTag = `email-${tag}`;
+          logDebug(`[DEBUG] Overdue Task ${task.id} email check: emailTaskReminders=${prefs.emailTaskReminders}, hasTag=${userSentTags.has(emailTag)}, hasTransporter=${!!smtpTransporter}`);
           if (
             prefs.emailTaskReminders &&
             reminderTemplate?.enabled &&
@@ -1055,7 +1071,7 @@ Deno.serve(async (req: Request) => {
     // 6. Cleanup old sent log entries (older than 24h)
     await supabase.rpc("clean_old_notification_logs");
 
-    return new Response(
+     return new Response(
       JSON.stringify({
         success: true,
         pushSent: totalPushSent,
@@ -1063,6 +1079,7 @@ Deno.serve(async (req: Request) => {
         skipped: totalSkipped,
         staleRemoved: staleSubscriptions.length,
         timestamp: now.toISOString(),
+        logs: debugLogs,
       }),
       { headers: { "Content-Type": "application/json" } }
     );
