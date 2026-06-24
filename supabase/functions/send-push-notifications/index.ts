@@ -381,6 +381,15 @@ interface WeekPlan {
         endTime: string;
       }>;
     }>;
+    reminders?: Array<{
+      id: string;
+      name: string;
+      time: string;
+      dayIdx: number;
+      color?: string;
+      description?: string;
+      isReminder?: boolean;
+    }>;
   };
 }
 
@@ -408,11 +417,8 @@ const DEADLINE_DAYS = [7, 3, 1];
 /**
  * Check if the current time is within quiet hours.
  */
-function isQuietHours(prefs: UserProfile["notification_prefs"]): boolean {
+function isQuietHours(prefs: UserProfile["notification_prefs"], currentMinutes: number): boolean {
   if (!prefs?.quietHoursEnabled) return false;
-
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   const [startH, startM] = (prefs.quietHoursStart || "22:00").split(":").map(Number);
   const [endH, endM] = (prefs.quietHoursEnd || "06:00").split(":").map(Number);
@@ -427,41 +433,64 @@ function isQuietHours(prefs: UserProfile["notification_prefs"]): boolean {
 }
 
 /**
- * Get current week string in the format the app uses (YYYY-WXX).
+ * Get current week formatted display string (e.g. "Jun 22 - Jun 28, 2026").
  */
-function getCurrentWeek(): string {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(now);
-  monday.setDate(diff);
+function getCurrentWeekFormatted(d: Date): string {
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  
+  const monday = new Date(d.getTime() + diff * 24 * 60 * 60 * 1000);
+  const sunday = new Date(monday.getTime() + 6 * 24 * 60 * 60 * 1000);
 
-  const year = monday.getFullYear();
-  const startOfYear = new Date(year, 0, 1);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  
+  const mMon = months[monday.getUTCMonth()];
+  const dMon = monday.getUTCDate();
+  const yMon = monday.getUTCFullYear();
+  
+  const mSun = months[sunday.getUTCMonth()];
+  const dSun = sunday.getUTCDate();
+  const ySun = sunday.getUTCFullYear();
+
+  if (yMon !== ySun) {
+    return `${mMon} ${dMon}, ${yMon} - ${mSun} ${dSun}, ${ySun}`;
+  }
+  return `${mMon} ${dMon} - ${mSun} ${dSun}, ${ySun}`;
+}
+
+/**
+ * Get current week number string (YYYY-WXX) for dayStr construction.
+ */
+function getCurrentWeekNumberStr(d: Date): string {
+  const day = d.getUTCDay();
+  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d.getTime());
+  monday.setUTCDate(diff);
+
+  const year = monday.getUTCFullYear();
+  const startOfYear = new Date(Date.UTC(year, 0, 1));
   const dayOfYear = Math.floor(
     (monday.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)
   );
-  const weekNum = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
+  const weekNum = Math.ceil((dayOfYear + startOfYear.getUTCDay() + 1) / 7);
 
-  return `${year}-W${String(weekNum).padStart(2, "0")}`;
+  return `${year}-${String(weekNum).padStart(2, "0")}`;
 }
 
 /**
  * Get today's day string (YYYY-WXX-D).
  */
-function getCurrentDayStr(): string {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
+function getCurrentDayStr(d: Date): string {
+  const dayOfWeek = d.getUTCDay();
   const dayIdx = dayOfWeek === 0 ? 7 : dayOfWeek;
-  return `${getCurrentWeek()}-${dayIdx}`;
+  return `${getCurrentWeekNumberStr(d)}-${dayIdx}`;
 }
 
 /**
  * Get today's 0-indexed day within the week plan (0=Mon, 6=Sun).
  */
-function getTodayDayIndex(): number {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
+function getTodayDayIndex(d: Date): number {
+  const dayOfWeek = d.getUTCDay();
   return dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 }
 
@@ -505,15 +534,42 @@ Deno.serve(async (req: Request) => {
 
     const userIds = allProfiles.map((p: any) => p.user_id);
 
+    // Compute timezone-aware week and dayStr for each user
+    const userLocalTimes = new Map<string, Date>();
+    const userWeeks = new Map<string, string>();
+    const userDayStrs = new Map<string, string>();
+    const userTodayDayIndexes = new Map<string, number>();
+
+    const uniqueWeeks = new Set<string>();
+    const uniqueDayStrs = new Set<string>();
+
+    for (const profile of allProfiles) {
+      const prefs = profile.notification_prefs;
+      const offsetMinutes = prefs?.timezoneOffset !== undefined ? Number(prefs.timezoneOffset) : 0;
+      const userLocalTime = new Date(now.getTime() - (offsetMinutes * 60 * 1000));
+      
+      const week = getCurrentWeekFormatted(userLocalTime);
+      const dayStr = getCurrentDayStr(userLocalTime);
+      const dayIdx = getTodayDayIndex(userLocalTime);
+
+      userLocalTimes.set(profile.user_id, userLocalTime);
+      userWeeks.set(profile.user_id, week);
+      userDayStrs.set(profile.user_id, dayStr);
+      userTodayDayIndexes.set(profile.user_id, dayIdx);
+
+      uniqueWeeks.add(week);
+      uniqueDayStrs.add(dayStr);
+    }
+
     // 2. Fetch push subscriptions, week plans, completed tasks, goals, habits, logs, SMTP settings, templates & auth emails
     const [subscriptionsRes, weekPlansRes, completedRes, goalsRes, habitsRes, sentLogRes, smtpSettingsRes, templatesRes, authUsersRes] =
       await Promise.all([
         supabase.from("push_subscriptions").select("*").in("user_id", userIds),
-        supabase.from("week_plans").select("*").eq("week", getCurrentWeek()).in("user_id", userIds),
+        supabase.from("week_plans").select("*").in("week", Array.from(uniqueWeeks)).in("user_id", userIds),
         supabase
           .from("completed_tasks")
           .select("*")
-          .eq("dayStr", getCurrentDayStr())
+          .in("dayStr", Array.from(uniqueDayStrs))
           .in("user_id", userIds),
         supabase.from("goals").select("*").in("user_id", userIds),
         supabase.from("habits").select("*").in("user_id", userIds),
@@ -581,10 +637,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const weekPlans = new Map<string, WeekPlan>();
-    for (const wp of weekPlansRes.data || []) weekPlans.set(wp.user_id, wp);
+    for (const wp of weekPlansRes.data || []) {
+      weekPlans.set(`${wp.user_id}-${wp.week}`, wp);
+    }
 
     const completed = new Map<string, string[]>();
-    for (const ct of completedRes.data || []) completed.set(ct.user_id, ct.taskIds || []);
+    for (const ct of completedRes.data || []) {
+      completed.set(`${ct.user_id}-${ct.dayStr}`, ct.taskIds || []);
+    }
 
     const goalsByUser = new Map<string, Goal[]>();
     for (const g of goalsRes.data || []) {
@@ -633,8 +693,14 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
+      const userLocalTime = userLocalTimes.get(userId) || now;
+      const userCurrentMinutes = userLocalTime.getUTCHours() * 60 + userLocalTime.getUTCMinutes();
+      const userWeek = userWeeks.get(userId) || getCurrentWeekFormatted(userLocalTime);
+      const userDayStr = userDayStrs.get(userId) || getCurrentDayStr(userLocalTime);
+      const userDayIdx = userTodayDayIndexes.get(userId) ?? getTodayDayIndex(userLocalTime);
+
       // Skip if quiet hours
-      if (isQuietHours(prefs)) {
+      if (isQuietHours(prefs, userCurrentMinutes)) {
         totalSkipped++;
         continue;
       }
@@ -644,15 +710,14 @@ Deno.serve(async (req: Request) => {
       const userName = profile.full_name || userEmail?.split("@")[0] || "User";
 
       // ── A. Task Reminders (5 min before start) + Overdue ──
-      const wp = weekPlans.get(userId);
-      const dayIdx = getTodayDayIndex();
-      const dayPlan = wp?.state?.days?.[dayIdx];
+      const wp = weekPlans.get(`${userId}-${userWeek}`);
+      const dayPlan = wp?.state?.days?.[userDayIdx];
       const tasks = dayPlan?.tasks || [];
-      const completedIds = completed.get(userId) || [];
+      const completedIds = completed.get(`${userId}-${userDayStr}`) || [];
 
       // Include habits
       const userHabits = habitsByUser.get(userId) || [];
-      const todayDayNum = new Date().getDay();
+      const todayDayNum = userLocalTime.getUTCDay();
       const habitTasks = userHabits
         .filter((h) => {
           if (!h.daysOfWeek || !Array.isArray(h.daysOfWeek)) return true;
@@ -665,16 +730,27 @@ Deno.serve(async (req: Request) => {
           endTime: h.endTime,
         }));
 
-      const allTasks = [...tasks, ...habitTasks];
+      // Include week plan reminders for today
+      const weekReminders = (wp?.state?.reminders || [])
+        .filter((r: any) => r.dayIdx === userDayIdx)
+        .map((r: any) => ({
+          id: r.id,
+          name: r.name || "Reminder",
+          startTime: r.time,
+          endTime: r.time,
+        }));
+
+      const allTasks = [...tasks, ...habitTasks, ...weekReminders];
 
       for (const task of allTasks) {
         const [startH, startM] = task.startTime.split(":").map(Number);
         const taskStartMinutes = startH * 60 + startM;
-        const diffMinutes = taskStartMinutes - currentMinutes;
+        const diffMinutes = taskStartMinutes - userCurrentMinutes;
 
         // --- Task Starting Soon ---
         if (diffMinutes > 0 && diffMinutes <= TASK_REMINDER_MINUTES) {
-          const tag = `task-start-${task.id}-${now.toISOString().slice(0, 10)}`;
+          const datePart = userLocalTime.toISOString().slice(0, 10);
+          const tag = `task-start-${task.id}-${datePart}`;
 
           // 1. Push notification
           if (prefs.taskReminders !== false && !userSentTags.has(tag)) {
@@ -737,8 +813,9 @@ Deno.serve(async (req: Request) => {
         // --- Task Overdue ---
         const [endH, endM] = task.endTime.split(":").map(Number);
         const taskEndMinutes = endH * 60 + endM;
-        if (currentMinutes > taskEndMinutes && !completedIds.includes(task.id)) {
-          const tag = `task-overdue-${task.id}-${now.toISOString().slice(0, 10)}`;
+        if (userCurrentMinutes > taskEndMinutes && !completedIds.includes(task.id)) {
+          const datePart = userLocalTime.toISOString().slice(0, 10);
+          const tag = `task-overdue-${task.id}-${datePart}`;
 
           // 1. Push notification
           if (prefs.taskReminders !== false && !userSentTags.has(tag)) {
@@ -808,15 +885,16 @@ Deno.serve(async (req: Request) => {
       const sleepDuration = profile.sleep_duration || "8";
       const wakeUpMinutes = getWakeUpMinutes(sleepStart, sleepDuration);
 
-      const wakeUpDiff = currentMinutes - wakeUpMinutes;
+      const wakeUpDiff = userCurrentMinutes - wakeUpMinutes;
       if (wakeUpDiff >= 0 && wakeUpDiff < 2) {
-        const tag = `daily-briefing-${now.toISOString().slice(0, 10)}`;
+        const datePart = userLocalTime.toISOString().slice(0, 10);
+        const tag = `daily-briefing-${datePart}`;
 
         // 1. Push notification
         if (prefs.dailyBriefing !== false && !userSentTags.has(tag)) {
           const subs = userSubs.get(userId) || [];
           const taskCount = allTasks.length;
-          const hour = now.getHours();
+          const hour = userLocalTime.getUTCHours();
           const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
           const pushPayload = {
@@ -862,7 +940,7 @@ Deno.serve(async (req: Request) => {
             const taskCount = allTasks.length;
             const tasksList = allTasks.map((t) => `- ${t.startTime} - ${t.endTime}: ${t.name}`).join("\n");
             
-            const dateStr = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+            const dateStr = userLocalTime.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 
             const { subject, body } = formatTemplate(briefingTemplate.body, briefingTemplate.subject, {
               name: userName,
@@ -883,7 +961,7 @@ Deno.serve(async (req: Request) => {
 
       // ── C. Goal Deadlines (7, 3, 1 day before) ──
       const goals = goalsByUser.get(userId) || [];
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const today = new Date(userLocalTime.getUTCFullYear(), userLocalTime.getUTCMonth(), userLocalTime.getUTCDate());
 
       for (const goal of goals) {
         if (!goal.endDate) continue;
