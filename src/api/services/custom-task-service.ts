@@ -6,6 +6,16 @@ import { toast } from "sonner";
 
 const TABLE_NAME = "custom_tasks";
 
+const getEndTimeOfReminder = (timeStr: string): string => {
+    if (!timeStr || !timeStr.includes(':')) return '10:00';
+    const [h, m] = timeStr.split(':').map(Number);
+    const startMinutes = h * 60 + m;
+    const endMinutes = startMinutes + 30;
+    const endH = Math.floor(endMinutes / 60) % 24;
+    const endM = endMinutes % 60;
+    return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+};
+
 const getCustomTasks = async (): Promise<CustomTask[]> => {
     const userId = await getOptionalUserId();
     if (!userId) return [];
@@ -17,7 +27,12 @@ const getCustomTasks = async (): Promise<CustomTask[]> => {
         .order("createdAt", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data || [];
+    const tasks = data || [];
+    return tasks.map((task: any) => ({
+        ...task,
+        isReminder: task.endTime === 'reminder',
+        endTime: task.endTime === 'reminder' ? getEndTimeOfReminder(task.startTime) : task.endTime
+    }));
 };
 
 export function useGetCustomTasks() {
@@ -35,8 +50,11 @@ export function useCreateCustomTask() {
             const userId = await getCurrentUserId();
 
             const cleanTask = Object.fromEntries(
-                Object.entries(task).filter(([k, v]) => v !== undefined && k !== 'color')
+                Object.entries(task).filter(([k, v]) => v !== undefined && k !== 'color' && k !== 'isReminder')
             );
+            if (task.isReminder) {
+                cleanTask.endTime = 'reminder';
+            }
 
             const { data, error } = await supabase
                 .from(TABLE_NAME)

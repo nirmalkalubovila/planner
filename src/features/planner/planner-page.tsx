@@ -85,7 +85,7 @@ export const PlannerPage: React.FC = () => {
 
     const handlers = createPlannerHandlers({
         localGridState, updateGridState,
-        isSleepSlot, isHabitSlot, isPlanSlot,
+        isSleepSlot, isHabitSlot, isPlanSlot, getCellContent,
         activeGoalsForWeek, selectedTool, selectedGoalId,
         copiedTask, setCopiedTask,
         setEditingTaskData, setEditingTaskCell, setIsTaskEditDialogOpen,
@@ -226,16 +226,17 @@ export const PlannerPage: React.FC = () => {
                                 description: data.description,
                                 time: data.time || '09:00',
                                 dayIdx: editingTaskCell.dayIdx,
-                                color: data.color || '#f59e0b',
+                                color: '#f43f5e',
                                 isReminder: true,
                             });
                             newState.reminders = reminders;
                         } else {
                             newState[key] = {
                                 ...newState[key],
+                                type: data.type || newState[key]?.type || 'custom',
                                 name: data.name,
                                 description: data.description,
-                                goalId: newState[key]?.type === 'goal' ? data.goalId : undefined,
+                                goalId: (data.type === 'goal' || newState[key]?.type === 'goal') ? data.goalId : undefined,
                             };
                         }
                     } else if (editingReminder) {
@@ -252,6 +253,7 @@ export const PlannerPage: React.FC = () => {
                                     type: 'custom',
                                     name: data.name,
                                     color: editingReminder.color || '#f59e0b',
+                                    description: data.description,
                                 };
                             } else {
                                 reminders[idx] = {
@@ -270,7 +272,10 @@ export const PlannerPage: React.FC = () => {
                     setEditingReminder(null);
                     setEditingTaskCell(null);
                 }}
-                onDelete={() => setShowTaskDeleteConfirm(true)}
+                onDelete={() => {
+                    setIsTaskEditDialogOpen(false);
+                    setShowTaskDeleteConfirm(true);
+                }}
                 initialData={editingTaskData}
             />
 
@@ -298,23 +303,58 @@ export const PlannerPage: React.FC = () => {
                 onConfirm={() => {
                     const newState = { ...localGridState };
                     if (editingTaskCell) {
-                        const key = `${editingTaskCell.dayIdx}-${editingTaskCell.slotIdx}`;
-                        delete newState[key];
+                        const { dayIdx, slotIdx } = editingTaskCell;
+                        const key = `${dayIdx}-${slotIdx}`;
+                        const target = newState[key];
+
+                        if (target) {
+                            // Find contiguous slots of the same task/goal block
+                            let start = slotIdx;
+                            while (start > 0) {
+                                const prevKey = `${dayIdx}-${start - 1}`;
+                                const prev = newState[prevKey];
+                                if (prev && prev.type === target.type && prev.name === target.name) {
+                                    start--;
+                                } else {
+                                    break;
+                                }
+                            }
+
+                            let end = slotIdx;
+                            while (end < 47) {
+                                const nextKey = `${dayIdx}-${end + 1}`;
+                                const next = newState[nextKey];
+                                if (next && next.type === target.type && next.name === target.name) {
+                                    end++;
+                                } else {
+                                    break;
+                                }
+                            }
+
+                            // Delete all slots in the contiguous block
+                            for (let s = start; s <= end; s++) {
+                                delete newState[`${dayIdx}-${s}`];
+                            }
+                        } else {
+                            delete newState[key];
+                        }
                     } else if (editingReminder) {
                         const reminders = [...(newState.reminders || [])] as ReminderItem[];
                         newState.reminders = reminders.filter(r => r.id !== editingReminder.id);
                     }
                     updateGridState(newState);
-                    setIsTaskEditDialogOpen(false);
                     setShowTaskDeleteConfirm(false);
                     setEditingReminder(null);
                     setEditingTaskCell(null);
                 }}
-                title={editingReminder ? "Delete Reminder?" : "Delete Task Slot?"}
+                title={editingReminder ? "Delete Reminder?" : (editingTaskData?.type === 'habit' ? "Reset Habit Slot?" : "Delete Task Block?")}
                 description={editingReminder 
                     ? "Are you sure you want to delete this specific time reminder? This cannot be undone."
-                    : "Are you sure you want to remove this specific task slot? This will only remove this single 30-minute block."}
-                confirmText={editingReminder ? "Delete Reminder" : "Delete Slot"}
+                    : (editingTaskData?.type === 'habit'
+                        ? "Are you sure you want to reset this habit slot? This will clear the daily override and description."
+                        : "Are you sure you want to delete this task? This will remove the entire scheduled block from this day.")
+                }
+                confirmText={editingReminder ? "Delete Reminder" : (editingTaskData?.type === 'habit' ? "Reset Slot" : "Delete Block")}
                 variant="destructive"
             />
 

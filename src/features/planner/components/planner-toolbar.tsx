@@ -57,18 +57,23 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                 draggable
                                 onDragStart={(e) => {
                                     e.dataTransfer.setData('sourceNewTask', JSON.stringify({
-                                        type: 'custom',
+                                        type: task.isReminder ? 'reminder' : 'custom',
                                         name: task.name,
                                         startTime: task.startTime,
                                         endTime: task.endTime,
-                                        description: task.description
+                                        description: task.description,
+                                        isReminder: task.isReminder
                                     }));
                                 }}
                                 className={cn(
                                     "px-2 py-1 border rounded-md text-[10px] font-bold cursor-grab active:cursor-grabbing hover:shadow-md transition-all bg-background/80 shadow-sm max-w-[120px] truncate text-center touch-action-none",
-                                    colorClass.includes("emerald") ? "hover:border-emerald-500/80 hover:bg-emerald-500/10 text-emerald-100" : "hover:border-orange-500/80 hover:bg-orange-500/10 text-orange-100"
+                                    task.isReminder
+                                        ? "border-rose-500/30 hover:border-rose-500/80 hover:bg-rose-500/10 text-rose-300"
+                                        : colorClass.includes("emerald")
+                                            ? "hover:border-emerald-500/80 hover:bg-emerald-500/10 text-emerald-100"
+                                            : "hover:border-orange-500/80 hover:bg-orange-500/10 text-orange-100"
                                 )}
-                                title={`Drag onto grid or click to apply: ${task.name}`}
+                                title={task.isReminder ? `Click to apply reminder: ${task.name}` : `Drag onto grid or click to apply: ${task.name}`}
                             >
                                 {task.name}
                             </div>
@@ -454,14 +459,29 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                                 onCreateCustomTask(task);
                                                 setIsPopupOpen(false);
                                             }}
-                                            className="w-full text-left p-3 border border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all rounded-xl flex items-center justify-between group cursor-pointer"
+                                            className={cn(
+                                                "w-full text-left p-3 border border-border transition-all rounded-xl flex items-center justify-between group cursor-pointer",
+                                                task.isReminder
+                                                    ? "hover:border-rose-500/50 hover:bg-rose-500/5"
+                                                    : "hover:border-emerald-500/50 hover:bg-emerald-500/5"
+                                            )}
                                         >
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-semibold truncate group-hover:text-emerald-400 transition-colors">{task.name}</p>
+                                                <p className={cn(
+                                                    "text-sm font-semibold truncate transition-colors",
+                                                    task.isReminder
+                                                        ? "group-hover:text-rose-400"
+                                                        : "group-hover:text-emerald-400"
+                                                )}>{task.name}</p>
                                                 {task.description && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{task.description}</p>}
                                             </div>
-                                            <span className="text-[10px] text-muted-foreground shrink-0 ml-3 bg-muted px-2 py-1 rounded-md font-mono">
-                                                {task.startTime}-{task.endTime}
+                                            <span className={cn(
+                                                "text-[10px] shrink-0 ml-3 px-2 py-1 rounded-md font-mono",
+                                                task.isReminder
+                                                    ? "bg-rose-950/40 text-rose-300 border border-rose-500/25"
+                                                    : "bg-muted text-muted-foreground"
+                                            )}>
+                                                {task.isReminder ? task.startTime : `${task.startTime}-${task.endTime}`}
                                             </span>
                                         </button>
                                     ))

@@ -31,6 +31,14 @@ export interface NotificationPreferences {
   quietHoursStart: string;
   /** Derived from sleepStart + sleepDuration */
   quietHoursEnd: string;
+  // Push preferences
+  taskReminders: boolean;
+  dailyBriefing: boolean;
+  goalDeadlines: boolean;
+  // Email preferences
+  emailDailyBriefing: boolean;
+  emailTaskReminders: boolean;
+  emailGoalDeadlines: boolean;
 }
 
 export const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -38,6 +46,12 @@ export const DEFAULT_PREFERENCES: NotificationPreferences = {
   quietHoursEnabled: true,
   quietHoursStart: '22:00',
   quietHoursEnd: '06:00',
+  taskReminders: true,
+  dailyBriefing: true,
+  goalDeadlines: true,
+  emailDailyBriefing: false, // Default email notifications to false so users can opt-in
+  emailTaskReminders: false,
+  emailGoalDeadlines: false,
 };
 
 /** Emoji icons per notification type for in-app display */

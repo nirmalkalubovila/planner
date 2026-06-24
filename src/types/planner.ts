@@ -9,11 +9,12 @@ export interface ReminderItem {
 }
 
 export interface PlanSlot {
-    type: 'goal' | 'custom';
+    type: 'goal' | 'custom' | 'habit';
     name: string;
     goalId?: string;
     color?: string;
     isReminder?: boolean;
+    description?: string;
 }
 
 export type GridState = Record<string, PlanSlot> & {

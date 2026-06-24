@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Trash2, Tag, Target, FileText, Clock } from 'lucide-react';
+import { Check, Trash2, Tag, Target, FileText, Clock, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useGetGoals } from '@/api/services/goal-service';
 import { StandardDialog } from '@/components/common/standard-dialog';
+import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 
 interface TaskEditDialogProps {
     isOpen: boolean;
@@ -45,27 +46,32 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
     };
 
     const isGoalType = initialData?.type === 'goal';
+    const isHabitType = initialData?.type === 'habit';
 
     return (
         <StandardDialog
             isOpen={isOpen}
             onClose={onClose}
-            title={`Edit ${isReminder ? 'Reminder' : (isGoalType ? 'Goal Task' : 'Custom Task')}`}
+            title={`Edit ${isReminder ? 'Reminder' : (isHabitType ? 'Habit' : (isGoalType ? 'Goal Task' : 'Custom Task'))}`}
             subtitle="Update details"
-            icon={isReminder ? Clock : (isGoalType ? Target : Tag)}
+            icon={isReminder ? Clock : (isHabitType ? Repeat : (isGoalType ? Target : Tag))}
             iconClassName={cn(
                 'p-2.5 rounded-xl shadow-sm',
-                isReminder ? 'bg-rose-500/10 text-rose-500' : (isGoalType ? 'bg-amber-500/10 text-amber-500' : 'bg-primary/10 text-primary')
+                isReminder ? 'bg-rose-500/10 text-rose-500' : (isHabitType ? 'bg-emerald-500/10 text-emerald-500' : (isGoalType ? 'bg-amber-500/10 text-amber-500' : 'bg-primary/10 text-primary'))
             )}
             footer={
-                <div className="flex items-center justify-between">
-                    <Button
-                        variant="ghost"
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive rounded-xl px-4 font-bold"
-                        onClick={() => { onDelete(); onClose(); }}
-                    >
-                        <Trash2 size={18} className="mr-2" /> Delete
-                    </Button>
+                <div className="flex items-center justify-between w-full">
+                    {!isHabitType ? (
+                        <Button
+                            variant="ghost"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive rounded-xl px-4 font-bold"
+                            onClick={() => { onDelete(); }}
+                        >
+                            <Trash2 size={18} className="mr-2" /> Delete
+                        </Button>
+                    ) : (
+                        <div />
+                    )}
                     <div className="flex gap-3">
                         <Button variant="secondary" className="rounded-xl font-bold" onClick={onClose}>Cancel</Button>
                         <Button className="rounded-xl px-6 font-bold shadow-lg shadow-primary/10" onClick={handleSave}>
@@ -78,9 +84,9 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
             <div className="p-6 space-y-6">
                 <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
-                        <Tag size={12} /> Name / Title
+                        <Tag size={12} /> Name / Title {isHabitType && "(Fixed)"}
                     </label>
-                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Working on..." className="text-base h-11 rounded-xl" autoFocus />
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Working on..." className="text-base h-11 rounded-xl" autoFocus={!isHabitType} disabled={isHabitType} />
                 </div>
 
                 {isGoalType && !isReminder && (
@@ -101,33 +107,13 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
                     </div>
                 )}
 
-                <div
-                    className="flex items-center gap-3 p-3 bg-rose-500/5 rounded-xl cursor-pointer select-none group border border-transparent hover:border-rose-500/20 transition-all mb-1"
-                    onClick={() => setIsReminder(!isReminder)}
-                >
-                    <div className={cn(
-                        "w-5 h-5 rounded flex items-center justify-center transition-all",
-                        isReminder ? "bg-rose-500 text-white" : "bg-card border border-border group-hover:border-rose-500/50"
-                    )}>
-                        {isReminder && <Check size={14} strokeWidth={3} />}
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-semibold">Is Specific Time Reminder</span>
-                        <span className="text-[10px] text-muted-foreground leading-none">Schedule at a specific moment without a time range</span>
-                    </div>
-                </div>
-
+                {/* When editing an existing reminder, show the time field directly (no checkbox needed) */}
                 {isReminder && (
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
                             <Clock size={12} /> Reminder Time
                         </label>
-                        <input
-                            type="time"
-                            value={time}
-                            onChange={(e) => setTime(e.target.value)}
-                            className="w-full h-11 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none transition-all"
-                        />
+                        <SimpleTimePicker value={time} onChange={setTime} className="h-10" allowAllMinutes />
                     </div>
                 )}
 
@@ -135,7 +121,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
                     <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
                         <FileText size={12} /> Description (Optional)
                     </label>
-                    <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add notes about this task..." className="h-11 rounded-xl" />
+                    <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add notes about this task..." className="h-11 rounded-xl" autoFocus={isHabitType} />
                 </div>
             </div>
         </StandardDialog>

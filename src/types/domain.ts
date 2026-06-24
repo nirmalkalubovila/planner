@@ -56,4 +56,5 @@ export interface CustomTask extends GlobalRecords {
     endTime: string;
     daysOfWeek: string[];
     color?: string;
+    isReminder?: boolean;
 }

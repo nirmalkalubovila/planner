@@ -128,7 +128,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
         <StandardDialog
             isOpen={isOpen}
             onClose={onClose}
-            title={initialData?.id ? "Edit Custom Task" : "Create Custom Task"}
+            title={initialData?.id ? (isReminder ? "Edit Reminder" : "Edit Custom Task") : (isReminder ? "Create Reminder" : "Create Custom Task")}
             icon={Library}
             maxWidth="xl"
             footer={
@@ -189,12 +189,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                         <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
                             <Clock size={12} /> Reminder Time
                         </label>
-                        <input
-                            type="time"
-                            value={startTime}
-                            onChange={(e) => setStartTime(e.target.value)}
-                            className="w-full h-11 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none transition-all"
-                        />
+                        <SimpleTimePicker value={startTime} onChange={setStartTime} className="h-10" allowAllMinutes />
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 gap-4">
@@ -240,23 +235,25 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                     </div>
                 </div>
 
-                <div className="space-y-3">
-                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Task Color</label>
-                    <div className="flex gap-2.5">
-                        {CUSTOM_TASK_COLORS.map(c => (
-                            <button
-                                key={c}
-                                type="button"
-                                onClick={() => setColor(c)}
-                                className={cn(
-                                    "w-8 h-8 rounded-full shadow-sm border-2 transition-transform hover:scale-110",
-                                    color === c ? "border-foreground scale-110" : "border-transparent"
-                                )}
-                                style={{ backgroundColor: c }}
-                            />
-                        ))}
+                {!isReminder && (
+                    <div className="space-y-3">
+                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Task Color</label>
+                        <div className="flex gap-2.5">
+                            {CUSTOM_TASK_COLORS.map(c => (
+                                <button
+                                    key={c}
+                                    type="button"
+                                    onClick={() => setColor(c)}
+                                    className={cn(
+                                        "w-8 h-8 rounded-full shadow-sm border-2 transition-transform hover:scale-110",
+                                        color === c ? "border-foreground scale-110" : "border-transparent"
+                                    )}
+                                    style={{ backgroundColor: c }}
+                                />
+                            ))}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div
                     className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl cursor-pointer select-none group border border-transparent hover:border-primary/20 transition-all"

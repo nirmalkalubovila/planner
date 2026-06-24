@@ -242,18 +242,18 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     return (
                                                         <div
                                                             key={reminder.id}
-                                                            className="absolute left-0 right-0 z-30 flex items-center group/reminder cursor-pointer pointer-events-auto"
-                                                            style={{ top: `calc(${percent * 100}% - 9px)` }}
+                                                            className="absolute left-0 right-0 h-6 z-30 flex items-center group/reminder cursor-pointer pointer-events-auto"
+                                                            style={{ top: `calc(${percent * 100}% - 12px)` }}
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 if (onEditReminder) onEditReminder(reminder);
                                                             }}
                                                         >
                                                             <div className="w-full border-t-2 border-rose-500 relative flex items-center">
-                                                                <div className="absolute -left-1.5 bg-rose-500 text-white rounded-full p-0.5 shadow-md hover:scale-110 transition-transform">
-                                                                    <Bell size={6} className="animate-bounce" />
+                                                                <div className="absolute -left-3 md:-left-2 md:group-hover/reminder:-left-3 top-1/2 -translate-y-1/2 w-6 h-6 md:w-4 md:h-4 md:group-hover/reminder:w-6 md:group-hover/reminder:h-6 bg-rose-500 text-white rounded-full shadow-md transition-all duration-200 flex items-center justify-center z-50 hover:brightness-110">
+                                                                    <Bell className="w-3.5 h-3.5 md:w-2.5 md:h-2.5 md:group-hover/reminder:w-3.5 md:group-hover/reminder:h-3.5 animate-bounce" />
                                                                 </div>
-                                                                <span className="absolute left-3.5 bg-rose-950/90 text-rose-200 border border-rose-500/30 px-1 py-0.5 rounded-[4px] text-[7px] font-black uppercase tracking-wider whitespace-nowrap shadow-lg backdrop-blur-sm pointer-events-none max-w-[80px] truncate z-40 opacity-90 group-hover/reminder:opacity-100 transition-opacity">
+                                                                <span className="absolute left-4 md:left-3 md:group-hover/reminder:left-4 top-1/2 -translate-y-1/2 bg-rose-950/90 text-rose-200 border border-rose-500/30 px-1.5 py-0.5 rounded-[4px] text-[8px] md:text-[7px] md:group-hover/reminder:text-[8px] font-black uppercase tracking-wider whitespace-nowrap shadow-lg backdrop-blur-sm pointer-events-none max-w-[90px] md:max-w-[65px] md:group-hover/reminder:max-w-[110px] truncate z-40 opacity-100 md:opacity-90 md:group-hover/reminder:opacity-100 transition-all duration-200">
                                                                     {reminder.time} - {reminder.name}
                                                                 </span>
                                                             </div>
