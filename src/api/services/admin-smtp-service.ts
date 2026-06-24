@@ -65,8 +65,8 @@ export function useGlobalSmtpSettings() {
       settings: Omit<GlobalSmtpSettings, "hasPassword">;
       password?: string;
     }) => {
-      // Use the anon key as encryption key for pgcrypto
-      const encryptionKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      // Use a consistent static key to ensure identical encryption/decryption keys between envs
+      const encryptionKey = "llb_smtp_encryption_key_2026";
       
       const { error } = await supabase.rpc("save_global_smtp_settings", {
         p_enabled: settings.enabled,
