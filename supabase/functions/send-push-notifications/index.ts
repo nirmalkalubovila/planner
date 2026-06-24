@@ -545,7 +545,7 @@ Deno.serve(async (req: Request) => {
     let minIntervalPerUser = 60;
 
     if (smtpSettings && smtpSettings.enabled) {
-      const encryptionKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("VITE_SUPABASE_ANON_KEY") || "";
+      const encryptionKey = "llb_smtp_encryption_key_2026";
       const { data: decryptedPass, error: decErr } = await supabase
         .rpc("get_decrypted_smtp_password", { p_encryption_key: encryptionKey });
 
