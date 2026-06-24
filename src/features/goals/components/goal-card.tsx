@@ -35,31 +35,45 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     const milestones = goal.milestones || [];
     const totalMilestones = milestones.length;
 
-    const { weeklyTasks, progressPercentage, completedWeeklyTasksCount } = useMemo(() => {
+    const { weeklyTasks, progressPercentage, completedWeeklyTasksCount, totalAllocatedHours } = useMemo(() => {
         let weeklyTasksList: { id: string, dayStr: string, name: string, time: string, dayName: string }[] = [];
 
         if (weekPlan && currentWeek) {
             const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             for (let d = 0; d < 7; d++) {
-                let currentTaskName: string | null = null;
                 for (let s = 0; s < 48; s++) {
                     const content = weekPlan[`${d}-${s}`];
                     const isGoalTask = content && content.type === 'goal' && (content as any).goalId === goal.id;
                     if (isGoalTask) {
-                        if (currentTaskName !== content.name) {
-                            const hour = Math.floor(s / 2);
-                            const min = (s % 2) * 30;
-                            weeklyTasksList.push({
-                                id: `goal-${content.name}-${s}`,
-                                dayStr: `${currentWeek}-${d + 1}`,
-                                name: content.name,
-                                dayName: DAYS[d],
-                                time: `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`
-                            });
-                            currentTaskName = content.name;
+                        const startSlot = s;
+                        let endSlot = s;
+                        while (endSlot < 47) {
+                            const nextContent = weekPlan[`${d}-${endSlot + 1}`];
+                            const isNextGoalTask = nextContent && nextContent.type === 'goal' && (nextContent as any).goalId === goal.id && nextContent.name === content.name;
+                            if (isNextGoalTask) {
+                                endSlot++;
+                            } else {
+                                break;
+                            }
                         }
-                    } else {
-                        currentTaskName = null;
+
+                        const startH = Math.floor(startSlot / 2);
+                        const startM = (startSlot % 2) * 30;
+                        const startTimeStr = `${startH.toString().padStart(2, '0')}:${startM.toString().padStart(2, '0')}`;
+
+                        const endH = Math.floor((endSlot + 1) / 2);
+                        const endM = ((endSlot + 1) % 2) * 30;
+                        const endTimeStr = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+
+                        weeklyTasksList.push({
+                            id: `goal-${content.name}-${startSlot}`,
+                            dayStr: `${currentWeek}-${d + 1}`,
+                            name: content.name,
+                            dayName: DAYS[d],
+                            time: `${startTimeStr} - ${endTimeStr}`
+                        });
+
+                        s = endSlot;
                     }
                 }
             }
@@ -87,10 +101,25 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             }
         }
 
+        let totalSlotsCount = 0;
+        if (weekPlan && currentWeek) {
+            for (let d = 0; d < 7; d++) {
+                for (let s = 0; s < 48; s++) {
+                    const content = weekPlan[`${d}-${s}`];
+                    const isGoalTask = content && content.type === 'goal' && (content as any).goalId === goal.id;
+                    if (isGoalTask) {
+                        totalSlotsCount++;
+                    }
+                }
+            }
+        }
+        const totalAllocatedHours = totalSlotsCount * 0.5;
+
         return {
             weeklyTasks: tasksWithStatus,
             progressPercentage: progressOverride,
-            completedWeeklyTasksCount: completedWeekly
+            completedWeeklyTasksCount: completedWeekly,
+            totalAllocatedHours
         };
     }, [goal, weekPlan, completedDays, currentWeek]);
 
@@ -154,6 +183,11 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                         {weeklyTasks.length > 0 && (
                             <span className="text-[8px] font-black uppercase tracking-widest bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded">
                                 {completedWeeklyTasksCount}/{weeklyTasks.length} Done
+                            </span>
+                        )}
+                        {totalAllocatedHours > 0 && (
+                            <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+                                {totalAllocatedHours}h Allocated
                             </span>
                         )}
                     </div>

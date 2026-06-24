@@ -6,12 +6,12 @@ import { useAuth } from '@/contexts/auth-context';
 import { isAdminEmail } from '@/features/admin/admin-constants';
 
 const navigation = [
+    { name: 'Home', href: '/today', icon: Home },
     { name: 'Habits', href: '/habits', icon: ListTodo },
     { name: 'Goals', href: '/goals', icon: Target },
-    { name: 'Today', href: '/today', icon: Home },
+    { name: 'Planner', href: '/planner', icon: CalendarDays },
     { name: 'Vault', href: '/vault', icon: Vault },
     { name: 'Stats', href: '/statistics', icon: BarChart2 },
-    { name: 'Planner', href: '/planner', icon: CalendarDays },
 ];
 
 export const MobileNav: React.FC = () => {

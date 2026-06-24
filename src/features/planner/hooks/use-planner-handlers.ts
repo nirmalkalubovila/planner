@@ -8,6 +8,7 @@ interface HandlerDeps {
     isSleepSlot: (slotIdx: number) => boolean;
     isHabitSlot: (dayIdx: number, slotIdx: number) => boolean;
     isPlanSlot: (dayIdx: number, slotIdx: number) => boolean;
+    getCellContent: (dayIdx: number, slotIdx: number) => any;
     activeGoalsForWeek: Goal[];
     selectedTool: 'erase' | 'goal' | 'duplicate' | 'drag' | null;
     selectedGoalId: string;
@@ -22,7 +23,7 @@ interface HandlerDeps {
 export function createPlannerHandlers(deps: HandlerDeps) {
     const {
         localGridState, updateGridState,
-        isSleepSlot, isHabitSlot, isPlanSlot,
+        isSleepSlot, isHabitSlot, isPlanSlot, getCellContent,
         activeGoalsForWeek, selectedTool, selectedGoalId,
         copiedTask, setCopiedTask,
         setEditingTaskData, setEditingTaskCell, setIsTaskEditDialogOpen,
@@ -87,7 +88,7 @@ export function createPlannerHandlers(deps: HandlerDeps) {
                             description: data.description,
                             time: data.startTime,
                             dayIdx,
-                            color: data.color || '#f59e0b',
+                            color: '#f43f5e',
                             isReminder: true,
                         });
                     }
@@ -145,7 +146,8 @@ export function createPlannerHandlers(deps: HandlerDeps) {
                         newState[`${dayIdx}-${i}`] = {
                             type: 'custom',
                             name: data.name,
-                            color: data.color
+                            color: data.color,
+                            description: data.description
                         };
                     }
                 }
@@ -172,10 +174,29 @@ export function createPlannerHandlers(deps: HandlerDeps) {
 
     const handleCellClick = (dayIdx: number, slotIdx: number) => {
         const key = `${dayIdx}-${slotIdx}`;
-        if (isSleepSlot(slotIdx) || isHabitSlot(dayIdx, slotIdx) || isPlanSlot(dayIdx, slotIdx)) return;
+        if (isSleepSlot(slotIdx) || isPlanSlot(dayIdx, slotIdx)) return;
 
         const newState = { ...localGridState };
-        const existing = newState[key];
+        let existing = newState[key];
+
+        // If it's a habit slot, always make sure the type is 'habit'
+        if (isHabitSlot(dayIdx, slotIdx)) {
+            if (!existing) {
+                const cellContent = getCellContent(dayIdx, slotIdx);
+                if (cellContent) {
+                    existing = {
+                        type: 'habit',
+                        name: cellContent.name,
+                        description: cellContent.description || '',
+                    };
+                }
+            } else {
+                existing = {
+                    ...existing,
+                    type: 'habit',
+                };
+            }
+        }
 
         if (!selectedTool) {
             if (existing) {

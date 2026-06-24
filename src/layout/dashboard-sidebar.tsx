@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { isAdminEmail } from '@/features/admin/admin-constants';
 
 const navigation = [
-    { name: 'Today Tasks', href: '/today', icon: Home, label: 'Execution' },
+    { name: 'Home', href: '/today', icon: Home, label: 'Execution' },
     { name: 'Habits', href: '/habits', icon: ListTodo, label: 'Consistency' },
     { name: 'Goals', href: '/goals', icon: Target, label: 'Vision' },
     { name: 'Planner', href: '/planner', icon: CalendarDays, label: 'Strategy' },

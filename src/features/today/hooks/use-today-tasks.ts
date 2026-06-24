@@ -13,6 +13,7 @@ export interface TaskItem {
     startSlot: number;
     endSlot: number;
     isReminder?: boolean;
+    description?: string;
 }
 
 const BASE_BONUS = 15;
@@ -48,7 +49,14 @@ export function useTodayTasks(
 
                 return isDayMatched && hasStarted && hasNotEnded && slotIdx >= startSlot && slotIdx < endSlot;
             });
-            if (habit) return { type: 'habit', name: habit.name };
+            if (habit) {
+                const key = `${dayIdx}-${slotIdx}`;
+                const customState = weekPlan?.[key];
+                const description = (customState && (customState.type === 'habit' || !customState.type)) 
+                    ? customState.description 
+                    : habit.description;
+                return { type: 'habit', name: habit.name, description };
+            }
             return (weekPlan || {})[`${dayIdx}-${slotIdx}`];
         };
 
@@ -69,6 +77,7 @@ export function useTodayTasks(
                         endSlot: i + 1,
                         startTime: slotToTime(i),
                         endTime: slotToTime(i + 1),
+                        description: content.description,
                     };
                 }
             } else {
@@ -96,6 +105,7 @@ export function useTodayTasks(
                 startSlot: slotIdx,
                 endSlot: slotIdx,
                 isReminder: true,
+                description: r.description,
             };
         });
 

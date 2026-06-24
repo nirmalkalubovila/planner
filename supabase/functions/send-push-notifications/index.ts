@@ -1,9 +1,11 @@
 // supabase/functions/send-push-notifications/index.ts
-// Supabase Edge Function — Cron-triggered push notification sender
-// Sends Web Push notifications for: task reminders, overdue tasks, daily briefing, goal deadlines
+// Supabase Edge Function — Cron-triggered push & email notification sender
+// Sends Web Push & Email notifications for: task reminders, overdue tasks, daily briefing, goal deadlines
 
 // @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+// @ts-ignore
+import nodemailer from "https://esm.sh/nodemailer@6.9.13";
 
 // Ambient declaration for Deno in editor environments
 declare const Deno: {
@@ -287,7 +289,58 @@ async function sendWebPush(
   };
 }
 
-// ─── Notification Logic ─────────────────────────────────────────
+
+// ─── Email Format & Sending Helpers ───────────────────────────
+
+/**
+ * Replace placeholders inside template text
+ */
+function formatTemplate(
+  bodyTemplate: string,
+  subjectTemplate: string,
+  variables: Record<string, string>
+): { subject: string; body: string } {
+  let subject = subjectTemplate;
+  let body = bodyTemplate;
+
+  for (const [key, val] of Object.entries(variables)) {
+    const placeholder = `{${key}}`;
+    subject = subject.replaceAll(placeholder, val);
+    body = body.replaceAll(placeholder, val);
+  }
+
+  return { subject, body };
+}
+
+/**
+ * Dispatch transactional email via nodemailer
+ */
+async function sendMailNotification(
+  transporter: any,
+  senderName: string,
+  senderEmail: string,
+  toEmail: string,
+  subject: string,
+  body: string
+): Promise<boolean> {
+  try {
+    const info = await transporter.sendMail({
+      from: `"${senderName}" <${senderEmail}>`,
+      to: toEmail,
+      subject: subject,
+      text: body,
+      html: body.replaceAll("\n", "<br/>"),
+    });
+    console.log(`Email notification dispatched to ${toEmail}: ${info.messageId}`);
+    return true;
+  } catch (err) {
+    console.error(`Failed to send email to ${toEmail}:`, err);
+    return false;
+  }
+}
+
+
+// ─── Notification Logic & Types ───────────────────────────────
 
 interface UserSubscription {
   id: string;
@@ -299,11 +352,15 @@ interface UserSubscription {
 
 interface UserProfile {
   user_id: string;
+  full_name: string | null;
   notification_prefs: {
     enabled?: boolean;
     taskReminders?: boolean;
     dailyBriefing?: boolean;
     goalDeadlines?: boolean;
+    emailDailyBriefing?: boolean;
+    emailTaskReminders?: boolean;
+    emailGoalDeadlines?: boolean;
     quietHoursEnabled?: boolean;
     quietHoursStart?: string;
     quietHoursEnd?: string;
@@ -325,12 +382,6 @@ interface WeekPlan {
       }>;
     }>;
   };
-}
-
-interface CompletedTasks {
-  user_id: string;
-  dayStr: string;
-  taskIds: string[];
 }
 
 interface Goal {
@@ -380,7 +431,6 @@ function isQuietHours(prefs: UserProfile["notification_prefs"]): boolean {
  */
 function getCurrentWeek(): string {
   const now = new Date();
-  // Find Monday of this week
   const day = now.getDay();
   const diff = now.getDate() - day + (day === 0 ? -6 : 1);
   const monday = new Date(now);
@@ -402,7 +452,6 @@ function getCurrentWeek(): string {
 function getCurrentDayStr(): string {
   const now = new Date();
   const dayOfWeek = now.getDay();
-  // Convert 0=Sun to 1-indexed Mon-Sun (1=Mon, 7=Sun)
   const dayIdx = dayOfWeek === 0 ? 7 : dayOfWeek;
   return `${getCurrentWeek()}-${dayIdx}`;
 }
@@ -426,12 +475,11 @@ function getWakeUpMinutes(sleepStart: string, sleepDuration: string): number {
   return totalMinutes % 1440;
 }
 
+
 // ─── Main Handler ─────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
   try {
-    // Verify this is a cron invocation or has the service role key
-    const authHeader = req.headers.get("Authorization");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY")!;
@@ -443,32 +491,24 @@ Deno.serve(async (req: Request) => {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // 1. Get all users with active push subscriptions
-    const { data: subscriptions, error: subErr } = await supabase
-      .from("push_subscriptions")
+    // 1. Fetch all user profiles
+    const { data: allProfiles, error: profilesErr } = await supabase
+      .from("user_profiles")
       .select("*");
 
-    if (subErr) throw subErr;
-    if (!subscriptions || subscriptions.length === 0) {
-      return new Response(JSON.stringify({ message: "No subscriptions found" }), {
+    if (profilesErr) throw profilesErr;
+    if (!allProfiles || allProfiles.length === 0) {
+      return new Response(JSON.stringify({ message: "No user profiles found" }), {
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Group subscriptions by user
-    const userSubs = new Map<string, UserSubscription[]>();
-    for (const sub of subscriptions) {
-      const existing = userSubs.get(sub.user_id) || [];
-      existing.push(sub);
-      userSubs.set(sub.user_id, existing);
-    }
+    const userIds = allProfiles.map((p: any) => p.user_id);
 
-    const userIds = Array.from(userSubs.keys());
-
-    // 2. Fetch all profiles, week plans, completed tasks, and goals for these users
-    const [profilesRes, weekPlansRes, completedRes, goalsRes, habitsRes, sentLogRes] =
+    // 2. Fetch push subscriptions, week plans, completed tasks, goals, habits, logs, SMTP settings, templates & auth emails
+    const [subscriptionsRes, weekPlansRes, completedRes, goalsRes, habitsRes, sentLogRes, smtpSettingsRes, templatesRes, authUsersRes] =
       await Promise.all([
-        supabase.from("user_profiles").select("*").in("user_id", userIds),
+        supabase.from("push_subscriptions").select("*").in("user_id", userIds),
         supabase.from("week_plans").select("*").eq("week", getCurrentWeek()).in("user_id", userIds),
         supabase
           .from("completed_tasks")
@@ -478,10 +518,67 @@ Deno.serve(async (req: Request) => {
         supabase.from("goals").select("*").in("user_id", userIds),
         supabase.from("habits").select("*").in("user_id", userIds),
         supabase.from("notification_sent_log").select("*").in("user_id", userIds),
+        supabase.from("global_smtp_settings").select("*").eq("id", 1).maybeSingle(),
+        supabase.from("global_email_templates").select("*"),
+        supabase.auth.admin.listUsers(),
       ]);
 
-    const profiles = new Map<string, UserProfile>();
-    for (const p of profilesRes.data || []) profiles.set(p.user_id, p);
+    if (authUsersRes.error) throw authUsersRes.error;
+
+    // Map user IDs to auth emails
+    const userEmails = new Map<string, string>();
+    for (const u of authUsersRes.data.users || []) {
+      userEmails.set(u.id, u.email || "");
+    }
+
+    const smtpSettings = smtpSettingsRes.data;
+    const templates = templatesRes.data || [];
+
+    const briefingTemplate = templates.find((t: any) => t.type === "daily-briefing");
+    const reminderTemplate = templates.find((t: any) => t.type === "task-reminder");
+    const deadlineTemplate = templates.find((t: any) => t.type === "goal-deadline");
+
+    // Decrypt SMTP password and create transporter if enabled
+    let smtpTransporter: any = null;
+    let senderEmail = "";
+    let senderName = "";
+    let minIntervalPerUser = 60;
+
+    if (smtpSettings && smtpSettings.enabled) {
+      const encryptionKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("VITE_SUPABASE_ANON_KEY") || "";
+      const { data: decryptedPass, error: decErr } = await supabase
+        .rpc("get_decrypted_smtp_password", { p_encryption_key: encryptionKey });
+
+      if (decErr) {
+        console.error("Failed to decrypt SMTP password:", decErr);
+      } else {
+        senderEmail = smtpSettings.sender_email;
+        senderName = smtpSettings.sender_name;
+        minIntervalPerUser = smtpSettings.min_interval || 60;
+
+        try {
+          smtpTransporter = nodemailer.createTransport({
+            host: smtpSettings.host,
+            port: smtpSettings.port || 587,
+            secure: smtpSettings.port === 465,
+            auth: {
+              user: smtpSettings.username,
+              pass: decryptedPass,
+            },
+          });
+        } catch (err) {
+          console.error("Failed to create nodemailer transporter:", err);
+        }
+      }
+    }
+
+    // Group subscriptions by user
+    const userSubs = new Map<string, UserSubscription[]>();
+    for (const sub of subscriptionsRes.data || []) {
+      const existing = userSubs.get(sub.user_id) || [];
+      existing.push(sub);
+      userSubs.set(sub.user_id, existing);
+    }
 
     const weekPlans = new Map<string, WeekPlan>();
     for (const wp of weekPlansRes.data || []) weekPlans.set(wp.user_id, wp);
@@ -511,7 +608,7 @@ Deno.serve(async (req: Request) => {
       sentTags.set(log.user_id, existing);
     }
 
-    // Count notifications sent in the last hour for rate limiting
+    // Count push notifications sent in the last hour for rate limiting
     const sentInLastHour = new Map<string, number>();
     for (const log of sentLogRes.data || []) {
       const sentAt = new Date(log.sent_at).getTime();
@@ -520,16 +617,17 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    let totalSent = 0;
+    let totalPushSent = 0;
+    let totalEmailsSent = 0;
     let totalSkipped = 0;
     const staleSubscriptions: string[] = [];
 
-    // 3. Process each user
-    for (const [userId, subs] of userSubs) {
-      const profile = profiles.get(userId);
-      const prefs = profile?.notification_prefs;
+    // Process each user profile
+    for (const profile of allProfiles) {
+      const userId = profile.user_id;
+      const prefs = profile.notification_prefs;
 
-      // Skip if notifications disabled
+      // Skip if notifications globally disabled
       if (!prefs?.enabled) {
         totalSkipped++;
         continue;
@@ -541,204 +639,332 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // Rate limit check
-      const sentCount = sentInLastHour.get(userId) || 0;
-      if (sentCount >= MAX_NOTIFICATIONS_PER_HOUR) {
-        totalSkipped++;
-        continue;
-      }
-
       const userSentTags = sentTags.get(userId) || new Set();
-      let remainingQuota = MAX_NOTIFICATIONS_PER_HOUR - sentCount;
-
-      // Collect notifications to send
-      const notifications: Array<{
-        tag: string;
-        title: string;
-        body: string;
-        url: string;
-      }> = [];
+      const userEmail = userEmails.get(userId);
+      const userName = profile.full_name || userEmail?.split("@")[0] || "User";
 
       // ── A. Task Reminders (5 min before start) + Overdue ──
-      if (prefs.taskReminders !== false) {
-        const wp = weekPlans.get(userId);
-        const dayIdx = getTodayDayIndex();
-        const dayPlan = wp?.state?.days?.[dayIdx];
-        const tasks = dayPlan?.tasks || [];
-        const completedIds = completed.get(userId) || [];
+      const wp = weekPlans.get(userId);
+      const dayIdx = getTodayDayIndex();
+      const dayPlan = wp?.state?.days?.[dayIdx];
+      const tasks = dayPlan?.tasks || [];
+      const completedIds = completed.get(userId) || [];
 
-        // Also include habits for today
-        const userHabits = habitsByUser.get(userId) || [];
-        const todayDayNum = new Date().getDay(); // 0=Sun
-        const habitTasks = userHabits
-          .filter((h) => {
-            if (!h.daysOfWeek || !Array.isArray(h.daysOfWeek)) return true;
-            return h.daysOfWeek.includes(todayDayNum);
-          })
-          .map((h) => ({
-            id: h.id,
-            name: h.name,
-            startTime: h.startTime,
-            endTime: h.endTime,
-          }));
+      // Include habits
+      const userHabits = habitsByUser.get(userId) || [];
+      const todayDayNum = new Date().getDay();
+      const habitTasks = userHabits
+        .filter((h) => {
+          if (!h.daysOfWeek || !Array.isArray(h.daysOfWeek)) return true;
+          return h.daysOfWeek.includes(todayDayNum);
+        })
+        .map((h) => ({
+          id: h.id,
+          name: h.name,
+          startTime: h.startTime,
+          endTime: h.endTime,
+        }));
 
-        const allTasks = [...tasks, ...habitTasks];
+      const allTasks = [...tasks, ...habitTasks];
 
-        for (const task of allTasks) {
-          const [startH, startM] = task.startTime.split(":").map(Number);
-          const taskStartMinutes = startH * 60 + startM;
-          const diffMinutes = taskStartMinutes - currentMinutes;
+      for (const task of allTasks) {
+        const [startH, startM] = task.startTime.split(":").map(Number);
+        const taskStartMinutes = startH * 60 + startM;
+        const diffMinutes = taskStartMinutes - currentMinutes;
 
-          // Task starting soon (within TASK_REMINDER_MINUTES)
-          if (diffMinutes > 0 && diffMinutes <= TASK_REMINDER_MINUTES) {
-            const tag = `task-start-${task.id}-${now.toISOString().slice(0, 10)}`;
-            if (!userSentTags.has(tag)) {
-              notifications.push({
-                tag,
-                title: `📋 ${task.name} starts in ${diffMinutes} min`,
-                body: `Scheduled for ${task.startTime} - ${task.endTime}`,
-                url: "/today",
-              });
-            }
-          }
+        // --- Task Starting Soon ---
+        if (diffMinutes > 0 && diffMinutes <= TASK_REMINDER_MINUTES) {
+          const tag = `task-start-${task.id}-${now.toISOString().slice(0, 10)}`;
 
-          // Task overdue
-          const [endH, endM] = task.endTime.split(":").map(Number);
-          const taskEndMinutes = endH * 60 + endM;
-          if (
-            currentMinutes > taskEndMinutes &&
-            !completedIds.includes(task.id)
-          ) {
-            const tag = `task-overdue-${task.id}-${now.toISOString().slice(0, 10)}`;
-            if (!userSentTags.has(tag)) {
-              notifications.push({
-                tag,
-                title: `⚠️ ${task.name} isn't completed`,
-                body: `Was scheduled for ${task.startTime} - ${task.endTime}. Tap to mark it done.`,
-                url: "/today",
-              });
-            }
-          }
-        }
-      }
-
-      // ── B. Daily Briefing (at wake-up time) ──
-      if (prefs.dailyBriefing !== false) {
-        const sleepStart = profile?.sleep_start || "22:00";
-        const sleepDuration = profile?.sleep_duration || "8";
-        const wakeUpMinutes = getWakeUpMinutes(sleepStart, sleepDuration);
-
-        // Send if we're within 2 minutes of wake-up time
-        const wakeUpDiff = currentMinutes - wakeUpMinutes;
-        if (wakeUpDiff >= 0 && wakeUpDiff < 2) {
-          const tag = `daily-briefing-${now.toISOString().slice(0, 10)}`;
-          if (!userSentTags.has(tag)) {
-            const wp = weekPlans.get(userId);
-            const dayIdx = getTodayDayIndex();
-            const dayPlan = wp?.state?.days?.[dayIdx];
-            const taskCount = (dayPlan?.tasks || []).length;
-
-            const hour = now.getHours();
-            const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-
-            notifications.push({
-              tag,
-              title: `☀️ ${greeting}!`,
-              body:
-                taskCount > 0
-                  ? `You have ${taskCount} task${taskCount !== 1 ? "s" : ""} scheduled today. Let's build your legacy!`
-                  : "No tasks scheduled for today. Use the planner to add some!",
+          // 1. Push notification
+          if (prefs.taskReminders !== false && !userSentTags.has(tag)) {
+            const subs = userSubs.get(userId) || [];
+            const pushPayload = {
+              title: `📋 ${task.name} starts in ${diffMinutes} min`,
+              body: `Scheduled for ${task.startTime} - ${task.endTime}`,
               url: "/today",
-            });
+              tag,
+            };
+
+            let pushSent = false;
+            for (const sub of subs) {
+              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (res.gone) staleSubscriptions.push(sub.id);
+              else if (res.success) pushSent = true;
+            }
+
+            if (pushSent) {
+              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+              totalPushSent++;
+            }
+          }
+
+          // 2. Email notification
+          const emailTag = `email-${tag}`;
+          if (
+            prefs.emailTaskReminders &&
+            reminderTemplate?.enabled &&
+            smtpTransporter &&
+            userEmail &&
+            !userSentTags.has(emailTag)
+          ) {
+            // Check rate limits
+            let lastEmailSentTime = 0;
+            for (const log of sentLogRes.data || []) {
+              if (log.user_id === userId && log.notification_tag.startsWith("email-")) {
+                const t = new Date(log.sent_at).getTime();
+                if (t > lastEmailSentTime) lastEmailSentTime = t;
+              }
+            }
+            if (now.getTime() - lastEmailSentTime >= minIntervalPerUser * 1000) {
+              const { subject, body } = formatTemplate(reminderTemplate.body, reminderTemplate.subject, {
+                name: userName,
+                task_name: task.name,
+                start_time: task.startTime,
+                end_time: task.endTime,
+                sender_name: senderName,
+              });
+
+              const ok = await sendMailNotification(smtpTransporter, senderName, senderEmail, userEmail, subject, body);
+              if (ok) {
+                await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: emailTag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                totalEmailsSent++;
+              }
+            }
           }
         }
-      }
 
-      // ── C. Goal Deadlines (7, 3, 1 day before) ──
-      if (prefs.goalDeadlines !== false) {
-        const goals = goalsByUser.get(userId) || [];
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        // --- Task Overdue ---
+        const [endH, endM] = task.endTime.split(":").map(Number);
+        const taskEndMinutes = endH * 60 + endM;
+        if (currentMinutes > taskEndMinutes && !completedIds.includes(task.id)) {
+          const tag = `task-overdue-${task.id}-${now.toISOString().slice(0, 10)}`;
 
-        for (const goal of goals) {
-          if (!goal.endDate) continue;
-          const endDate = new Date(goal.endDate);
-          const diffMs = endDate.getTime() - today.getTime();
-          const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          // 1. Push notification
+          if (prefs.taskReminders !== false && !userSentTags.has(tag)) {
+            const subs = userSubs.get(userId) || [];
+            const pushPayload = {
+              title: `⚠️ ${task.name} isn't completed`,
+              body: `Was scheduled for ${task.startTime} - ${task.endTime}. Tap to mark it done.`,
+              url: "/today",
+              tag,
+            };
 
-          for (const threshold of DEADLINE_DAYS) {
-            if (diffDays <= threshold && diffDays > 0) {
-              const tag = `goal-deadline-${goal.id}-${threshold}`;
-              if (!userSentTags.has(tag)) {
-                const milestones = goal.milestones || [];
-                const completedCount = milestones.filter((m) => m.completed).length;
-                const progress =
-                  milestones.length > 0
-                    ? Math.round((completedCount / milestones.length) * 100)
-                    : 0;
+            let pushSent = false;
+            for (const sub of subs) {
+              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (res.gone) staleSubscriptions.push(sub.id);
+              else if (res.success) pushSent = true;
+            }
 
-                const dayWord = diffDays === 1 ? "day" : "days";
+            if (pushSent) {
+              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+              totalPushSent++;
+            }
+          }
 
-                notifications.push({
-                  tag,
-                  title: `🎯 "${goal.name}" deadline in ${diffDays} ${dayWord}`,
-                  body:
-                    progress > 0
-                      ? `You're at ${progress}% progress. ${diffDays <= 1 ? "Final push!" : "Keep working on it!"}`
-                      : "Deadline approaching. Start making progress on your milestones!",
-                  url: "/goals",
-                });
+          // 2. Email notification (overdue tasks get reminder template)
+          const emailTag = `email-${tag}`;
+          if (
+            prefs.emailTaskReminders &&
+            reminderTemplate?.enabled &&
+            smtpTransporter &&
+            userEmail &&
+            !userSentTags.has(emailTag)
+          ) {
+            // Check rate limits
+            let lastEmailSentTime = 0;
+            for (const log of sentLogRes.data || []) {
+              if (log.user_id === userId && log.notification_tag.startsWith("email-")) {
+                const t = new Date(log.sent_at).getTime();
+                if (t > lastEmailSentTime) lastEmailSentTime = t;
+              }
+            }
+            if (now.getTime() - lastEmailSentTime >= minIntervalPerUser * 1000) {
+              const { subject, body } = formatTemplate(
+                `Hi {name},\n\nYour task "{task_name}" scheduled for {start_time} - {end_time} was not marked as completed. Please check your dashboard to mark it done.\n\nBest,\n{sender_name}`,
+                `⚠️ Overdue: {task_name} isn't completed`,
+                {
+                  name: userName,
+                  task_name: task.name,
+                  start_time: task.startTime,
+                  end_time: task.endTime,
+                  sender_name: senderName,
+                }
+              );
+
+              const ok = await sendMailNotification(smtpTransporter, senderName, senderEmail, userEmail, subject, body);
+              if (ok) {
+                await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: emailTag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                totalEmailsSent++;
               }
             }
           }
         }
       }
 
-      // 4. Send notifications (respecting rate limit)
-      for (const notif of notifications) {
-        if (remainingQuota <= 0) break;
+      // ── B. Daily Briefing (at wake-up time) ──
+      const sleepStart = profile.sleep_start || "22:00";
+      const sleepDuration = profile.sleep_duration || "8";
+      const wakeUpMinutes = getWakeUpMinutes(sleepStart, sleepDuration);
 
-        const pushPayload = {
-          title: notif.title,
-          body: notif.body,
-          url: notif.url,
-          tag: notif.tag,
-        };
+      const wakeUpDiff = currentMinutes - wakeUpMinutes;
+      if (wakeUpDiff >= 0 && wakeUpDiff < 2) {
+        const tag = `daily-briefing-${now.toISOString().slice(0, 10)}`;
 
-        let anySent = false;
+        // 1. Push notification
+        if (prefs.dailyBriefing !== false && !userSentTags.has(tag)) {
+          const subs = userSubs.get(userId) || [];
+          const taskCount = allTasks.length;
+          const hour = now.getHours();
+          const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-        for (const sub of subs) {
-          try {
-            const result = await sendWebPush(
-              { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
-              pushPayload,
-              vapidPublicKey,
-              vapidPrivateKey,
-              vapidSubject
-            );
+          const pushPayload = {
+            title: `☀️ ${greeting}!`,
+            body: taskCount > 0
+              ? `You have ${taskCount} task${taskCount !== 1 ? "s" : ""} scheduled today. Let's build your legacy!`
+              : "No tasks scheduled for today. Use the planner to add some!",
+            url: "/today",
+            tag,
+          };
 
-            if (result.gone) {
-              // Subscription expired — mark for cleanup
-              staleSubscriptions.push(sub.id);
-            } else if (result.success) {
-              anySent = true;
-            }
-          } catch (err) {
-            console.error(`Failed to send push to ${sub.endpoint}:`, err);
+          let pushSent = false;
+          for (const sub of subs) {
+            const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+            if (res.gone) staleSubscriptions.push(sub.id);
+            else if (res.success) pushSent = true;
+          }
+
+          if (pushSent) {
+            await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+            totalPushSent++;
           }
         }
 
-        if (anySent) {
-          // Record in sent log for dedup
-          await supabase.from("notification_sent_log").upsert(
-            {
-              user_id: userId,
-              notification_tag: notif.tag,
-              sent_at: now.toISOString(),
-            },
-            { onConflict: "user_id,notification_tag" }
-          );
-          totalSent++;
-          remainingQuota--;
+        // 2. Email notification
+        const emailTag = `email-${tag}`;
+        if (
+          prefs.emailDailyBriefing &&
+          briefingTemplate?.enabled &&
+          smtpTransporter &&
+          userEmail &&
+          !userSentTags.has(emailTag)
+        ) {
+          // Check rate limits
+          let lastEmailSentTime = 0;
+          for (const log of sentLogRes.data || []) {
+            if (log.user_id === userId && log.notification_tag.startsWith("email-")) {
+              const t = new Date(log.sent_at).getTime();
+              if (t > lastEmailSentTime) lastEmailSentTime = t;
+            }
+          }
+          if (now.getTime() - lastEmailSentTime >= minIntervalPerUser * 1000) {
+            const taskCount = allTasks.length;
+            const tasksList = allTasks.map((t) => `- ${t.startTime} - ${t.endTime}: ${t.name}`).join("\n");
+            
+            const dateStr = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+            const { subject, body } = formatTemplate(briefingTemplate.body, briefingTemplate.subject, {
+              name: userName,
+              date: dateStr,
+              task_count: String(taskCount),
+              tasks_list: taskCount > 0 ? tasksList : "No tasks scheduled for today.",
+              sender_name: senderName,
+            });
+
+            const ok = await sendMailNotification(smtpTransporter, senderName, senderEmail, userEmail, subject, body);
+            if (ok) {
+              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: emailTag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+              totalEmailsSent++;
+            }
+          }
+        }
+      }
+
+      // ── C. Goal Deadlines (7, 3, 1 day before) ──
+      const goals = goalsByUser.get(userId) || [];
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      for (const goal of goals) {
+        if (!goal.endDate) continue;
+        const endDate = new Date(goal.endDate);
+        const diffMs = endDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        for (const threshold of DEADLINE_DAYS) {
+          if (diffDays <= threshold && diffDays > 0) {
+            const tag = `goal-deadline-${goal.id}-${threshold}`;
+
+            // 1. Push notification
+            if (prefs.goalDeadlines !== false && !userSentTags.has(tag)) {
+              const subs = userSubs.get(userId) || [];
+              const milestones = goal.milestones || [];
+              const completedCount = milestones.filter((m) => m.completed).length;
+              const progress = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
+              const dayWord = diffDays === 1 ? "day" : "days";
+
+              const pushPayload = {
+                title: `🎯 "${goal.name}" deadline in ${diffDays} ${dayWord}`,
+                body: progress > 0
+                  ? `You're at ${progress}% progress. ${diffDays <= 1 ? "Final push!" : "Keep working on it!"}`
+                  : "Deadline approaching. Start making progress on your milestones!",
+                url: "/goals",
+                tag,
+              };
+
+              let pushSent = false;
+              for (const sub of subs) {
+                const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                if (res.gone) staleSubscriptions.push(sub.id);
+                else if (res.success) pushSent = true;
+              }
+
+              if (pushSent) {
+                await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                totalPushSent++;
+              }
+            }
+
+            // 2. Email notification
+            const emailTag = `email-${tag}`;
+            if (
+              prefs.emailGoalDeadlines &&
+              deadlineTemplate?.enabled &&
+              smtpTransporter &&
+              userEmail &&
+              !userSentTags.has(emailTag)
+            ) {
+              // Check rate limits
+              let lastEmailSentTime = 0;
+              for (const log of sentLogRes.data || []) {
+                if (log.user_id === userId && log.notification_tag.startsWith("email-")) {
+                  const t = new Date(log.sent_at).getTime();
+                  if (t > lastEmailSentTime) lastEmailSentTime = t;
+                }
+              }
+              if (now.getTime() - lastEmailSentTime >= minIntervalPerUser * 1000) {
+                const milestones = goal.milestones || [];
+                const completedCount = milestones.filter((m) => m.completed).length;
+                const progress = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
+
+                const { subject, body } = formatTemplate(deadlineTemplate.body, deadlineTemplate.subject, {
+                  name: userName,
+                  goal_name: goal.name,
+                  days_remaining: String(diffDays),
+                  completed_milestones: String(completedCount),
+                  total_milestones: String(milestones.length),
+                  progress: String(progress),
+                  sender_name: senderName,
+                });
+
+                const ok = await sendMailNotification(smtpTransporter, senderName, senderEmail, userEmail, subject, body);
+                if (ok) {
+                  await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: emailTag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                  totalEmailsSent++;
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -754,7 +980,8 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        sent: totalSent,
+        pushSent: totalPushSent,
+        emailsSent: totalEmailsSent,
         skipped: totalSkipped,
         staleRemoved: staleSubscriptions.length,
         timestamp: now.toISOString(),
@@ -762,7 +989,7 @@ Deno.serve(async (req: Request) => {
       { headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Push notification cron error:", error);
+    console.error("Cron notification execution error:", error);
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { "Content-Type": "application/json" } }

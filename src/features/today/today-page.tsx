@@ -131,6 +131,14 @@ export const TodayPage: React.FC = () => {
                                             )}>
                                                 {task.name}
                                             </span>
+                                            {task.description && (
+                                                <span className={cn(
+                                                    "text-xs text-muted-foreground mt-0.5 truncate",
+                                                    completed && "line-through opacity-70"
+                                                )}>
+                                                    {task.description}
+                                                </span>
+                                            )}
                                             <div className="flex items-center gap-2 mt-1">
                                                 <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                                     <Clock size={11} className={cn("text-muted-foreground", task.isReminder && "text-rose-400")} />
