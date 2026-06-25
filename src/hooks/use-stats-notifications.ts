@@ -23,7 +23,7 @@ export function useStatsNotifications() {
 
   // Consistency grade change detection
   useEffect(() => {
-    if (!stats || !preferences.enabled) return;
+    if (!stats || !preferences.enabled || preferences.statsChanges === false) return;
     if (hasChecked.current) return; // Only check once per app session to avoid spam
     hasChecked.current = true;
 
@@ -68,7 +68,7 @@ export function useStatsNotifications() {
 
   // Burnout warning
   useEffect(() => {
-    if (!stats || !preferences.enabled) return;
+    if (!stats || !preferences.enabled || preferences.burnoutWarning === false) return;
     if (!stats.predictive_burnout_warning) return;
 
     const lastShown = localStorage.getItem(STORAGE_KEY_BURNOUT);
@@ -99,7 +99,7 @@ export function useStatsNotifications() {
 
   // Streak milestones
   useEffect(() => {
-    if (!stats || !preferences.enabled) return;
+    if (!stats || !preferences.enabled || preferences.streakMilestones === false) return;
 
     const heatmap = stats.habit_heatmap || [];
     // Count consecutive active days from the end

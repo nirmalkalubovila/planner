@@ -25,7 +25,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const notifications = useNotificationStore((s) => s.notifications);
   const preferences = useNotificationStore((s) => s.preferences);
   const syncFromCloud = useNotificationStore((s) => s.syncFromCloud);
-  const clearStore = useNotificationStore((s) => s.clearStore);
+  const setUserId = useNotificationStore((s) => s.setUserId);
   const queryClient = useQueryClient();
   const hasSynced = useRef(false);
   const lastUser = useRef<string | null>(null);
@@ -72,13 +72,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (!user) {
       if (lastUser.current !== null) {
-        clearStore();
+        setUserId(null);
         hasSynced.current = false;
         lastUser.current = null;
       }
       return;
     }
 
+    // User changed — switch to new user's store
+    if (lastUser.current !== user.id) {
+      setUserId(user.id);
+      hasSynced.current = false;
+    }
     lastUser.current = user.id;
 
     if (!profile || hasSynced.current) return;
@@ -94,7 +99,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       syncFromCloud(cloudPrefs, cloudNotifs);
     }
     hasSynced.current = true;
-  }, [user, profile, syncFromCloud, clearStore]);
+  }, [user, profile, syncFromCloud, setUserId]);
 
   // Extract stable strings for deep comparisons
   const dbPrefsStr = JSON.stringify(profile?.notificationPrefs || {});

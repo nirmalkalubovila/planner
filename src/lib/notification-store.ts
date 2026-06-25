@@ -9,6 +9,7 @@ interface NotificationState {
   permissionStatus: NotificationPermission | 'unsupported' | 'default';
   deletedKeys: string[];
   shownKeys: string[];
+  currentUserId: string | null;
 
   // Actions
   addNotification: (notification: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => void;
@@ -20,6 +21,7 @@ interface NotificationState {
   updatePreferences: (prefs: Partial<NotificationPreferences>) => void;
   syncFromCloud: (prefs?: Partial<NotificationPreferences>, list?: AppNotification[]) => void;
   clearStore: () => void;
+  setUserId: (userId: string | null) => void;
 
   // Computed helpers
   getUnreadCount: () => number;
@@ -33,6 +35,7 @@ export const useNotificationStore = create<NotificationState>()(
       permissionStatus: 'default',
       deletedKeys: [],
       shownKeys: [],
+      currentUserId: null,
 
       addNotification: (notification) => {
         const { shownKeys, deletedKeys } = get();
@@ -141,7 +144,72 @@ export const useNotificationStore = create<NotificationState>()(
           preferences: DEFAULT_PREFERENCES,
           deletedKeys: [],
           shownKeys: [],
+          currentUserId: null,
         });
+      },
+
+      setUserId: (userId: string | null) => {
+        const current = get().currentUserId;
+        if (current === userId) return;
+
+        // Save current user's data before switching
+        if (current) {
+          const state = get();
+          try {
+            localStorage.setItem(`llb-notifications-${current}`, JSON.stringify({
+              state: {
+                notifications: state.notifications,
+                preferences: state.preferences,
+                deletedKeys: state.deletedKeys,
+                shownKeys: state.shownKeys,
+              },
+            }));
+          } catch {}
+        }
+
+        if (!userId) {
+          // Logged out — reset to defaults but DON'T delete saved data
+          set({
+            notifications: [],
+            preferences: DEFAULT_PREFERENCES,
+            deletedKeys: [],
+            shownKeys: [],
+            currentUserId: null,
+          });
+          return;
+        }
+
+        // Load new user's data
+        try {
+          const saved = localStorage.getItem(`llb-notifications-${userId}`);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            const s = parsed.state || parsed;
+            set({
+              notifications: s.notifications || [],
+              preferences: { ...DEFAULT_PREFERENCES, ...(s.preferences || {}) },
+              deletedKeys: s.deletedKeys || [],
+              shownKeys: s.shownKeys || [],
+              currentUserId: userId,
+            });
+          } else {
+            set({
+              notifications: [],
+              preferences: DEFAULT_PREFERENCES,
+              deletedKeys: [],
+              shownKeys: [],
+              currentUserId: userId,
+            });
+          }
+        } catch {
+          set({
+            notifications: [],
+            preferences: DEFAULT_PREFERENCES,
+            deletedKeys: [],
+            shownKeys: [],
+            currentUserId: userId,
+          });
+        }
       },
 
       getUnreadCount: () => get().notifications.filter((n) => !n.read).length,
@@ -153,6 +221,7 @@ export const useNotificationStore = create<NotificationState>()(
         preferences: state.preferences,
         deletedKeys: state.deletedKeys,
         shownKeys: state.shownKeys,
+        currentUserId: state.currentUserId,
       }),
     }
   )

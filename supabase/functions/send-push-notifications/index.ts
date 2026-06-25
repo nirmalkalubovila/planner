@@ -358,9 +358,9 @@ interface UserProfile {
     taskReminders?: boolean;
     dailyBriefing?: boolean;
     goalDeadlines?: boolean;
-    emailDailyBriefing?: boolean;
-    emailTaskReminders?: boolean;
-    emailGoalDeadlines?: boolean;
+    goalCompletion?: boolean;
+    daySummary?: boolean;
+    weeklySummary?: boolean;
     quietHoursEnabled?: boolean;
     quietHoursStart?: string;
     quietHoursEnd?: string;
@@ -957,7 +957,7 @@ Deno.serve(async (req: Request) => {
         const milestones = goal.milestones || [];
         if (milestones.length > 0 && milestones.every((m) => m.completed)) {
           const tag = `goal-completed-${goal.id}`;
-          if (!userSentTags.has(tag)) {
+          if (prefs.goalCompletion !== false && !userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
               title: `🏆 Goal "${goal.name}" completed!`,
@@ -985,7 +985,7 @@ Deno.serve(async (req: Request) => {
       const sleepStartParts = (profile.sleep_start || "22:00").split(":").map(Number);
       const sleepStartMinutes = sleepStartParts[0] * 60 + sleepStartParts[1];
       const sleepDiff = userCurrentMinutes - sleepStartMinutes;
-      if (sleepDiff >= 0 && sleepDiff < 2) {
+      if (sleepDiff >= 0 && sleepDiff < 2 && prefs.daySummary !== false) {
         const datePart = userLocalTime.toISOString().slice(0, 10);
         const tag = `day-summary-${datePart}`;
 
@@ -1031,7 +1031,7 @@ Deno.serve(async (req: Request) => {
       const dayOfWeekForSummary = userLocalTime.getUTCDay();
       if (dayOfWeekForSummary === 1) { // Monday
         const wakeUpDiffWeekly = userCurrentMinutes - wakeUpMinutes;
-        if (wakeUpDiffWeekly >= 0 && wakeUpDiffWeekly < 2) {
+        if (wakeUpDiffWeekly >= 0 && wakeUpDiffWeekly < 2 && prefs.weeklySummary !== false) {
           const tag = `weekly-summary-${userWeek}`;
 
           if (!userSentTags.has(tag)) {
