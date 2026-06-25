@@ -25,6 +25,8 @@ const LandingPage = React.lazy(() => import('./features/(public)/landing-page').
 const AdminPage = React.lazy(() => import('./features/admin/admin-page').then(m => ({ default: m.AdminPage })));
 const PrivacyPage = React.lazy(() => import('./features/(public)/privacy-page').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = React.lazy(() => import('./features/(public)/terms-page').then(m => ({ default: m.TermsPage })));
+const RefundPage = React.lazy(() => import('./features/(public)/refund-page').then(m => ({ default: m.RefundPage })));
+
 
 const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={<PageLoader />}>{children}</Suspense>
@@ -98,6 +100,8 @@ const router = createBrowserRouter(
       <Route path="/" element={<HomeRoute />} />
       <Route path="/privacy" element={<SuspenseWrapper><PrivacyPage /></SuspenseWrapper>} />
       <Route path="/terms" element={<SuspenseWrapper><TermsPage /></SuspenseWrapper>} />
+      <Route path="/refund" element={<SuspenseWrapper><RefundPage /></SuspenseWrapper>} />
+
 
 
       <Route path="/login" element={<AuthRoute><SuspenseWrapper><LoginPage /></SuspenseWrapper></AuthRoute>} />

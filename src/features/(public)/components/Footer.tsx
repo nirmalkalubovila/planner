@@ -59,8 +59,10 @@ export default function Footer() {
               <span>100% Private</span>
               <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
               <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <Link to="/refund" className="hover:text-white transition-colors">Return Policy</Link>
             </div>
           </div>
+
 
 
           <p className="text-[11px] text-zinc-600 mt-6 font-medium tracking-wide">
