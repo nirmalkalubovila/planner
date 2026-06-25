@@ -28,7 +28,7 @@ const steps = [
 export default function HowItWorks() {
   return (
     <section id="how-it-works" className="py-24 px-4 bg-black border-t border-zinc-900/60">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Section header */}
         <div className="mb-16 text-left">
           <span className="text-xs font-bold tracking-[0.25em] text-zinc-500 uppercase">
@@ -73,7 +73,7 @@ export default function HowItWorks() {
           <p className="text-[10px] font-bold tracking-[0.2em] text-zinc-500 uppercase mb-5">
             What you'll see inside
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {[
               { label: "Today's Schedule", sub: "Auto-built daily tasks" },
               { label: "Goal Matrix", sub: "AI milestone roadmap" },
@@ -96,5 +96,6 @@ export default function HowItWorks() {
         </div>
       </div>
     </section>
+
   );
 }

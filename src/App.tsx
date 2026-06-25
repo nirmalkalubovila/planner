@@ -23,6 +23,8 @@ const ForgotPasswordPage = React.lazy(() => import('./features/auth/forgot-passw
 const ResetPasswordPage = React.lazy(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
 const LandingPage = React.lazy(() => import('./features/(public)/landing-page').then(m => ({ default: m.LandingPage })));
 const AdminPage = React.lazy(() => import('./features/admin/admin-page').then(m => ({ default: m.AdminPage })));
+const PrivacyPage = React.lazy(() => import('./features/(public)/privacy-page').then(m => ({ default: m.PrivacyPage })));
+const TermsPage = React.lazy(() => import('./features/(public)/terms-page').then(m => ({ default: m.TermsPage })));
 
 const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense fallback={<PageLoader />}>{children}</Suspense>
@@ -94,6 +96,9 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<RootLayout />}>
       <Route path="/" element={<HomeRoute />} />
+      <Route path="/privacy" element={<SuspenseWrapper><PrivacyPage /></SuspenseWrapper>} />
+      <Route path="/terms" element={<SuspenseWrapper><TermsPage /></SuspenseWrapper>} />
+
 
       <Route path="/login" element={<AuthRoute><SuspenseWrapper><LoginPage /></SuspenseWrapper></AuthRoute>} />
       <Route path="/signup" element={<AuthRoute><SuspenseWrapper><SignupPage /></SuspenseWrapper></AuthRoute>} />
