@@ -146,6 +146,15 @@ export const NotificationPreferencesSection: React.FC = () => {
           disabled={!notificationsEnabled}
         />
 
+        <Toggle
+          label="Sleep Start & End Alerts"
+          description="Alert when your bedtime or wake-up time is reached"
+          icon={<Moon size={14} />}
+          enabled={preferences.sleepNotifications !== false}
+          onChange={(val) => updatePreferences({ sleepNotifications: val })}
+          disabled={!notificationsEnabled}
+        />
+
         <div className="h-px bg-border mx-3 my-2" />
 
         {/* Reminders & Tasks */}
@@ -189,6 +198,15 @@ export const NotificationPreferencesSection: React.FC = () => {
           icon={<BarChart3 size={14} />}
           enabled={preferences.weeklySummary !== false}
           onChange={(val) => updatePreferences({ weeklySummary: val })}
+          disabled={!notificationsEnabled}
+        />
+
+        <Toggle
+          label="Weekly Planning Reminder"
+          description="Alert when it is time to plan your upcoming week"
+          icon={<Clock size={14} />}
+          enabled={preferences.weeklyPlanning !== false}
+          onChange={(val) => updatePreferences({ weeklyPlanning: val })}
           disabled={!notificationsEnabled}
         />
 

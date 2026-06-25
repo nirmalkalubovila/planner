@@ -364,9 +364,14 @@ interface UserProfile {
     quietHoursEnabled?: boolean;
     quietHoursStart?: string;
     quietHoursEnd?: string;
+    sleepNotifications?: boolean;
+    weeklyPlanning?: boolean;
   } | null;
   sleep_start: string | null;
   sleep_duration: string | null;
+  plan_day: string | null;
+  plan_start_time: string | null;
+  plan_end_time: string | null;
 }
 
 interface WeekPlan {
@@ -512,6 +517,22 @@ function getWakeUpMinutes(sleepStart: string, sleepDuration: string): number {
   const dur = parseInt(sleepDuration, 10) || 8;
   const totalMinutes = h * 60 + m + dur * 60;
   return totalMinutes % 1440;
+}
+
+/**
+ * Get standard JavaScript day number from plan_day string (0=Sunday, 1=Monday, etc).
+ */
+function getPlanDayNumber(planDay: string): number {
+  const days: Record<string, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  };
+  return days[planDay.toLowerCase()] ?? 0;
 }
 
 
@@ -1053,6 +1074,96 @@ Deno.serve(async (req: Request) => {
             if (pushSent) {
               await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
               totalPushSent++;
+            }
+          }
+        }
+      }
+
+      // ── F. Sleep Start & End Notifications ──
+      if (prefs.sleepNotifications !== false) {
+        // Sleep Start
+        if (sleepDiff >= 0 && sleepDiff < 2) {
+          const datePart = userLocalTime.toISOString().slice(0, 10);
+          const tag = `sleep-start-${datePart}`;
+          if (!userSentTags.has(tag)) {
+            const subs = userSubs.get(userId) || [];
+            const pushPayload = {
+              title: "🌙 Bedtime Reminder",
+              body: "It's time to sleep. Wind down and get some rest!",
+              url: "/today",
+              tag,
+            };
+            let pushSent = false;
+            for (const sub of subs) {
+              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (res.gone) staleSubscriptions.push(sub.id);
+              else if (res.success) pushSent = true;
+            }
+            if (pushSent) {
+              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+              totalPushSent++;
+            }
+          }
+        }
+
+        // Sleep End (Wake-up)
+        const sleepEndDiff = userCurrentMinutes - wakeUpMinutes;
+        if (sleepEndDiff >= 0 && sleepEndDiff < 2) {
+          const datePart = userLocalTime.toISOString().slice(0, 10);
+          const tag = `sleep-end-${datePart}`;
+          if (!userSentTags.has(tag)) {
+            const subs = userSubs.get(userId) || [];
+            const pushPayload = {
+              title: "☀️ Good Morning!",
+              body: "Wake up time! Time to start a brand new day of building your legacy.",
+              url: "/today",
+              tag,
+            };
+            let pushSent = false;
+            for (const sub of subs) {
+              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (res.gone) staleSubscriptions.push(sub.id);
+              else if (res.success) pushSent = true;
+            }
+            if (pushSent) {
+              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+              totalPushSent++;
+            }
+          }
+        }
+      }
+
+      // ── G. Weekly Planning Session Reminder ──
+      if (prefs.weeklyPlanning !== false) {
+        const planDayNum = getPlanDayNumber(profile.plan_day || "Sunday");
+        const userDayNum = userLocalTime.getUTCDay();
+        if (userDayNum === planDayNum) {
+          const planTime = profile.plan_start_time || "21:00";
+          const [planH, planM] = planTime.split(":").map(Number);
+          const planMinutes = planH * 60 + planM;
+          const planDiff = userCurrentMinutes - planMinutes;
+
+          if (planDiff >= 0 && planDiff < 2) {
+            const datePart = userLocalTime.toISOString().slice(0, 10);
+            const tag = `weekly-planning-${datePart}`;
+            if (!userSentTags.has(tag)) {
+              const subs = userSubs.get(userId) || [];
+              const pushPayload = {
+                title: "📅 Time to Plan Your Week",
+                body: `It's time for your weekly planning session (${planTime}). Set your goals and build your legacy!`,
+                url: "/planner",
+                tag,
+              };
+              let pushSent = false;
+              for (const sub of subs) {
+                const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                if (res.gone) staleSubscriptions.push(sub.id);
+                else if (res.success) pushSent = true;
+              }
+              if (pushSent) {
+                await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                totalPushSent++;
+              }
             }
           }
         }

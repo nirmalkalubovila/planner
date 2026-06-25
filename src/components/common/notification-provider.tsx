@@ -9,6 +9,7 @@ import { useStatsNotifications } from '@/hooks/use-stats-notifications';
 import { useGoalNotifications } from '@/hooks/use-goal-notifications';
 import { useDailyBriefing } from '@/hooks/use-daily-briefing';
 import { useDaySummary } from '@/hooks/use-day-summary';
+import { useSleepAndPlanningNotifications } from '@/hooks/use-sleep-and-planning-notifications';
 import { NotificationPermissionBanner } from './notification-permission-banner';
 import { InstallPWAPrompt } from './install-pwa-prompt';
 
@@ -201,5 +202,6 @@ const NotificationHooks: React.FC = () => {
   useGoalNotifications();
   useDailyBriefing();
   useDaySummary();
+  useSleepAndPlanningNotifications();
   return null;
 };

@@ -9,7 +9,10 @@ export type NotificationType =
   | 'goal_completed'
   | 'weekly_summary'
   | 'burnout_warning'
-  | 'achievement';
+  | 'achievement'
+  | 'sleep_start'
+  | 'sleep_end'
+  | 'weekly_planning';
 
 export interface AppNotification {
   id: string;
@@ -42,6 +45,8 @@ export interface NotificationPreferences {
   streakMilestones: boolean;
   burnoutWarning: boolean;
   timezoneOffset?: number;
+  sleepNotifications?: boolean;
+  weeklyPlanning?: boolean;
 }
 
 export const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -58,6 +63,8 @@ export const DEFAULT_PREFERENCES: NotificationPreferences = {
   statsChanges: true,
   streakMilestones: true,
   burnoutWarning: true,
+  sleepNotifications: true,
+  weeklyPlanning: true,
 };
 
 /** Emoji icons per notification type for in-app display */
@@ -73,6 +80,9 @@ export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
   weekly_summary: '📊',
   burnout_warning: '🔥',
   achievement: '✨',
+  sleep_start: '🌙',
+  sleep_end: '☀️',
+  weekly_planning: '📅',
 };
 
 /** Max notifications per hour to avoid spamming */
