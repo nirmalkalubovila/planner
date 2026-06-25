@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSubmitFeedback } from '@/api/services/feedback-service';
 import { FEEDBACK_CATEGORIES, type FeedbackCategory } from '@/features/admin/admin-constants';
+import { useAuth } from '@/contexts/auth-context';
+import { useNavigate } from 'react-router-dom';
 
 const CATEGORY_ICONS: Record<FeedbackCategory, React.ReactNode> = {
     'Bug Report': <Bug className="h-3.5 w-3.5" />,
@@ -13,12 +15,18 @@ const CATEGORY_ICONS: Record<FeedbackCategory, React.ReactNode> = {
 };
 
 export const FeedbackSection: React.FC = () => {
+    const { user } = useAuth();
+    const navigate = useNavigate();
     const [category, setCategory] = useState<FeedbackCategory>('General Feedback');
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const submitFeedback = useSubmitFeedback();
 
     const handleSubmit = async () => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
         if (!subject.trim() || !message.trim()) return;
         await submitFeedback.mutateAsync({ category, subject: subject.trim(), message: message.trim() });
         setSubject('');
@@ -26,7 +34,8 @@ export const FeedbackSection: React.FC = () => {
         setCategory('General Feedback');
     };
 
-    const canSubmit = subject.trim().length > 0 && message.trim().length > 0 && !submitFeedback.isPending;
+    const canSubmit = !user || (subject.trim().length > 0 && message.trim().length > 0 && !submitFeedback.isPending);
+
 
     return (
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 space-y-5">
@@ -90,7 +99,11 @@ export const FeedbackSection: React.FC = () => {
                     disabled={!canSubmit}
                     className="h-9 rounded-xl px-5 font-semibold gap-2"
                 >
-                    {submitFeedback.isPending ? (
+                    {!user ? (
+                        <>
+                            Log in to Submit Feedback
+                        </>
+                    ) : submitFeedback.isPending ? (
                         <>
                             <div className="h-3.5 w-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                             Sending...
@@ -102,6 +115,7 @@ export const FeedbackSection: React.FC = () => {
                         </>
                     )}
                 </Button>
+
             </div>
         </div>
     );

@@ -52,7 +52,7 @@ const features = [
 export default function Features() {
   return (
     <section id="features" className="py-24 px-4 bg-zinc-950 border-t border-zinc-900/60">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Section header */}
         <div className="mb-16">
           <span className="text-xs font-bold tracking-[0.25em] text-zinc-500 uppercase">
@@ -65,29 +65,26 @@ export default function Features() {
           </h2>
         </div>
 
-        {/* Feature list */}
-        <div className="space-y-0 divide-y divide-zinc-900">
+        {/* Feature list grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature) => (
             <div
               key={feature.number}
-              className="py-8 flex gap-6 items-start group transition-all duration-300"
+              className="p-6 bg-zinc-900/20 hover:bg-zinc-900/40 border border-zinc-900/80 hover:border-zinc-800 rounded-2xl flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01]"
             >
-              {/* Number */}
-              <span className="text-xs font-mono text-zinc-700 pt-1 min-w-[28px] group-hover:text-zinc-500 transition-colors">
-                {feature.number}
-              </span>
-
-              {/* Content */}
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-base font-bold text-white transition-colors group-hover:text-zinc-200">
-                    {feature.title}
-                  </h3>
-                  <span className="text-[9px] font-bold tracking-wider text-zinc-400 border border-zinc-800 bg-zinc-900/40 px-2 py-0.5 rounded uppercase">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-mono text-zinc-600 group-hover:text-zinc-500 transition-colors">
+                    {feature.number}
+                  </span>
+                  <span className="text-[9px] font-bold tracking-wider text-zinc-400 border border-zinc-800 bg-zinc-950 px-2 py-0.5 rounded uppercase">
                     {feature.tag}
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-zinc-500 mb-3">
+                <h3 className="text-base font-bold text-white transition-colors group-hover:text-zinc-200 mb-1">
+                  {feature.title}
+                </h3>
+                <p className="text-xs font-semibold text-zinc-500 mb-4">
                   {feature.subtitle}
                 </p>
                 <p className="text-sm text-zinc-400 leading-relaxed">
@@ -101,3 +98,4 @@ export default function Features() {
     </section>
   );
 }
+

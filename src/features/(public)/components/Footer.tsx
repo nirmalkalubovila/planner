@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 export default function Footer() {
   return (
     <footer className="py-20 px-4 bg-black border-t border-zinc-900/60">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Final CTA */}
+
         <div className="mb-14">
           <h3 className="text-xl sm:text-2xl font-extrabold text-white mb-2.5">
             Build your legacy.
@@ -53,11 +54,14 @@ export default function Footer() {
               </span>
             </div>
 
-            {/* Info Badges */}
-            <div className="flex gap-4 text-[11px] text-zinc-500 font-semibold tracking-wide md:pt-1">
+            {/* Info Badges & Legal Links */}
+            <div className="flex gap-5 text-[11px] text-zinc-500 font-semibold tracking-wide md:pt-1">
               <span>100% Private</span>
+              <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             </div>
           </div>
+
 
           <p className="text-[11px] text-zinc-600 mt-6 font-medium tracking-wide">
             &copy; {new Date().getFullYear()} KONIK. All rights reserved.

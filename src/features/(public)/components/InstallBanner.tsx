@@ -8,8 +8,9 @@ export default function InstallBanner() {
 
   return (
     <section className="py-24 px-4 bg-black border-t border-zinc-900/60">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <span className="text-xs font-bold tracking-[0.25em] text-zinc-500 uppercase">
+
           Use as a Native App
         </span>
 

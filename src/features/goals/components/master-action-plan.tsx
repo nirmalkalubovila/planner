@@ -272,10 +272,11 @@ const BreakdownSection = ({
             }
 
             const prompt = `Generate a detailed hierarchical action plan breakdown for the following phase of the overall goal.
-Goal Name: ${goal.name}
+Goal Title: ${goal.title || ''}
+Goal Description/Mission: ${goal.name}
 Goal Purpose: ${goal.purpose}
 Goal Start Date: ${goal.startDate}
-Phase Target Task: ${slot.dayTask}
+Phase Target Task (with parent target count): ${slot.dayTask}
 Phase Strategy/Description: ${slot.description}
 Phase Timeline Date/Range: ${slot.date}
 System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
@@ -283,11 +284,21 @@ User Preferences: Focus Ability: ${profile?.focusAbility || user?.user_metadata?
 User Persona: Primary Focus: ${profile?.primaryLifeFocus || user?.user_metadata?.primaryLifeFocus || 'Not set'}, Profession: ${profile?.currentProfession || user?.user_metadata?.currentProfession || 'Not set'}, Peak Energy: ${profile?.energyPeakTime || user?.user_metadata?.energyPeakTime || 'Morning'}
 Tailor tasks specifically to fit this person's profession, life focus, and energy cycles when possible.
 Context - The surrounding sibling phases in the overall plan are: ${parentLevelTasks}. Ensure this new breakdown strictly stays within the current phase's boundaries.
+
+NUMERICAL PROGRESSION & TARGET INTERPOLATION:
+If the Goal Title, Description, Purpose, or the Phase Target Task contains a specific numeric target (e.g., "reach 10k followers", "reach 1k followers"), you MUST mathematically interpolate/scale this target across the ${dynamicCount} sequential sub-milestones (representing ${expansionType}).
+- Proportionally distribute the numeric target progress over these ${dynamicCount} periods.
+- Specify the progressive target numbers clearly in each sub-milestone's title ("dayTask") and details ("description") (e.g. Week 1: Reach 400 followers, Week 2: Reach 600 followers, Week 3: Reach 800 followers, Week 4: Reach 1k followers).
+
+REALISTIC ESTIMATED HOURS:
+- The "estimatedHours" MUST be a highly realistic, non-generic estimation of the cumulative hours required to execute that specific sub-milestone task.
+- Base this on the work scale and complexity required to reach the progressive numeric target in that period (e.g., 10, 15, 20 hours per week) instead of defaulting to a small generic number like 8.
+
 Please break this specific phase down into EXACTLY ${dynamicCount} sequential sub-milestones (representing ${expansionType}).
 TIMELINE SYNC CRITICAL: You must use the "System Current Date" as your reality baseline.
 ${isWeekLevel ? `CRITICAL: Weekly plan. Use these EXACT date ranges. Include 'estimatedHours' integer field.\nPRE-CALCULATED WEEK RANGES:\n${dateRangesDescription}` : `CRITICAL: Monthly plan. Use these EXACT month labels.\nPRE-CALCULATED MONTH RANGES:\n${dateRangesDescription}`}
 Return ONLY a JSON array with exactly ${dynamicCount} objects.
-Each object: { "date": "string", "dayTask": "string - short title", "description": "string - 1-2 sentences", "estimatedHours": number }
+Each object: { "date": "string", "dayTask": "string - short title including progressive target numbers", "description": "string - 1-2 sentences detailing target progress details", "estimatedHours": number }
 NO MARKDOWN. RAW JSON ONLY.`;
 
             const { callAI: callAIFn } = await import('@/features/goals/hooks/use-ai-plan-generation');
@@ -380,7 +391,8 @@ const MilestoneCard = ({
             "group relative rounded-xl border p-3 sm:p-4 transition-all duration-100",
             isStart ? "bg-intent-goal-muted border-intent-goal/20" :
                 isCompleted ? "bg-intent-goal-muted border-intent-goal/20" :
-                    "bg-card border-border",
+                    isNext ? "bg-primary/5 border-primary/30 ring-1 ring-primary/10" :
+                        "bg-card border-border",
         )}>
             {/* Header row */}
             <div className="flex items-center gap-2 mb-2">
@@ -388,11 +400,12 @@ const MilestoneCard = ({
                     "w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center shrink-0",
                     isStart ? "border-intent-goal bg-intent-goal-muted" :
                         isCompleted ? "border-intent-goal bg-intent-goal-muted" :
-                            "border-border bg-muted"
+                            isNext ? "border-primary bg-primary/20" :
+                                "border-border bg-muted"
                 )}>
                     {isStart ? <Play size={8} className="text-intent-goal ml-0.5" /> :
                         isCompleted ? <Check size={9} strokeWidth={3} className="text-intent-goal" /> :
-                            <span className="text-[7px] font-black text-muted-foreground">{path ? path[0] + 1 : ''}</span>
+                            <span className={cn("text-[7px] font-black", isNext ? "text-primary" : "text-muted-foreground")}>{path ? path[0] + 1 : ''}</span>
                     }
                 </div>
 
@@ -403,7 +416,8 @@ const MilestoneCard = ({
                         <span className={cn(
                             "text-[11px] uppercase font-bold tracking-wider",
                             isStart ? "text-intent-goal" :
-                                isCompleted ? "text-intent-goal" : "text-muted-foreground"
+                                isCompleted ? "text-intent-goal" :
+                                    isNext ? "text-primary" : "text-muted-foreground"
                         )}>
                             {milestoneTitle}
                         </span>
