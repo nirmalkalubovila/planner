@@ -410,6 +410,16 @@ interface Habit {
   daysOfWeek?: number[];
 }
 
+interface CustomTask {
+  id: string;
+  user_id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  daysOfWeek?: string[];
+  isReminder?: boolean;
+}
+
 const MAX_NOTIFICATIONS_PER_HOUR = 3;
 const TASK_REMINDER_MINUTES = 5;
 const DEADLINE_DAYS = [7, 3, 1];
@@ -568,8 +578,8 @@ Deno.serve(async (req: Request) => {
       uniqueDayStrs.add(dayStr);
     }
 
-    // 2. Fetch push subscriptions, week plans, completed tasks, goals, habits, logs, SMTP settings, templates & auth emails
-    const [subscriptionsRes, weekPlansRes, completedRes, goalsRes, habitsRes, sentLogRes, smtpSettingsRes, templatesRes, authUsersRes] =
+    // 2. Fetch push subscriptions, week plans, completed tasks, goals, habits, custom tasks, logs, SMTP settings, templates & auth emails
+    const [subscriptionsRes, weekPlansRes, completedRes, goalsRes, habitsRes, customTasksRes, sentLogRes, smtpSettingsRes, templatesRes, authUsersRes] =
       await Promise.all([
         supabase.from("push_subscriptions").select("*").in("user_id", userIds),
         supabase.from("week_plans").select("*").in("week", Array.from(uniqueWeeks)).in("user_id", userIds),
@@ -580,6 +590,7 @@ Deno.serve(async (req: Request) => {
           .in("user_id", userIds),
         supabase.from("goals").select("*").in("user_id", userIds),
         supabase.from("habits").select("*").in("user_id", userIds),
+        supabase.from("custom_tasks").select("*").in("user_id", userIds),
         supabase.from("notification_sent_log").select("*").in("user_id", userIds),
         supabase.from("global_smtp_settings").select("*").eq("id", 1).maybeSingle(),
         supabase.from("global_email_templates").select("*"),
@@ -667,6 +678,13 @@ Deno.serve(async (req: Request) => {
       habitsByUser.set(h.user_id, existing);
     }
 
+    const customTasksByUser = new Map<string, CustomTask[]>();
+    for (const ct of customTasksRes.data || []) {
+      const existing = customTasksByUser.get(ct.user_id) || [];
+      existing.push(ct);
+      customTasksByUser.set(ct.user_id, existing);
+    }
+
     // Build sent log lookup: userId -> Set of tags
     const sentTags = new Map<string, Set<string>>();
     for (const log of sentLogRes.data || []) {
@@ -741,6 +759,32 @@ Deno.serve(async (req: Request) => {
           endTime: h.endTime,
         }));
 
+      // Include custom tasks scheduled for today
+      const userCustomTasks = customTasksByUser.get(userId) || [];
+      const todayDayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][todayDayNum];
+      const customTaskItems = userCustomTasks
+        .filter((ct) => {
+          if (!ct.daysOfWeek || !Array.isArray(ct.daysOfWeek)) return false;
+          return ct.daysOfWeek.includes(todayDayName);
+        })
+        .map((ct) => {
+          // If endTime is 'reminder', calculate 30min after start
+          let endTime = ct.endTime;
+          if (endTime === 'reminder' && ct.startTime) {
+            const [h, m] = ct.startTime.split(':').map(Number);
+            const endMin = h * 60 + m + 30;
+            const eH = Math.floor(endMin / 60) % 24;
+            const eM = endMin % 60;
+            endTime = `${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}`;
+          }
+          return {
+            id: ct.id,
+            name: ct.name,
+            startTime: ct.startTime,
+            endTime,
+          };
+        });
+
       // Include week plan reminders for today
       const weekReminders = (wp?.state?.reminders || [])
         .filter((r: any) => r.dayIdx === userDayIdx)
@@ -751,7 +795,7 @@ Deno.serve(async (req: Request) => {
           endTime: r.time,
         }));
 
-      const allTasks = [...tasks, ...habitTasks, ...weekReminders];
+      const allTasks = [...tasks, ...habitTasks, ...customTaskItems, ...weekReminders];
       logDebug(`[DEBUG] User ${userId} allTasks count: ${allTasks.length} ${JSON.stringify(allTasks.map(t => ({ id: t.id, name: t.name, start: t.startTime })))}`);
 
       for (const task of allTasks) {
@@ -787,40 +831,6 @@ Deno.serve(async (req: Request) => {
               totalPushSent++;
             }
           }
-
-          // 2. Email notification
-          const emailTag = `email-${tag}`;
-          if (
-            prefs.emailTaskReminders &&
-            reminderTemplate?.enabled &&
-            smtpTransporter &&
-            userEmail &&
-            !userSentTags.has(emailTag)
-          ) {
-            // Check rate limits
-            let lastEmailSentTime = 0;
-            for (const log of sentLogRes.data || []) {
-              if (log.user_id === userId && log.notification_tag.startsWith("email-")) {
-                const t = new Date(log.sent_at).getTime();
-                if (t > lastEmailSentTime) lastEmailSentTime = t;
-              }
-            }
-            if (now.getTime() - lastEmailSentTime >= minIntervalPerUser * 1000) {
-              const { subject, body } = formatTemplate(reminderTemplate.body, reminderTemplate.subject, {
-                name: userName,
-                task_name: task.name,
-                start_time: task.startTime,
-                end_time: task.endTime,
-                sender_name: senderName,
-              });
-
-              const ok = await sendMailNotification(smtpTransporter, senderName, senderEmail, userEmail, subject, body);
-              if (ok) {
-                await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: emailTag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-                totalEmailsSent++;
-              }
-            }
-          }
         }
 
         // --- Task Overdue ---
@@ -852,45 +862,6 @@ Deno.serve(async (req: Request) => {
             if (pushSent) {
               await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
               totalPushSent++;
-            }
-          }
-
-          // 2. Email notification (overdue tasks get reminder template)
-          const emailTag = `email-${tag}`;
-          logDebug(`[DEBUG] Overdue Task ${task.id} email check: emailTaskReminders=${prefs.emailTaskReminders}, hasTag=${userSentTags.has(emailTag)}, hasTransporter=${!!smtpTransporter}`);
-          if (
-            prefs.emailTaskReminders &&
-            reminderTemplate?.enabled &&
-            smtpTransporter &&
-            userEmail &&
-            !userSentTags.has(emailTag)
-          ) {
-            // Check rate limits
-            let lastEmailSentTime = 0;
-            for (const log of sentLogRes.data || []) {
-              if (log.user_id === userId && log.notification_tag.startsWith("email-")) {
-                const t = new Date(log.sent_at).getTime();
-                if (t > lastEmailSentTime) lastEmailSentTime = t;
-              }
-            }
-            if (now.getTime() - lastEmailSentTime >= minIntervalPerUser * 1000) {
-              const { subject, body } = formatTemplate(
-                `Hi {name},\n\nYour task "{task_name}" scheduled for {start_time} - {end_time} was not marked as completed. Please check your dashboard to mark it done.\n\nBest,\n{sender_name}`,
-                `⚠️ Overdue: {task_name} isn't completed`,
-                {
-                  name: userName,
-                  task_name: task.name,
-                  start_time: task.startTime,
-                  end_time: task.endTime,
-                  sender_name: senderName,
-                }
-              );
-
-              const ok = await sendMailNotification(smtpTransporter, senderName, senderEmail, userEmail, subject, body);
-              if (ok) {
-                await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: emailTag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-                totalEmailsSent++;
-              }
             }
           }
         }
@@ -934,48 +905,9 @@ Deno.serve(async (req: Request) => {
             totalPushSent++;
           }
         }
-
-        // 2. Email notification
-        const emailTag = `email-${tag}`;
-        if (
-          prefs.emailDailyBriefing &&
-          briefingTemplate?.enabled &&
-          smtpTransporter &&
-          userEmail &&
-          !userSentTags.has(emailTag)
-        ) {
-          // Check rate limits
-          let lastEmailSentTime = 0;
-          for (const log of sentLogRes.data || []) {
-            if (log.user_id === userId && log.notification_tag.startsWith("email-")) {
-              const t = new Date(log.sent_at).getTime();
-              if (t > lastEmailSentTime) lastEmailSentTime = t;
-            }
-          }
-          if (now.getTime() - lastEmailSentTime >= minIntervalPerUser * 1000) {
-            const taskCount = allTasks.length;
-            const tasksList = allTasks.map((t) => `- ${t.startTime} - ${t.endTime}: ${t.name}`).join("\n");
-            
-            const dateStr = userLocalTime.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
-
-            const { subject, body } = formatTemplate(briefingTemplate.body, briefingTemplate.subject, {
-              name: userName,
-              date: dateStr,
-              task_count: String(taskCount),
-              tasks_list: taskCount > 0 ? tasksList : "No tasks scheduled for today.",
-              sender_name: senderName,
-            });
-
-            const ok = await sendMailNotification(smtpTransporter, senderName, senderEmail, userEmail, subject, body);
-            if (ok) {
-              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: emailTag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-              totalEmailsSent++;
-            }
-          }
-        }
       }
 
-      // ── C. Goal Deadlines (7, 3, 1 day before) ──
+      // ── C. Goal Deadlines (7, 3, 1 day before) + Goal Completion ──
       const goals = goalsByUser.get(userId) || [];
       const today = new Date(userLocalTime.getUTCFullYear(), userLocalTime.getUTCMonth(), userLocalTime.getUTCDate());
 
@@ -985,11 +917,11 @@ Deno.serve(async (req: Request) => {
         const diffMs = endDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
+        // Goal deadline approaching
         for (const threshold of DEADLINE_DAYS) {
           if (diffDays <= threshold && diffDays > 0) {
             const tag = `goal-deadline-${goal.id}-${threshold}`;
 
-            // 1. Push notification
             if (prefs.goalDeadlines !== false && !userSentTags.has(tag)) {
               const subs = userSubs.get(userId) || [];
               const milestones = goal.milestones || [];
@@ -1018,45 +950,109 @@ Deno.serve(async (req: Request) => {
                 totalPushSent++;
               }
             }
+          }
+        }
 
-            // 2. Email notification
-            const emailTag = `email-${tag}`;
-            if (
-              prefs.emailGoalDeadlines &&
-              deadlineTemplate?.enabled &&
-              smtpTransporter &&
-              userEmail &&
-              !userSentTags.has(emailTag)
-            ) {
-              // Check rate limits
-              let lastEmailSentTime = 0;
-              for (const log of sentLogRes.data || []) {
-                if (log.user_id === userId && log.notification_tag.startsWith("email-")) {
-                  const t = new Date(log.sent_at).getTime();
-                  if (t > lastEmailSentTime) lastEmailSentTime = t;
-                }
-              }
-              if (now.getTime() - lastEmailSentTime >= minIntervalPerUser * 1000) {
-                const milestones = goal.milestones || [];
-                const completedCount = milestones.filter((m) => m.completed).length;
-                const progress = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
+        // Goal completion (all milestones done)
+        const milestones = goal.milestones || [];
+        if (milestones.length > 0 && milestones.every((m) => m.completed)) {
+          const tag = `goal-completed-${goal.id}`;
+          if (!userSentTags.has(tag)) {
+            const subs = userSubs.get(userId) || [];
+            const pushPayload = {
+              title: `🏆 Goal "${goal.name}" completed!`,
+              body: `Congratulations! You've finished all ${milestones.length} milestones. Time to set a new goal!`,
+              url: "/goals",
+              tag,
+            };
 
-                const { subject, body } = formatTemplate(deadlineTemplate.body, deadlineTemplate.subject, {
-                  name: userName,
-                  goal_name: goal.name,
-                  days_remaining: String(diffDays),
-                  completed_milestones: String(completedCount),
-                  total_milestones: String(milestones.length),
-                  progress: String(progress),
-                  sender_name: senderName,
-                });
+            let pushSent = false;
+            for (const sub of subs) {
+              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (res.gone) staleSubscriptions.push(sub.id);
+              else if (res.success) pushSent = true;
+            }
 
-                const ok = await sendMailNotification(smtpTransporter, senderName, senderEmail, userEmail, subject, body);
-                if (ok) {
-                  await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: emailTag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-                  totalEmailsSent++;
-                }
-              }
+            if (pushSent) {
+              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+              totalPushSent++;
+            }
+          }
+        }
+      }
+
+      // ── D. Day Summary (at sleep time) ──
+      const sleepStartParts = (profile.sleep_start || "22:00").split(":").map(Number);
+      const sleepStartMinutes = sleepStartParts[0] * 60 + sleepStartParts[1];
+      const sleepDiff = userCurrentMinutes - sleepStartMinutes;
+      if (sleepDiff >= 0 && sleepDiff < 2) {
+        const datePart = userLocalTime.toISOString().slice(0, 10);
+        const tag = `day-summary-${datePart}`;
+
+        if (!userSentTags.has(tag)) {
+          const totalTaskCount = allTasks.length;
+          const completedCount = completedIds.length;
+
+          let title = "🌙 Reflect & Recharge";
+          let body = "";
+
+          if (totalTaskCount === 0) {
+            title = "🌙 Peaceful Evening";
+            body = "No tasks scheduled today. A restful day is just as essential for your long-term legacy. Sleep well!";
+          } else if (completedCount === totalTaskCount) {
+            title = "🏆 A Masterclass Day!";
+            body = `Incredible work! You completed all ${completedCount}/${totalTaskCount} tasks today. Your discipline is inspiring. Rest deeply!`;
+          } else if (completedCount >= totalTaskCount / 2) {
+            title = "📈 Proud of Your Progress";
+            body = `You checked off ${completedCount}/${totalTaskCount} tasks today. Every effort adds brick by brick to your legacy. Sleep well and recharge.`;
+          } else {
+            title = "✨ Tomorrow is a New Canvas";
+            body = `You completed ${completedCount}/${totalTaskCount} tasks today. Remember, productivity has seasons, and resting is part of the work. Sleep peacefully.`;
+          }
+
+          const subs = userSubs.get(userId) || [];
+          const pushPayload = { title, body, url: "/statistics", tag };
+
+          let pushSent = false;
+          for (const sub of subs) {
+            const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+            if (res.gone) staleSubscriptions.push(sub.id);
+            else if (res.success) pushSent = true;
+          }
+
+          if (pushSent) {
+            await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+            totalPushSent++;
+          }
+        }
+      }
+
+      // ── E. Weekly Summary (Monday morning at wake-up) ──
+      const dayOfWeekForSummary = userLocalTime.getUTCDay();
+      if (dayOfWeekForSummary === 1) { // Monday
+        const wakeUpDiffWeekly = userCurrentMinutes - wakeUpMinutes;
+        if (wakeUpDiffWeekly >= 0 && wakeUpDiffWeekly < 2) {
+          const tag = `weekly-summary-${userWeek}`;
+
+          if (!userSentTags.has(tag)) {
+            const subs = userSubs.get(userId) || [];
+            const pushPayload = {
+              title: "📊 Weekly Performance Summary",
+              body: "Start of a new week! Check your statistics to see last week's performance and set new targets.",
+              url: "/statistics",
+              tag,
+            };
+
+            let pushSent = false;
+            for (const sub of subs) {
+              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (res.gone) staleSubscriptions.push(sub.id);
+              else if (res.success) pushSent = true;
+            }
+
+            if (pushSent) {
+              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+              totalPushSent++;
             }
           }
         }

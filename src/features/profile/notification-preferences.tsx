@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellOff, Clock, TestTube, Mail, MessageSquare, Target, Calendar } from 'lucide-react';
+import { Bell, BellOff, Clock, TestTube, MessageSquare, Target, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNotificationStore } from '@/lib/notification-store';
 import {
@@ -186,39 +186,6 @@ export const NotificationPreferencesSection: React.FC = () => {
           disabled={!preferences.enabled}
         />
 
-        <div className="h-px bg-border mx-3 my-2" />
-
-        {/* Email Notifications Section */}
-        <div className="pt-1.5 pb-1 px-3.5">
-          <h4 className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Email Notifications</h4>
-        </div>
-
-        <Toggle
-          label="Daily Briefing (Email)"
-          description="Get today's briefing in your inbox at wake-up time"
-          icon={<Mail size={14} />}
-          enabled={!!preferences.emailDailyBriefing}
-          onChange={(val) => updatePreferences({ emailDailyBriefing: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Task Reminders (Email)"
-          description="Receive email alerts when tasks start or become overdue"
-          icon={<Mail size={14} />}
-          enabled={!!preferences.emailTaskReminders}
-          onChange={(val) => updatePreferences({ emailTaskReminders: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Goal Deadlines (Email)"
-          description="Receive email updates when goal deadlines are near"
-          icon={<Mail size={14} />}
-          enabled={!!preferences.emailGoalDeadlines}
-          onChange={(val) => updatePreferences({ emailGoalDeadlines: val })}
-          disabled={!preferences.enabled}
-        />
 
         <div className="h-px bg-border mx-3 my-2" />
 

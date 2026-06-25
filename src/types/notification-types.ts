@@ -35,10 +35,12 @@ export interface NotificationPreferences {
   taskReminders: boolean;
   dailyBriefing: boolean;
   goalDeadlines: boolean;
-  // Email preferences
-  emailDailyBriefing: boolean;
-  emailTaskReminders: boolean;
-  emailGoalDeadlines: boolean;
+  goalCompletion: boolean;
+  daySummary: boolean;
+  weeklySummary: boolean;
+  statsChanges: boolean;
+  streakMilestones: boolean;
+  burnoutWarning: boolean;
   timezoneOffset?: number;
 }
 
@@ -50,9 +52,12 @@ export const DEFAULT_PREFERENCES: NotificationPreferences = {
   taskReminders: true,
   dailyBriefing: true,
   goalDeadlines: true,
-  emailDailyBriefing: false, // Default email notifications to false so users can opt-in
-  emailTaskReminders: false,
-  emailGoalDeadlines: false,
+  goalCompletion: true,
+  daySummary: true,
+  weeklySummary: true,
+  statsChanges: true,
+  streakMilestones: true,
+  burnoutWarning: true,
 };
 
 /** Emoji icons per notification type for in-app display */
