@@ -48,6 +48,7 @@ export function useGoalNotifications() {
       const alreadyNotified = notifiedDeadlines[goalId] || [];
 
       DEADLINE_DAYS.forEach((threshold) => {
+        if (preferences.goalDeadlines === false) return;
         if (diffDays <= threshold && diffDays > 0 && !alreadyNotified.includes(threshold)) {
           // Calculate progress
           const milestones = goal.milestones || [];
@@ -89,6 +90,7 @@ export function useGoalNotifications() {
       // Goal completion check
       const milestones = goal.milestones || [];
       if (
+        preferences.goalCompletion !== false &&
         milestones.length > 0 &&
         milestones.every((m: Milestone) => m.completed) &&
         !notifiedCompleted.includes(goalId)

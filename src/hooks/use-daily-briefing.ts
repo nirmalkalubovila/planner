@@ -101,7 +101,7 @@ export function useDailyBriefing() {
 
   // Weekly summary — fires on Mondays
   useEffect(() => {
-    if (!preferences.enabled) return;
+    if (!preferences.enabled || preferences.weeklySummary === false) return;
 
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon

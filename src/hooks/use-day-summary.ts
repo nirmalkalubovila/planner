@@ -28,7 +28,7 @@ export function useDaySummary() {
   const addNotification = useNotificationStore((s) => s.addNotification);
 
   useEffect(() => {
-    if (!preferences.enabled || !preferences.quietHoursStart) return;
+    if (!preferences.enabled || preferences.daySummary === false || !preferences.quietHoursStart) return;
     if (!weekPlan || !habits) return; // Wait for data
 
     const checkSleepTime = () => {

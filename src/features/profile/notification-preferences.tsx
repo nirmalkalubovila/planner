@@ -1,11 +1,10 @@
 import React from 'react';
-import { Bell, BellOff, Clock, TestTube, Mail, MessageSquare, Target, Calendar } from 'lucide-react';
+import { Bell, BellOff, Clock, MessageSquare, Target, Calendar, Moon, BarChart3, Trophy, Flame, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNotificationStore } from '@/lib/notification-store';
 import {
   getPermissionStatus,
   requestNotificationPermission,
-  sendNotification,
   subscribeToPush,
   unsubscribeFromPush,
 } from '@/lib/notification-service';
@@ -23,7 +22,7 @@ interface ToggleProps {
 
 const Toggle: React.FC<ToggleProps> = ({ label, description, icon, enabled, onChange, disabled }) => (
   <div className={cn(
-    'flex items-center justify-between gap-3 py-3.5 px-3.5 rounded-xl transition-all duration-200 border border-transparent',
+    'flex items-center justify-between gap-3 py-3 px-3.5 rounded-xl transition-all duration-200 border border-transparent',
     disabled ? 'opacity-40' : 'hover:bg-accent/40 hover:border-border/10'
   )}>
     <div className="flex items-center gap-3.5 min-w-0">
@@ -53,6 +52,12 @@ const Toggle: React.FC<ToggleProps> = ({ label, description, icon, enabled, onCh
         )}
       />
     </button>
+  </div>
+);
+
+const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
+  <div className="pt-2 pb-1 px-3.5">
+    <h4 className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{label}</h4>
   </div>
 );
 
@@ -89,15 +94,7 @@ export const NotificationPreferencesSection: React.FC = () => {
     }
   };
 
-  const handleTestNotification = () => {
-    sendNotification('🧪 Test Notification', {
-      body: 'If you see this, notifications are working perfectly!',
-      url: '/profile',
-      tag: 'test-notification',
-      notificationType: 'achievement',
-      bypassChecks: true,
-    }, preferences);
-  };
+  const notificationsEnabled = preferences.enabled;
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -111,7 +108,7 @@ export const NotificationPreferencesSection: React.FC = () => {
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">Notifications</h3>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                {preferences.enabled ? 'Available' : 'Unavailable'}
+                {preferences.enabled ? 'Enabled' : 'Disabled'}
               </p>
             </div>
           </div>
@@ -125,12 +122,12 @@ export const NotificationPreferencesSection: React.FC = () => {
               ? 'bg-red-500/10 border-red-500/20 text-red-400'
               : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
           )}>
-            {isGranted ? 'Grantable' : isDenied ? 'Blocked' : 'Pending'}
+            {isGranted ? 'Granted' : isDenied ? 'Blocked' : 'Pending'}
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-3 space-y-1">
+      <div className="px-4 py-3 space-y-0.5">
         {/* Master toggle */}
         <Toggle
           label="Enable All Notifications"
@@ -140,89 +137,132 @@ export const NotificationPreferencesSection: React.FC = () => {
           onChange={handleMasterToggle}
         />
 
-        <div className="h-px bg-border mx-3 my-2" />
-
-        {/* Quiet hours */}
         <Toggle
           label="Quiet Hours (Sleep Time)"
           description={`No notifications during sleep (${preferences.quietHoursStart} - ${preferences.quietHoursEnd})`}
           icon={<Clock size={14} />}
           enabled={preferences.quietHoursEnabled}
           onChange={(val) => updatePreferences({ quietHoursEnabled: val })}
-          disabled={!preferences.enabled}
+          disabled={!notificationsEnabled}
+        />
+
+        <Toggle
+          label="Sleep Start & End Alerts"
+          description="Alert when your bedtime or wake-up time is reached"
+          icon={<Moon size={14} />}
+          enabled={preferences.sleepNotifications !== false}
+          onChange={(val) => updatePreferences({ sleepNotifications: val })}
+          disabled={!notificationsEnabled}
         />
 
         <div className="h-px bg-border mx-3 my-2" />
 
-        {/* Push Notifications Section */}
-        <div className="pt-1.5 pb-1 px-3.5">
-          <h4 className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Push Notifications</h4>
-        </div>
-        
+        {/* Reminders & Tasks */}
+        <SectionLabel label="Reminders & Tasks" />
+
         <Toggle
           label="Task Reminders"
-          description="Receive a push alert when a task is starting soon or overdue"
+          description="Alert when a task is starting soon or overdue"
           icon={<Calendar size={14} />}
           enabled={preferences.taskReminders !== false}
           onChange={(val) => updatePreferences({ taskReminders: val })}
-          disabled={!preferences.enabled}
+          disabled={!notificationsEnabled}
         />
+
+        <Toggle
+          label="Day Summary"
+          description="Motivational summary of your day at sleep time"
+          icon={<Moon size={14} />}
+          enabled={preferences.daySummary !== false}
+          onChange={(val) => updatePreferences({ daySummary: val })}
+          disabled={!notificationsEnabled}
+        />
+
+        <div className="h-px bg-border mx-3 my-2" />
+
+        {/* Planning & Progress */}
+        <SectionLabel label="Planning & Progress" />
 
         <Toggle
           label="Daily Briefing"
-          description="Receive a morning summary of today's tasks"
+          description="Morning summary of today's tasks at wake-up"
           icon={<MessageSquare size={14} />}
           enabled={preferences.dailyBriefing !== false}
           onChange={(val) => updatePreferences({ dailyBriefing: val })}
-          disabled={!preferences.enabled}
+          disabled={!notificationsEnabled}
         />
+
+        <Toggle
+          label="Weekly Summary"
+          description="Performance review every Monday morning"
+          icon={<BarChart3 size={14} />}
+          enabled={preferences.weeklySummary !== false}
+          onChange={(val) => updatePreferences({ weeklySummary: val })}
+          disabled={!notificationsEnabled}
+        />
+
+        <Toggle
+          label="Weekly Planning Reminder"
+          description="Alert when it is time to plan your upcoming week"
+          icon={<Clock size={14} />}
+          enabled={preferences.weeklyPlanning !== false}
+          onChange={(val) => updatePreferences({ weeklyPlanning: val })}
+          disabled={!notificationsEnabled}
+        />
+
+        <Toggle
+          label="Stats & Grade Changes"
+          description="Alerts when your consistency grade changes"
+          icon={<TrendingUp size={14} />}
+          enabled={preferences.statsChanges !== false}
+          onChange={(val) => updatePreferences({ statsChanges: val })}
+          disabled={!notificationsEnabled}
+        />
+
+        <Toggle
+          label="Streak Milestones"
+          description="Celebrate when you hit 3, 7, 14, 30+ day streaks"
+          icon={<Flame size={14} />}
+          enabled={preferences.streakMilestones !== false}
+          onChange={(val) => updatePreferences({ streakMilestones: val })}
+          disabled={!notificationsEnabled}
+        />
+
+        <Toggle
+          label="Burnout Warning"
+          description="Alert when burnout risk is detected"
+          icon={<Flame size={14} />}
+          enabled={preferences.burnoutWarning !== false}
+          onChange={(val) => updatePreferences({ burnoutWarning: val })}
+          disabled={!notificationsEnabled}
+        />
+
+        <div className="h-px bg-border mx-3 my-2" />
+
+        {/* Goals & Achievements */}
+        <SectionLabel label="Goals & Achievements" />
 
         <Toggle
           label="Goal Deadlines"
-          description="Receive alerts for upcoming goal deadlines"
+          description="Alerts for upcoming goal deadlines (7, 3, 1 day)"
           icon={<Target size={14} />}
           enabled={preferences.goalDeadlines !== false}
           onChange={(val) => updatePreferences({ goalDeadlines: val })}
-          disabled={!preferences.enabled}
+          disabled={!notificationsEnabled}
+        />
+
+        <Toggle
+          label="Goal Completion"
+          description="Celebrate when all milestones of a goal are done"
+          icon={<Trophy size={14} />}
+          enabled={preferences.goalCompletion !== false}
+          onChange={(val) => updatePreferences({ goalCompletion: val })}
+          disabled={!notificationsEnabled}
         />
 
         <div className="h-px bg-border mx-3 my-2" />
 
-        {/* Email Notifications Section */}
-        <div className="pt-1.5 pb-1 px-3.5">
-          <h4 className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Email Notifications</h4>
-        </div>
-
-        <Toggle
-          label="Daily Briefing (Email)"
-          description="Get today's briefing in your inbox at wake-up time"
-          icon={<Mail size={14} />}
-          enabled={!!preferences.emailDailyBriefing}
-          onChange={(val) => updatePreferences({ emailDailyBriefing: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Task Reminders (Email)"
-          description="Receive email alerts when tasks start or become overdue"
-          icon={<Mail size={14} />}
-          enabled={!!preferences.emailTaskReminders}
-          onChange={(val) => updatePreferences({ emailTaskReminders: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <Toggle
-          label="Goal Deadlines (Email)"
-          description="Receive email updates when goal deadlines are near"
-          icon={<Mail size={14} />}
-          enabled={!!preferences.emailGoalDeadlines}
-          onChange={(val) => updatePreferences({ emailGoalDeadlines: val })}
-          disabled={!preferences.enabled}
-        />
-
-        <div className="h-px bg-border mx-3 my-2" />
-
-        {/* Action buttons */}
+        {/* Permission action */}
         <div className="flex items-center gap-2 px-3 py-2">
           {!isGranted && !isDenied && (
             <button
@@ -231,16 +271,6 @@ export const NotificationPreferencesSection: React.FC = () => {
             >
               <Bell size={12} />
               Enable Browser Notifications
-            </button>
-          )}
-
-          {isGranted && (
-            <button
-              onClick={handleTestNotification}
-              className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-border bg-muted hover:bg-accent text-foreground transition-all active:scale-95"
-            >
-              <TestTube size={12} />
-              Send Test Notification
             </button>
           )}
 
