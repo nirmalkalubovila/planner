@@ -8,12 +8,14 @@ import { useDetailedAnalytics } from '../hooks/use-detailed-stats';
 import { PageLoader } from '@/components/common/page-loader';
 import { SummaryView } from './summary-view';
 import { DetailedView } from './detailed-view';
+import { InsightsView } from './insights/insights-view';
 
-type Tab = 'summary' | 'detailed';
+type Tab = 'summary' | 'detailed' | 'insights';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'summary', label: 'Summary' },
   { id: 'detailed', label: 'Detailed' },
+  { id: 'insights', label: 'Insights' },
 ];
 
 const TabSwitcher: React.FC<{ active: Tab; onChange: (t: Tab) => void }> = ({ active, onChange }) => (
@@ -119,6 +121,18 @@ export const PerformanceDashboard: React.FC = () => {
             ) : (
               <DetailedView data={detailed} />
             )}
+          </motion.div>
+        )}
+
+        {activeTab === 'insights' && (
+          <motion.div
+            key="insights"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <InsightsView />
           </motion.div>
         )}
       </AnimatePresence>

@@ -2,10 +2,12 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Plus, Vault, Lightbulb, FileText, X } from 'lucide-react';
 import { useNotes, useAddNote, useUpdateNote, useTogglePinNote, useDeleteNote } from '@/api/services/vault-service';
+import { useReminders } from '@/api/services/reminder-service';
 import { VaultFilters } from '@/features/vault/components/vault-filters';
 import { NoteCard } from './components/note-card';
 import { NoteViewDialog } from './components/note-view-dialog';
 import { NoteForm, NoteFormValues, clearNoteDraft, loadDraft, hasDraft } from './forms/note-form';
+import { ReminderFormDialog } from './forms/reminder-form';
 import { VaultNote, VaultCategory, VAULT_CATEGORIES, CATEGORY_META } from '@/types/vault';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { StandardDialog } from '@/components/common/standard-dialog';
@@ -13,8 +15,12 @@ import { PageLoader } from '@/components/common/page-loader';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-function filterNotes(notes: VaultNote[], activeTag: string | null): VaultNote[] {
+function filterNotes(notes: VaultNote[], activeTag: string | null, reminders: any[]): VaultNote[] {
   if (!activeTag || activeTag === 'all') return notes;
+  if (activeTag === 'reminders') {
+    const reminderNoteIds = new Set(reminders.map((r) => r.note_id));
+    return notes.filter((n) => reminderNoteIds.has(n.id));
+  }
   return notes.filter((n) => n.category === activeTag);
 }
 
@@ -50,16 +56,22 @@ export const VaultPage: React.FC = () => {
   const [draftExists, setDraftExists] = useState(false);
   const [draftInitialValues, setDraftInitialValues] = useState<Partial<NoteFormValues> | undefined>(undefined);
 
+  // Reminders states
+  const [reminderNote, setReminderNote] = useState<VaultNote | null>(null);
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
+
   const { data: notes = [], isLoading } = useNotes();
+  const { data: reminders = [] } = useReminders();
+
   const addNote = useAddNote();
   const updateNote = useUpdateNote();
   const togglePin = useTogglePinNote();
   const deleteNote = useDeleteNote();
 
-  const filteredNotes = useMemo(() => filterNotes(notes, activeTag), [notes, activeTag]);
+  const filteredNotes = useMemo(() => filterNotes(notes, activeTag, reminders), [notes, activeTag, reminders]);
   const tagCounts = useMemo(() => computeTagCounts(notes), [notes]);
   const grouped = useMemo(() => {
-    if (activeTag && activeTag !== 'all') {
+    if (activeTag && activeTag !== 'all' && activeTag !== 'reminders') {
       return [{ category: activeTag as VaultCategory, notes: filteredNotes }];
     }
     return groupByCategory(filteredNotes);
@@ -69,6 +81,8 @@ export const VaultPage: React.FC = () => {
     if (!viewingNote) return null;
     return notes.find((n) => n.id === viewingNote.id) || viewingNote;
   }, [notes, viewingNote]);
+
+
 
   // Check for draft on mount and after dialog closes
   useEffect(() => {
@@ -105,8 +119,6 @@ export const VaultPage: React.FC = () => {
   const closeDialog = () => {
     // If we're in new-note mode (not editing), check for unsaved content
     if (!editingNote) {
-      // The form auto-saves draft via enableDraft, so it's already in localStorage
-      // Just check if draft exists and show toast
       if (hasDraft()) {
         toast('Note saved as draft', {
           icon: '📝',
@@ -127,6 +139,7 @@ export const VaultPage: React.FC = () => {
         title: values.title,
         content: values.content,
         category: values.category as VaultCategory,
+        source_page: values.source_page || null,
       }, {
         onSuccess: () => {
           setIsFormOpen(false);
@@ -139,6 +152,7 @@ export const VaultPage: React.FC = () => {
         title: values.title,
         content: values.content,
         category: values.category as VaultCategory,
+        source_page: values.source_page || null,
       }, {
         onSuccess: () => {
           clearNoteDraft();
@@ -164,7 +178,7 @@ export const VaultPage: React.FC = () => {
 
   // Determine form initial values
   const formInitialValues = editingNote
-    ? { title: editingNote.title, content: editingNote.content, category: editingNote.category }
+    ? { title: editingNote.title, content: editingNote.content, category: editingNote.category, source_page: editingNote.source_page }
     : isRestoringDraft
       ? draftInitialValues
       : undefined;
@@ -233,7 +247,7 @@ export const VaultPage: React.FC = () => {
           <Vault className="w-16 h-16 text-muted-foreground/30 mx-auto mb-6" strokeWidth={1} />
           <h3 className="text-xl font-bold text-muted-foreground tracking-tight leading-none">Vault Empty</h3>
           <p className="text-sm text-muted-foreground mt-3 max-w-xs mx-auto">
-            Capture your first thought. Ideas, problems, future plans — store them all here.
+            Capture your first thought. Ideas, problems, future plans, favorite quotes — store them all here.
           </p>
           <Button
             onClick={handleNewNote}
@@ -246,7 +260,7 @@ export const VaultPage: React.FC = () => {
       ) : filteredNotes.length === 0 ? (
         <div className="py-24 text-center">
           <h3 className="text-xl font-bold text-muted-foreground tracking-tight leading-none">No Match</h3>
-          <p className="text-sm text-muted-foreground mt-3">No notes in this category yet.</p>
+          <p className="text-sm text-muted-foreground mt-3">No notes found matching this filter.</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -254,7 +268,7 @@ export const VaultPage: React.FC = () => {
             const meta = CATEGORY_META[category];
             return (
               <section key={category}>
-                {(!activeTag || activeTag === 'all') && (
+                {(!activeTag || activeTag === 'all' || activeTag === 'reminders') && (
                   <div className="flex items-center gap-2 mb-4">
                     <span className={`text-xs font-black uppercase tracking-widest ${meta.color}`}>
                       {meta.label}
@@ -269,9 +283,14 @@ export const VaultPage: React.FC = () => {
                       <NoteCard
                         key={note.id}
                         note={note}
+                        reminder={reminders.find((r) => r.note_id === note.id)}
                         onPin={handlePin}
                         onDelete={(id) => { setDeleteId(id); setShowDeleteConfirm(true); }}
                         onEdit={handleEdit}
+                        onReminderClick={(n) => {
+                          setReminderNote(n);
+                          setIsReminderOpen(true);
+                        }}
                         onClick={setViewingNote}
                       />
                     ))}
@@ -340,10 +359,29 @@ export const VaultPage: React.FC = () => {
         isOpen={viewingNote !== null}
         onClose={() => setViewingNote(null)}
         note={activeViewingNote}
+        reminder={activeViewingNote ? reminders.find((r) => r.note_id === activeViewingNote.id) : null}
         onPin={handlePin}
         onDelete={(id) => { setDeleteId(id); setShowDeleteConfirm(true); }}
         onEdit={handleEdit}
+        onReminderClick={(n) => {
+          setReminderNote(n);
+          setIsReminderOpen(true);
+        }}
       />
+
+      {/* Reminder Config Dialog */}
+      {reminderNote && (
+        <ReminderFormDialog
+          isOpen={isReminderOpen}
+          onClose={() => {
+            setIsReminderOpen(false);
+            setReminderNote(null);
+          }}
+          noteId={reminderNote!.id}
+          noteTitle={reminderNote!.title || 'Untitled'}
+          existingReminder={reminders.find((r) => r.note_id === reminderNote!.id)}
+        />
+      )}
     </div>
   );
 };

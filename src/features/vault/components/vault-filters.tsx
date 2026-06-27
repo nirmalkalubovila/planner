@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { CATEGORY_META, VaultCategory } from '@/types/vault';
+import { Bell } from 'lucide-react';
 
 interface VaultFiltersProps {
   tags: { tag: string; count: number }[];
@@ -43,6 +44,19 @@ export const VaultFilters: React.FC<VaultFiltersProps> = ({ tags, activeTag, onS
           </button>
         );
       })}
+      <button
+        type="button"
+        onClick={() => onSelectTag('reminders')}
+        className={cn(
+          'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border flex items-center gap-1.5',
+          activeTag === 'reminders'
+            ? 'bg-primary/10 text-primary border-primary/20'
+            : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-accent border-transparent'
+        )}
+      >
+        <Bell size={11} fill={activeTag === 'reminders' ? 'currentColor' : 'none'} />
+        <span>With Reminders</span>
+      </button>
     </div>
   );
 };

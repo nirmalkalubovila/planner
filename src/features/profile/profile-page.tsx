@@ -8,12 +8,14 @@ import { ProfileSecurity } from './components/profile-security';
 import { NotificationPreferencesSection } from './notification-preferences';
 import { InstallAppSection } from './install-app-section';
 import { FeedbackSection } from './feedback-section';
+import { cn } from '@/lib/utils';
 
 export const ProfilePage: React.FC = () => {
     const { user } = useAuth();
     const { profile, saveProfile, isSaving } = useUserProfile(user);
 
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditingPrefs, setIsEditingPrefs] = useState(false);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
 
     // Form state
     const [fullName, setFullName] = useState('');
@@ -31,7 +33,7 @@ export const ProfilePage: React.FC = () => {
     const [taskShiftingAbility, setTaskShiftingAbility] = useState('');
 
     useEffect(() => {
-        if (profile && !isEditing) {
+        if (profile && !isEditingPrefs && !isEditingProfile) {
             setFullName(profile.fullName || '');
             setDob(profile.dob || '');
             setSleepStart(profile.sleepStart || '22:00');
@@ -46,9 +48,9 @@ export const ProfilePage: React.FC = () => {
             setFocusAbility(profile.focusAbility || 'normal');
             setTaskShiftingAbility(profile.taskShiftingAbility || 'normal');
         }
-    }, [profile, isEditing]);
+    }, [profile, isEditingPrefs, isEditingProfile]);
 
-    const handleSave = async () => {
+    const handleSaveProfile = async () => {
         try {
             await saveProfile({
                 fullName,
@@ -65,12 +67,38 @@ export const ProfilePage: React.FC = () => {
                 focusAbility,
                 taskShiftingAbility,
             });
-            setIsEditing(false);
+            setIsEditingProfile(false);
             toast.success('Profile updated successfully!');
         } catch {
             // Error handled by mutation
         }
     };
+
+    const handleSavePrefs = async () => {
+        try {
+            await saveProfile({
+                fullName,
+                dob,
+                sleepStart,
+                sleepDuration,
+                weekStart,
+                planDay,
+                planStartTime,
+                planEndTime,
+                primaryLifeFocus,
+                currentProfession,
+                energyPeakTime,
+                focusAbility,
+                taskShiftingAbility,
+            });
+            setIsEditingPrefs(false);
+            toast.success('Preferences updated successfully!');
+        } catch {
+            // Error handled by mutation
+        }
+    };
+
+    const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'contact' | 'info'>('profile');
 
     if (!user) return null;
 
@@ -90,9 +118,18 @@ export const ProfilePage: React.FC = () => {
         taskShiftingAbility, setTaskShiftingAbility,
     };
 
+    const tabs = [
+        { id: 'profile', label: 'Profile & Security' },
+        { id: 'preferences', label: 'Planner Preferences' },
+        { id: 'notifications', label: 'Notifications' },
+        { id: 'contact', label: 'Contact Us' },
+        { id: 'info', label: 'Guide & Install' },
+    ];
+
     return (
         <div className="flex flex-col w-full max-w-[1200px] mx-auto px-2 pt-8 sm:pt-12 sm:px-4 md:px-8 space-y-6 pb-20">
-            <div className="flex justify-between items-end mb-4 border-b border-border pb-6">
+            {/* Header */}
+            <div className="flex justify-between items-end border-b border-border pb-6 mb-2">
                 <div className="flex flex-col gap-2">
                     <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground leading-none">Profile</h2>
                     <div className="flex items-center gap-2">
@@ -102,26 +139,79 @@ export const ProfilePage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6 items-start">
-                {/* Left: Profile Info */}
-                <ProfileInfo user={user} profile={profile} saveProfile={saveProfile} />
+            {/* Horizontal Nav Bar */}
+            <div className="flex border-b border-border overflow-x-auto no-scrollbar gap-2 sm:gap-6 pb-px shrink-0">
+                {tabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id as any)}
+                          className={cn(
+                            'whitespace-nowrap pb-3 text-sm font-semibold tracking-wide border-b-2 px-1 transition-all duration-150 relative select-none',
+                            isActive
+                              ? 'border-primary text-primary font-bold'
+                              : 'border-transparent text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          {tab.label}
+                        </button>
+                    );
+                })}
+            </div>
 
-                {/* Right: Preferences + Security stacked */}
-                <div className="space-y-6">
-                    <ProfilePreferences
-                        user={user}
-                        profile={profile}
-                        isEditing={isEditing}
-                        setIsEditing={setIsEditing}
-                        loading={isSaving}
-                        onSave={handleSave}
-                        formData={formData}
-                    />
-                    <NotificationPreferencesSection />
-                    <InstallAppSection />
-                    <FeedbackSection />
-                    <ProfileSecurity user={user} />
-                </div>
+            {/* Tab Contents */}
+            <div className="pt-2">
+                {activeTab === 'profile' && (
+                    <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-6 items-start animate-in fade-in duration-200">
+                        <ProfileInfo
+                            user={user}
+                            profile={profile}
+                            saveProfile={saveProfile}
+                            isEditing={isEditingProfile}
+                            setIsEditing={setIsEditingProfile}
+                            loading={isSaving}
+                            onSave={handleSaveProfile}
+                            fullName={fullName}
+                            setFullName={setFullName}
+                            dob={dob}
+                            setDob={setDob}
+                        />
+                        <ProfileSecurity user={user} />
+                    </div>
+                )}
+
+                {activeTab === 'preferences' && (
+                    <div className="w-full animate-in fade-in duration-200">
+                        <ProfilePreferences
+                            user={user}
+                            profile={profile}
+                            isEditing={isEditingPrefs}
+                            setIsEditing={setIsEditingPrefs}
+                            loading={isSaving}
+                            onSave={handleSavePrefs}
+                            formData={formData}
+                        />
+                    </div>
+                )}
+
+                {activeTab === 'notifications' && (
+                    <div className="w-full animate-in fade-in duration-200">
+                        <NotificationPreferencesSection />
+                    </div>
+                )}
+
+                {activeTab === 'contact' && (
+                    <div className="w-full animate-in fade-in duration-200">
+                        <FeedbackSection />
+                    </div>
+                )}
+
+                {activeTab === 'info' && (
+                    <div className="w-full animate-in fade-in duration-200">
+                        <InstallAppSection />
+                    </div>
+                )}
             </div>
         </div>
     );

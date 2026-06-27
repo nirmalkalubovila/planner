@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, BellOff, Clock, MessageSquare, Target, Calendar, Moon, BarChart3, Trophy, Flame, TrendingUp } from 'lucide-react';
+import { Bell, BellOff, Clock, MessageSquare, Target, Calendar, Moon, BarChart3, Trophy, Flame, TrendingUp, Sparkles, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNotificationStore } from '@/lib/notification-store';
 import {
@@ -10,6 +10,8 @@ import {
 } from '@/lib/notification-service';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 
 interface ToggleProps {
   label: string;
@@ -236,6 +238,85 @@ export const NotificationPreferencesSection: React.FC = () => {
           onChange={(val) => updatePreferences({ burnoutWarning: val })}
           disabled={!notificationsEnabled}
         />
+
+        <div className="h-px bg-border mx-3 my-2" />
+
+        {/* Insights & Reports */}
+        <SectionLabel label="Insights & Reports" />
+
+        <Toggle
+          label="Weekly Reflection Report"
+          description="Generate your weekly wrapped-style reflection"
+          icon={<Sparkles size={14} />}
+          enabled={preferences.weeklyReportEnabled !== false}
+          onChange={(val) => updatePreferences({ weeklyReportEnabled: val })}
+          disabled={!notificationsEnabled}
+        />
+
+        {preferences.weeklyReportEnabled !== false && notificationsEnabled && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pl-12 pr-4 py-2 border-l-2 border-border/40 ml-6 mb-2 animate-in slide-in-from-left duration-200">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Day:</span>
+              <Select
+                value={preferences.weeklyReportDay || 'Sunday'}
+                onValueChange={(val) => updatePreferences({ weeklyReportDay: val })}
+              >
+                <SelectTrigger className="h-8 text-xs min-w-[110px] bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Time:</span>
+              <div className="w-[120px]">
+                <SimpleTimePicker
+                  value={preferences.weeklyReportTime || '20:00'}
+                  onChange={(val) => updatePreferences({ weeklyReportTime: val })}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Toggle
+          label="Monthly Life Report"
+          description="Generate your monthly life check-in"
+          icon={<FileText size={14} />}
+          enabled={preferences.monthlyReportEnabled !== false}
+          onChange={(val) => updatePreferences({ monthlyReportEnabled: val })}
+          disabled={!notificationsEnabled}
+        />
+
+        {preferences.monthlyReportEnabled !== false && notificationsEnabled && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pl-12 pr-4 py-2 border-l-2 border-border/40 ml-6 mb-2 animate-in slide-in-from-left duration-200">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Day:</span>
+              <Select
+                value={String(preferences.monthlyReportDay || 1)}
+                onValueChange={(val) => updatePreferences({ monthlyReportDay: parseInt(val, 10) })}
+              >
+                <SelectTrigger className="h-8 text-xs min-w-[80px] bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 28 }, (_, idx) => idx + 1).map(d => (
+                    <SelectItem key={d} value={String(d)}>{d === 1 ? '1st' : d === 2 ? '2nd' : d === 3 ? '3rd' : `${d}th`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Time:</span>
+              <div className="w-[120px]">
+                <SimpleTimePicker
+                  value={preferences.monthlyReportTime || '20:00'}
+                  onChange={(val) => updatePreferences({ monthlyReportTime: val })}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="h-px bg-border mx-3 my-2" />
 
