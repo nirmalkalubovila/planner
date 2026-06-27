@@ -48,24 +48,24 @@ export const InsightsView: React.FC = () => {
       
       {/* Upper Selector Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
-        <div className="flex items-center gap-1 p-1 rounded-full bg-muted border border-border w-fit">
+        <div className="flex items-center gap-1 p-1 rounded-full bg-muted border border-border w-fit z-20 relative select-none">
           <button
             type="button"
             onClick={() => setActiveTab('weekly')}
             className={cn(
-              'relative px-5 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-colors duration-150',
+              'relative px-5 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-colors duration-150 focus:outline-none select-none cursor-pointer',
               activeTab === 'weekly' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
             )}
           >
             {activeTab === 'weekly' && (
               <motion.span
                 layoutId="active-insight-tab"
-                className="absolute inset-0 rounded-full bg-accent border border-border"
+                className="absolute inset-0 rounded-full bg-accent border border-border pointer-events-none"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
-            <span className="relative z-10 flex items-center gap-1.5">
-              <Sparkles size={12} /> Weekly Reflection
+            <span className="relative z-10 flex items-center gap-1.5 pointer-events-none">
+              <Sparkles size={12} className="pointer-events-none" /> Weekly Reflection
             </span>
           </button>
           
@@ -73,19 +73,19 @@ export const InsightsView: React.FC = () => {
             type="button"
             onClick={() => setActiveTab('monthly')}
             className={cn(
-              'relative px-5 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-colors duration-150',
+              'relative px-5 py-2 text-xs font-black uppercase tracking-wider rounded-full transition-colors duration-150 focus:outline-none select-none cursor-pointer',
               activeTab === 'monthly' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
             )}
           >
             {activeTab === 'monthly' && (
               <motion.span
                 layoutId="active-insight-tab"
-                className="absolute inset-0 rounded-full bg-accent border border-border"
+                className="absolute inset-0 rounded-full bg-accent border border-border pointer-events-none"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
-            <span className="relative z-10 flex items-center gap-1.5">
-              <Calendar size={12} /> Monthly Report
+            <span className="relative z-10 flex items-center gap-1.5 pointer-events-none">
+              <Calendar size={12} className="pointer-events-none" /> Monthly Report
             </span>
           </button>
         </div>

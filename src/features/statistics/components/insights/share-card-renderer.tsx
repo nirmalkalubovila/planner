@@ -25,6 +25,14 @@ export async function renderShareCardToCanvas(
   const start = Date.now();
   const { width, height } = DIMENSIONS[format];
   
+  // Load logo image
+  const logoImg = new Image();
+  logoImg.src = '/white-logo.svg';
+  await new Promise((resolve) => {
+    logoImg.onload = resolve;
+    logoImg.onerror = resolve;
+  });
+
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -52,36 +60,38 @@ export async function renderShareCardToCanvas(
   ctx.arc(0, height, width * 0.4, 0, Math.PI * 2);
   ctx.fill();
 
-  // 3. Draw Watermark / Branding Header
+  // 3. Draw Watermark / Branding Header with Centered Logo
+  ctx.drawImage(logoImg, width / 2 - 22, 35, 44, 44);
+
   ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.font = '900 12px sans-serif';
+  ctx.font = '900 11px sans-serif';
   ctx.letterSpacing = '3px';
   ctx.textAlign = 'center';
-  ctx.fillText('LEGACY LIFE BUILDER', width / 2, 40);
+  ctx.fillText('LEGACY LIFE BUILDER', width / 2, 105);
 
   // 4. Draw Slide Header
   ctx.fillStyle = '#FFFFFF';
   ctx.font = '900 36px sans-serif';
   ctx.textAlign = 'center';
   ctx.letterSpacing = '0px';
-  ctx.fillText(data.title.toUpperCase(), width / 2, 110);
+  ctx.fillText(data.title.toUpperCase(), width / 2, 165);
 
   if (data.subtitle) {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
     ctx.font = '500 16px sans-serif';
-    ctx.fillText(data.subtitle, width / 2, 145);
+    ctx.fillText(data.subtitle, width / 2, 200);
   }
 
   // Draw Separator line
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(width * 0.1, 180);
-  ctx.lineTo(width * 0.9, 180);
+  ctx.moveTo(width * 0.1, 230);
+  ctx.lineTo(width * 0.9, 230);
   ctx.stroke();
 
   // 5. Draw Slide Content Templates
-  const contentY = 240;
+  const contentY = 290;
   
   if (data.type === 'stats' && data.metrics) {
     let currentY = contentY;
@@ -310,16 +320,18 @@ export async function renderShareCardToCanvas(
     const completedVal = Number(data.metrics[0].value) || 0;
     const habitsVal = Number(data.metrics[1].value) || 0;
     const hoursVal = (completedVal * 1.5).toFixed(1);
+    const gradeVal = String(data.metrics[2]?.value || 'A+');
+    const insightsVal = Number(data.metrics[3]?.value) || 0;
     const isMonthly = data.title.toLowerCase().includes('month');
 
-    // 1. Draw grid of activity heatmap blocks
-    const blockY = contentY + 10;
-    const blockW = 45;
-    const blockH = 45;
-    const gap = 12;
+    // 1. Draw grid of activity heatmap blocks (scaled up)
+    const blockY = contentY + 5;
+    const blockW = 54;
+    const blockH = 54;
+    const gap = 14;
     
     if (isMonthly) {
-      // Draw a 30-day mini grid (6 columns x 5 rows)
+      // Draw a 30-day mini grid (10 columns x 3 rows)
       const cols = 10;
       const rows = 3;
       const totalW = (blockW * cols) + (gap * (cols - 1));
@@ -333,14 +345,14 @@ export async function renderShareCardToCanvas(
           const y = blockY + rIdx * (blockH + gap);
 
           if (isActive) {
-            ctx.fillStyle = 'rgba(52, 211, 153, 0.2)';
-            ctx.strokeStyle = 'rgba(52, 211, 153, 0.4)';
+            ctx.fillStyle = 'rgba(52, 211, 153, 0.22)';
+            ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
           } else {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
           }
 
-          drawRoundedRect(ctx, x, y, blockW, blockH, 8);
+          drawRoundedRect(ctx, x, y, blockW, blockH, 10);
           ctx.fill();
           ctx.stroke();
         }
@@ -355,35 +367,34 @@ export async function renderShareCardToCanvas(
         const x = startX + i * (blockW + gap);
 
         if (isActive) {
-          ctx.fillStyle = 'rgba(52, 211, 153, 0.2)';
-          ctx.strokeStyle = 'rgba(52, 211, 153, 0.4)';
+          ctx.fillStyle = 'rgba(52, 211, 153, 0.22)';
+          ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
         } else {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
         }
 
-        drawRoundedRect(ctx, x, blockY, blockW, blockH, 10);
+        drawRoundedRect(ctx, x, blockY, blockW, blockH, 12);
         ctx.fill();
         ctx.stroke();
 
         // Draw day character
-        ctx.fillStyle = isActive ? '#34d399' : 'rgba(255, 255, 255, 0.3)';
-        ctx.font = '900 12px sans-serif';
+        ctx.fillStyle = isActive ? '#34d399' : 'rgba(255, 255, 255, 0.35)';
+        ctx.font = '900 13px sans-serif';
         ctx.textAlign = 'center';
         const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-        ctx.fillText(days[i], x + blockW / 2, blockY + blockH / 2 + 4);
+        ctx.fillText(days[i], x + blockW / 2, blockY + blockH / 2 + 5);
       }
     }
 
     // 2. Draw Quick Stats Grid Row (2x2 Grid)
-    const rowY = isMonthly ? blockY + (blockH + gap) * 3 + 30 : blockY + blockH + 40;
-    const gridW = width * 0.82;
+    const rowY = isMonthly ? blockY + (blockH + gap) * 3 + 35 : blockY + blockH + 45;
+    const gridW = width * 0.85;
     const startColX = (width - gridW) / 2;
     const capW = gridW / 2;
-    const capH = 80;
-    const rowGap = 15;
+    const capH = 92;
+    const rowGap = 18;
 
-    const insightsVal = data.metrics[3]?.value ?? 0;
     const stats = [
       { label: 'TASKS DONE', val: completedVal },
       { label: 'HOURS FOCUS', val: `${hoursVal}H` },
@@ -402,47 +413,112 @@ export async function renderShareCardToCanvas(
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.lineWidth = 1;
       
-      drawRoundedRect(ctx, x + 5, y, capW - 10, capH, 16);
+      drawRoundedRect(ctx, x + 6, y, capW - 12, capH, 18);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-      ctx.font = '900 10px sans-serif';
+      ctx.font = '900 11px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(st.label, x + capW / 2, y + 28);
+      ctx.fillText(st.label, x + capW / 2, y + 32);
 
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '900 24px sans-serif';
+      ctx.font = '900 32px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(String(st.val), x + capW / 2, y + 58);
+      ctx.fillText(String(st.val), x + capW / 2, y + 68);
     });
 
-    // 3. Draw Comparison Rank Badge
+    // 3. Draw Comparison Rank Badge (Highly Highlighted + Grade Badge)
+    const badgeY = rowY + (capH + rowGap) * 2 + 25;
+    const badgeW = width * 0.85;
+    const badgeX = (width - badgeW) / 2;
+    const badgeH = 135;
+
+    // Glowing green shadow for Global Rank container
+    ctx.shadowColor = 'rgba(52, 211, 153, 0.35)';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = 'rgba(52, 211, 153, 0.08)';
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 2;
+    drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 24);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Reset shadow
+    ctx.shadowBlur = 0;
+
+    // Draw Standing Label
+    ctx.fillStyle = '#34d399';
+    ctx.font = '900 11px sans-serif';
+    ctx.letterSpacing = '1px';
+    ctx.textAlign = 'left';
+    ctx.fillText('GLOBAL STANDING', badgeX + 25, badgeY + 35);
+    ctx.letterSpacing = '0px';
+
+    // Draw Standing Description Text (wrapped within 70% of box width)
     if (data.highlightText) {
-      const badgeY = rowY + (capH + rowGap) * 2 + 20;
-      const badgeW = width * 0.85;
-      const badgeX = (width - badgeW) / 2;
-      const badgeH = 110;
-
-      ctx.fillStyle = 'rgba(52, 211, 153, 0.08)';
-      ctx.strokeStyle = 'rgba(52, 211, 153, 0.2)';
-      ctx.lineWidth = 1;
-      drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 20);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#34d399';
-      ctx.font = '900 10px sans-serif';
-      ctx.letterSpacing = '1px';
-      ctx.textAlign = 'left';
-      ctx.fillText('GLOBAL STANDING', badgeX + 25, badgeY + 32);
-      ctx.letterSpacing = '0px';
-
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.font = 'bold 15px sans-serif';
       ctx.textAlign = 'left';
-      wrapText(ctx, data.highlightText, badgeX + 25, badgeY + 62, badgeW - 50, 22);
+      wrapText(ctx, data.highlightText, badgeX + 25, badgeY + 68, badgeW - 150, 24);
     }
+
+    // Draw Consistency Grade Circular Badge (right side)
+    const gradeCX = badgeX + badgeW - 65;
+    const gradeCY = badgeY + badgeH / 2;
+    const gradeRadius = 40;
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.strokeStyle = 'rgba(52, 211, 153, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(gradeCX, gradeCY, gradeRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(52, 211, 153, 0.6)';
+    ctx.font = '900 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('GRADE', gradeCX, gradeCY - 16);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(gradeVal, gradeCX, gradeCY + 15);
+
+    // 4. Draw Pinned Vault Quote Section (at the bottom)
+    const quoteY = badgeY + badgeH + 30;
+    const quoteW = width * 0.85;
+    const quoteX = (width - quoteW) / 2;
+    const quoteH = 150;
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1;
+    drawRoundedRect(ctx, quoteX, quoteY, quoteW, quoteH, 20);
+    ctx.fill();
+    ctx.stroke();
+
+    // Giant background quote mark
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+    ctx.font = 'italic 120px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('“', quoteX + 20, quoteY + 95);
+
+    // Quote content text
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = 'italic bold 16px sans-serif';
+    ctx.textAlign = 'left';
+    const quoteText = data.quote?.text || 'Compounding wisdom daily.';
+    wrapText(ctx, quoteText, quoteX + 60, quoteY + 45, quoteW - 90, 24);
+
+    // Quote author
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.font = '900 11px sans-serif';
+    ctx.letterSpacing = '1px';
+    ctx.textAlign = 'right';
+    ctx.fillText(data.quote?.author?.toUpperCase() || 'VAULT', quoteX + quoteW - 25, quoteY + quoteH - 22);
+    ctx.letterSpacing = '0px';
   }
   else {
     // Intro or fallback: simple centered message

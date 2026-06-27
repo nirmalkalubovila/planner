@@ -204,6 +204,11 @@ export function generateWeeklyInsights(
   else if (eff >= 50) rankPct = 14; // top 14%
   else if (eff >= 30) rankPct = 32; // top 32%
 
+  const weeklyQuotes = vaultNotes ? vaultNotes.filter(n => n.category === 'quotes') : [];
+  const weeklyQuoteText = weeklyQuotes.length > 0 
+    ? (weeklyQuotes[0].content || weeklyQuotes[0].title) 
+    : 'Take it one percent at a time.';
+
   cards.push({
     type: 'summary',
     title: 'Weekly Impact Summary',
@@ -215,6 +220,10 @@ export function generateWeeklyInsights(
       { label: 'Insights Logged', value: weeklyVaultCount },
     ],
     highlightText: `You ranked in the top ${rankPct}% of all Legacy builders this week! Keep executing daily.`,
+    quote: {
+      text: weeklyQuoteText,
+      author: 'Weekly Reflection'
+    },
     icon: '🌟',
   });
   
@@ -277,6 +286,9 @@ export function generateMonthlyInsights(
     monthlyCompleted += completed;
     if (completed > 0) activeDays++;
   }
+
+  // Declared early to allow usage in both radar and grade cards
+  const overallMonthScore = Math.round((activeDays / totalDays) * 100);
   
   // Fetch Vault data metrics
   const monthlyVaultNotes = vaultNotes.filter(note => {
@@ -313,58 +325,29 @@ export function generateMonthlyInsights(
     icon: '📈',
   });
   
-  // Life Area Classification (Radar chart)
-  // Classify goals/habits into health, money, purpose, relationships
-  const classify = (text: string): 'health' | 'money' | 'purpose' | 'relationships' => {
-    const t = text.toLowerCase();
-    if (t.includes('health') || t.includes('fit') || t.includes('gym') || t.includes('run') || t.includes('sleep') || t.includes('diet') || t.includes('workout')) {
-      return 'health';
-    }
-    if (t.includes('money') || t.includes('finance') || t.includes('save') || t.includes('invest') || t.includes('spend') || t.includes('budget') || t.includes('earn')) {
-      return 'money';
-    }
-    if (t.includes('relat') || t.includes('family') || t.includes('friend') || t.includes('love') || t.includes('date') || t.includes('wife') || t.includes('husband') || t.includes('kid')) {
-      return 'relationships';
-    }
-    return 'purpose'; // default to career/purpose
-  };
-  
-  let healthScore = 0, healthCount = 0;
-  let moneyScore = 0, moneyCount = 0;
-  let purposeScore = 0, purposeCount = 0;
-  let relScore = 0, relCount = 0;
-  
-  goals.forEach(g => {
-    const area = classify(g.name + ' ' + g.purpose);
-    const score = analyzeGoal(g).progress;
-    if (area === 'health') { healthScore += score; healthCount++; }
-    else if (area === 'money') { moneyScore += score; moneyCount++; }
-    else if (area === 'relationships') { relScore += score; relCount++; }
-    else { purposeScore += score; purposeCount++; }
-  });
-  
-  habits.forEach(h => {
-    const area = classify(h.name + ' ' + (h.purpose || ''));
-    const score = analyzeHabit(h, completedMap).consistency;
-    if (area === 'health') { healthScore += score; healthCount++; }
-    else if (area === 'money') { moneyScore += score; moneyCount++; }
-    else if (area === 'relationships') { relScore += score; relCount++; }
-    else { purposeScore += score; purposeCount++; }
-  });
-  
-  const getAverage = (total: number, count: number) => count > 0 ? Math.round(total / count) : 50; // default baseline
-  
+  // Habits, Goals, and Custom Tasks Completion Radar Chart
+  const habitConsistencies = habits.map(h => analyzeHabit(h, completedMap).consistency);
+  const avgHabitScore = habitConsistencies.length > 0 
+    ? Math.round(habitConsistencies.reduce((a, b) => a + b, 0) / habitConsistencies.length) 
+    : 50;
+
+  const goalProgresses = goals.map(g => analyzeGoal(g).progress);
+  const avgGoalScore = goalProgresses.length > 0 
+    ? Math.round(goalProgresses.reduce((a, b) => a + b, 0) / goalProgresses.length) 
+    : 50;
+
+  const avgTaskScore = monthlyCompleted > 0 ? overallMonthScore : 50;
+
   cards.push({
     type: 'radar',
-    title: 'Life Balance Radar',
-    subtitle: 'Consistency across key focus areas',
+    title: 'Execution Radar',
+    subtitle: 'Execution rates across your system focus areas',
     radarData: [
-      { label: 'Health', value: getAverage(healthScore, healthCount) },
-      { label: 'Money', value: getAverage(moneyScore, moneyCount) },
-      { label: 'Purpose', value: getAverage(purposeScore, purposeCount) },
-      { label: 'Relationships', value: getAverage(relScore, relCount) },
+      { label: 'Habits', value: avgHabitScore },
+      { label: 'Goals', value: avgGoalScore },
+      { label: 'Tasks', value: avgTaskScore },
     ],
-    icon: '🕸️',
+    icon: '🎯',
   });
   
   // Habit Power Rankings
@@ -430,8 +413,6 @@ export function generateMonthlyInsights(
   }
   
   // Monthly Grade Card based on active days count (to match dashboard consistency grade)
-  const overallMonthScore = Math.round((activeDays / totalDays) * 100);
-  
   let monthlyGrade = 'D';
   let monthlyGradeText = 'A quiet month. Perfect time to reset your routines and restart.';
   if (overallMonthScore >= 80) {
@@ -465,6 +446,11 @@ export function generateMonthlyInsights(
   else if (overallMonthScore >= 50) monthlyRankPct = 18; // top 18%
   else if (overallMonthScore >= 30) monthlyRankPct = 38; // top 38%
 
+  const monthlyQuotes = vaultNotes ? vaultNotes.filter(n => n.category === 'quotes') : [];
+  const monthlyQuoteText = monthlyQuotes.length > 0 
+    ? (monthlyQuotes[0].content || monthlyQuotes[0].title) 
+    : 'Self-awareness compounds daily.';
+
   cards.push({
     type: 'summary',
     title: 'Monthly Impact Summary',
@@ -476,6 +462,10 @@ export function generateMonthlyInsights(
       { label: 'Insights Logged', value: monthlyVaultNotes.length },
     ],
     highlightText: `You ranked in the top ${monthlyRankPct}% of all Legacy builders this month! Compounding wisdom.`,
+    quote: {
+      text: monthlyQuoteText,
+      author: 'Monthly Reflection'
+    },
     icon: '🌟',
   });
   
