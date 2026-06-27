@@ -134,24 +134,20 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ isOpen, onClose, cards
           <div className="absolute inset-x-0 top-16 bottom-20 flex z-30 pointer-events-none">
             <div 
               className="w-1/4 h-full pointer-events-auto cursor-w-resize"
-              onTouchStart={() => setIsPaused(true)}
-              onTouchEnd={() => { setIsPaused(false); handlePrev(); }}
-              onMouseDown={() => setIsPaused(true)}
-              onMouseUp={() => { setIsPaused(false); handlePrev(); }}
+              onPointerDown={() => setIsPaused(true)}
+              onPointerUp={() => setIsPaused(false)}
+              onClick={(e) => { e.stopPropagation(); handlePrev(); }}
             />
             <div 
               className="w-2/4 h-full pointer-events-auto"
-              onTouchStart={() => setIsPaused(true)}
-              onTouchEnd={() => setIsPaused(false)}
-              onMouseDown={() => setIsPaused(true)}
-              onMouseUp={() => setIsPaused(false)}
+              onPointerDown={() => setIsPaused(true)}
+              onPointerUp={() => setIsPaused(false)}
             />
             <div 
               className="w-1/4 h-full pointer-events-auto cursor-e-resize"
-              onTouchStart={() => setIsPaused(true)}
-              onTouchEnd={() => { setIsPaused(false); handleNext(); }}
-              onMouseDown={() => setIsPaused(true)}
-              onMouseUp={() => { setIsPaused(false); handleNext(); }}
+              onPointerDown={() => setIsPaused(true)}
+              onPointerUp={() => setIsPaused(false)}
+              onClick={(e) => { e.stopPropagation(); handleNext(); }}
             />
           </div>
 

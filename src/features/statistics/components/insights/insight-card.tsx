@@ -139,6 +139,7 @@ const RenderCardContent: React.FC<{
           {data.metrics?.map((m, idx) => {
             const numericValue = typeof m.value === 'number' ? m.value : parseInt(m.value.replace(/[^0-9]/g, ''), 10) || 0;
             const isPercent = typeof m.value === 'string' && m.value.includes('%');
+            const isFraction = typeof m.value === 'string' && m.value.includes('/');
             return (
               <motion.div
                 key={idx}
@@ -158,7 +159,11 @@ const RenderCardContent: React.FC<{
                   )}
                 </div>
                 <div className="text-3.5xl font-black tracking-tight text-white drop-shadow-md">
-                  <AnimatedNumber value={numericValue} suffix={isPercent ? '%' : ''} />
+                  {isFraction ? (
+                    m.value
+                  ) : (
+                    <AnimatedNumber value={numericValue} suffix={isPercent ? '%' : ''} />
+                  )}
                 </div>
               </motion.div>
             );

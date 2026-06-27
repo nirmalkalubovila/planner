@@ -26,7 +26,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ cardData, theme, index
       const blob = await renderShareCardToCanvas(cardData, theme, format);
       
       // 2. Try native mobile share sheet
-      const shared = await shareToSocial(blob, `Check out my Legacy wrapped card! Slide ${index + 1} ⚡`);
+      const shared = await shareToSocial(blob, 'Check out my Legacy wrapped card! ⚡');
       
       if (shared) {
         toast.success('Shared successfully!');
