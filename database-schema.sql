@@ -92,11 +92,29 @@ CREATE TABLE user_profiles (
 CREATE TABLE vault_notes (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  title text NOT NULL DEFAULT '',
   content text NOT NULL DEFAULT '',
+  category text NOT NULL DEFAULT 'ideas',
+  source_page text,
   tags jsonb DEFAULT '[]'::jsonb,
   is_pinned boolean DEFAULT false,
   "createdAt" timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   "updatedAt" timestamp with time zone
+);
+
+-- Create vault_reminders table (Smart repeatable notifications)
+CREATE TABLE vault_reminders (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  note_id uuid NOT NULL REFERENCES vault_notes(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  body text,
+  repeat_type text NOT NULL DEFAULT 'daily',  -- 'daily', 'every_2_days', 'weekly', 'random'
+  remind_at text,                             -- time of day "HH:mm" (optional for random)
+  next_fire timestamp with time zone NOT NULL,
+  is_active boolean DEFAULT true,
+  snooze_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Create completed_tasks table
@@ -116,9 +134,11 @@ ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE week_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE custom_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vault_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vault_reminders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE completed_tasks ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage their own vault_notes" ON vault_notes FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can manage their own vault_reminders" ON vault_reminders FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own user_profiles" ON user_profiles FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own goals" ON goals FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can manage their own habits" ON habits FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

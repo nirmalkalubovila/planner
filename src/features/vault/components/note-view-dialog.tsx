@@ -1,28 +1,33 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Pin, Trash2, Edit2, Copy, Check } from 'lucide-react';
+import { X, Pin, Trash2, Edit2, Copy, Check, Bell, Quote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VaultNote, CATEGORY_META } from '@/types/vault';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { VaultReminder } from '@/api/services/reminder-service';
 
 interface NoteViewDialogProps {
   isOpen: boolean;
   onClose: () => void;
   note: VaultNote | null;
+  reminder?: VaultReminder | null;
   onPin: (id: string, is_pinned: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: (note: VaultNote) => void;
+  onReminderClick?: (note: VaultNote) => void;
 }
 
 export const NoteViewDialog: React.FC<NoteViewDialogProps> = ({
   isOpen,
   onClose,
   note,
+  reminder,
   onPin,
   onDelete,
   onEdit,
+  onReminderClick,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -91,6 +96,19 @@ export const NoteViewDialog: React.FC<NoteViewDialogProps> = ({
               </span>
               
               <div className="flex items-center gap-1.5">
+                {onReminderClick && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn('h-8 w-8 rounded-lg', reminder ? 'text-primary bg-primary/5' : 'text-muted-foreground hover:text-primary hover:bg-accent')}
+                    onClick={() => {
+                      if (note) onReminderClick(note);
+                    }}
+                    title={reminder ? 'Configure reminder' : 'Set reminder'}
+                  >
+                    <Bell size={14} fill={reminder ? 'currentColor' : 'none'} />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -106,7 +124,7 @@ export const NoteViewDialog: React.FC<NoteViewDialogProps> = ({
                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent"
                   onClick={() => {
                     onClose();
-                    onEdit(note);
+                    if (note) onEdit(note);
                   }}
                   title="Edit note"
                 >
@@ -116,7 +134,9 @@ export const NoteViewDialog: React.FC<NoteViewDialogProps> = ({
                   variant="ghost"
                   size="icon"
                   className={cn('h-8 w-8 rounded-lg', note.is_pinned ? 'text-amber-400 bg-amber-400/5' : 'text-muted-foreground hover:text-primary hover:bg-accent')}
-                  onClick={() => onPin(note.id, !note.is_pinned)}
+                  onClick={() => {
+                    if (note) onPin(note.id, !note.is_pinned);
+                  }}
                   title={note.is_pinned ? 'Unpin note' : 'Pin note'}
                 >
                   <Pin size={14} fill={note.is_pinned ? 'currentColor' : 'none'} />
@@ -127,7 +147,7 @@ export const NoteViewDialog: React.FC<NoteViewDialogProps> = ({
                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-accent"
                   onClick={() => {
                     onClose();
-                    onDelete(note.id);
+                    if (note) onDelete(note.id);
                   }}
                   title="Delete note"
                 >
@@ -159,9 +179,34 @@ export const NoteViewDialog: React.FC<NoteViewDialogProps> = ({
 
               <div className="h-px bg-border/50" />
 
-              <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed text-base font-normal pt-1 select-text selection:bg-primary/20">
-                {note.content}
-              </p>
+              {note.category === 'quotes' ? (
+                <div className="relative py-4 px-2">
+                  <div className="absolute left-0 top-0 text-emerald-500/10 pointer-events-none">
+                    <Quote size={40} fill="currentColor" />
+                  </div>
+                  <p className="text-xl text-foreground font-serif italic leading-relaxed pt-2 pl-8 select-text selection:bg-emerald-500/20">
+                    "{note.content}"
+                  </p>
+                  {note.source_page && (
+                    <div className="text-right mt-6">
+                      <span className="text-sm font-semibold text-muted-foreground font-sans">
+                        — {note.source_page}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed text-base font-normal pt-1 select-text selection:bg-primary/20">
+                    {note.content}
+                  </p>
+                  {note.source_page && (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium bg-muted/20 p-3 rounded-xl border border-border/45 mt-4">
+                      <span className="font-bold text-foreground">Source Reference:</span> {note.source_page}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>

@@ -1,7 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Mail, Calendar, User as UserIcon, Camera, Loader2 } from 'lucide-react';
+import { Mail, Calendar, User as UserIcon, Camera, Loader2, Edit2, Check, X } from 'lucide-react';
 import Cropper, { Area } from 'react-easy-crop';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { CustomDatePicker } from '@/components/ui/date-picker';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { StandardDialog } from '@/components/common/standard-dialog';
@@ -13,10 +16,30 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 interface ProfileInfoProps {
     user: any;
     profile?: { fullName?: string; dob?: string; avatarUrl?: string } | null;
-    saveProfile?: (updates: { avatarUrl: string }) => Promise<void>;
+    saveProfile?: (updates: any) => Promise<void>;
+    isEditing: boolean;
+    setIsEditing: (val: boolean) => void;
+    loading: boolean;
+    onSave: () => Promise<void>;
+    fullName: string;
+    setFullName: (val: string) => void;
+    dob: string;
+    setDob: (val: string) => void;
 }
 
-export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, profile, saveProfile }) => {
+export const ProfileInfo: React.FC<ProfileInfoProps> = ({
+    user,
+    profile,
+    saveProfile,
+    isEditing,
+    setIsEditing,
+    loading,
+    onSave,
+    fullName,
+    setFullName,
+    dob,
+    setDob,
+}) => {
     const displayName = profile?.fullName || user.user_metadata?.full_name || '';
     const initials = displayName
         ? displayName.substring(0, 2).toUpperCase()
@@ -119,6 +142,7 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, profile, savePro
             setUploading(false);
             setCropModalOpen(false);
             setCropImageSrc(null);
+            setCroppedAreaPixels(null);
         }
     };
 
@@ -131,55 +155,93 @@ export const ProfileInfo: React.FC<ProfileInfoProps> = ({ user, profile, savePro
     return (
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
             {/* Avatar + Name */}
-            <div className="flex items-center gap-4">
-                <div className="relative group">
-                    {uploading ? (
-                        <div className="h-14 w-14 rounded-2xl bg-muted/50 border border-primary/20 flex items-center justify-center">
-                            <Loader2 size={20} className="text-primary animate-spin" />
-                        </div>
-                    ) : previewUrl ? (
-                        <img
-                            src={previewUrl}
-                            alt="Avatar"
-                            className="h-14 w-14 rounded-2xl object-cover border border-primary/20"
-                        />
-                    ) : (
-                        <div className="h-14 w-14 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center">
-                            <span className="text-lg font-bold text-primary tracking-tight select-none">{initials}</span>
-                        </div>
-                    )}
-                    <button
-                        onClick={() => fileRef.current?.click()}
-                        disabled={uploading}
-                        className="absolute inset-0 rounded-2xl bg-background/50 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer"
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="relative group">
+                        {uploading ? (
+                            <div className="h-14 w-14 rounded-2xl bg-muted/50 border border-primary/20 flex items-center justify-center">
+                                <Loader2 size={20} className="text-primary animate-spin" />
+                            </div>
+                        ) : previewUrl ? (
+                            <img
+                                src={previewUrl}
+                                alt="Avatar"
+                                className="h-14 w-14 rounded-2xl object-cover border border-primary/20"
+                            />
+                        ) : (
+                            <div className="h-14 w-14 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center">
+                                <span className="text-lg font-bold text-primary tracking-tight select-none">{initials}</span>
+                            </div>
+                        )}
+                        <button
+                            onClick={() => fileRef.current?.click()}
+                            disabled={uploading || isEditing}
+                            className="absolute inset-0 rounded-2xl bg-background/50 flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                            <Camera size={16} className="text-foreground" />
+                        </button>
+                        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileSelect} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg">{displayName || 'User'}</h3>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+                </div>
+
+                {!isEditing && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsEditing(true)}
+                        className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent shrink-0"
                     >
-                        <Camera size={16} className="text-foreground" />
-                    </button>
-                    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileSelect} />
-                </div>
-                <div>
-                    <h3 className="font-bold text-lg">{displayName || 'User'}</h3>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                </div>
+                        <Edit2 className="h-4 w-4" />
+                    </Button>
+                )}
             </div>
 
-            {/* Details */}
-            <div className="space-y-3 pt-4 border-t border-border">
-                <div className="flex items-center gap-3 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">{user.email}</span>
+            {isEditing ? (
+                <div className="space-y-4 pt-4 border-t border-border animate-in fade-in duration-300">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-muted-foreground ml-0.5">Full Name</label>
+                        <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-10 rounded-xl bg-muted border-border" />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-muted-foreground ml-0.5">Date of Birth</label>
+                        <CustomDatePicker
+                            selected={dob ? new Date(dob) : null}
+                            onChange={(date) => setDob(date ? format(date, 'yyyy-MM-dd') : '')}
+                            placeholderText="Select date"
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <Button onClick={onSave} disabled={loading} className="flex-1 h-10 rounded-xl font-semibold">
+                            <Check className="h-4 w-4 mr-1.5" /> Save
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsEditing(false)} disabled={loading} className="flex-1 h-10 rounded-xl font-semibold border-border">
+                            <X className="h-4 w-4 mr-1.5" /> Cancel
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                    <UserIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">DOB: {profile?.dob || user.user_metadata?.dob || 'Not set'}</span>
+            ) : (
+                /* Details */
+                <div className="space-y-3 pt-4 border-t border-border">
+                    <div className="flex items-center gap-3 text-sm">
+                        <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground">{user.email}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                        <UserIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground">DOB: {profile?.dob || user.user_metadata?.dob || 'Not set'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground">Joined {new Date(user.created_at).toLocaleDateString()}</span>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">Joined {new Date(user.created_at).toLocaleDateString()}</span>
-                </div>
-            </div>
+            )}
 
-            {/* Crop Modal — centered like habits create popup, responsive for both screens */}
+            {/* Crop Modal */}
             <StandardDialog
                 isOpen={cropModalOpen}
                 onClose={handleCropCancel}

@@ -13,6 +13,7 @@ const noteSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   content: z.string().min(1, 'Write your thought'),
   category: z.string().min(1, 'Select a category'),
+  source_page: z.string().optional().nullable(),
 });
 
 export type NoteFormValues = z.infer<typeof noteSchema>;
@@ -72,6 +73,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
       title: initialValues?.title || '',
       content: initialValues?.content || '',
       category: initialValues?.category || 'ideas',
+      source_page: initialValues?.source_page || '',
     },
   });
 
@@ -85,7 +87,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
     if (trimmedTitle || trimmedContent) {
       saveDraft(watchedValues);
     }
-  }, [watchedValues.title, watchedValues.content, watchedValues.category, enableDraft]);
+  }, [watchedValues.title, watchedValues.content, watchedValues.category, watchedValues.source_page, enableDraft]);
 
   const handleSubmit = (values: NoteFormValues) => {
     clearNoteDraft();
@@ -134,6 +136,17 @@ export const NoteForm: React.FC<NoteFormProps> = ({
         </div>
         {form.formState.errors.category && <p className="text-xs text-destructive">{form.formState.errors.category.message}</p>}
       </div>
+
+      {['quotes', 'reading', 'resources'].includes(form.watch('category')) && (
+        <div className="space-y-2 shrink-0">
+          <label className="text-sm font-medium">Source / Reference <span className="text-xs text-muted-foreground">(e.g., Book, page number, or web link)</span></label>
+          <Input
+            {...form.register('source_page')}
+            placeholder="e.g. Atomic Habits, p. 24"
+          />
+          {form.formState.errors.source_page && <p className="text-xs text-destructive">{form.formState.errors.source_page.message}</p>}
+        </div>
+      )}
 
       <div className="space-y-2 flex-1 flex flex-col min-h-0">
         <label className="text-sm font-medium shrink-0">Your Thought <span className="text-destructive">*</span></label>

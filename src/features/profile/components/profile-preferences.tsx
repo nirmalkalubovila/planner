@@ -1,6 +1,4 @@
 import React from 'react';
-import { format } from 'date-fns';
-import { CustomDatePicker } from '@/components/ui/date-picker';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { Edit2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -69,21 +67,6 @@ export const ProfilePreferences: React.FC<ProfilePreferencesProps> = ({
             {isEditing ? (
                 <div className="space-y-5 animate-in fade-in duration-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <label className={labelClass}>Full Name</label>
-                            <Input value={formData.fullName} onChange={(e) => formData.setFullName(e.target.value)} className="h-10 rounded-xl bg-muted border-border" />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className={labelClass}>Date of Birth</label>
-                            <CustomDatePicker
-                                selected={formData.dob ? new Date(formData.dob) : null}
-                                onChange={(date) => formData.setDob(date ? format(date, 'yyyy-MM-dd') : '')}
-                                placeholderText="Select date"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border">
                         <div className="space-y-1.5">
                             <label className={labelClass}>Sleep Start Time</label>
                             <SimpleTimePicker value={formData.sleepStart} onChange={formData.setSleepStart} />

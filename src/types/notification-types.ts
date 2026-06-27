@@ -47,6 +47,12 @@ export interface NotificationPreferences {
   timezoneOffset?: number;
   sleepNotifications?: boolean;
   weeklyPlanning?: boolean;
+  weeklyReportEnabled?: boolean;
+  weeklyReportDay?: string;      // e.g. "Sunday"
+  weeklyReportTime?: string;     // e.g. "20:00"
+  monthlyReportEnabled?: boolean;
+  monthlyReportDay?: number;     // e.g. 1
+  monthlyReportTime?: string;    // e.g. "20:00"
 }
 
 export const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -65,6 +71,12 @@ export const DEFAULT_PREFERENCES: NotificationPreferences = {
   burnoutWarning: true,
   sleepNotifications: true,
   weeklyPlanning: true,
+  weeklyReportEnabled: true,
+  weeklyReportDay: 'Sunday',
+  weeklyReportTime: '20:00',
+  monthlyReportEnabled: true,
+  monthlyReportDay: 1,
+  monthlyReportTime: '20:00',
 };
 
 /** Emoji icons per notification type for in-app display */

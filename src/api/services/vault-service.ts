@@ -29,6 +29,7 @@ async function getNotes(): Promise<VaultNote[]> {
     title: row.title || '',
     category: row.category || 'ideas',
     is_draft: false,
+    source_page: row.source_page || null,
     tags: Array.isArray(row.tags) ? row.tags : (row.tags ? JSON.parse(row.tags as unknown as string) : []),
   }));
 }
@@ -45,6 +46,7 @@ interface CreateNoteInput {
   title: string;
   content: string;
   category: VaultCategory;
+  source_page?: string | null;
 }
 
 export function useAddNote() {
@@ -61,6 +63,7 @@ export function useAddNote() {
           title: input.title,
           content: input.content,
           category: input.category,
+          source_page: input.source_page || null,
           tags,
         }])
         .select()
@@ -76,6 +79,7 @@ export function useAddNote() {
         title: input.title,
         content: input.content,
         category: input.category,
+        source_page: input.source_page || null,
         tags: parseTags(input.content),
         is_pinned: false,
         is_draft: false,
@@ -135,13 +139,14 @@ interface UpdateNoteInput {
   title?: string;
   content?: string;
   category?: VaultCategory;
+  source_page?: string | null;
 }
 
 export function useUpdateNote() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, title, content, category }: UpdateNoteInput) => {
+    mutationFn: async ({ id, title, content, category, source_page }: UpdateNoteInput) => {
       const userId = await getCurrentUserId();
       const updatePayload: Record<string, unknown> = { updatedAt: new Date().toISOString() };
       if (title !== undefined) updatePayload.title = title;
@@ -150,6 +155,7 @@ export function useUpdateNote() {
         updatePayload.tags = parseTags(content);
       }
       if (category !== undefined) updatePayload.category = category;
+      if (source_page !== undefined) updatePayload.source_page = source_page;
 
       const { data, error } = await supabase
         .from(TABLE_NAME)
@@ -161,7 +167,7 @@ export function useUpdateNote() {
       if (error) throw new Error(error.message);
       return { ...data, tags: updatePayload.tags ?? data.tags } as VaultNote;
     },
-    onMutate: async ({ id, title, content, category }) => {
+    onMutate: async ({ id, title, content, category, source_page }) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<VaultNote[]>(QUERY_KEY);
       queryClient.setQueryData<VaultNote[]>(QUERY_KEY, (old = []) =>
@@ -172,6 +178,7 @@ export function useUpdateNote() {
             ...(title !== undefined && { title }),
             ...(content !== undefined && { content, tags: parseTags(content) }),
             ...(category !== undefined && { category }),
+            ...(source_page !== undefined && { source_page }),
             updatedAt: new Date().toISOString(),
           };
         })
