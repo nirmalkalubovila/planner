@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquarePlus, Send, Bug, Lightbulb, MessageCircle, HelpCircle } from 'lucide-react';
+import { MessageSquarePlus, Send, Bug, Lightbulb, MessageCircle, HelpCircle, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSubmitFeedback } from '@/api/services/feedback-service';
@@ -10,16 +10,17 @@ import { useNavigate } from 'react-router-dom';
 const CATEGORY_ICONS: Record<FeedbackCategory, React.ReactNode> = {
     'Bug Report': <Bug className="h-3.5 w-3.5" />,
     'Feature Request': <Lightbulb className="h-3.5 w-3.5" />,
-    'General Feedback': <MessageCircle className="h-3.5 w-3.5" />,
+    'About Legacy Life Builder': <MessageCircle className="h-3.5 w-3.5" />,
     'Other': <HelpCircle className="h-3.5 w-3.5" />,
 };
 
 export const FeedbackSection: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [category, setCategory] = useState<FeedbackCategory>('General Feedback');
+    const [category, setCategory] = useState<FeedbackCategory>('About Legacy Life Builder');
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
+    const [rating, setRating] = useState(5);
     const submitFeedback = useSubmitFeedback();
 
     const handleSubmit = async () => {
@@ -28,14 +29,19 @@ export const FeedbackSection: React.FC = () => {
             return;
         }
         if (!subject.trim() || !message.trim()) return;
-        await submitFeedback.mutateAsync({ category, subject: subject.trim(), message: message.trim() });
+        await submitFeedback.mutateAsync({
+            category,
+            subject: subject.trim(),
+            message: message.trim(),
+            rating: category === 'About Legacy Life Builder' ? rating : undefined
+        });
         setSubject('');
         setMessage('');
-        setCategory('General Feedback');
+        setCategory('About Legacy Life Builder');
+        setRating(5);
     };
 
     const canSubmit = !user || (subject.trim().length > 0 && message.trim().length > 0 && !submitFeedback.isPending);
-
 
     return (
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 space-y-5">
@@ -55,7 +61,12 @@ export const FeedbackSection: React.FC = () => {
                     <button
                         key={cat}
                         type="button"
-                        onClick={() => setCategory(cat)}
+                        onClick={() => {
+                            setCategory(cat);
+                            if (cat !== 'About Legacy Life Builder') {
+                                setRating(5);
+                            }
+                        }}
                         className={`
                             inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border
                             ${category === cat
@@ -69,6 +80,34 @@ export const FeedbackSection: React.FC = () => {
                     </button>
                 ))}
             </div>
+
+            {/* Star Rating - Only for About Legacy Life Builder */}
+            {category === 'About Legacy Life Builder' && (
+                <div className="flex flex-col gap-2 p-3 bg-muted/30 rounded-xl border border-border/55">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Rate Legacy Life Builder</span>
+                    <div className="flex gap-1.5 items-center">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                                key={star}
+                                type="button"
+                                onClick={() => setRating(star)}
+                                className="focus:outline-none transition-transform hover:scale-110"
+                            >
+                                <Star
+                                    className={`h-5 w-5 cursor-pointer ${
+                                        star <= rating
+                                            ? 'fill-amber-400 text-amber-400'
+                                            : 'text-zinc-700 hover:text-zinc-500'
+                                    }`}
+                                />
+                            </button>
+                        ))}
+                        <span className="ml-2 text-xs font-bold text-zinc-400 font-mono">
+                            {rating} / 5
+                        </span>
+                    </div>
+                </div>
+            )}
 
             {/* Subject */}
             <Input
@@ -115,8 +154,8 @@ export const FeedbackSection: React.FC = () => {
                         </>
                     )}
                 </Button>
-
             </div>
         </div>
     );
 };
+

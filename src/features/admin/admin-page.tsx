@@ -7,7 +7,10 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAdminFeedbacks, useAdminUsers, useAdminStats, useAdminUpdateFeedbackStatus } from '@/api/services/feedback-service';
+import { 
+    useAdminFeedbacks, useAdminUsers, useAdminStats, useAdminUpdateFeedbackStatus,
+    useLandingSettings, useUpdateLandingSettings, useAdminUpdateFeedback
+} from '@/api/services/feedback-service';
 import { STATUS_COLORS, FEEDBACK_STATUSES, type FeedbackStatus } from './admin-constants';
 import { AdminGuard } from './admin-guard';
 import {
@@ -15,13 +18,14 @@ import {
     useGlobalEmailTemplates
 } from '@/api/services/admin-smtp-service';
 
-type Tab = 'dashboard' | 'feedbacks' | 'users' | 'mails';
+type Tab = 'dashboard' | 'feedbacks' | 'users' | 'mails' | 'landing';
 
 const TAB_ITEMS: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
     { key: 'feedbacks', label: 'Feedbacks', icon: <MessageSquare className="h-4 w-4" /> },
     { key: 'users', label: 'Users', icon: <Users className="h-4 w-4" /> },
     { key: 'mails', label: 'Mails', icon: <Mail className="h-4 w-4" /> },
+    { key: 'landing', label: 'Landing Config', icon: <Settings className="h-4 w-4" /> },
 ];
 
 // ── Stat Card ────────────────────────────────────────────────────────
@@ -669,6 +673,263 @@ const MailsTab: React.FC = () => {
     );
 };
 
+// ── Landing Page Config Tab ──────────────────────────────────────────
+const LandingTab: React.FC = () => {
+    const { data: settings, isLoading: isSettingsLoading } = useLandingSettings();
+    const updateSettings = useUpdateLandingSettings();
+    const { data: feedbacks, isLoading: isFeedbacksLoading } = useAdminFeedbacks();
+    const updateFeedback = useAdminUpdateFeedback();
+
+    // Form states for video and galleries
+    const [desktopVideo, setDesktopVideo] = useState('');
+    const [mobileVideo, setMobileVideo] = useState('');
+    const [desktopGallery, setDesktopGallery] = useState<string[]>([]);
+    const [mobileGallery, setMobileGallery] = useState<string[]>([]);
+    const [newDesktopUrl, setNewDesktopUrl] = useState('');
+    const [newMobileUrl, setNewMobileUrl] = useState('');
+
+    // Sync state when settings query resolves
+    React.useEffect(() => {
+        if (settings) {
+            setDesktopVideo(settings.desktop_video_url || '');
+            setMobileVideo(settings.mobile_video_url || '');
+            setDesktopGallery(settings.desktop_gallery || []);
+            setMobileGallery(settings.mobile_gallery || []);
+        }
+    }, [settings]);
+
+    const handleSaveSettings = () => {
+        updateSettings.mutate({
+            desktop_video_url: desktopVideo,
+            mobile_video_url: mobileVideo,
+            desktop_gallery: desktopGallery,
+            mobile_gallery: mobileGallery,
+        });
+    };
+
+    const handleAddDesktopUrl = () => {
+        if (newDesktopUrl.trim()) {
+            setDesktopGallery(prev => [...prev, newDesktopUrl.trim()]);
+            setNewDesktopUrl('');
+        }
+    };
+
+    const handleRemoveDesktopUrl = (index: number) => {
+        setDesktopGallery(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAddMobileUrl = () => {
+        if (newMobileUrl.trim()) {
+            setMobileGallery(prev => [...prev, newMobileUrl.trim()]);
+            setNewMobileUrl('');
+        }
+    };
+
+    const handleRemoveMobileUrl = (index: number) => {
+        setMobileGallery(prev => prev.filter((_, i) => i !== index));
+    };
+
+    if (isSettingsLoading || isFeedbacksLoading) {
+        return (
+            <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="bg-card/60 border border-border rounded-2xl p-5 h-32 animate-pulse" />
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-8 pb-20">
+            {/* Hero Video & Product Gallery Config */}
+            <div className="bg-card/60 border border-border rounded-2xl p-5 space-y-6">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Media Settings</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Configure landing page hero videos and preview screenshots.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Desktop Hero Video */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Desktop Video URL</label>
+                        <Input
+                            value={desktopVideo}
+                            onChange={(e) => setDesktopVideo(e.target.value)}
+                            placeholder="Enter Cloudinary/MP4 Video URL"
+                            className="bg-muted text-xs h-10 rounded-xl"
+                        />
+                    </div>
+
+                    {/* Mobile Hero Video */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Mobile Video URL</label>
+                        <Input
+                            value={mobileVideo}
+                            onChange={(e) => setMobileVideo(e.target.value)}
+                            placeholder="Enter Cloudinary/MP4 Video URL"
+                            className="bg-muted text-xs h-10 rounded-xl"
+                        />
+                    </div>
+                </div>
+
+                {/* Galleries */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-border pt-6">
+                    {/* Desktop Gallery */}
+                    <div className="space-y-4">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Desktop Gallery Images</label>
+                        <div className="flex gap-2">
+                            <Input
+                                value={newDesktopUrl}
+                                onChange={(e) => setNewDesktopUrl(e.target.value)}
+                                placeholder="Add desktop image URL"
+                                className="bg-muted text-xs h-10 rounded-xl flex-1"
+                            />
+                            <Button onClick={handleAddDesktopUrl} size="sm" className="rounded-xl h-10 px-4">Add</Button>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            {desktopGallery.map((url, i) => (
+                                <div key={i} className="flex items-center justify-between gap-3 bg-muted/40 border border-border/60 p-2 rounded-xl text-xs">
+                                    <span className="truncate flex-1 text-muted-foreground">{url}</span>
+                                    <Button onClick={() => handleRemoveDesktopUrl(i)} variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/15">
+                                        &times;
+                                    </Button>
+                                </div>
+                            ))}
+                            {desktopGallery.length === 0 && (
+                                <span className="text-xs text-muted-foreground/60 italic">No custom desktop screenshots added. Defaults will be shown.</span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Mobile Gallery */}
+                    <div className="space-y-4">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Mobile Gallery Images</label>
+                        <div className="flex gap-2">
+                            <Input
+                                value={newMobileUrl}
+                                onChange={(e) => setNewMobileUrl(e.target.value)}
+                                placeholder="Add mobile image URL"
+                                className="bg-muted text-xs h-10 rounded-xl flex-1"
+                            />
+                            <Button onClick={handleAddMobileUrl} size="sm" className="rounded-xl h-10 px-4">Add</Button>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            {mobileGallery.map((url, i) => (
+                                <div key={i} className="flex items-center justify-between gap-3 bg-muted/40 border border-border/60 p-2 rounded-xl text-xs">
+                                    <span className="truncate flex-1 text-muted-foreground">{url}</span>
+                                    <Button onClick={() => handleRemoveMobileUrl(i)} variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/15">
+                                        &times;
+                                    </Button>
+                                </div>
+                            ))}
+                            {mobileGallery.length === 0 && (
+                                <span className="text-xs text-muted-foreground/60 italic">No custom mobile screenshots added. Defaults will be shown.</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-border">
+                    <Button onClick={handleSaveSettings} disabled={updateSettings.isPending} className="gap-2 rounded-xl h-10 px-5">
+                        {updateSettings.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Save Settings
+                    </Button>
+                </div>
+            </div>
+
+            {/* Testimonials Curation */}
+            <div className="bg-card/60 border border-border rounded-2xl p-5 space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Testimonials Curation</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Approve specific user feedback messages to render in the landing page review marquee.</p>
+                </div>
+
+                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                    {(feedbacks ?? []).map((f) => (
+                        <div key={f.id} className="bg-muted/30 border border-border/80 p-4 rounded-2xl flex flex-col gap-4 transition-all hover:border-border">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div className="space-y-1.5 flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{f.category}</span>
+                                        <span className="text-[9px] text-muted-foreground">{new Date(f.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <h4 className="text-xs font-bold text-foreground truncate">{f.subject}</h4>
+                                    <p className="text-xs text-muted-foreground leading-normal">{f.message}</p>
+                                </div>
+                                <Button
+                                    onClick={() => updateFeedback.mutate({ id: f.id, show_on_landing: !f.show_on_landing })}
+                                    variant={f.show_on_landing ? "default" : "outline"}
+                                    size="sm"
+                                    className="w-full sm:w-auto h-8 text-[11px] font-bold tracking-wider uppercase shrink-0 rounded-xl"
+                                >
+                                    {f.show_on_landing ? "Showing on Landing" : "Show on Landing"}
+                                </Button>
+                            </div>
+
+                            {/* Curation Details Form */}
+                            <div className="border-t border-border/50 pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Display Name</label>
+                                    <Input
+                                        defaultValue={f.author_name || ''}
+                                        id={`name-${f.id}`}
+                                        placeholder="e.g. David K."
+                                        className="h-8 text-xs bg-muted/65 rounded-lg border-border"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Display Position</label>
+                                    <Input
+                                        defaultValue={f.author_position || ''}
+                                        id={`pos-${f.id}`}
+                                        placeholder="e.g. Founder"
+                                        className="h-8 text-xs bg-muted/65 rounded-lg border-border"
+                                    />
+                                </div>
+                                <div className="flex gap-2 items-center justify-between">
+                                    <div className="space-y-1 flex-1 font-sans">
+                                        <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Rating</label>
+                                        <select
+                                            defaultValue={f.rating || 5}
+                                            id={`rating-${f.id}`}
+                                            className="h-8 w-full text-xs bg-muted/65 border border-input rounded-lg px-2 focus:outline-none"
+                                        >
+                                            {[5, 4, 3, 2, 1].map((r) => (
+                                                <option key={r} value={r}>{r} Stars</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <Button
+                                        onClick={() => {
+                                            const nameVal = (document.getElementById(`name-${f.id}`) as HTMLInputElement)?.value;
+                                            const posVal = (document.getElementById(`pos-${f.id}`) as HTMLInputElement)?.value;
+                                            const ratingVal = parseInt((document.getElementById(`rating-${f.id}`) as HTMLSelectElement)?.value || '5');
+                                            updateFeedback.mutate({
+                                                id: f.id,
+                                                author_name: nameVal || null,
+                                                author_position: posVal || null,
+                                                rating: ratingVal
+                                            });
+                                        }}
+                                        variant="secondary"
+                                        size="sm"
+                                        className="h-8 rounded-lg text-[10px] font-bold tracking-wider uppercase shrink-0"
+                                    >
+                                        Update Details
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {(feedbacks ?? []).length === 0 && (
+                        <div className="text-center py-8 text-xs text-muted-foreground">No user feedbacks received yet.</div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ── Admin Page Shell ─────────────────────────────────────────────────
 const AdminPageInner: React.FC = () => {
     const [tab, setTab] = useState<Tab>('dashboard');
@@ -719,6 +980,7 @@ const AdminPageInner: React.FC = () => {
                 {tab === 'feedbacks' && <FeedbacksTab />}
                 {tab === 'users' && <UsersTab />}
                 {tab === 'mails' && <MailsTab />}
+                {tab === 'landing' && <LandingTab />}
             </div>
         </div>
     );

@@ -9,7 +9,7 @@ export const isAdminEmail = (email: string | undefined): boolean =>
 export const FEEDBACK_CATEGORIES = [
   'Bug Report',
   'Feature Request',
-  'General Feedback',
+  'About Legacy Life Builder',
   'Other',
 ] as const;
 
