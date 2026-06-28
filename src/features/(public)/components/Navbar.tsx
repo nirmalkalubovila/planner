@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 
 export default function Navbar() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-black/85 backdrop-blur-md border-b border-zinc-900/60">
-      <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
+      <div className="w-full px-5 sm:px-8 h-14 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
           <img 
