@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 interface HeroProps {
@@ -32,10 +32,6 @@ export default function Hero({ desktopVideoUrl, mobileVideoUrl }: HeroProps) {
         className="absolute inset-0 w-full h-full object-cover"
       >
         <source src={videoSrc} type="video/mp4" />
-        <source
-          src="https://res.cloudinary.com/demo/video/upload/q_auto,vc_h265/dog.mp4"
-          type="video/mp4"
-        />
       </video>
 
       {/* Dark overlay gradient for text readability */}
