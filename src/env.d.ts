@@ -15,6 +15,8 @@ interface ImportMetaEnv {
     readonly VITE_AI_MODEL?: string
     /** AI backup model when primary fails (optional) */
     readonly VITE_AI_BACKUP_MODEL?: string
+    /** Google Search Console verification token (optional) */
+    readonly VITE_GOOGLE_SITE_VERIFICATION?: string
 }
 
 interface ImportMeta {

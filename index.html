@@ -11,6 +11,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="/white-logo.svg" />
   <title>Legacy Life Builder | Stop Planning. Start Executing.</title>
+  <!-- Google Search Console Verification -->
+  <meta name="google-site-verification" content="%VITE_GOOGLE_SITE_VERIFICATION%" />
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,7 +42,34 @@
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Static HTML fallback for search crawlers, OAuth verification bots, and browsers with JavaScript disabled -->
+    <div style="display: none; opacity: 0; visibility: hidden; pointer-events: none;" aria-hidden="true">
+      <h1>Legacy Life Builder</h1>
+      <p>Turn your 10-year vision into clear daily tasks with AI. Build daily habits and start building your legacy today.</p>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/refund">Return Policy</a>
+      </nav>
+    </div>
+  </div>
+  <noscript>
+    <div style="font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 40px 20px; color: #a1a1aa; background-color: #09090b; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+      <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 8px;">Legacy Life Builder</h1>
+      <p style="font-size: 14px; margin-bottom: 24px; max-width: 400px; line-height: 1.5;">Stop Planning. Start Executing. Please enable JavaScript to access the app.</p>
+      <div style="font-size: 12px;">
+        <a href="/" style="color: #ffffff; text-decoration: none; margin: 0 10px;">Home</a>
+        <span style="color: #3f3f46;">|</span>
+        <a href="/privacy" style="color: #ffffff; text-decoration: none; margin: 0 10px;">Privacy Policy</a>
+        <span style="color: #3f3f46;">|</span>
+        <a href="/terms" style="color: #ffffff; text-decoration: none; margin: 0 10px;">Terms of Service</a>
+        <span style="color: #3f3f46;">|</span>
+        <a href="/refund" style="color: #ffffff; text-decoration: none; margin: 0 10px;">Return Policy</a>
+      </div>
+    </div>
+  </noscript>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 
