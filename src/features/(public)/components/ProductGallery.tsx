@@ -83,8 +83,8 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ desktopImages, m
         <div className="relative flex justify-center items-center w-full">
           {/* Main Frame */}
           <div 
-            className={`relative w-full bg-zinc-900/10 border border-zinc-900/60 rounded-3xl overflow-hidden backdrop-blur-sm shadow-2xl p-4 sm:p-5 transition-all duration-500 flex flex-col justify-end ${
-              viewMode === 'mobile' ? 'max-w-[340px] aspect-[9/18]' : 'max-w-[1100px] aspect-[16/10]'
+            className={`relative w-full bg-zinc-900/10 border border-zinc-900/60 rounded-3xl overflow-hidden backdrop-blur-sm shadow-2xl transition-all duration-500 flex flex-col justify-end ${
+              viewMode === 'mobile' ? 'max-w-[375px] aspect-[375/667] p-0' : 'max-w-[1100px] aspect-[16/10] p-4 sm:p-5'
             }`}
           >
             {/* Device mock header */}
@@ -104,7 +104,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ desktopImages, m
             )}
 
             {/* Image Slider */}
-            <div className="relative w-full h-full overflow-hidden rounded-2xl bg-black/50 flex-1">
+            <div className={`relative w-full h-full overflow-hidden bg-black/50 flex-1 ${viewMode === 'mobile' ? 'rounded-none' : 'rounded-2xl'}`}>
               <AnimatePresence mode="wait">
                 <motion.img
                   key={images[currentIndex] + currentIndex}
