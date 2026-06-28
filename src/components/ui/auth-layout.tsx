@@ -1,4 +1,5 @@
 import React from "react"
+import { Link } from "react-router-dom"
 import { cn } from "@/lib/utils"
 
 /* ─── Auth Page Layout: consistent wrapper for login, signup, forgot, reset, personalize ─── */
@@ -27,14 +28,23 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 }) => (
     <div
         className={cn(
-            "flex items-center justify-center bg-background px-4",
+            "flex flex-col items-center justify-center bg-background px-4",
             fullHeight ? "h-screen overflow-hidden py-4" : "min-h-screen py-8",
             className
         )}
     >
-        <div className={cn("w-full", maxWidthMap[maxWidth])}>
-            {children}
+        <div className={cn("w-full flex-grow flex items-center justify-center", maxWidthMap[maxWidth])}>
+            <div className="w-full">
+                {children}
+            </div>
         </div>
+        <footer className="mt-6 text-center text-[10px] text-muted-foreground space-x-3 select-none">
+            <Link to="/privacy" className="hover:underline hover:text-foreground transition-colors">Privacy Policy</Link>
+            <span>•</span>
+            <Link to="/terms" className="hover:underline hover:text-foreground transition-colors">Terms of Service</Link>
+            <span>•</span>
+            <Link to="/refund" className="hover:underline hover:text-foreground transition-colors">Return Policy</Link>
+        </footer>
     </div>
 )
 
