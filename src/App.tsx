@@ -8,24 +8,25 @@ import { useTheme } from 'next-themes';
 import { ResponsiveToaster } from '@/components/ui/responsive-toaster';
 
 import { PageLoader } from './components/common/page-loader';
+import { lazyRetry } from './utils/lazy-retry';
 
-const HabitsPage = React.lazy(() => import('./features/habits/habits-page').then(m => ({ default: m.HabitsPage })));
-const GoalsPage = React.lazy(() => import('./features/goals/goals-page').then(m => ({ default: m.GoalsPage })));
-const PlannerPage = React.lazy(() => import('./features/planner/planner-page').then(m => ({ default: m.PlannerPage })));
-const TodayPage = React.lazy(() => import('./features/today/today-page').then(m => ({ default: m.TodayPage })));
-const LoginPage = React.lazy(() => import('./features/auth/login-page').then(m => ({ default: m.LoginPage })));
-const SignupPage = React.lazy(() => import('./features/auth/signup-page').then(m => ({ default: m.SignupPage })));
-const ProfilePage = React.lazy(() => import('./features/profile/profile-page').then(m => ({ default: m.ProfilePage })));
-const StatisticsPage = React.lazy(() => import('./features/statistics/statistics-page').then(m => ({ default: m.StatisticsPage })));
-const StatsCalculationsPage = React.lazy(() => import('./features/statistics/calculations-page').then(m => ({ default: m.StatsCalculationsPage })));
-const VaultPage = React.lazy(() => import('./features/vault/vault-page').then(m => ({ default: m.VaultPage })));
-const ForgotPasswordPage = React.lazy(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
-const ResetPasswordPage = React.lazy(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
-const LandingPage = React.lazy(() => import('./features/(public)/landing-page').then(m => ({ default: m.LandingPage })));
-const AdminPage = React.lazy(() => import('./features/admin/admin-page').then(m => ({ default: m.AdminPage })));
-const PrivacyPage = React.lazy(() => import('./features/(public)/privacy-page').then(m => ({ default: m.PrivacyPage })));
-const TermsPage = React.lazy(() => import('./features/(public)/terms-page').then(m => ({ default: m.TermsPage })));
-const RefundPage = React.lazy(() => import('./features/(public)/refund-page').then(m => ({ default: m.RefundPage })));
+const HabitsPage = lazyRetry(() => import('./features/habits/habits-page').then(m => ({ default: m.HabitsPage })));
+const GoalsPage = lazyRetry(() => import('./features/goals/goals-page').then(m => ({ default: m.GoalsPage })));
+const PlannerPage = lazyRetry(() => import('./features/planner/planner-page').then(m => ({ default: m.PlannerPage })));
+const TodayPage = lazyRetry(() => import('./features/today/today-page').then(m => ({ default: m.TodayPage })));
+const LoginPage = lazyRetry(() => import('./features/auth/login-page').then(m => ({ default: m.LoginPage })));
+const SignupPage = lazyRetry(() => import('./features/auth/signup-page').then(m => ({ default: m.SignupPage })));
+const ProfilePage = lazyRetry(() => import('./features/profile/profile-page').then(m => ({ default: m.ProfilePage })));
+const StatisticsPage = lazyRetry(() => import('./features/statistics/statistics-page').then(m => ({ default: m.StatisticsPage })));
+const StatsCalculationsPage = lazyRetry(() => import('./features/statistics/calculations-page').then(m => ({ default: m.StatsCalculationsPage })));
+const VaultPage = lazyRetry(() => import('./features/vault/vault-page').then(m => ({ default: m.VaultPage })));
+const ForgotPasswordPage = lazyRetry(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazyRetry(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
+const LandingPage = lazyRetry(() => import('./features/(public)/landing-page').then(m => ({ default: m.LandingPage })));
+const AdminPage = lazyRetry(() => import('./features/admin/admin-page').then(m => ({ default: m.AdminPage })));
+const PrivacyPage = lazyRetry(() => import('./features/(public)/privacy-page').then(m => ({ default: m.PrivacyPage })));
+const TermsPage = lazyRetry(() => import('./features/(public)/terms-page').then(m => ({ default: m.TermsPage })));
+const RefundPage = lazyRetry(() => import('./features/(public)/refund-page').then(m => ({ default: m.RefundPage })));
 
 
 const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -128,6 +129,11 @@ const router = createBrowserRouter(
 );
 
 function App() {
+  React.useEffect(() => {
+    // Clear the error reload flag if the application loads successfully
+    window.sessionStorage.removeItem('page-reloaded-on-error');
+  }, []);
+
   return (
     <RouterProvider router={router} />
   );
