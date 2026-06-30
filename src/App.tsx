@@ -9,6 +9,7 @@ import { ResponsiveToaster } from '@/components/ui/responsive-toaster';
 
 import { PageLoader } from './components/common/page-loader';
 import { lazyRetry } from './utils/lazy-retry';
+import { ErrorBoundary, ErrorPage } from './components/common/error-boundary';
 
 const HabitsPage = lazyRetry(() => import('./features/habits/habits-page').then(m => ({ default: m.HabitsPage })));
 const GoalsPage = lazyRetry(() => import('./features/goals/goals-page').then(m => ({ default: m.GoalsPage })));
@@ -97,7 +98,7 @@ const RootLayout = () => {
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route element={<RootLayout />}>
+    <Route element={<RootLayout />} errorElement={<ErrorPage />}>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/privacy" element={<SuspenseWrapper><PrivacyPage /></SuspenseWrapper>} />
       <Route path="/terms" element={<SuspenseWrapper><TermsPage /></SuspenseWrapper>} />
@@ -135,7 +136,9 @@ function App() {
   }, []);
 
   return (
-    <RouterProvider router={router} />
+    <ErrorBoundary>
+      <RouterProvider router={router} />
+    </ErrorBoundary>
   );
 }
 
