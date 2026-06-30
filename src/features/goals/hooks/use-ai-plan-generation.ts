@@ -4,36 +4,9 @@ import { toast } from 'sonner';
 import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
 import { recordGenTime } from '@/components/common/ai-loading-popup';
 import { useUserProfile } from '@/api/services/profile-service';
+import { supabase } from '@/lib/supabaseClient';
 
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const OPENROUTER_MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
-
-/** Free-tier Gemini models for text generation, ordered by preference. Try next on quota/rate-limit. */
-const GEMINI_FREE_MODELS = [
-    'gemini-2.5-flash',
-    'gemini-2.5-pro',
-    'gemini-2.5-flash-lite',
-    'gemini-2.5-flash-lite-preview-09-2025',
-    'gemini-3-flash-preview',
-    'gemini-3.1-flash-lite-preview',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite'
-];
-
-function isQuotaOrRetryableError(err: unknown): boolean {
-    const msg = String(err instanceof Error ? err.message : err).toLowerCase();
-    return (
-        msg.includes('quota') ||
-        msg.includes('rate limit') ||
-        msg.includes('resource exhausted') ||
-        msg.includes('429') ||
-        msg.includes('not found') ||
-        msg.includes('not supported')
-    );
-}
-
-function cleanJsonResponse(text: string): string {
+export function cleanJsonResponse(text: string): string {
     return text
         .replace(/^```json\n?/gm, '')
         .replace(/^```\n?/gm, '')
@@ -41,92 +14,23 @@ function cleanJsonResponse(text: string): string {
         .trim();
 }
 
-function isGeminiKey(key: string): boolean {
-    return key?.startsWith('AIza');
-}
-
-async function callNativeGemini(prompt: string, apiKey: string, model: string): Promise<AIGeneratedPlanSlot[]> {
-    const url = `${GEMINI_BASE}/${model}:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
-        })
+export async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
+    const { data, error } = await supabase.functions.invoke('generate-ai-plan', {
+        body: { prompt }
     });
 
-    const rawResult = await response.json();
-    const text = rawResult.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!response.ok || !text) {
-        throw new Error(rawResult.error?.message || 'Gemini API error');
+    if (error) {
+        console.error('Edge function invocation failed:', error);
+        throw new Error(error.message || 'AI Generation Edge Function error');
     }
 
-    const cleanJson = cleanJsonResponse(text);
-    return JSON.parse(cleanJson) as AIGeneratedPlanSlot[];
+    if (!data) {
+        throw new Error('AI Generation Edge Function returned empty response');
+    }
+
+    return data as AIGeneratedPlanSlot[];
 }
 
-async function callOpenRouter(prompt: string, apiKey: string, model: string): Promise<AIGeneratedPlanSlot[]> {
-    const response = await fetch(OPENROUTER_URL, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.origin,
-            'X-Title': 'Legacy Life Builder Planner'
-        },
-        body: JSON.stringify({
-            model,
-            messages: [{ role: 'user', content: prompt }]
-        })
-    });
-
-    const rawResult = await response.json();
-    const text = rawResult.choices?.[0]?.message?.content;
-    if (!response.ok || !text) {
-        throw new Error(rawResult.error?.message || 'OpenRouter API error');
-    }
-
-    const cleanJson = cleanJsonResponse(text);
-    return JSON.parse(cleanJson) as AIGeneratedPlanSlot[];
-}
-
-async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
-    const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-
-    if (!geminiKey && !openRouterKey) {
-        throw new Error('Missing API key. Add VITE_GEMINI_API_KEY or VITE_OPENROUTER_API_KEY to .env');
-    }
-
-    if (geminiKey && isGeminiKey(geminiKey)) {
-        let lastError: Error | null = null;
-        for (const model of GEMINI_FREE_MODELS) {
-            try {
-                return await callNativeGemini(prompt, geminiKey, model);
-            } catch (err) {
-                lastError = err instanceof Error ? err : new Error(String(err));
-                if (isQuotaOrRetryableError(err)) continue;
-                throw lastError;
-            }
-        }
-        if (openRouterKey) {
-            try {
-                return await callOpenRouter(prompt, openRouterKey, OPENROUTER_MODEL);
-            } catch (openRouterErr) {
-                throw openRouterErr;
-            }
-        }
-        throw lastError ?? new Error('All Gemini models failed');
-    }
-
-    if (openRouterKey) {
-        const model = import.meta.env.VITE_AI_MODEL ?? OPENROUTER_MODEL;
-        return await callOpenRouter(prompt, openRouterKey, model);
-    }
-
-    throw new Error('No valid API key found');
-}
 
 export function useAiPlanGeneration(user: any) {
     const { profile } = useUserProfile(user);
@@ -206,4 +110,3 @@ Each object must have exactly these keys:
     return { generating, tempPlan, setTempPlan, generatePlan, clearTempPlan };
 }
 
-export { callAI, cleanJsonResponse };
