@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useUserStats } from '@/features/statistics/hooks/use-user-stats';
 import { useNotificationStore } from '@/lib/notification-store';
 import { sendNotification } from '@/lib/notification-service';
+import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_GRADE = 'llb-last-consistency-grade';
 const STORAGE_KEY_STREAK = 'llb-current-streak';
@@ -16,19 +17,26 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100];
  * - Active-day streak milestones
  */
 export function useStatsNotifications() {
+  const { user } = useAuth();
   const { data: stats } = useUserStats();
   const preferences = useNotificationStore((s) => s.preferences);
   const addNotification = useNotificationStore((s) => s.addNotification);
-  const hasChecked = useRef(false);
+  
+  const checkedGradeUser = useRef<string | null>(null);
+
+  // User-scoped LocalStorage keys to isolate stats from user to user
+  const getStorageKey = (baseKey: string) => {
+    return user ? `${baseKey}-${user.id}` : baseKey;
+  };
 
   // Consistency grade change detection
   useEffect(() => {
-    if (!stats || !preferences.enabled || preferences.statsChanges === false) return;
-    if (hasChecked.current) return; // Only check once per app session to avoid spam
-    hasChecked.current = true;
+    if (!user || !stats || !preferences.enabled || preferences.statsChanges === false) return;
+    if (checkedGradeUser.current === user.id) return; // Only check once per user session to avoid spam
+    checkedGradeUser.current = user.id;
 
     const currentGrade = stats.consistency_grade;
-    const previousGrade = localStorage.getItem(STORAGE_KEY_GRADE);
+    const previousGrade = localStorage.getItem(getStorageKey(STORAGE_KEY_GRADE));
     const today = new Date().toDateString();
 
     if (previousGrade && previousGrade !== currentGrade) {
@@ -44,7 +52,7 @@ export function useStatsNotifications() {
         ? `Great work! You moved from ${previousGrade} to ${currentGrade}. Keep the momentum!`
         : `Your grade went from ${previousGrade} to ${currentGrade}. Time to get back on track!`;
 
-      const dedupKey = `stats-grade-change-${currentGrade}-${today}`;
+      const dedupKey = `stats-grade-change-${currentGrade}-${today}-${user.id}`;
 
       sendNotification(title, {
         body,
@@ -63,22 +71,22 @@ export function useStatsNotifications() {
       });
     }
 
-    localStorage.setItem(STORAGE_KEY_GRADE, currentGrade);
-  }, [stats, preferences, addNotification]);
+    localStorage.setItem(getStorageKey(STORAGE_KEY_GRADE), currentGrade);
+  }, [user, stats, preferences, addNotification]);
 
   // Burnout warning
   useEffect(() => {
-    if (!stats || !preferences.enabled || preferences.burnoutWarning === false) return;
+    if (!user || !stats || !preferences.enabled || preferences.burnoutWarning === false) return;
     if (!stats.predictive_burnout_warning) return;
 
-    const lastShown = localStorage.getItem(STORAGE_KEY_BURNOUT);
+    const lastShown = localStorage.getItem(getStorageKey(STORAGE_KEY_BURNOUT));
     const today = new Date().toDateString();
 
     if (lastShown === today) return; // Already shown today
 
-    localStorage.setItem(STORAGE_KEY_BURNOUT, today);
+    localStorage.setItem(getStorageKey(STORAGE_KEY_BURNOUT), today);
 
-    const dedupKey = `burnout-warning-${today}`;
+    const dedupKey = `burnout-warning-${today}-${user.id}`;
 
     sendNotification('🔥 Burnout Alert', {
       body: stats.predictive_burnout_warning,
@@ -95,11 +103,11 @@ export function useStatsNotifications() {
       actionUrl: '/statistics',
       dedupKey,
     });
-  }, [stats, preferences, addNotification]);
+  }, [user, stats, preferences, addNotification]);
 
   // Streak milestones
   useEffect(() => {
-    if (!stats || !preferences.enabled || preferences.streakMilestones === false) return;
+    if (!user || !stats || !preferences.enabled || preferences.streakMilestones === false) return;
 
     const heatmap = stats.habit_heatmap || [];
     // Count consecutive active days from the end
@@ -109,13 +117,13 @@ export function useStatsNotifications() {
       else break;
     }
 
-    const lastNotifiedStreak = parseInt(localStorage.getItem(STORAGE_KEY_STREAK) || '0', 10);
+    const lastNotifiedStreak = parseInt(localStorage.getItem(getStorageKey(STORAGE_KEY_STREAK)) || '0', 10);
 
     // Find the highest milestone the current streak has crossed
     const milestone = STREAK_MILESTONES.filter((m) => streak >= m && m > lastNotifiedStreak).pop();
 
     if (milestone) {
-      localStorage.setItem(STORAGE_KEY_STREAK, String(milestone));
+      localStorage.setItem(getStorageKey(STORAGE_KEY_STREAK), String(milestone));
 
       const title = `🔥 ${milestone}-day streak!`;
       const body = milestone >= 30
@@ -124,7 +132,7 @@ export function useStatsNotifications() {
         ? `Amazing! ${milestone} consecutive days of productivity. You're on fire!`
         : `Nice! ${milestone} days in a row. Keep going!`;
 
-      const dedupKey = `streak-milestone-${milestone}`;
+      const dedupKey = `streak-milestone-${milestone}-${user.id}`;
 
       sendNotification(title, {
         body,
@@ -142,5 +150,5 @@ export function useStatsNotifications() {
         dedupKey,
       });
     }
-  }, [stats, preferences, addNotification]);
+  }, [user, stats, preferences, addNotification]);
 }
