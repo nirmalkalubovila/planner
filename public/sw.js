@@ -1,7 +1,7 @@
 // Legacy Life Builder — Service Worker
 // Handles push notifications, notification clicks, and basic caching.
 
-const SW_VERSION = '1.0.3';
+const SW_VERSION = '1.0.4';
 const CACHE_NAME = `llb-cache-v${SW_VERSION}`;
 
 // ─── Install ─────────────────────────────────────────────
@@ -106,6 +106,24 @@ self.addEventListener('fetch', (event) => {
         if (cachedResponse) return cachedResponse;
 
         return fetch(event.request).then((response) => {
+          // Check if request is for a build script or stylesheet
+          const isAsset = requestUrl.pathname.includes('/assets/') || 
+                          requestUrl.pathname.endsWith('.js') || 
+                          requestUrl.pathname.endsWith('.css');
+          
+          if (isAsset) {
+            const contentType = response.headers.get('content-type') || '';
+            // If the server responded with HTML (e.g. Vercel's 404 index.html fallback),
+            // return a real 404 to let React's lazyRetry handle the failure.
+            if (contentType.includes('text/html') || response.status === 404) {
+              return new Response('Asset not found', { 
+                status: 404, 
+                statusText: 'Not Found',
+                headers: { 'Content-Type': 'text/plain' }
+              });
+            }
+          }
+
           // Only cache successful requests
           if (response.status === 200) {
             const cacheCopy = response.clone();
