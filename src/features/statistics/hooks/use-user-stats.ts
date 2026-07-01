@@ -29,7 +29,7 @@ const fetchUserStatsCache = async (): Promise<UserStatsCache> => {
     .from('user_stats_cache')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (!cacheError && cached) {
     const row = cached as any;
