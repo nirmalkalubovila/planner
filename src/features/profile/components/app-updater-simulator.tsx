@@ -24,10 +24,11 @@ export const AppUpdaterSimulator: React.FC = () => {
   });
   
   const [serverVersion] = useState<string>(() => {
-    // Dynamically suffix the active version for simulated updates
-    const base = localStorage.getItem('llb-app-version') || __APP_VERSION__;
-    const defaultServerVer = `${base}-patch.1`;
-    return localStorage.getItem('llb-server-version') || defaultServerVer;
+    const updatedVersion = localStorage.getItem('llb-app-version');
+    if (updatedVersion) {
+      return updatedVersion;
+    }
+    return `${__APP_VERSION__}-patch.1`;
   });
 
   const [lastChecked, setLastChecked] = useState<string>(() => {
