@@ -9,6 +9,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_VERSION__: JSON.stringify('0.0.0-build.' + new Date().toISOString().slice(0, 10).replace(/-/g, '.') + '.' + Date.now().toString().slice(-4)),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

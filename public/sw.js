@@ -37,12 +37,7 @@ self.addEventListener('fetch', (event) => {
   // Skip browser extensions and non-http protocols
   if (!requestUrl.protocol.startsWith('http')) return;
 
-  // Disable caching on localhost/development to prevent stale asset issues with Vite's bundler
-  const isLocalhost = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
-  if (isLocalhost) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
+
 
   const isNavigation = event.request.mode === 'navigate';
   const isAPI = requestUrl.pathname.includes('/api/') || requestUrl.host.includes('supabase.co');
