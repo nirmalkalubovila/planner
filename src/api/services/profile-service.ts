@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId } from "@/api/helpers/auth-helpers";
-import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
+import { handleFriendlyError } from "@/utils/error-handler";
 
 const TABLE_NAME = "user_profiles";
 
@@ -200,7 +200,7 @@ export function useUserProfile(user: User | null) {
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
         },
         onError: (err) => {
-            toast.error("Failed to save profile: " + err.message);
+            handleFriendlyError(err, "Failed to save profile");
         },
     });
 

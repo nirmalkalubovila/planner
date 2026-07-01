@@ -4,6 +4,7 @@ import { GridState } from "@/types/global-types";
 import { WeekUtils } from "@/utils/week-utils";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
+import { handleFriendlyError } from "@/utils/error-handler";
 
 const TABLE_NAME = "week_plans";
 
@@ -96,7 +97,7 @@ export function useSaveWeekPlan() {
             if (context?.previousPlan) {
                 queryClient.setQueryData(["planner", context.normalizedWeek], context.previousPlan);
             }
-            toast.error("Failed to save plan: " + _err.message);
+            handleFriendlyError(_err, "Failed to save plan");
         },
         // No success toast — auto-save is silent (Google Docs style)
         // No onSettled invalidation — we already do optimistic updates via onMutate,
