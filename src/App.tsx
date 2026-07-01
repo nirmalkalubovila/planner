@@ -28,6 +28,7 @@ const AdminPage = lazyRetry(() => import('./features/admin/admin-page').then(m =
 const PrivacyPage = lazyRetry(() => import('./features/(public)/privacy-page').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazyRetry(() => import('./features/(public)/terms-page').then(m => ({ default: m.TermsPage })));
 const RefundPage = lazyRetry(() => import('./features/(public)/refund-page').then(m => ({ default: m.RefundPage })));
+const SimulatorPage = lazyRetry(() => import('./features/simulator/simulator-page').then(m => ({ default: m.SimulatorPage })));
 
 
 const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -122,6 +123,7 @@ const router = createBrowserRouter(
           <Route path="/statistics" element={<SuspenseWrapper><StatisticsPage /></SuspenseWrapper>} />
           <Route path="/statistics/calculations" element={<SuspenseWrapper><StatsCalculationsPage /></SuspenseWrapper>} />
           <Route path="/vault" element={<SuspenseWrapper><VaultPage /></SuspenseWrapper>} />
+          <Route path="/simulator" element={<SuspenseWrapper><SimulatorPage /></SuspenseWrapper>} />
         </Route>
         <Route path="/admin" element={<SuspenseWrapper><AdminPage /></SuspenseWrapper>} />
       </Route>

@@ -8,6 +8,7 @@ import { ProfileSecurity } from './components/profile-security';
 import { NotificationPreferencesSection } from './notification-preferences';
 import { InstallAppSection } from './install-app-section';
 import { FeedbackSection } from './feedback-section';
+import { AppUpdaterSimulator } from './components/app-updater-simulator';
 import { cn } from '@/lib/utils';
 
 export const ProfilePage: React.FC = () => {
@@ -98,7 +99,7 @@ export const ProfilePage: React.FC = () => {
         }
     };
 
-    const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'contact' | 'info'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'contact' | 'info' | 'updater'>('profile');
 
     if (!user) return null;
 
@@ -122,6 +123,7 @@ export const ProfilePage: React.FC = () => {
         { id: 'profile', label: 'Profile & Security' },
         { id: 'preferences', label: 'Planner Preferences' },
         { id: 'notifications', label: 'Notifications' },
+        { id: 'updater', label: 'App Update & Offline' },
         { id: 'contact', label: 'Contact Us' },
         { id: 'info', label: 'Guide & Install' },
     ];
@@ -210,6 +212,12 @@ export const ProfilePage: React.FC = () => {
                 {activeTab === 'info' && (
                     <div className="w-full animate-in fade-in duration-200">
                         <InstallAppSection />
+                    </div>
+                )}
+
+                {activeTab === 'updater' && (
+                    <div className="w-full animate-in fade-in duration-200">
+                        <AppUpdaterSimulator />
                     </div>
                 )}
             </div>
