@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId } from "@/api/helpers/auth-helpers";
 import { toast } from "sonner";
+import { handleFriendlyError } from "@/utils/error-handler";
 import type { FeedbackCategory, FeedbackStatus } from "@/features/admin/admin-constants";
 
 const TABLE_NAME = "feedbacks";
@@ -221,7 +222,7 @@ export function useUpdateLandingSettings() {
             toast.success("Landing page settings saved");
         },
         onError: (err) => {
-            toast.error("Failed to save landing settings: " + err.message);
+            handleFriendlyError(err, "Failed to save landing settings");
         },
     });
 }

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
+import { handleFriendlyError } from "@/utils/error-handler";
 
 export interface GlobalSmtpSettings {
   enabled: boolean;
@@ -87,7 +88,7 @@ export function useGlobalSmtpSettings() {
       toast.success("SMTP settings saved successfully!");
     },
     onError: (err) => {
-      toast.error("Failed to save SMTP settings: " + err.message);
+      handleFriendlyError(err, "Failed to save SMTP settings");
     },
   });
 
@@ -142,7 +143,7 @@ export function useGlobalEmailTemplates() {
       toast.success("Template saved successfully!");
     },
     onError: (err) => {
-      toast.error("Failed to save template: " + err.message);
+      handleFriendlyError(err, "Failed to save template");
     },
   });
 
