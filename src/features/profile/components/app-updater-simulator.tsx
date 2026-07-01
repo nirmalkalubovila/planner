@@ -12,11 +12,22 @@ export const AppUpdaterSimulator: React.FC = () => {
   const [isUpToDate, setIsUpToDate] = useState<boolean>(false);
   
   const [currentVersion, setCurrentVersion] = useState<string>(() => {
+    const lastSeenBuild = localStorage.getItem('llb-last-seen-build');
+    if (lastSeenBuild !== __APP_VERSION__) {
+      localStorage.setItem('llb-last-seen-build', __APP_VERSION__);
+      localStorage.removeItem('llb-app-version');
+      localStorage.removeItem('llb-server-version');
+      localStorage.removeItem('llb-last-update-check');
+      return __APP_VERSION__;
+    }
     return localStorage.getItem('llb-app-version') || __APP_VERSION__;
   });
   
   const [serverVersion] = useState<string>(() => {
-    return localStorage.getItem('llb-server-version') || '0.0.1';
+    // Dynamically suffix the active version for simulated updates
+    const base = localStorage.getItem('llb-app-version') || __APP_VERSION__;
+    const defaultServerVer = `${base}-patch.1`;
+    return localStorage.getItem('llb-server-version') || defaultServerVer;
   });
 
   const [lastChecked, setLastChecked] = useState<string>(() => {
