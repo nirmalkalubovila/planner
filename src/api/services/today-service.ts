@@ -14,9 +14,9 @@ const getCompletedTasks = async (dayStr: string): Promise<string[]> => {
         .select("taskIds")
         .eq("dayStr", dayStr)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
-    if (error && error.code !== "PGRST116") { // PGRST116 is the "no rows returned" error
+    if (error) {
         throw new Error(error.message);
     }
 
@@ -91,7 +91,7 @@ export function useToggleCompletedTask() {
                 .from(TABLE_NAME)
                 .upsert(
                     { user_id: userId, dayStr, taskIds: updated },
-                    { onConflict: 'user_id,dayStr' }
+                    { onConflict: 'user_id,"dayStr"' }
                 );
 
             if (error) throw new Error(error.message);
