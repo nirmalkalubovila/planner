@@ -71,43 +71,42 @@ export const DashboardSidebar: React.FC = () => {
                             )
                         }
                     >
-                        {/* Dynamic Active Glow / Background effect */}
-                        <NavLink
-                            to={item.href}
-                            className={({ isActive }) => cn(
-                                "absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent transition-opacity duration-500 pointer-events-none",
-                                isActive ? "opacity-100" : "opacity-0"
-                            )}
-                        />
+                        {({ isActive }) => (
+                            <>
+                                {/* Dynamic Active Glow / Background effect */}
+                                <div
+                                    className={cn(
+                                        "absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent transition-opacity duration-500 pointer-events-none",
+                                        isActive ? "opacity-100" : "opacity-0"
+                                    )}
+                                />
 
-                        <item.icon
-                            size={14}
-                            strokeWidth={isActiveIcon(item.href) ? 2.5 : 1.5}
-                            className={cn(
-                                "shrink-0 transition-all duration-500 group-hover:scale-110 relative z-10",
-                                isCollapsed ? "" : ""
-                            )}
-                        />
+                                <item.icon
+                                    size={14}
+                                    strokeWidth={isActive ? 2.5 : 1.5}
+                                    className="shrink-0 transition-all duration-500 group-hover:scale-110 relative z-10"
+                                />
 
-                        {!isCollapsed && (
-                            <div className="flex flex-col items-start relative z-10 animate-in fade-in slide-in-from-left-2 duration-500">
-                                <span className="text-[12px] font-bold tracking-tight leading-none mb-1">
-                                    {item.name}
-                                </span>
-                                <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40 group-hover:opacity-60 transition-opacity">
-                                    {item.label}
-                                </span>
-                            </div>
+                                {!isCollapsed && (
+                                    <div className="flex flex-col items-start relative z-10 animate-in fade-in slide-in-from-left-2 duration-500">
+                                        <span className="text-[12px] font-bold tracking-tight leading-none mb-1">
+                                            {item.name}
+                                        </span>
+                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40 group-hover:opacity-60 transition-opacity">
+                                            {item.label}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Active Vertical Notch */}
+                                <div
+                                    className={cn(
+                                        "absolute left-0 w-[3px] bg-primary rounded-r-full transition-all duration-500 ease-out",
+                                        isActive ? "h-6 opacity-100" : "h-0 opacity-0"
+                                    )}
+                                />
+                            </>
                         )}
-
-                        {/* Active Vertical Notch */}
-                        <NavLink
-                            to={item.href}
-                            className={({ isActive }) => cn(
-                                "absolute left-0 w-[3px] bg-primary rounded-r-full transition-all duration-500 ease-out",
-                                isActive ? "h-6 opacity-100" : "h-0 opacity-0"
-                            )}
-                        />
                     </NavLink>
                 ))}
             </nav>
@@ -130,6 +129,3 @@ export const DashboardSidebar: React.FC = () => {
     );
 };
 
-// Helper to determine active state inside the loop if NavLink isActive is tricky for the icon props
-// But standard isActive in className usually suffices. Using a small helper for prop clarity.
-const isActiveIcon = (href: string) => window.location.pathname === href;

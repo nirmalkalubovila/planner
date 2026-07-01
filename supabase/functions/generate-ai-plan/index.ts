@@ -1,5 +1,13 @@
-// supabase/functions/generate-ai-plan/index.ts
+// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+// Ambient declaration for Deno in editor environments
+declare const Deno: {
+  serve: (handler: (req: Request) => Promise<Response>) => void;
+  env: {
+    get: (key: string) => string | undefined;
+  };
+};
 
 interface AIGeneratedPlanSlot {
   date: string;
