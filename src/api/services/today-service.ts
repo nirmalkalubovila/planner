@@ -91,7 +91,7 @@ export function useToggleCompletedTask() {
                 .from(TABLE_NAME)
                 .upsert(
                     { user_id: userId, dayStr, taskIds: updated },
-                    { onConflict: 'dayStr' }
+                    { onConflict: 'user_id,dayStr' }
                 );
 
             if (error) throw new Error(error.message);

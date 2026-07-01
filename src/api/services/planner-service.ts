@@ -83,7 +83,7 @@ export function useSaveWeekPlan() {
                 .from(TABLE_NAME)
                 .upsert(
                     { user_id: userId, week: dbWeekKey, state },
-                    { onConflict: 'week' }
+                    { onConflict: 'user_id,week' }
                 );
 
             if (error) {
