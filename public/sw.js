@@ -1,19 +1,40 @@
 // Legacy Life Builder — Service Worker
 // Handles push notifications, notification clicks, and basic caching.
 
-const SW_VERSION = '1.0.2';
+const SW_VERSION = '1.0.3';
 const CACHE_NAME = `llb-cache-v${SW_VERSION}`;
 
 // ─── Install ─────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // 1. Precache critical bootstrap assets
+      const criticalAssets = [
         '/',
         '/index.html',
         '/white-logo.svg',
-      ]).catch((err) => console.warn('Failed to precache default assets:', err));
+        '/manifest.json'
+      ];
+      
+      try {
+        await cache.addAll(criticalAssets);
+      } catch (err) {
+        console.warn('Failed to precache critical assets:', err);
+      }
+
+      // 2. Fetch and cache all dynamically compiled bundle chunk scripts & assets
+      try {
+        const response = await fetch('/precache-manifest.json');
+        if (response.ok) {
+          const manifestFiles = await response.json();
+          const uniqueFiles = Array.from(new Set(manifestFiles));
+          await cache.addAll(uniqueFiles);
+          console.log(`[Service Worker v${SW_VERSION}] Pre-cached ${uniqueFiles.length} assets successfully for 100% offline support.`);
+        }
+      } catch (err) {
+        console.warn('[Service Worker] Failed to load build manifest. Runtime caching will handle assets.', err);
+      }
     })
   );
 });
@@ -37,7 +58,20 @@ self.addEventListener('fetch', (event) => {
   // Skip browser extensions and non-http protocols
   if (!requestUrl.protocol.startsWith('http')) return;
 
+  // Bypass caching for Vite dev server files to prevent HMR and React state corruption
+  const isViteDev = requestUrl.pathname.includes('/@vite/') || 
+                    requestUrl.pathname.includes('/@id/') || 
+                    requestUrl.pathname.includes('/@fs/') || 
+                    requestUrl.pathname.includes('/node_modules/') || 
+                    requestUrl.pathname.startsWith('/src/') ||
+                    requestUrl.pathname.endsWith('.ts') ||
+                    requestUrl.pathname.endsWith('.tsx') ||
+                    requestUrl.pathname.endsWith('.jsx');
 
+  if (isViteDev) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   const isNavigation = event.request.mode === 'navigate';
   const isAPI = requestUrl.pathname.includes('/api/') || requestUrl.host.includes('supabase.co');

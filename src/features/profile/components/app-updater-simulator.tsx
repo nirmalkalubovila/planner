@@ -9,11 +9,16 @@ export const AppUpdaterSimulator: React.FC = () => {
   const [checking, setChecking] = useState<boolean>(false);
   const [updateReady, setUpdateReady] = useState<boolean>(false);
   const [installing, setInstalling] = useState<boolean>(false);
+  const [isUpToDate, setIsUpToDate] = useState<boolean>(false);
   
   const [currentVersion, setCurrentVersion] = useState<string>(() => {
     return localStorage.getItem('llb-app-version') || __APP_VERSION__;
   });
   
+  const [serverVersion] = useState<string>(() => {
+    return localStorage.getItem('llb-server-version') || '0.0.1';
+  });
+
   const [lastChecked, setLastChecked] = useState<string>(() => {
     return localStorage.getItem('llb-last-update-check') || 'Never';
   });
@@ -21,22 +26,29 @@ export const AppUpdaterSimulator: React.FC = () => {
   const handleCheckForUpdates = () => {
     setChecking(true);
     setUpdateReady(false);
+    setIsUpToDate(false);
     
     // Simulate check
     setTimeout(() => {
       setChecking(false);
-      setUpdateReady(true);
       const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
       setLastChecked(now);
       localStorage.setItem('llb-last-update-check', now);
-      toast.success('New version found and downloaded successfully!');
-      
-      // Show native browser notification if permission is granted
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('App Update Available', {
-          body: 'Version v0.0.1 is ready. Click to apply update.',
-          icon: '/white-logo.svg',
-        });
+
+      if (currentVersion !== serverVersion) {
+        setUpdateReady(true);
+        toast.success(`New version v${serverVersion} found and downloaded successfully!`);
+        
+        // Show native browser notification if permission is granted
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('App Update Available', {
+            body: `Version v${serverVersion} is ready. Click to apply update.`,
+            icon: '/white-logo.svg',
+          });
+        }
+      } else {
+        setIsUpToDate(true);
+        toast.success('Your app is up to date!');
       }
     }, 2000);
   };
@@ -48,13 +60,15 @@ export const AppUpdaterSimulator: React.FC = () => {
     // Simulate reloading & installing
     setTimeout(() => {
       setInstalling(false);
-      setCurrentVersion('0.0.1');
-      localStorage.setItem('llb-app-version', '0.0.1');
-      toast.success('App updated to version v0.0.1!');
+      setCurrentVersion(serverVersion);
+      localStorage.setItem('llb-app-version', serverVersion);
+      toast.success(`App updated to version v${serverVersion}!`);
       // Perform a clean reload of the tab to refresh page assets
       window.location.reload();
     }, 2500);
   };
+
+
 
   return (
     <div className="w-full space-y-6">
@@ -131,7 +145,7 @@ export const AppUpdaterSimulator: React.FC = () => {
                   <div>
                     <h4 className="text-xs font-bold text-slate-200">New Version Ready!</h4>
                     <p className="text-[10.5px] text-muted-foreground leading-relaxed mt-0.8">
-                      An update (v0.0.1) has been pre-downloaded in the background. Apply this update now to load new planner widgets and stability improvements.
+                      An update (v{serverVersion}) has been pre-downloaded in the background. Apply this update now to load new planner widgets and stability improvements.
                     </p>
                   </div>
                 </div>
@@ -145,6 +159,22 @@ export const AppUpdaterSimulator: React.FC = () => {
               </div>
             )}
 
+            {isUpToDate && (
+              <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-2 animate-in fade-in duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 mt-0.5">
+                    <Check className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-200">System Up to Date</h4>
+                    <p className="text-[10.5px] text-muted-foreground leading-relaxed mt-0.8">
+                      Your planner is running the latest system build (v{currentVersion}). All pages and offline modules are fully synced.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {installing && (
               <div className="p-6 bg-muted/10 rounded-xl border border-border/40 flex flex-col items-center justify-center text-center space-y-3">
                 <RefreshCw className="h-5 w-5 text-emerald-400 animate-spin" />
@@ -155,10 +185,12 @@ export const AppUpdaterSimulator: React.FC = () => {
               </div>
             )}
           </div>
+
+
         </div>
       </div>
 
-      {/* Offline Storage card (styled to match notification list block width) */}
+      {/* Offline Storage card */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden w-full p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-secondary/50 border border-border/80 flex items-center justify-center">
