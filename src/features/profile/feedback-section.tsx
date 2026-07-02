@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageSquarePlus, Send, Bug, Lightbulb, MessageCircle, HelpCircle, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,8 @@ import { useSubmitFeedback } from '@/api/services/feedback-service';
 import { FEEDBACK_CATEGORIES, type FeedbackCategory } from '@/features/admin/admin-constants';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigate } from 'react-router-dom';
+import { useUserProfile } from '@/api/services/profile-service';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const CATEGORY_ICONS: Record<FeedbackCategory, React.ReactNode> = {
     'Bug Report': <Bug className="h-3.5 w-3.5" />,
@@ -21,7 +23,21 @@ export const FeedbackSection: React.FC = () => {
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [rating, setRating] = useState(5);
+    
+    // Showcase consent details states
+    const [authorName, setAuthorName] = useState('');
+    const [authorPosition, setAuthorPosition] = useState('');
+    const [consentToShow, setConsentToShow] = useState(false);
+
+    const { profile } = useUserProfile(user);
     const submitFeedback = useSubmitFeedback();
+
+    useEffect(() => {
+        if (profile) {
+            setAuthorName(profile.fullName || '');
+            setAuthorPosition(profile.currentProfession || '');
+        }
+    }, [profile?.fullName, profile?.currentProfession]);
 
     const handleSubmit = async () => {
         if (!user) {
@@ -33,12 +49,20 @@ export const FeedbackSection: React.FC = () => {
             category,
             subject: subject.trim(),
             message: message.trim(),
-            rating: category === 'About Legacy Life Builder' ? rating : undefined
+            rating: category === 'About Legacy Life Builder' ? rating : undefined,
+            author_name: consentToShow ? authorName.trim() : null,
+            author_position: consentToShow ? authorPosition.trim() : null,
+            consent_to_show: consentToShow
         });
         setSubject('');
         setMessage('');
         setCategory('About Legacy Life Builder');
         setRating(5);
+        setConsentToShow(false);
+        if (profile) {
+            setAuthorName(profile.fullName || '');
+            setAuthorPosition(profile.currentProfession || '');
+        }
     };
 
     const canSubmit = !user || (subject.trim().length > 0 && message.trim().length > 0 && !submitFeedback.isPending);
@@ -127,6 +151,85 @@ export const FeedbackSection: React.FC = () => {
                 maxLength={2000}
                 className="flex w-full rounded-xl border border-input bg-muted px-3 py-2.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
             />
+
+            {/* Public Showcase Consent */}
+            {user && (
+                <div className="bg-muted/25 border border-border/60 rounded-xl p-4 space-y-3.5">
+                    <label className="flex items-start gap-3 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={consentToShow}
+                            onChange={(e) => setConsentToShow(e.target.checked)}
+                            className="mt-1 h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-primary focus:ring-primary focus:ring-offset-zinc-900 accent-primary"
+                        />
+                        <div className="space-y-1">
+                            <span className="text-xs font-semibold text-foreground">
+                                Allow showcasing this feedback on the landing page
+                            </span>
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                Share your thoughts with the community! If selected, your testimonial can be featured on our public Wall of Love.
+                            </p>
+                        </div>
+                    </label>
+
+                    <AnimatePresence initial={false}>
+                        {consentToShow && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2, ease: "easeInOut" }}
+                                className="overflow-hidden space-y-3 pt-2.5 border-t border-border/40"
+                            >
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                            Display Name
+                                        </label>
+                                        <Input
+                                            value={authorName}
+                                            onChange={(e) => setAuthorName(e.target.value)}
+                                            placeholder="Your public name (e.g. David K.)"
+                                            className="h-9 rounded-lg bg-muted/60 border-border"
+                                            maxLength={50}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                            Display Position
+                                        </label>
+                                        <Input
+                                            value={authorPosition}
+                                            onChange={(e) => setAuthorPosition(e.target.value)}
+                                            placeholder="Your role (e.g. Builder, Founder)"
+                                            className="h-9 rounded-lg bg-muted/60 border-border"
+                                            maxLength={60}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-primary/80 block mb-1">
+                                        Live Preview
+                                    </span>
+                                    <div className="bg-zinc-950/40 border border-zinc-900/60 rounded-lg p-3 text-[11px]">
+                                        <p className="text-zinc-300 italic mb-2">
+                                            "{message || "Your feedback message..."}"
+                                        </p>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-white">
+                                                {authorName || "Anonymous"}
+                                            </span>
+                                            <span className="text-[9px] text-zinc-500 uppercase tracking-wider">
+                                                {authorPosition || (category === "About Legacy Life Builder" ? "Builder" : category)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
 
             {/* Submit */}
             <div className="flex items-center justify-between">

@@ -193,8 +193,22 @@ const FeedbacksTab: React.FC = () => {
                         <div key={f.id} className="bg-card/60 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-5 space-y-3 transition-all duration-200 hover:border-primary/10">
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
                                         <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{f.category}</span>
+                                        {f.author_name && (
+                                            <span className="text-[10px] font-medium text-foreground bg-muted/80 px-2 py-0.5 rounded-md">
+                                                By: {f.author_name} {f.author_position ? `(${f.author_position})` : ''}
+                                            </span>
+                                        )}
+                                        {f.consent_to_show ? (
+                                            <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                                Consent Given
+                                            </span>
+                                        ) : (
+                                            <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                                Private Only
+                                            </span>
+                                        )}
                                     </div>
                                     <h4 className="text-sm font-bold truncate">{f.subject}</h4>
                                 </div>
@@ -849,9 +863,18 @@ const LandingTab: React.FC = () => {
                         <div key={f.id} className="bg-muted/30 border border-border/80 p-4 rounded-2xl flex flex-col gap-4 transition-all hover:border-border">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div className="space-y-1.5 flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-wrap items-center gap-2">
                                         <span className="text-[9px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">{f.category}</span>
                                         <span className="text-[9px] text-muted-foreground">{new Date(f.created_at).toLocaleDateString()}</span>
+                                        {f.consent_to_show ? (
+                                            <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                                Consent Given
+                                            </span>
+                                        ) : (
+                                            <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                                No Consent
+                                            </span>
+                                        )}
                                     </div>
                                     <h4 className="text-xs font-bold text-foreground truncate">{f.subject}</h4>
                                     <p className="text-xs text-muted-foreground leading-normal">{f.message}</p>
@@ -866,8 +889,14 @@ const LandingTab: React.FC = () => {
                                 </Button>
                             </div>
 
+                            {!f.consent_to_show && f.show_on_landing && (
+                                <div className="bg-destructive/10 border border-destructive/20 text-destructive text-[11px] p-2.5 rounded-xl flex items-center gap-2 font-medium">
+                                    <span>⚠️ Warning: User has not given consent to show this feedback publicly.</span>
+                                </div>
+                            )}
+
                             {/* Curation Details Form */}
-                            <div className="border-t border-border/50 pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                            <div className="border-t border-border/50 pt-3 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Display Name</label>
                                     <Input
@@ -886,29 +915,42 @@ const LandingTab: React.FC = () => {
                                         className="h-8 text-xs bg-muted/65 rounded-lg border-border"
                                     />
                                 </div>
+                                <div className="space-y-1 font-sans">
+                                    <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Rating</label>
+                                    <select
+                                        defaultValue={f.rating || 5}
+                                        id={`rating-${f.id}`}
+                                        className="h-8 w-full text-xs bg-muted/65 border border-input rounded-lg px-2 focus:outline-none"
+                                    >
+                                        {[5, 4, 3, 2, 1].map((r) => (
+                                            <option key={r} value={r}>{r} Stars</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div className="flex gap-2 items-center justify-between">
-                                    <div className="space-y-1 flex-1 font-sans">
-                                        <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Rating</label>
-                                        <select
-                                            defaultValue={f.rating || 5}
-                                            id={`rating-${f.id}`}
-                                            className="h-8 w-full text-xs bg-muted/65 border border-input rounded-lg px-2 focus:outline-none"
-                                        >
-                                            {[5, 4, 3, 2, 1].map((r) => (
-                                                <option key={r} value={r}>{r} Stars</option>
-                                            ))}
-                                        </select>
+                                    <div className="flex items-center gap-1.5 h-8">
+                                        <input
+                                            type="checkbox"
+                                            defaultChecked={f.consent_to_show}
+                                            id={`consent-${f.id}`}
+                                            className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-primary accent-primary cursor-pointer"
+                                        />
+                                        <label htmlFor={`consent-${f.id}`} className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer">
+                                            Consent
+                                        </label>
                                     </div>
                                     <Button
                                         onClick={() => {
                                             const nameVal = (document.getElementById(`name-${f.id}`) as HTMLInputElement)?.value;
                                             const posVal = (document.getElementById(`pos-${f.id}`) as HTMLInputElement)?.value;
                                             const ratingVal = parseInt((document.getElementById(`rating-${f.id}`) as HTMLSelectElement)?.value || '5');
+                                            const consentVal = (document.getElementById(`consent-${f.id}`) as HTMLInputElement)?.checked;
                                             updateFeedback.mutate({
                                                 id: f.id,
                                                 author_name: nameVal || null,
                                                 author_position: posVal || null,
-                                                rating: ratingVal
+                                                rating: ratingVal,
+                                                consent_to_show: consentVal
                                             });
                                         }}
                                         variant="secondary"
