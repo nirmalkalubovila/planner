@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
 import { Goal, GridState } from '@/types/global-types';
 import { Button } from '@/components/ui/button';
-import { Target, Calendar as CalendarIcon, Check, Edit2, Trash2, ChevronDown, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, Edit2, Trash2, ChevronDown, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { GoalProgressBar } from './goal-progress-bar';
 import { MasterActionPlan } from './master-action-plan';
 import { cn } from '@/lib/utils';
-import { WeekUtils } from '@/utils/week-utils';
+import { calculateGoalProgress } from '@/utils/analytics-engine';
 
 interface GoalCardProps {
     goal: Goal;
@@ -84,22 +84,14 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             return { ...task, isCompleted: !!isCompleted };
         });
 
-        const totalWeekly = tasksWithStatus.length;
         const completedWeekly = tasksWithStatus.filter(t => t.isCompleted).length;
 
-        let progressOverride = 0;
-        if (goal.startDate && goal.endDate) {
-            const startObj = parseISO(goal.startDate);
-            const endObj = parseISO(goal.endDate);
-            const totalDays = Math.max(1, (endObj.getTime() - startObj.getTime()) / (1000 * 3600 * 24));
-            if (currentWeek && totalWeekly > 0) {
-                const currentWeekStart = WeekUtils.getDaysForWeek(currentWeek)[0];
-                const daysToWeekStart = (currentWeekStart.getTime() - startObj.getTime()) / (1000 * 3600 * 24);
-                let totalPassedDays = daysToWeekStart + 7 * (completedWeekly / totalWeekly);
-                totalPassedDays = Math.max(0, Math.min(totalPassedDays, totalDays));
-                progressOverride = (totalPassedDays / totalDays) * 100;
-            }
-        }
+        const completedDaysMap = completedDays ? Object.keys(completedDays).reduce<Record<string, string[]>>((acc, key) => {
+            acc[key] = completedDays[key];
+            return acc;
+        }, {}) : undefined;
+
+        const progressOverride = calculateGoalProgress(goal, currentWeek, weekPlan, completedDaysMap);
 
         let totalSlotsCount = 0;
         if (weekPlan && currentWeek) {
@@ -199,7 +191,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
                     {/* Row 3: Description */}
                     <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
-                        {goal.name}
+                        {goal.name && goal.name.length > 100 ? `${goal.name.substring(0, 100)}...` : goal.name}
                     </p>
 
                     {/* Row 4: Date range */}

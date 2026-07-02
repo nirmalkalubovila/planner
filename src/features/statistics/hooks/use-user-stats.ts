@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { WeekUtils } from '@/utils/week';
+import { calculateGoalProgress } from '@/utils/analytics-engine';
 
 export interface UserStatsCache {
   predictive_burnout_warning: string | null;
@@ -57,23 +58,35 @@ const fetchUserStatsCache = async (): Promise<UserStatsCache> => {
   });
 
   const dayStrs = last30Days.map(d => d.dayStr);
+  const currentWeek = WeekUtils.getCurrentWeek();
+  const dbWeekKey = WeekUtils.formatWeekDisplay(currentWeek);
+  const currentWeekDays = Array.from({ length: 7 }, (_, i) => `${currentWeek}-${i + 1}`);
+  const combinedDayStrs = Array.from(new Set([...dayStrs, ...currentWeekDays]));
 
-  const [completedRes, goalsRes] = await Promise.all([
+  const [completedRes, goalsRes, weekPlanRes] = await Promise.all([
     supabase
       .from('completed_tasks')
       .select('dayStr, taskIds')
-      .in('dayStr', dayStrs)
+      .in('dayStr', combinedDayStrs)
       .eq('user_id', userId),
     supabase
       .from('goals')
       .select('*')
       .eq('user_id', userId)
       .order('createdAt', { ascending: false }),
+    supabase
+      .from('week_plans')
+      .select('week, state')
+      .eq('week', dbWeekKey)
+      .eq('user_id', userId)
+      .maybeSingle(),
   ]);
 
   const completedMap: Record<string, number> = {};
+  const completedTasksMap: Record<string, string[]> = {};
   for (const row of (completedRes.data ?? [])) {
     completedMap[row.dayStr] = row.taskIds?.length || 0;
+    completedTasksMap[row.dayStr] = row.taskIds ?? [];
   }
 
   const habit_heatmap = last30Days.map(day => ({
@@ -105,14 +118,15 @@ const fetchUserStatsCache = async (): Promise<UserStatsCache> => {
   const goalsData = goalsRes.data ?? [];
   if (goalsData.length > 0) {
     const goal = goalsData.find((g: any) => g.milestones?.length > 0) || goalsData[0];
-    let progress = 0;
-    if (goal.milestones?.length > 0) {
-      const finished = goal.milestones.filter((m: any) => m.completed).length;
-      progress = Math.round((finished / goal.milestones.length) * 100);
-    }
+    const progress = calculateGoalProgress(
+      goal,
+      currentWeek,
+      weekPlanRes.data?.state,
+      completedTasksMap
+    );
     top_goal = {
       name: goal.name,
-      progress,
+      progress: Math.round(progress),
       projected_completion: goal.endDate ? new Date(goal.endDate).toLocaleDateString() : 'TBD',
     };
   }

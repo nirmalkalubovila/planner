@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCheck, Trash2, Bell, BellOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -51,8 +51,8 @@ function groupNotifications(notifications: AppNotification[]) {
 const NotificationCard: React.FC<{
   notification: AppNotification;
   onClickAction: () => void;
-  onRemove: () => void;
-}> = ({ notification, onClickAction, onRemove }) => {
+  onMarkAsRead: () => void;
+}> = ({ notification, onClickAction, onMarkAsRead }) => {
   const icon = NOTIFICATION_ICONS[notification.type] || '🔔';
 
   return (
@@ -79,16 +79,13 @@ const NotificationCard: React.FC<{
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <p className={cn(
-            'text-xs leading-tight truncate',
+            'text-xs leading-tight break-words pr-2',
             notification.read ? 'font-medium text-muted-foreground' : 'font-bold text-foreground'
           )}>
             {notification.title}
           </p>
-          {!notification.read && (
-            <span className="flex-shrink-0 w-2 h-2 rounded-full bg-primary mt-1" />
-          )}
         </div>
-        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed break-words whitespace-pre-wrap">
           {notification.body}
         </p>
         <span className="text-[10px] text-muted-foreground/60 font-medium mt-1 block">
@@ -96,14 +93,22 @@ const NotificationCard: React.FC<{
         </span>
       </div>
 
-      {/* Remove button (shows on hover) */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="flex-shrink-0 p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-        aria-label="Remove notification"
-      >
-        <X size={12} />
-      </button>
+      {/* Actions */}
+      <div className="flex flex-col gap-1.5 flex-shrink-0 self-center opacity-70 group-hover:opacity-100 transition-opacity duration-150">
+        {!notification.read && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkAsRead();
+            }}
+            className="p-1 rounded-md hover:bg-primary/10 text-primary transition-colors duration-150"
+            title="Mark as read"
+            aria-label="Mark as read"
+          >
+            <CheckCheck size={12} />
+          </button>
+        )}
+      </div>
     </motion.div>
   );
 };
@@ -113,11 +118,48 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
   const notifications = useNotificationStore((s) => s.notifications);
   const markAsRead = useNotificationStore((s) => s.markAsRead);
   const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
-  const removeNotification = useNotificationStore((s) => s.removeNotification);
   const clearAll = useNotificationStore((s) => s.clearAll);
-  const unreadCount = useNotificationStore((s) => s.getUnreadCount());
+  const pruneOldNotifications = useNotificationStore((s) => s.pruneOldNotifications);
 
-  const groups = useMemo(() => groupNotifications(notifications), [notifications]);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      pruneOldNotifications();
+    }
+  }, [isOpen, pruneOldNotifications]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        const bellButton = document.getElementById('notification-bell');
+        if (bellButton && bellButton.contains(event.target as Node)) {
+          return;
+        }
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
+
+  const last24hNotifications = useMemo(() => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    return notifications.filter((n) => n.timestamp >= cutoff);
+  }, [notifications]);
+
+  const unreadCount = useMemo(() => {
+    return last24hNotifications.filter((n) => !n.read).length;
+  }, [last24hNotifications]);
+
+  const groups = useMemo(() => groupNotifications(last24hNotifications), [last24hNotifications]);
 
   const handleNotificationClick = (notification: AppNotification) => {
     markAsRead(notification.id);
@@ -142,6 +184,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
 
           {/* Panel */}
           <motion.div
+            ref={panelRef}
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -172,7 +215,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
                       <CheckCheck size={14} />
                     </button>
                   )}
-                  {notifications.length > 0 && (
+                  {last24hNotifications.length > 0 && (
                     <button
                       onClick={clearAll}
                       className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
@@ -214,7 +257,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
                                 key={notif.id}
                                 notification={notif}
                                 onClickAction={() => handleNotificationClick(notif)}
-                                onRemove={() => removeNotification(notif.id)}
+                                onMarkAsRead={() => markAsRead(notif.id)}
                               />
                             ))}
                           </AnimatePresence>

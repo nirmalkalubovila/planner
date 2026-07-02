@@ -60,7 +60,7 @@ export const PerformanceDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full max-w-[1200px] mx-auto px-2 pt-8 sm:pt-12 sm:px-4 md:px-8 space-y-6 pb-20">
+    <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
 
       <div className="flex justify-between items-end mb-4 border-b border-border pb-6">
         <div className="flex flex-col gap-2">
@@ -104,7 +104,11 @@ export const PerformanceDashboard: React.FC = () => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            <SummaryView cache={cache} detailed={detailed} />
+            <SummaryView
+              cache={cache}
+              detailed={detailed}
+              onSwitchToInsights={() => setActiveTab('insights')}
+            />
           </motion.div>
         )}
 

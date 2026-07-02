@@ -22,6 +22,7 @@ interface NotificationState {
   syncFromCloud: (prefs?: Partial<NotificationPreferences>, list?: AppNotification[]) => void;
   clearStore: () => void;
   setUserId: (userId: string | null) => void;
+  pruneOldNotifications: () => void;
 
   // Computed helpers
   getUnreadCount: () => number;
@@ -52,13 +53,15 @@ export const useNotificationStore = create<NotificationState>()(
           read: false,
         };
 
+        const cutoff = Date.now() - 48 * 60 * 60 * 1000;
         set((state) => {
           const newShownKeys = notification.dedupKey
             ? [...state.shownKeys, notification.dedupKey]
             : state.shownKeys;
+          const filtered = [newNotification, ...state.notifications].filter((n) => n.timestamp >= cutoff);
           return {
             // Keep max 50 notifications, drop oldest
-            notifications: [newNotification, ...state.notifications].slice(0, 50),
+            notifications: filtered.slice(0, 50),
             shownKeys: newShownKeys.slice(-500),
           };
         });
@@ -112,13 +115,24 @@ export const useNotificationStore = create<NotificationState>()(
 
       syncFromCloud: (prefs, list) => {
         set((state) => {
-          const newPrefs = prefs ? { ...state.preferences, ...prefs } : state.preferences;
+          const { deletedKeys: cloudDeletedKeys, shownKeys: cloudShownKeys, ...actualPrefs } = (prefs || {}) as any;
+          const newPrefs = actualPrefs ? { ...state.preferences, ...actualPrefs } : state.preferences;
+          
+          const finalDeletedKeys = Array.from(
+            new Set([...state.deletedKeys, ...(cloudDeletedKeys || [])])
+          ).slice(-500);
+          const finalShownKeys = Array.from(
+            new Set([...state.shownKeys, ...(cloudShownKeys || [])])
+          ).slice(-500);
+
           // Filter and merge list based on local deletedKeys and read status
           const rawList = list || state.notifications;
+          const cutoff = Date.now() - 48 * 60 * 60 * 1000;
           const mergedList = rawList
             .filter((n) => {
-              if (state.deletedKeys.includes(n.id)) return false;
-              if (n.dedupKey && state.deletedKeys.includes(n.dedupKey)) return false;
+              if (finalDeletedKeys.includes(n.id)) return false;
+              if (n.dedupKey && finalDeletedKeys.includes(n.dedupKey)) return false;
+              if (n.timestamp < cutoff) return false;
               return true;
             })
             .map((n) => {
@@ -134,6 +148,8 @@ export const useNotificationStore = create<NotificationState>()(
           return {
             preferences: newPrefs,
             notifications: mergedList,
+            deletedKeys: finalDeletedKeys,
+            shownKeys: finalShownKeys,
           };
         });
       },
@@ -145,6 +161,15 @@ export const useNotificationStore = create<NotificationState>()(
           deletedKeys: [],
           shownKeys: [],
           currentUserId: null,
+        });
+      },
+
+      pruneOldNotifications: () => {
+        const cutoff = Date.now() - 48 * 60 * 60 * 1000;
+        set((state) => {
+          const filtered = state.notifications.filter((n) => n.timestamp >= cutoff);
+          if (filtered.length === state.notifications.length) return {};
+          return { notifications: filtered };
         });
       },
 
@@ -185,8 +210,10 @@ export const useNotificationStore = create<NotificationState>()(
           if (saved) {
             const parsed = JSON.parse(saved);
             const s = parsed.state || parsed;
+            const cutoff = Date.now() - 48 * 60 * 60 * 1000;
+            const loadedNotifications = (s.notifications || []).filter((n: AppNotification) => n.timestamp >= cutoff);
             set({
-              notifications: s.notifications || [],
+              notifications: loadedNotifications,
               preferences: { ...DEFAULT_PREFERENCES, ...(s.preferences || {}) },
               deletedKeys: s.deletedKeys || [],
               shownKeys: s.shownKeys || [],
