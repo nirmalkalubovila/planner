@@ -39,11 +39,6 @@ export default function Hero({ desktopVideoUrl, mobileVideoUrl }: HeroProps) {
 
       {/* Content pinned to bottom-left, Carnage style */}
       <div className="absolute inset-0 flex flex-col justify-end pb-12 sm:pb-16 px-5 sm:px-8 z-10">
-        {/* Sub-badge */}
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-[9px] font-bold tracking-[0.2em] text-white/70 uppercase mb-4 w-fit">
-          ⚡ REPLACE PLANNING WITH EXECUTION
-        </span>
-
         {/* Big Bold Headline */}
         <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black text-white tracking-tight leading-[1.05] mb-3 max-w-3xl uppercase">
           Stop planning.

@@ -44,7 +44,7 @@ export const InsightsView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 max-w-[1000px] mx-auto select-none">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 select-none">
       
       {/* Upper Selector Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
@@ -117,7 +117,7 @@ export const InsightsView: React.FC = () => {
             {/* Top Info */}
             <div className="space-y-3 z-10 relative">
               <div className="inline-flex p-2.5 rounded-xl bg-white/5 border border-white/10 text-foreground shadow-sm">
-                {activeTab === 'weekly' ? <Sparkles size={16} className="animate-spin" /> : <Calendar size={16} />}
+                {activeTab === 'weekly' ? <Sparkles size={16} /> : <Calendar size={16} />}
               </div>
               <div className="space-y-1">
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-none text-white uppercase drop-shadow-md">

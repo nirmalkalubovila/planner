@@ -115,12 +115,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const dbPrefs = JSON.parse(dbPrefsStr);
       const dbNotifs = JSON.parse(dbNotifsStr);
 
-      const diffPrefs = JSON.stringify(dbPrefs) !== JSON.stringify(preferences);
+      const storeState = useNotificationStore.getState();
+      const currentPrefsWithKeys = {
+        ...preferences,
+        deletedKeys: storeState.deletedKeys,
+        shownKeys: storeState.shownKeys,
+      };
+
+      const diffPrefs = JSON.stringify(dbPrefs) !== JSON.stringify(currentPrefsWithKeys);
       const diffNotifs = JSON.stringify(dbNotifs) !== JSON.stringify(notifications);
 
       if (diffPrefs || diffNotifs) {
         saveProfile({
-          notificationPrefs: preferences,
+          notificationPrefs: currentPrefsWithKeys,
           notifications: notifications,
         }).catch((err) => console.error('Failed to sync notifications to cloud:', err));
       }

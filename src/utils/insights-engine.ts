@@ -134,7 +134,9 @@ export function generateWeeklyInsights(
   const activeHabits = habitAnalyses.filter(h => h.totalExpectedDays > 0);
   const sortedHabits = [...activeHabits].sort((a, b) => b.consistency - a.consistency);
   
-  const goalAnalyses = goals.map(analyzeGoal);
+  const dbWeekKey = WeekUtils.formatWeekDisplay(currentWeekNorm);
+  const currentWeekPlan = weekPlans.find(wp => wp.week === dbWeekKey);
+  const goalAnalyses = goals.map(g => analyzeGoal(g, currentWeekNorm, currentWeekPlan?.state, completedMap));
   const sortedGoals = [...goalAnalyses].sort((a, b) => b.progress - a.progress);
   
   const listItems: { label: string; value: string | number; sublabel?: string }[] = [];
@@ -254,7 +256,7 @@ export function generateMonthlyInsights(
   goals: Goal[],
   habits: Habit[],
   completedMap: Record<string, string[]>,
-  _weekPlans: { week: string; state: GridState }[],
+  weekPlans: { week: string; state: GridState }[],
   vaultNotes: VaultNote[]
 ): InsightCardData[] {
   const cards: InsightCardData[] = [];
@@ -331,7 +333,10 @@ export function generateMonthlyInsights(
     ? Math.round(habitConsistencies.reduce((a, b) => a + b, 0) / habitConsistencies.length) 
     : 50;
 
-  const goalProgresses = goals.map(g => analyzeGoal(g).progress);
+  const currentWeek = WeekUtils.getCurrentWeek();
+  const dbWeekKey = WeekUtils.formatWeekDisplay(currentWeek);
+  const currentWeekPlan = weekPlans.find(wp => wp.week === dbWeekKey);
+  const goalProgresses = goals.map(g => analyzeGoal(g, currentWeek, currentWeekPlan?.state, completedMap).progress);
   const avgGoalScore = goalProgresses.length > 0 
     ? Math.round(goalProgresses.reduce((a, b) => a + b, 0) / goalProgresses.length) 
     : 50;

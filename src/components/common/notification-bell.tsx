@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '@/lib/notification-store';
@@ -6,8 +6,16 @@ import { NotificationPanel } from '@/components/common/notification-panel';
 
 export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const unreadCount = useNotificationStore((s) => s.getUnreadCount());
   const notifications = useNotificationStore((s) => s.notifications);
+
+  const last24hNotifications = useMemo(() => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    return notifications.filter((n) => n.timestamp >= cutoff);
+  }, [notifications]);
+
+  const unreadCount = useMemo(() => {
+    return last24hNotifications.filter((n) => !n.read).length;
+  }, [last24hNotifications]);
 
   // Detect if new notification just arrived (for shake animation)
   const latestTimestamp = notifications[0]?.timestamp || 0;

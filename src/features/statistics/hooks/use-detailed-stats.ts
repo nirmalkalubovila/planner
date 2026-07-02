@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import type { Goal, Habit } from '@/types/global-types';
 import type { GridState } from '@/types/planner';
+import { WeekUtils } from '@/utils/week';
 import {
   analyzeAllGoals,
   analyzeAllHabits,
@@ -52,7 +53,16 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
   const weekPlans: { week: string; state: GridState }[] =
     (weekPlansRes.data ?? []).map((r: any) => ({ week: r.week, state: r.state ?? {} }));
 
-  const { analyses: goalAnalyses, average: goalAverage, best: bestGoal } = analyzeAllGoals(goals);
+  const currentWeek = WeekUtils.getCurrentWeek();
+  const dbWeekKey = WeekUtils.formatWeekDisplay(currentWeek);
+  const currentWeekPlan = weekPlans.find(wp => wp.week === dbWeekKey);
+
+  const { analyses: goalAnalyses, average: goalAverage, best: bestGoal } = analyzeAllGoals(
+    goals,
+    currentWeek,
+    currentWeekPlan?.state,
+    completedMap
+  );
   const { analyses: habitAnalyses, average: habitAverage, best: bestHabit } = analyzeAllHabits(habits, completedMap);
   const { weeks, average: weekAverage, best: bestWeek } = analyzeAllWeeks(weekPlans, completedMap);
 

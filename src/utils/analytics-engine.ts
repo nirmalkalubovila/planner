@@ -1,4 +1,5 @@
-import type { Goal, Habit, Milestone } from '@/types/global-types';
+import { parseISO } from 'date-fns';
+import type { Goal, Habit } from '@/types/global-types';
 import type { GridState } from '@/types/planner';
 import { WeekUtils } from '@/utils/week';
 
@@ -44,7 +45,75 @@ export interface LifeTrajectoryScore {
 // Goal helpers
 // ---------------------------------------------------------------------------
 
-function computeVelocityMultiplier(goal: Goal): number {
+export function calculateGoalProgress(
+  goal: Goal,
+  currentWeek?: string,
+  weekPlanState?: GridState,
+  completedMap?: Record<string, string[]>
+): number {
+  if (!goal.startDate || !goal.endDate) return 0;
+
+  const startObj = parseISO(goal.startDate);
+  const endObj = parseISO(goal.endDate);
+  const today = new Date();
+  
+  const totalDays = Math.max(1, (endObj.getTime() - startObj.getTime()) / (1000 * 3600 * 24));
+
+  // Determine baseline days passed up to today
+  const daysPassed = (today.getTime() - startObj.getTime()) / (1000 * 3600 * 24);
+  let totalPassedDays = daysPassed;
+
+  // If week plan state and completed map are provided, calculate more precisely
+  if (currentWeek && weekPlanState) {
+    const currentWeekStart = WeekUtils.getDaysForWeek(currentWeek)[0];
+    const daysToWeekStart = (currentWeekStart.getTime() - startObj.getTime()) / (1000 * 3600 * 24);
+
+    let weeklyTasksCount = 0;
+    let completedWeeklyCount = 0;
+
+    for (let d = 0; d < 7; d++) {
+      for (let s = 0; s < 48; s++) {
+        const content = weekPlanState[`${d}-${s}`];
+        const isGoalTask = content && content.type === 'goal' && (content as any).goalId === goal.id;
+        if (isGoalTask) {
+          const startSlot = s;
+          let endSlot = s;
+          while (endSlot < 47) {
+            const nextContent = weekPlanState[`${d}-${endSlot + 1}`];
+            const isNextGoalTask = nextContent && nextContent.type === 'goal' && (nextContent as any).goalId === goal.id && nextContent.name === content.name;
+            if (isNextGoalTask) {
+              endSlot++;
+            } else {
+              break;
+            }
+          }
+
+          const taskId = `goal-${content.name}-${startSlot}`;
+          const dayStr = `${currentWeek}-${d + 1}`;
+
+          weeklyTasksCount++;
+          const isCompleted = completedMap && completedMap[dayStr] && completedMap[dayStr].includes(taskId);
+          if (isCompleted) {
+            completedWeeklyCount++;
+          }
+
+          s = endSlot;
+        }
+      }
+    }
+
+    if (weeklyTasksCount > 0) {
+      totalPassedDays = daysToWeekStart + 7 * (completedWeeklyCount / weeklyTasksCount);
+    } else {
+      totalPassedDays = Math.max(daysToWeekStart, daysPassed);
+    }
+  }
+
+  totalPassedDays = Math.max(0, Math.min(totalPassedDays, totalDays));
+  return (totalPassedDays / totalDays) * 100;
+}
+
+function computeVelocityMultiplier(goal: Goal, progressRatio?: number): number {
   if (!goal.endDate) return 1;
   const now = Date.now();
   const start = new Date(goal.startDate).getTime();
@@ -55,49 +124,69 @@ function computeVelocityMultiplier(goal: Goal): number {
   const total = end - start;
   const timeRatio = elapsed / total;
 
-  const milestones = goal.milestones ?? [];
-  const done = milestones.filter(m => m.completed).length;
-  const progressRatio = milestones.length > 0 ? done / milestones.length : 0;
+  let actualProgressRatio = progressRatio;
+  if (actualProgressRatio === undefined) {
+    const milestones = goal.milestones ?? [];
+    const done = milestones.filter(m => m.completed).length;
+    actualProgressRatio = milestones.length > 0 ? done / milestones.length : 0;
+  }
 
   if (timeRatio === 0) return 1;
-  const velocity = progressRatio / timeRatio;
+  const velocity = actualProgressRatio / timeRatio;
   return Math.min(velocity, 2);
 }
 
-export function analyzeGoal(goal: Goal): GoalAnalysis {
+export function analyzeGoal(
+  goal: Goal,
+  currentWeek?: string,
+  weekPlanState?: GridState,
+  completedMap?: Record<string, string[]>
+): GoalAnalysis {
   const milestones = goal.milestones ?? [];
-  const done = milestones.filter(m => m.completed).length;
-  const progress = milestones.length > 0 ? Math.round((done / milestones.length) * 100) : 0;
-  const velocity = computeVelocityMultiplier(goal);
+  const progress = calculateGoalProgress(goal, currentWeek, weekPlanState, completedMap);
+  const totalMilestones = milestones.length;
+
+  const completedMilestonesCount = milestones.filter((m, idx) => {
+    const milestonePos = ((idx + 1) / totalMilestones) * 100;
+    return m.completed || progress >= milestonePos;
+  }).length;
+
+  const progressRatio = totalMilestones > 0 ? completedMilestonesCount / totalMilestones : 0;
+  const velocity = computeVelocityMultiplier(goal, progressRatio);
 
   return {
     id: goal.id ?? '',
     name: goal.name,
-    progress,
-    completedMilestones: done,
-    totalMilestones: milestones.length,
+    progress: Math.round(progress),
+    completedMilestones: completedMilestonesCount,
+    totalMilestones,
     velocityMultiplier: Math.round(velocity * 100) / 100,
     projectedCompletion: goal.endDate
       ? new Date(goal.endDate).toLocaleDateString()
       : 'TBD',
-    weightedScore: milestones.length > 0
-      ? (done / milestones.length) * velocity * 100
+    weightedScore: totalMilestones > 0
+      ? progressRatio * velocity * 100
       : 0,
   };
 }
 
-export function analyzeAllGoals(goals: Goal[]): {
+export function analyzeAllGoals(
+  goals: Goal[],
+  currentWeek?: string,
+  weekPlanState?: GridState,
+  completedMap?: Record<string, string[]>
+): {
   analyses: GoalAnalysis[];
   average: number;
   best: GoalAnalysis | null;
 } {
-  const analyses = goals.map(analyzeGoal);
+  const analyses = goals.map(g => analyzeGoal(g, currentWeek, weekPlanState, completedMap));
   const average =
     analyses.length > 0
-      ? Math.round(analyses.reduce((s, a) => s + a.weightedScore, 0) / analyses.length)
+      ? Math.round(analyses.reduce((s, a) => s + a.progress, 0) / analyses.length)
       : 0;
   const best = analyses.length > 0
-    ? analyses.reduce((a, b) => (a.weightedScore >= b.weightedScore ? a : b))
+    ? analyses.reduce((a, b) => (a.progress >= b.progress ? a : b))
     : null;
   return { analyses, average, best };
 }
