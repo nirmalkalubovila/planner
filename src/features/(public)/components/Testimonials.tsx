@@ -5,6 +5,7 @@ interface Testimonial {
   role: string;
   content: string;
   rating: number;
+  title?: string;
 }
 
 interface TestimonialsProps {
@@ -27,6 +28,7 @@ export default function Testimonials({ curatedFeedbacks }: TestimonialsProps) {
     role: f.author_position || (f.category === "About Legacy Life Builder" ? "Builder" : f.category),
     content: f.message,
     rating: f.rating || 5,
+    title: f.subject,
   }));
 
   // Don't render section if no curated feedbacks exist
@@ -77,8 +79,15 @@ export default function Testimonials({ curatedFeedbacks }: TestimonialsProps) {
                 ))}
               </div>
 
+              {/* Review Title */}
+              {t.title && (
+                <h4 className="text-[11.5px] font-bold text-white mb-1.5 line-clamp-1">
+                  {t.title}
+                </h4>
+              )}
+
               {/* Review Text */}
-              <p className="text-xs text-zinc-300 leading-relaxed font-normal mb-4 italic">
+              <p className="text-xs text-zinc-350 leading-relaxed font-normal mb-4 italic">
                 "{t.content}"
               </p>
 
