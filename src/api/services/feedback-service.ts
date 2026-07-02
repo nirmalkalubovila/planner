@@ -19,6 +19,7 @@ export interface Feedback {
     rating?: number;
     author_name?: string | null;
     author_position?: string | null;
+    consent_to_show?: boolean;
     // Joined from user_profiles (admin only)
     user_email?: string;
     user_name?: string;
@@ -29,16 +30,17 @@ export function useSubmitFeedback() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: { category: FeedbackCategory; subject: string; message: string; rating?: number }) => {
+        mutationFn: async (data: { 
+            category: FeedbackCategory; 
+            subject: string; 
+            message: string; 
+            rating?: number;
+            author_name?: string | null;
+            author_position?: string | null;
+            consent_to_show?: boolean;
+        }) => {
             const userId = await getCurrentUserId();
             
-            // Get user's profile metadata for landing testimonials
-            const { data: profile } = await supabase
-                .from("user_profiles")
-                .select("full_name, current_profession")
-                .eq("user_id", userId)
-                .maybeSingle();
-
             const { error } = await supabase
                 .from(TABLE_NAME)
                 .insert({
@@ -47,8 +49,9 @@ export function useSubmitFeedback() {
                     subject: data.subject,
                     message: data.message,
                     rating: data.rating ?? 5,
-                    author_name: profile?.full_name || null,
-                    author_position: profile?.current_profession || null
+                    author_name: data.author_name || null,
+                    author_position: data.author_position || null,
+                    consent_to_show: data.consent_to_show ?? false
                 });
             if (error) throw new Error(error.message);
         },
@@ -161,6 +164,7 @@ export function useAdminUpdateFeedback() {
             rating?: number;
             status?: FeedbackStatus;
             category?: FeedbackCategory;
+            consent_to_show?: boolean;
         }) => {
             const { id, ...fields } = data;
             const { error } = await supabase
