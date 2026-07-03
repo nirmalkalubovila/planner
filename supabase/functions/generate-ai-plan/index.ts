@@ -23,7 +23,7 @@ const corsHeaders = {
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-const OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct:free";
+const OPENROUTER_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
 
 const GEMINI_FREE_MODELS = [
   "gemini-2.5-flash",
