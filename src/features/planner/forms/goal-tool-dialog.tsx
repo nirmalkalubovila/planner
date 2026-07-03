@@ -16,32 +16,23 @@ interface GoalToolDialogProps {
 
 const findNextActiveSlot = (goal: Goal): AIGeneratedPlanSlot | null => {
     if (!goal.plans) return null;
-    let nextSlot: AIGeneratedPlanSlot | null = null;
-    let found = false;
 
-    const traverse = (slots: AIGeneratedPlanSlot[]) => {
+    const traverse = (slots: AIGeneratedPlanSlot[]): AIGeneratedPlanSlot | null => {
         for (const slot of slots) {
-            if (found) return;
             const isCompleted = goal.milestones?.find(m => m.targetDate === slot.date)?.completed;
             if (!isCompleted) {
-                if (slot.estimatedHours) {
-                    nextSlot = slot;
-                    found = true;
-                    return;
-                } else if (slot.subPlans && slot.subPlans.length > 0) {
-                    traverse(slot.subPlans);
-                } else {
-                    nextSlot = slot;
-                    found = true;
-                    return;
+                if (slot.subPlans && slot.subPlans.length > 0) {
+                    const activeSub = traverse(slot.subPlans);
+                    if (activeSub) return activeSub;
                 }
+                return slot;
             }
         }
+        return null;
     };
 
     const sortedPlans = goal.plans.slice().sort((a, b) => a.date.localeCompare(b.date));
-    traverse(sortedPlans);
-    return nextSlot;
+    return traverse(sortedPlans);
 };
 
 export const GoalToolDialog: React.FC<GoalToolDialogProps> = ({

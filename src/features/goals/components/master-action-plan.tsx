@@ -323,7 +323,9 @@ If the Goal Title, Description, Purpose, or the Phase Target Task contains a spe
 
 REALISTIC ESTIMATED HOURS:
 - The "estimatedHours" MUST be a highly realistic, non-generic estimation of the cumulative hours required to execute that specific sub-milestone task.
-- Base this on the work scale and complexity required to reach the progressive numeric target in that period (e.g., 10, 15, 20 hours per week) instead of defaulting to a small generic number like 8.
+- PRACTICAL HOURLY LIMITS: Do not estimate impractical hours. For any individual, the absolute maximum quality work hours they can spend is 5 hours a day (35 hours a week, 140 hours a month).
+- Unless user preferences explicitly specify a different time availability, assume a standard baseline of 3 hours a day, which means exactly 21 hours a week (84 hours a month).
+- Ensure all estimated hours at the Year, Month, or Week level are mathematically scaled to stay strictly within these bounds (e.g. a 4-week Month phase must not exceed 84 hours total; a Week phase must not exceed 21 hours total).
 
 Please break this specific phase down into EXACTLY ${dynamicCount} sequential sub-milestones (representing ${expansionType}).
 TIMELINE SYNC CRITICAL: You must use the "System Current Date" as your reality baseline.

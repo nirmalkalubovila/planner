@@ -173,6 +173,9 @@ Success Metrics: I will consider this a success when I hit [Specific Number/Curr
                         )}
                     />
                     {form.formState.errors.startDate && <p className="text-xs text-destructive">{form.formState.errors.startDate.message}</p>}
+                    <p className="text-[11px] text-rose-500 font-semibold mt-1">
+                        * Highly recommended to start on a Monday for clean weekly planning alignment.
+                    </p>
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Goal Type</label>
