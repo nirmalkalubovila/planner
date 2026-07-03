@@ -88,10 +88,6 @@ function parseDateRange(dateStr: string): { start: Date; end: Date } | null {
             return { start: s, end: e };
         }
     }
-    const singleDate = tryParseDate(cleanStr);
-    if (singleDate) {
-        return { start: singleDate, end: singleDate };
-    }
     return null;
 }
 
