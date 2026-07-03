@@ -69,6 +69,12 @@ Based on this, break down the main goal into weighted sub-tasks/sub-goals that n
 Tailor the nature and pacing of the tasks to fit this specific person's profession, life focus, and energy capabilities.
 TIMELINE SYNC CRITICAL: Use the "System Current Date" as your reality baseline to understand the exact year and timeframe you are generating this for.
 
+PRAGMATIC STRATEGY RULES (ACT AS AN ELITE PERFORMANCE ARCHITECT):
+1. ZERO FLUFF: Do not include motivational quotes, generic encouragement, or vague advice in the title ("dayTask") or details ("description"). Provide only tactical, executable tasks.
+2. RESPECT CONSTRAINTS: Rigorously apply the constraints, starting situation, and resource limitations provided by the user. Early phases must focus on bootstrapping, free validation, or skill acquisition if time/money are limited.
+3. CURRENCY ALIGNMENT: If a specific currency (e.g., LKR) or metric is provided in the goal parameters, use it for all financial estimations, sub-goal targets, and milestones.
+4. METRIC-DRIVEN: Every generated task must have a quantifiable metric or threshold of completion in the title or description that proves the task is complete.
+
 NUMERICAL PROGRESSION & TARGET INTERPOLATION:
 If the Goal Title, Description/Mission, or Purpose contains a specific numeric target (e.g., "reach 10k followers", "earn $5000", "lose 10kg", "write 50 pages"), you MUST mathematically interpolate/scale this target across the target milestones.
 - Identify the starting baseline if specified (e.g., "currently at 241 followers" or "currently 241 followers"). If not specified, assume 0 or a reasonable starting point.

@@ -310,6 +310,12 @@ User Persona: Primary Focus: ${profile?.primaryLifeFocus || user?.user_metadata?
 Tailor tasks specifically to fit this person's profession, life focus, and energy cycles when possible.
 Context - The surrounding sibling phases in the overall plan are: ${parentLevelTasks}. Ensure this new breakdown strictly stays within the current phase's boundaries.
 
+PRAGMATIC STRATEGY RULES (ACT AS AN ELITE PERFORMANCE ARCHITECT):
+1. ZERO FLUFF: Do not include motivational quotes, generic encouragement, or vague advice in the title ("dayTask") or details ("description"). Provide only tactical, executable tasks.
+2. RESPECT CONSTRAINTS: Rigorously apply the constraints, starting situation, and resource limitations provided by the user. Early phases must focus on bootstrapping, free validation, or skill acquisition if time/money are limited.
+3. CURRENCY ALIGNMENT: If a specific currency (e.g., LKR) or metric is provided in the goal parameters, use it for all financial estimations, sub-goal targets, and milestones.
+4. METRIC-DRIVEN: Every generated task must have a quantifiable metric or threshold of completion in the title or description that proves the task is complete.
+
 NUMERICAL PROGRESSION & TARGET INTERPOLATION:
 If the Goal Title, Description, Purpose, or the Phase Target Task contains a specific numeric target (e.g., "reach 10k followers", "reach 1k followers"), you MUST mathematically interpolate/scale this target across the ${dynamicCount} sequential sub-milestones (representing ${expansionType}).
 - Proportionally distribute the numeric target progress over these ${dynamicCount} periods.
@@ -333,7 +339,7 @@ NO MARKDOWN. RAW JSON ONLY.`;
             setExpanded(true);
             toast.success("Sub-plan generated!");
         } catch (e: any) {
-            toast.error("Failed to generate sub-plan: " + e.message);
+            toast.error("Our planner is working so much, please try again after a few seconds.");
         } finally {
             setGenerating(false);
         }

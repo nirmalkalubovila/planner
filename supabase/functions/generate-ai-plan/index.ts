@@ -25,6 +25,14 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const OPENROUTER_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
 
+const OPENROUTER_FREE_MODELS = [
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "google/gemma-4-31b-it:free",
+  "openai/gpt-oss-120b:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "qwen/qwen3-coder:free",
+];
+
 const GEMINI_FREE_MODELS = [
   "gemini-2.5-flash",
   "gemini-2.5-pro",
@@ -105,6 +113,26 @@ async function callOpenRouter(prompt: string, apiKey: string, model: string): Pr
   return JSON.parse(cleanJson) as AIGeneratedPlanSlot[];
 }
 
+async function callOpenRouterWithFallback(prompt: string, apiKey: string): Promise<AIGeneratedPlanSlot[]> {
+  const envModel = Deno.env.get("AI_MODEL");
+  const modelsToTry = envModel 
+    ? [envModel, ...OPENROUTER_FREE_MODELS.filter(m => m !== envModel)]
+    : OPENROUTER_FREE_MODELS;
+
+  let lastError: Error | null = null;
+  for (const model of modelsToTry) {
+    try {
+      console.log(`Attempting OpenRouter model: ${model}`);
+      return await callOpenRouter(prompt, apiKey, model);
+    } catch (err) {
+      console.error(`OpenRouter model ${model} failed:`, err);
+      lastError = err instanceof Error ? err : new Error(String(err));
+      continue;
+    }
+  }
+  throw lastError ?? new Error("All OpenRouter models failed");
+}
+
 async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
   const geminiKey = Deno.env.get("GEMINI_API_KEY");
   const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
@@ -126,7 +154,7 @@ async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
     }
     if (openRouterKey) {
       try {
-        return await callOpenRouter(prompt, openRouterKey, OPENROUTER_MODEL);
+        return await callOpenRouterWithFallback(prompt, openRouterKey);
       } catch (openRouterErr) {
         throw openRouterErr;
       }
@@ -135,8 +163,7 @@ async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
   }
 
   if (openRouterKey) {
-    const model = Deno.env.get("AI_MODEL") ?? OPENROUTER_MODEL;
-    return await callOpenRouter(prompt, openRouterKey, model);
+    return await callOpenRouterWithFallback(prompt, openRouterKey);
   }
 
   throw new Error("No valid API key configuration found");
