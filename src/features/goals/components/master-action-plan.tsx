@@ -334,6 +334,9 @@ NO MARKDOWN. RAW JSON ONLY.`;
 
             const { callAI: callAIFn } = await import('@/features/goals/hooks/use-ai-plan-generation');
             const subPlans = await callAIFn(prompt);
+            if (!subPlans || !Array.isArray(subPlans) || subPlans.length === 0) {
+                throw new Error("AI returned an empty plan");
+            }
             recordGenTime(Date.now() - genStart);
             onUpdateSubPlans(path, subPlans);
             setExpanded(true);

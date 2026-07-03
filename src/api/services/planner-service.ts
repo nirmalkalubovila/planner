@@ -20,7 +20,7 @@ const getPlan = async (week: string): Promise<GridState> => {
         .select("state")
         .eq("week", dbWeekKey)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
     if (error && error.code !== "PGRST116") { // PGRST116 is the "no rows returned" error
         throw new Error(error.message);

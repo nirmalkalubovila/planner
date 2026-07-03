@@ -57,11 +57,27 @@ function isQuotaOrRetryableError(err: unknown): boolean {
 }
 
 function cleanJsonResponse(text: string): string {
-  return text
+  // Strip markdown fences
+  let cleaned = text
     .replace(/^```json\n?/gm, "")
     .replace(/^```\n?/gm, "")
     .replace(/```$/gm, "")
     .trim();
+
+  // Extract JSON array from surrounding text (reasoning, preamble, etc.)
+  const arrayMatch = cleaned.match(/(\[\s*\{[\s\S]*\}\s*\])/);  
+  if (arrayMatch) {
+    cleaned = arrayMatch[1];
+  }
+
+  return cleaned;
+}
+
+function validatePlanResult(parsed: unknown): AIGeneratedPlanSlot[] {
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error("AI returned empty or invalid plan array");
+  }
+  return parsed as AIGeneratedPlanSlot[];
 }
 
 function isGeminiKey(key: string): boolean {
@@ -86,7 +102,8 @@ async function callNativeGemini(prompt: string, apiKey: string, model: string): 
   }
 
   const cleanJson = cleanJsonResponse(text);
-  return JSON.parse(cleanJson) as AIGeneratedPlanSlot[];
+  const parsed = JSON.parse(cleanJson);
+  return validatePlanResult(parsed);
 }
 
 async function callOpenRouter(prompt: string, apiKey: string, model: string): Promise<AIGeneratedPlanSlot[]> {
@@ -110,7 +127,8 @@ async function callOpenRouter(prompt: string, apiKey: string, model: string): Pr
   }
 
   const cleanJson = cleanJsonResponse(text);
-  return JSON.parse(cleanJson) as AIGeneratedPlanSlot[];
+  const parsed = JSON.parse(cleanJson);
+  return validatePlanResult(parsed);
 }
 
 async function callOpenRouterWithFallback(prompt: string, apiKey: string): Promise<AIGeneratedPlanSlot[]> {
@@ -141,27 +159,31 @@ async function callAI(prompt: string): Promise<AIGeneratedPlanSlot[]> {
     throw new Error("Missing API key on server. Add GEMINI_API_KEY or OPENROUTER_API_KEY to Supabase secrets.");
   }
 
+  // Phase 1: Try all Gemini models first
   if (geminiKey && isGeminiKey(geminiKey)) {
-    let lastError: Error | null = null;
+    let lastGeminiError: Error | null = null;
     for (const model of GEMINI_FREE_MODELS) {
       try {
+        console.log(`Attempting Gemini model: ${model}`);
         return await callNativeGemini(prompt, geminiKey, model);
       } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-        if (isQuotaOrRetryableError(err)) continue;
-        throw lastError;
+        console.error(`Gemini model ${model} failed:`, err);
+        lastGeminiError = err instanceof Error ? err : new Error(String(err));
+        // Always continue to next Gemini model on any error
+        continue;
       }
     }
+    console.log("All Gemini models exhausted, falling through to OpenRouter...");
+
+    // Phase 2: All Gemini models failed — fall through to OpenRouter
     if (openRouterKey) {
-      try {
-        return await callOpenRouterWithFallback(prompt, openRouterKey);
-      } catch (openRouterErr) {
-        throw openRouterErr;
-      }
+      return await callOpenRouterWithFallback(prompt, openRouterKey);
     }
-    throw lastError ?? new Error("All Gemini models failed");
+
+    throw lastGeminiError ?? new Error("All Gemini models failed and no OpenRouter key configured");
   }
 
+  // No Gemini key — go directly to OpenRouter
   if (openRouterKey) {
     return await callOpenRouterWithFallback(prompt, openRouterKey);
   }
