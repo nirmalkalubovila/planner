@@ -61,12 +61,37 @@ function getPeriodStartForSlot(goal: Goal, slotDate: string): Date {
     return parseISO(sortedMilestones[milestoneIdx - 1].targetDate);
 }
 
+function cleanDateString(dateStr: string): string {
+    if (!dateStr) return '';
+    return dateStr.replace(/\s*\(.*?\)\s*/g, '').trim();
+}
+
 function tryParseDate(dateStr: string): Date | null {
     if (!dateStr) return null;
-    const iso = parseISO(dateStr);
+    const cleanStr = cleanDateString(dateStr);
+    const iso = parseISO(cleanStr);
     if (!isNaN(iso.getTime())) return iso;
-    try { const d = dateParse(dateStr, 'MMMM yyyy', new Date()); if (!isNaN(d.getTime())) return d; } catch { /* */ }
-    try { const d = dateParse(dateStr, 'MMM yyyy', new Date()); if (!isNaN(d.getTime())) return d; } catch { /* */ }
+    try { const d = dateParse(cleanStr, 'MMMM yyyy', new Date()); if (!isNaN(d.getTime())) return d; } catch { /* */ }
+    try { const d = dateParse(cleanStr, 'MMM yyyy', new Date()); if (!isNaN(d.getTime())) return d; } catch { /* */ }
+    return null;
+}
+
+function parseDateRange(dateStr: string): { start: Date; end: Date } | null {
+    if (!dateStr) return null;
+    const cleanStr = cleanDateString(dateStr);
+    const toSep = cleanStr.includes(' to ') ? ' to ' : cleanStr.includes(' - ') ? ' - ' : null;
+    if (toSep) {
+        const [startRaw, endRaw] = cleanStr.split(toSep).map(s => s.trim());
+        const s = tryParseDate(startRaw);
+        const e = tryParseDate(endRaw);
+        if (s && e) {
+            return { start: s, end: e };
+        }
+    }
+    const singleDate = tryParseDate(cleanStr);
+    if (singleDate) {
+        return { start: singleDate, end: singleDate };
+    }
     return null;
 }
 
@@ -143,8 +168,11 @@ const SubPlanRow = ({
     let nestedPeriodStart: Date | undefined;
     let nestedPeriodEnd: Date | undefined;
     if (deeperType === 'Weeks') {
-        const parsed = tryParseDate(slot.date);
-        if (parsed) { nestedPeriodStart = parsed; nestedPeriodEnd = addMonths(parsed, 1); }
+        const range = parseDateRange(slot.date);
+        if (range) {
+            nestedPeriodStart = range.start;
+            nestedPeriodEnd = range.end;
+        }
     }
 
     return (
@@ -256,8 +284,9 @@ const BreakdownSection = ({
         const genStart = Date.now();
         try {
             const parentLevelTasks = goal.plans?.map(p => p.dayTask).join(', ') || '';
-            const periodStart = overridePeriodStart || getPeriodStartForSlot(goal, slot.date);
-            const periodEnd = overridePeriodEnd || parseISO(slot.date);
+            const range = parseDateRange(slot.date);
+            const periodStart = overridePeriodStart || range?.start || getPeriodStartForSlot(goal, slot.date);
+            const periodEnd = overridePeriodEnd || range?.end || parseISO(slot.date);
             let dynamicCount: number;
             let dateRangesDescription: string;
 
@@ -315,8 +344,9 @@ NO MARKDOWN. RAW JSON ONLY.`;
     };
 
     const handleManualGen = () => {
-        const periodStart = overridePeriodStart || getPeriodStartForSlot(goal, slot.date);
-        const periodEnd = overridePeriodEnd || parseISO(slot.date);
+        const range = parseDateRange(slot.date);
+        const periodStart = overridePeriodStart || range?.start || getPeriodStartForSlot(goal, slot.date);
+        const periodEnd = overridePeriodEnd || range?.end || parseISO(slot.date);
         const ranges = isWeekLevel ? getWeekRanges(periodStart, periodEnd) : getMonthRanges(periodStart, periodEnd);
         const emptySubPlans = ranges.map(r => ({ date: r.label, dayTask: 'Draft Task', description: 'Edit this sub-milestone manually.' }));
         onUpdateSubPlans(path, emptySubPlans);
