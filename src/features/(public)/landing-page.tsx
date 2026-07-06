@@ -4,7 +4,7 @@ import Testimonials from "./components/Testimonials";
 import HowItWorks from "./components/HowItWorks";
 import ProductGallery from "./components/ProductGallery";
 import Features from "./components/Features";
-import InstallBanner from "./components/InstallBanner";
+import UniversalAccess from "./components/UniversalAccess";
 import Footer from "./components/Footer";
 import { useLandingSettings, usePublicFeedbacks } from "@/api/services/feedback-service";
 
@@ -35,9 +35,9 @@ export function LandingPage() {
         <Features />
       </div>
       <div className="border-t border-zinc-900/40">
-        <InstallBanner />
+        <UniversalAccess desktopVideoUrl={desktopVideoUrl} mobileVideoUrl={mobileVideoUrl} />
       </div>
-      <div className="border-t border-zinc-900/40">
+      <div>
         <Footer />
       </div>
     </main>

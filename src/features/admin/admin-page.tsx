@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, MessageSquare, Users, ArrowLeft,
     TrendingUp, Clock, CheckCircle2, Eye, EyeOff, UserPlus,
-    ChevronDown, Search, Mail, Settings, FileText, Check, Save, Info, Loader2, KeyRound
+    ChevronDown, Search, Mail, Settings, FileText, Check, Save, Info, Loader2, KeyRound,
+    Zap, Calendar, Target, Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
-    useAdminFeedbacks, useAdminUsers, useAdminStats, useAdminUpdateFeedbackStatus,
-    useLandingSettings, useUpdateLandingSettings, useAdminUpdateFeedback
+    useAdminFeedbacks, useAdminStats, useAdminUpdateFeedbackStatus,
+    useLandingSettings, useUpdateLandingSettings, useAdminUpdateFeedback,
+    useAdminUsersActivity
 } from '@/api/services/feedback-service';
 import { STATUS_COLORS, FEEDBACK_STATUSES, type FeedbackStatus } from './admin-constants';
 import { AdminGuard } from './admin-guard';
@@ -230,19 +232,41 @@ const FeedbacksTab: React.FC = () => {
 
 // ── Users Tab ────────────────────────────────────────────────────────
 const UsersTab: React.FC = () => {
-    const { data: users, isLoading } = useAdminUsers();
+    const { data: users, isLoading } = useAdminUsersActivity();
     const [search, setSearch] = useState('');
 
     const filtered = (users ?? []).filter((u) => {
         if (!search) return true;
-        return (u.full_name ?? '').toLowerCase().includes(search.toLowerCase()) || u.user_id.toLowerCase().includes(search.toLowerCase());
+        return (
+            (u.full_name ?? '').toLowerCase().includes(search.toLowerCase()) || 
+            (u.email ?? '').toLowerCase().includes(search.toLowerCase()) || 
+            u.user_id.toLowerCase().includes(search.toLowerCase())
+        );
     });
+
+    const getRelativeTime = (dateStr: string | null) => {
+        if (!dateStr) return 'No activity yet';
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        if (isNaN(diffMs)) return 'No activity yet';
+        const diffMins = Math.floor(diffMs / (60 * 1000));
+        const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+        const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
 
     if (isLoading) {
         return (
-            <div className="space-y-3">
+            <div className="space-y-4">
                 {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="bg-card/60 border border-border rounded-2xl p-5 h-16 animate-pulse" />
+                    <div key={i} className="bg-card/60 border border-border rounded-2xl p-6 h-40 animate-pulse" />
                 ))}
             </div>
         );
@@ -255,34 +279,104 @@ const UsersTab: React.FC = () => {
                 <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search users..."
+                    placeholder="Search by name, email, or user ID..."
                     className="h-10 pl-9 rounded-xl bg-muted border-border"
                 />
             </div>
 
-            <div className="text-xs text-muted-foreground font-semibold px-1">{filtered.length} user{filtered.length !== 1 ? 's' : ''}</div>
+            <div className="text-xs text-muted-foreground font-semibold px-1">
+                {filtered.length} user{filtered.length !== 1 ? 's' : ''} with activity tracking
+            </div>
 
             {filtered.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground text-sm">No users found</div>
             ) : (
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filtered.map((u) => (
-                        <div key={u.user_id} className="bg-card/60 border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-3 transition-all duration-200 hover:border-primary/10">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-xs shrink-0">
-                                    {(u.full_name ?? '?')[0]?.toUpperCase() ?? '?'}
+                        <div key={u.user_id} className="bg-card/60 backdrop-blur-sm border border-border rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-200 hover:border-primary/10 relative overflow-hidden group">
+                            {/* Accent decoration */}
+                            <div className="absolute -right-4 -bottom-4 h-24 w-24 rounded-full bg-primary/[0.01] group-hover:bg-primary/[0.03] transition-colors pointer-events-none" />
+
+                            <div className="space-y-3">
+                                {/* Header / User Profile Info */}
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-primary/10 text-primary font-black text-sm shrink-0 border border-primary/10">
+                                            {(u.full_name ?? '?')[0]?.toUpperCase() ?? '?'}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-black truncate">{u.full_name || 'Unnamed User'}</div>
+                                            <div className="text-[11px] text-muted-foreground/80 truncate font-medium">{u.email}</div>
+                                            <div className="text-[9px] text-muted-foreground/50 font-mono mt-0.5">{u.user_id}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                        {u.is_personalized ? (
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">Personalized</span>
+                                        ) : (
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">Pending Setup</span>
+                                        )}
+                                        <span className="text-[9px] text-muted-foreground/60 font-semibold">
+                                            Joined {new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="min-w-0">
-                                    <div className="text-sm font-semibold truncate">{u.full_name || 'Unnamed User'}</div>
-                                    <div className="text-[10px] text-muted-foreground font-mono">{u.user_id.slice(0, 12)}...</div>
+
+                                {/* Activity Stats Grid */}
+                                <div className="grid grid-cols-4 gap-2 pt-1">
+                                    <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
+                                        <Target className="h-3.5 w-3.5 text-blue-400" />
+                                        <span className="text-xs font-black text-foreground mt-0.5">{u.goals_count}</span>
+                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Goals</span>
+                                    </div>
+                                    <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
+                                        <Zap className="h-3.5 w-3.5 text-amber-400" />
+                                        <span className="text-xs font-black text-foreground mt-0.5">{u.habits_count}</span>
+                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Habits</span>
+                                    </div>
+                                    <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
+                                        <Calendar className="h-3.5 w-3.5 text-violet-400" />
+                                        <span className="text-xs font-black text-foreground mt-0.5">{u.week_plans_count}</span>
+                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Plans</span>
+                                    </div>
+                                    <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
+                                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                        <span className="text-xs font-black text-foreground mt-0.5">{u.completed_days_count}</span>
+                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Done Days</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                                {u.is_personalized && (
-                                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">Setup done</span>
+
+                                {/* Working On / Recent Goals Section */}
+                                {u.recent_goals && u.recent_goals.length > 0 && (
+                                    <div className="bg-muted/15 border border-border/40 rounded-xl p-3 space-y-1.5">
+                                        <div className="text-[9px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                                            <Activity className="h-3 w-3 text-primary" />
+                                            Active Focus / Recent Goals
+                                        </div>
+                                        <div className="space-y-1">
+                                            {u.recent_goals.map((g, idx) => (
+                                                <div key={idx} className="flex items-center justify-between text-xs font-semibold text-foreground/95 bg-muted/20 px-2.5 py-1 rounded-lg border border-border/30">
+                                                    <span className="truncate flex-1 pr-2">{g.name}</span>
+                                                    {g.start_date && (
+                                                        <span className="text-[9px] text-muted-foreground shrink-0 font-mono">
+                                                            Starts: {new Date(g.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
-                                <span className="text-[10px] text-muted-foreground">
-                                    {new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+
+                            {/* Footer / Last Active Time */}
+                            <div className="border-t border-border/40 pt-2.5 flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3 text-muted-foreground/60" />
+                                    Last Active:
+                                </span>
+                                <span className={`font-bold ${u.last_active_at ? 'text-primary' : 'text-muted-foreground/50'}`}>
+                                    {getRelativeTime(u.last_active_at)}
                                 </span>
                             </div>
                         </div>

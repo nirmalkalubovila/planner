@@ -4,7 +4,7 @@ const features = [
     title: "AI Goal Decomposition",
     subtitle: "1 week → 10 year milestones",
     description:
-      "Set any goal from 1 week to 10 years. AI generates a weekly milestone roadmap instantly. Includes strategy choice dialog, master action plan editor, manual adjustments, custom date limits, and progress tracking charts.",
+      "Set any goal, 1 week to 10 years — AI builds the roadmap instantly.",
     tag: "Goals",
   },
   {
@@ -12,7 +12,7 @@ const features = [
     title: "Custom Habit Builder",
     subtitle: "Full control, zero guessing",
     description:
-      "Create habits with custom active days, specific time slots, and duration blocks. Wake-up schedules auto-inject. Habits auto-sync into the weekly planner grid without any manual placement.",
+      "Add habits with your own days, times, and durations. Full control.",
     tag: "Habits",
   },
   {
@@ -20,7 +20,7 @@ const features = [
     title: "Smart Week Planner",
     subtitle: "Drag-and-drop calendar grid",
     description:
-      "Goals and habits auto-populate into a visual weekly grid. Features edge-to-edge layout, mobile touch scroll support, an explicit hand-move tool to prevent drag conflicts, and a full toolbar with zoom and navigation controls.",
+      "Goals and habits auto-populate into a visual weekly grid.",
     tag: "Planner",
   },
   {
@@ -28,7 +28,7 @@ const features = [
     title: "Auto Today Schedule",
     subtitle: "Zero-setup daily to-do",
     description:
-      "Open the app and your daily task list is already built from the weekly planner. Toggle completions with one tap. Integrates gamified daily themes that change how tasks are displayed.",
+      "Open the app — your daily to-do is already built.",
     tag: "Today",
   },
   {
@@ -36,15 +36,15 @@ const features = [
     title: "8 Gamified Daily Themes",
     subtitle: "Discipline Battery, Boss Fight & more",
     description:
-      "Stay motivated with 8 rotating execution themes: Discipline Battery, Daily Boss Fight, Forge System, Combo Chain, Engine Dashboard, Territory Expansion, Heartbeat System, and XP Burst — each with unique progress animations.",
+      "Discipline Battery, Boss Fight, and more — execution never feels flat.",
     tag: "Gamified",
   },
   {
     number: "06",
-    title: "The Vault — Notes & Capture",
+    title: "The Vault",
     subtitle: "Categories, tags, reminders",
     description:
-      "Capture ideas, tasks, journals, learnings, and quotes instantly. Features category filters, tag search, local draft auto-save backup, note view dialogs, quote cards, and custom repeatable reminders per note.",
+      "Capture ideas, tasks, and quotes instantly. Categorized, searchable.",
     tag: "Vault",
   },
   {
@@ -52,7 +52,7 @@ const features = [
     title: "Performance & Trajectory Score",
     subtitle: "Weighted analytics dashboard",
     description:
-      "A transparent trajectory score (40% Goals, 35% Habits, 25% Execution) with summary view, detailed charts, performance dashboard, and a full calculations guide explaining every formula.",
+      "One transparent score (40% Goals, 35% Habits, 25% Execution).",
     tag: "Analytics",
   },
   {
@@ -60,7 +60,7 @@ const features = [
     title: "Weekly & Monthly Insights",
     subtitle: "Shareable story cards",
     description:
-      "Auto-generated insight cards summarizing your weekly and monthly performance. Features themed visual cards, story viewer mode, and share-as-image functionality to post your progress anywhere.",
+      "Auto-generated story cards you can share anywhere.",
     tag: "Insights",
   },
   {
@@ -68,16 +68,16 @@ const features = [
     title: "Profile & Preferences",
     subtitle: "Deep personalization",
     description:
-      "Full profile management with personal info, preferences (wake-up time, default durations, planning style), security settings, notification controls, and an integrated feedback system.",
+      "Deep personalization — wake time, planning style, notifications.",
     tag: "Profile",
   },
   {
     number: "10",
-    title: "PWA — Install Anywhere",
+    title: "Install Anywhere",
     subtitle: "Works offline, loads instantly",
     description:
-      "Install directly from your browser on any device. Full offline support, home screen icon, no app store needed. Auto-updates silently. Feels exactly like a native app with full-screen experience.",
-    tag: "PWA",
+      "Works offline, loads instantly, feels like a native app.",
+    tag: "Instant",
   },
 ];
 

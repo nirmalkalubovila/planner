@@ -121,6 +121,34 @@ export function useAdminUsers() {
     });
 }
 
+export interface UserActivity {
+    user_id: string;
+    email: string;
+    full_name: string;
+    created_at: string;
+    is_personalized: boolean;
+    goals_count: number;
+    habits_count: number;
+    week_plans_count: number;
+    completed_days_count: number;
+    last_active_at: string | null;
+    recent_goals: { name: string; start_date: string; created_at: string }[];
+}
+
+export function useAdminUsersActivity() {
+    return useQuery({
+        queryKey: ["user_profiles", "admin-activity"],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .rpc("get_admin_user_activity");
+
+            if (error) throw new Error(error.message);
+            return (data ?? []) as UserActivity[];
+        },
+        staleTime: 30_000, // 30s cache
+    });
+}
+
 // ── Admin: aggregate stats ──────────────────────────────────────────
 export function useAdminStats() {
     const feedbacksQuery = useAdminFeedbacks();

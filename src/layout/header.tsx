@@ -48,10 +48,10 @@ export const Header: React.FC = () => {
                 <div className="flex justify-start">
                     <Link
                         to="/"
-                        className="flex items-center gap-2.5 group transition-all duration-300 hover:scale-[1.02] active:scale-95"
+                        className="flex items-center gap-2 md:gap-3 group transition-all duration-300 hover:scale-[1.02] active:scale-95"
                         style={{ fontFamily: "'Outfit', sans-serif" }}
                     >
-                        <div className="relative flex items-center justify-center">
+                        <div className="relative flex items-center justify-center shrink-0">
                             <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                             <img
                                 src="/white-logo.svg"
@@ -59,11 +59,16 @@ export const Header: React.FC = () => {
                                 className="h-9 w-9 md:h-8 md:w-8 object-contain relative z-10 drop-shadow-[0_0_8px_hsl(var(--foreground)/0.3)] invert dark:invert-0"
                             />
                         </div>
-                        <div className="hidden md:flex flex-col">
-                            <span className="text-sm md:text-lg font-bold tracking-[-0.03em] leading-none uppercase bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                                Legacy Life Builder
+                        <div className="flex items-center gap-2">
+                            <div className="hidden md:flex flex-col">
+                                <span className="text-sm md:text-lg font-bold tracking-[-0.03em] leading-none uppercase bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                                    Legacy Life Builder
+                                </span>
+                                <div className="h-[1.5px] w-0 group-hover:w-full bg-gradient-to-r from-primary/80 to-transparent transition-all duration-500 ease-out" />
+                            </div>
+                            <span className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 uppercase font-mono select-none whitespace-nowrap leading-none">
+                                Public Beta
                             </span>
-                            <div className="h-[1.5px] w-0 group-hover:w-full bg-gradient-to-r from-primary/80 to-transparent transition-all duration-500 ease-out" />
                         </div>
                     </Link>
                 </div>

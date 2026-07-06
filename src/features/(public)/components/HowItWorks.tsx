@@ -3,25 +3,25 @@ const steps = [
     step: "1",
     title: "Set your goal",
     description:
-      'Tell the app your goal and timeline. AI builds your milestone roadmap instantly.',
+      "Tell the app your goal and timeline. AI builds your milestone roadmap instantly.",
   },
   {
     step: "2",
     title: "Build your habits",
     description:
-      "Add habits with custom days, time slots, and duration. They auto-appear in your planner.",
+      "Add habits with custom days and time slots. They auto-appear in your planner.",
   },
   {
     step: "3",
     title: "Let the planner sync",
     description:
-      "Your week fills up automatically. AI suggests what to work on and how long for each goal.",
+      "Your week fills up automatically. AI tells you what to work on and for how long.",
   },
   {
     step: "4",
     title: "Execute daily",
     description:
-      "Open the app each day. Your to-do list is already built. Just start working.",
+      "Open the app. Your to-do list is already built. Just start.",
   },
 ];
 
