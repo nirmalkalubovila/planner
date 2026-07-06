@@ -10,6 +10,8 @@ import { ResponsiveToaster } from '@/components/ui/responsive-toaster';
 import { PageLoader } from './components/common/page-loader';
 import { lazyRetry } from './utils/lazy-retry';
 import { ErrorBoundary, ErrorPage } from './components/common/error-boundary';
+import { supabase } from './lib/supabaseClient';
+import { MaintenancePage } from './components/common/maintenance-page';
 
 const HabitsPage = lazyRetry(() => import('./features/habits/habits-page').then(m => ({ default: m.HabitsPage })));
 const GoalsPage = lazyRetry(() => import('./features/goals/goals-page').then(m => ({ default: m.GoalsPage })));
@@ -85,13 +87,83 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const MaintenanceGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading: authLoading } = useAuth();
+  const [maintenanceMode, setMaintenanceMode] = React.useState<boolean | null>(null);
+  const [dbError, setDbError] = React.useState<any>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const location = window.location;
+
+  React.useEffect(() => {
+    let active = true;
+    const fetchMaintenanceStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("landing_page_settings")
+          .select("maintenance_mode")
+          .eq("id", 1)
+          .maybeSingle();
+
+        if (!active) return;
+
+        if (error) {
+          setDbError(error);
+        } else {
+          setMaintenanceMode(data?.maintenance_mode ?? false);
+        }
+      } catch (err) {
+        if (active) setDbError(err);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    fetchMaintenanceStatus();
+    
+    return () => {
+      active = false;
+    };
+  }, [location.pathname]);
+
+  const isAdmin = user?.email === 'legacylifebuilder.konik@email.com';
+  const isAdminPath = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');
+
+  if (isLoading || authLoading) {
+    return <PageLoader />;
+  }
+
+  if (dbError) {
+    const errorMsg = dbError.message || String(dbError);
+    const isConnectionError = 
+      errorMsg.includes('504') || 
+      errorMsg.includes('521') || 
+      errorMsg.includes('522') || 
+      errorMsg.includes('525') || 
+      errorMsg.includes('Failed to fetch') ||
+      errorMsg.includes('NetworkError') ||
+      errorMsg.includes('upstream request timeout');
+
+    if (isConnectionError) {
+      return <MaintenancePage />;
+    }
+  }
+
+  if (maintenanceMode && !isAdmin && !isAdminPath) {
+    return <MaintenancePage />;
+  }
+
+  return <>{children}</>;
+};
+
 const RootLayout = () => {
   const { resolvedTheme } = useTheme();
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ResponsiveToaster theme={(resolvedTheme as 'light' | 'dark') ?? 'dark'} />
-        <Outlet />
+        <MaintenanceGuard>
+          <Outlet />
+        </MaintenanceGuard>
       </AuthProvider>
     </QueryClientProvider>
   );

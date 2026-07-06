@@ -21,26 +21,55 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({ error: propError, resetErr
   const [copied, setCopied] = React.useState(false);
   const [showDetails, setShowDetails] = React.useState(false);
 
+  const isMaintenance = React.useMemo(() => {
+    if (!error) return false;
+    const errMsg = (error.message || '').toLowerCase();
+    const errStatus = String(error.status || '');
+    
+    return (
+      errMsg.includes('maintenance') ||
+      errMsg.includes('upgrade') ||
+      errMsg.includes('restarting') ||
+      errMsg.includes('504') ||
+      errMsg.includes('521') ||
+      errMsg.includes('522') ||
+      errMsg.includes('525') ||
+      errMsg.includes('failed to fetch') ||
+      errMsg.includes('networkerror') ||
+      errMsg.includes('upstream request timeout') ||
+      errStatus === '504' ||
+      errStatus === '521' ||
+      errStatus === '522' ||
+      errStatus === '525'
+    );
+  }, [error]);
+
   // Extract friendly messages
-  let title = 'Something went wrong';
-  let message = 'An unexpected error occurred while rendering this page.';
-  let statusCode: number | string = '500';
+  let title = isMaintenance ? 'System Upgrade in Progress' : 'Something went wrong';
+  let message = isMaintenance 
+    ? "We are currently updating our database or fine-tuning our servers. Your data is completely safe, and we will be back online in a couple of minutes."
+    : 'An unexpected error occurred while rendering this page.';
+  let statusCode: number | string = isMaintenance ? 'UPGRADE' : '500';
   let errorDetails = '';
 
   if (error) {
-    if (isRouteErrorResponse(error)) {
-      statusCode = error.status;
-      title = `${error.status} - ${error.statusText}`;
-      message = error.data?.message || 'The requested page could not be loaded or was not found.';
-      errorDetails = typeof error.data === 'string' ? error.data : JSON.stringify(error.data, null, 2);
-    } else if (error instanceof Error) {
-      title = error.name || 'Application Error';
-      message = error.message || 'A runtime error occurred in the application.';
-      errorDetails = error.stack || '';
+    if (!isMaintenance) {
+      if (isRouteErrorResponse(error)) {
+        statusCode = error.status;
+        title = `${error.status} - ${error.statusText}`;
+        message = error.data?.message || 'The requested page could not be loaded or was not found.';
+        errorDetails = typeof error.data === 'string' ? error.data : JSON.stringify(error.data, null, 2);
+      } else if (error instanceof Error) {
+        title = error.name || 'Application Error';
+        message = error.message || 'A runtime error occurred in the application.';
+        errorDetails = error.stack || '';
+      } else {
+        title = 'Unexpected Error';
+        message = typeof error === 'string' ? error : 'An unknown error occurred.';
+        errorDetails = JSON.stringify(error, null, 2);
+      }
     } else {
-      title = 'Unexpected Error';
-      message = typeof error === 'string' ? error : 'An unknown error occurred.';
-      errorDetails = JSON.stringify(error, null, 2);
+      errorDetails = error.stack || (typeof error === 'string' ? error : JSON.stringify(error, null, 2));
     }
   }
 
@@ -199,8 +228,10 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({ error: propError, resetErr
           >
             <div className="flex items-center justify-between mb-4 border-b border-zinc-800/60 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
-                <span className="text-xs font-semibold text-zinc-400 font-mono tracking-wider">DIAGNOSTICS</span>
+                <div className={`w-2.5 h-2.5 rounded-full ${isMaintenance ? 'bg-amber-500 animate-pulse' : 'bg-destructive animate-pulse'}`} />
+                <span className="text-xs font-semibold text-zinc-400 font-mono tracking-wider">
+                  {isMaintenance ? 'STATUS: UPGRADING' : 'DIAGNOSTICS'}
+                </span>
               </div>
               <span className="text-[11px] font-mono bg-zinc-800/50 text-zinc-300 px-2 py-0.5 rounded">
                 CODE: {statusCode}
@@ -208,7 +239,11 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({ error: propError, resetErr
             </div>
 
             <h3 className="text-lg font-bold text-zinc-200 mb-2 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+              {isMaintenance ? (
+                <RefreshCw className="w-4 h-4 text-amber-500 animate-spin shrink-0" style={{ animationDuration: '3s' }} />
+              ) : (
+                <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+              )}
               {title}
             </h3>
             <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed mb-6">

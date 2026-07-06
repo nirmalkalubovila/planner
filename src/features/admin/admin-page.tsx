@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, MessageSquare, Users, ArrowLeft,
-    TrendingUp, Clock, CheckCircle2, Eye, EyeOff, UserPlus,
+    Clock, CheckCircle2, Eye, EyeOff, UserPlus,
     ChevronDown, Search, Mail, Settings, FileText, Check, Save, Info, Loader2, KeyRound,
-    Zap, Calendar, Target, Activity
+    Zap, Calendar, Target, Activity, Sparkles, AlertTriangle, Percent
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
     useAdminFeedbacks, useAdminStats, useAdminUpdateFeedbackStatus,
     useLandingSettings, useUpdateLandingSettings, useAdminUpdateFeedback,
-    useAdminUsersActivity
+    useAdminUsersActivity, getUserEngagementTier, TIER_META, type EngagementTier
 } from '@/api/services/feedback-service';
 import { STATUS_COLORS, FEEDBACK_STATUSES, type FeedbackStatus } from './admin-constants';
 import { AdminGuard } from './admin-guard';
@@ -50,7 +50,7 @@ const DashboardTab: React.FC = () => {
 
     if (stats.isLoading) {
         return (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="bg-card/60 border border-border rounded-2xl p-5 h-28 animate-pulse" />
                 ))}
@@ -60,37 +60,212 @@ const DashboardTab: React.FC = () => {
 
     return (
         <div className="space-y-6">
+            {/* Top Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <StatCard label="Total Users" value={stats.totalUsers} icon={<Users className="h-4.5 w-4.5 text-blue-400" />} accent="bg-blue-500/10" />
-                <StatCard label="New This Week" value={stats.recentUsers} icon={<UserPlus className="h-4.5 w-4.5 text-emerald-400" />} accent="bg-emerald-500/10" />
-                <StatCard label="Personalized" value={stats.personalizedUsers} icon={<CheckCircle2 className="h-4.5 w-4.5 text-violet-400" />} accent="bg-violet-500/10" />
-                <StatCard label="Total Feedbacks" value={stats.totalFeedbacks} icon={<MessageSquare className="h-4.5 w-4.5 text-amber-400" />} accent="bg-amber-500/10" />
-                <StatCard label="Open Issues" value={stats.openCount} icon={<Clock className="h-4.5 w-4.5 text-orange-400" />} accent="bg-orange-500/10" />
-                <StatCard label="Resolved" value={stats.resolvedCount} icon={<TrendingUp className="h-4.5 w-4.5 text-green-400" />} accent="bg-green-500/10" />
+                <StatCard label="Active Users (7d)" value={stats.activeUsers7d} icon={<Activity className="h-4.5 w-4.5 text-emerald-400" />} accent="bg-emerald-500/10" />
+                <StatCard label="Engagement Rate" value={`${stats.engagementRate}%`} icon={<Percent className="h-4.5 w-4.5 text-violet-400" />} accent="bg-violet-500/10" />
+                <StatCard label="Most Used Feature" value={stats.mostUsedFeature} icon={<Sparkles className="h-4.5 w-4.5 text-amber-400" />} accent="bg-amber-500/10" />
+                <StatCard label="New This Week" value={stats.recentUsers} icon={<UserPlus className="h-4.5 w-4.5 text-sky-400" />} accent="bg-sky-500/10" />
+                <StatCard label="Open Issues" value={stats.openCount} icon={<AlertTriangle className="h-4.5 w-4.5 text-orange-400" />} accent="bg-orange-500/10" />
             </div>
 
-            {/* Quick ratio bar */}
-            {stats.totalFeedbacks > 0 && (
-                <div className="bg-card/60 border border-border rounded-2xl p-4 sm:p-5">
-                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Feedback Resolution</div>
-                    <div className="flex h-2.5 rounded-full overflow-hidden bg-muted">
-                        {stats.resolvedCount > 0 && (
-                            <div className="bg-emerald-500 transition-all duration-500" style={{ width: `${(stats.resolvedCount / stats.totalFeedbacks) * 100}%` }} />
-                        )}
-                        {stats.reviewedCount > 0 && (
-                            <div className="bg-blue-500 transition-all duration-500" style={{ width: `${(stats.reviewedCount / stats.totalFeedbacks) * 100}%` }} />
-                        )}
-                        {stats.openCount > 0 && (
-                            <div className="bg-amber-500 transition-all duration-500" style={{ width: `${(stats.openCount / stats.totalFeedbacks) * 100}%` }} />
-                        )}
+            {/* Growth Target Tracker */}
+            <div className="bg-card/60 border border-border rounded-2xl p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Road to 50 Active Users</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">Target: 50 active weekly users. We need {stats.remaining} more active users.</p>
                     </div>
-                    <div className="flex gap-4 mt-2.5">
-                        <span className="text-[10px] font-semibold text-emerald-400 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Resolved</span>
-                        <span className="text-[10px] font-semibold text-blue-400 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-500" />Reviewed</span>
-                        <span className="text-[10px] font-semibold text-amber-400 flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" />Open</span>
+                    {stats.weeksToTarget !== null && (
+                        <div className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20">
+                            Estimated: {stats.weeksToTarget} {stats.weeksToTarget === 1 ? 'week' : 'weeks'} to target
+                        </div>
+                    )}
+                </div>
+                
+                <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-bold">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="text-foreground">{stats.activeUsers7d} / {stats.growthTarget} ({Math.round(Math.min(100, (stats.activeUsers7d / stats.growthTarget) * 100))}%)</span>
+                    </div>
+                    <div className="h-3 rounded-full bg-muted overflow-hidden flex">
+                        <div 
+                            className="bg-primary h-full transition-all duration-500 rounded-full" 
+                            style={{ width: `${Math.min(100, (stats.activeUsers7d / stats.growthTarget) * 100)}%` }}
+                        />
                     </div>
                 </div>
-            )}
+            </div>
+
+            {/* Business adoption and engagement grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Feature Adoption Card */}
+                <div className="bg-card/60 border border-border rounded-2xl p-5 space-y-4">
+                    <div>
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Feature Adoption Rates</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">Adoption rates across major feature categories.</p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                        {/* Goals */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-xs font-semibold">
+                                <span className="flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-blue-400" /> Goals Feature</span>
+                                <span>{stats.featureAdoption?.goals.pct}% ({stats.featureAdoption?.goals.count} users)</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                <div className="bg-blue-500 h-full rounded-full" style={{ width: `${stats.featureAdoption?.goals.pct}%` }} />
+                            </div>
+                        </div>
+
+                        {/* Habits */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-xs font-semibold">
+                                <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5 text-amber-400" /> Habits Feature</span>
+                                <span>{stats.featureAdoption?.habits.pct}% ({stats.featureAdoption?.habits.count} users)</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                <div className="bg-amber-500 h-full rounded-full" style={{ width: `${stats.featureAdoption?.habits.pct}%` }} />
+                            </div>
+                        </div>
+
+                        {/* Planner */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-xs font-semibold">
+                                <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-violet-400" /> Weekly Planner</span>
+                                <span>{stats.featureAdoption?.planner.pct}% ({stats.featureAdoption?.planner.count} users)</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                <div className="bg-violet-500 h-full rounded-full" style={{ width: `${stats.featureAdoption?.planner.pct}%` }} />
+                            </div>
+                        </div>
+
+                        {/* Task Completions */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-xs font-semibold">
+                                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Execution Tracking</span>
+                                <span>{stats.featureAdoption?.completions.pct}% ({stats.featureAdoption?.completions.count} users)</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${stats.featureAdoption?.completions.pct}%` }} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-border pt-3 grid grid-cols-3 gap-2 text-center">
+                        <div>
+                            <div className="text-base font-bold">{stats.avgGoals}</div>
+                            <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">Goals / User</div>
+                        </div>
+                        <div>
+                            <div className="text-base font-bold">{stats.avgHabits}</div>
+                            <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">Habits / User</div>
+                        </div>
+                        <div>
+                            <div className="text-base font-bold">{stats.avgPlans}</div>
+                            <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">Plans / User</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Engagement Funnel Card */}
+                <div className="bg-card/60 border border-border rounded-2xl p-5 space-y-4">
+                    <div>
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">User Engagement Funnel</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">Drop-off sequence from sign up to weekly active status.</p>
+                    </div>
+
+                    <div className="space-y-3 pt-2">
+                        {/* Funnel Step 1 */}
+                        <div className="relative flex items-center justify-between p-2.5 bg-muted/20 border border-border/30 rounded-xl">
+                            <span className="text-xs font-bold text-foreground pl-2">1. Signed Up</span>
+                            <span className="text-xs font-black pr-2">{stats.funnel?.signedUp} Users (100%)</span>
+                        </div>
+
+                        {/* Funnel Step 2 */}
+                        <div className="relative flex items-center justify-between p-2.5 bg-muted/20 border border-border/30 rounded-xl overflow-hidden">
+                            <div className="absolute inset-y-0 left-0 bg-primary/5 transition-all duration-300" style={{ width: `${stats.totalUsers > 0 ? ((stats.funnel?.personalized ?? 0) / stats.totalUsers) * 100 : 0}%` }} />
+                            <span className="text-xs font-bold text-foreground pl-2 z-10">2. Personalized Profile</span>
+                            <span className="text-xs font-black pr-2 z-10">
+                                {stats.funnel?.personalized} ({stats.totalUsers > 0 ? Math.round(((stats.funnel?.personalized ?? 0) / stats.totalUsers) * 100) : 0}%)
+                            </span>
+                        </div>
+
+                        {/* Funnel Step 3 */}
+                        <div className="relative flex items-center justify-between p-2.5 bg-muted/20 border border-border/30 rounded-xl overflow-hidden">
+                            <div className="absolute inset-y-0 left-0 bg-primary/10 transition-all duration-300" style={{ width: `${stats.totalUsers > 0 ? ((stats.funnel?.createdGoal ?? 0) / stats.totalUsers) * 100 : 0}%` }} />
+                            <span className="text-xs font-bold text-foreground pl-2 z-10">3. Created At Least 1 Goal</span>
+                            <span className="text-xs font-black pr-2 z-10">
+                                {stats.funnel?.createdGoal} ({stats.totalUsers > 0 ? Math.round(((stats.funnel?.createdGoal ?? 0) / stats.totalUsers) * 100) : 0}%)
+                            </span>
+                        </div>
+
+                        {/* Funnel Step 4 */}
+                        <div className="relative flex items-center justify-between p-2.5 bg-muted/20 border border-border/30 rounded-xl overflow-hidden">
+                            <div className="absolute inset-y-0 left-0 bg-primary/15 transition-all duration-300" style={{ width: `${stats.totalUsers > 0 ? ((stats.funnel?.active7d ?? 0) / stats.totalUsers) * 100 : 0}%` }} />
+                            <span className="text-xs font-bold text-foreground pl-2 z-10">4. Active Weekly (7d)</span>
+                            <span className="text-xs font-black pr-2 z-10">
+                                {stats.funnel?.active7d} ({stats.totalUsers > 0 ? Math.round(((stats.funnel?.active7d ?? 0) / stats.totalUsers) * 100) : 0}%)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Engagement Tiers */}
+            <div className="bg-card/60 border border-border rounded-2xl p-5 space-y-4">
+                <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">User Engagement Tiers</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Distribution of user cohort based on action patterns.</p>
+                </div>
+
+                <div className="flex h-4 rounded-full overflow-hidden bg-muted">
+                    {stats.tiers?.power > 0 && (
+                        <div className="bg-emerald-500" style={{ width: `${((stats.tiers?.power ?? 0) / stats.totalUsers) * 100}%` }} title="Power Users" />
+                    )}
+                    {stats.tiers?.active > 0 && (
+                        <div className="bg-blue-500" style={{ width: `${((stats.tiers?.active ?? 0) / stats.totalUsers) * 100}%` }} title="Active Users" />
+                    )}
+                    {stats.tiers?.casual > 0 && (
+                        <div className="bg-amber-500" style={{ width: `${((stats.tiers?.casual ?? 0) / stats.totalUsers) * 100}%` }} title="Casual Users" />
+                    )}
+                    {stats.tiers?.dormant > 0 && (
+                        <div className="bg-red-500" style={{ width: `${((stats.tiers?.dormant ?? 0) / stats.totalUsers) * 100}%` }} title="Dormant Users" />
+                    )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                        <div>
+                            <div className="text-xs font-bold text-foreground">Power Users</div>
+                            <div className="text-[10px] text-muted-foreground font-semibold">{stats.tiers?.power} users ({stats.totalUsers > 0 ? Math.round(((stats.tiers?.power ?? 0) / stats.totalUsers) * 100) : 0}%)</div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-blue-500" />
+                        <div>
+                            <div className="text-xs font-bold text-foreground">Active</div>
+                            <div className="text-[10px] text-muted-foreground font-semibold">{stats.tiers?.active} users ({stats.totalUsers > 0 ? Math.round(((stats.tiers?.active ?? 0) / stats.totalUsers) * 100) : 0}%)</div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-amber-500" />
+                        <div>
+                            <div className="text-xs font-bold text-foreground">Casual</div>
+                            <div className="text-[10px] text-muted-foreground font-semibold">{stats.tiers?.casual} users ({stats.totalUsers > 0 ? Math.round(((stats.tiers?.casual ?? 0) / stats.totalUsers) * 100) : 0}%)</div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-red-500" />
+                        <div>
+                            <div className="text-xs font-bold text-foreground">Dormant</div>
+                            <div className="text-[10px] text-muted-foreground font-semibold">{stats.tiers?.dormant} users ({stats.totalUsers > 0 ? Math.round(((stats.tiers?.dormant ?? 0) / stats.totalUsers) * 100) : 0}%)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
@@ -139,11 +314,16 @@ const FeedbacksTab: React.FC = () => {
     const { data: feedbacks, isLoading } = useAdminFeedbacks();
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<FeedbackStatus | 'all'>('all');
+    const [filterCategory, setFilterCategory] = useState<'all' | 'Bug Report' | 'Feature Request' | 'Other'>('all');
 
-    const filtered = (feedbacks ?? []).filter((f) => {
+    // Exclude "About Legacy Life Builder" feedbacks completely from this view
+    const filteredFeedbacks = (feedbacks ?? []).filter((f) => f.category !== 'About Legacy Life Builder');
+
+    const filtered = filteredFeedbacks.filter((f) => {
         const matchSearch = !search || f.subject.toLowerCase().includes(search.toLowerCase()) || f.message.toLowerCase().includes(search.toLowerCase());
         const matchStatus = filterStatus === 'all' || f.status === filterStatus;
-        return matchSearch && matchStatus;
+        const matchCategory = filterCategory === 'all' || f.category === filterCategory;
+        return matchSearch && matchStatus && matchCategory;
     });
 
     if (isLoading) {
@@ -159,8 +339,8 @@ const FeedbacksTab: React.FC = () => {
     return (
         <div className="space-y-4">
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
+            <div className="flex flex-col gap-3">
+                <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         value={search}
@@ -169,20 +349,41 @@ const FeedbacksTab: React.FC = () => {
                         className="h-10 pl-9 rounded-xl bg-muted border-border"
                     />
                 </div>
-                <div className="flex gap-2">
-                    {(['all', ...FEEDBACK_STATUSES] as const).map((s) => (
-                        <button
-                            key={s}
-                            onClick={() => setFilterStatus(s)}
-                            className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors border ${
-                                filterStatus === s
-                                    ? 'bg-primary/15 text-primary border-primary/30'
-                                    : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
-                            }`}
-                        >
-                            {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-                        </button>
-                    ))}
+                
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    {/* Category Filter pills */}
+                    <div className="flex flex-wrap gap-1.5">
+                        {(['all', 'Bug Report', 'Feature Request', 'Other'] as const).map((cat) => (
+                            <button
+                                key={cat}
+                                onClick={() => setFilterCategory(cat)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                                    filterCategory === cat
+                                        ? 'bg-primary/15 text-primary border-primary/30'
+                                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                                }`}
+                            >
+                                {cat === 'all' ? 'All Categories' : cat}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Status Filter pills */}
+                    <div className="flex gap-1.5">
+                        {(['all', ...FEEDBACK_STATUSES] as const).map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => setFilterStatus(s)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                                    filterStatus === s
+                                        ? 'bg-primary/15 text-primary border-primary/30'
+                                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                                }`}
+                            >
+                                {s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -234,15 +435,8 @@ const FeedbacksTab: React.FC = () => {
 const UsersTab: React.FC = () => {
     const { data: users, isLoading } = useAdminUsersActivity();
     const [search, setSearch] = useState('');
-
-    const filtered = (users ?? []).filter((u) => {
-        if (!search) return true;
-        return (
-            (u.full_name ?? '').toLowerCase().includes(search.toLowerCase()) || 
-            (u.email ?? '').toLowerCase().includes(search.toLowerCase()) || 
-            u.user_id.toLowerCase().includes(search.toLowerCase())
-        );
-    });
+    const [filterTier, setFilterTier] = useState<'all' | EngagementTier | 'new'>('all');
+    const [sortMode, setSortMode] = useState<'engaged' | 'attention'>('engaged');
 
     const getRelativeTime = (dateStr: string | null) => {
         if (!dateStr) return 'No activity yet';
@@ -272,115 +466,219 @@ const UsersTab: React.FC = () => {
         );
     }
 
+    const now = new Date();
+    const processedUsers = (users ?? []).map((u) => {
+        const tier = getUserEngagementTier(u);
+        const lastActive = u.last_active_at ? new Date(u.last_active_at) : null;
+        const daysSinceActive = lastActive ? Math.floor((now.getTime() - lastActive.getTime()) / (24 * 60 * 60 * 1000)) : Infinity;
+        const isNew = (now.getTime() - new Date(u.created_at).getTime()) <= 7 * 24 * 60 * 60 * 1000;
+        
+        // Compute engagement score (higher is more engaged)
+        const engagementScore = (u.goals_count * 3) + (u.habits_count * 2) + (u.week_plans_count * 4) + (u.completed_days_count * 5);
+
+        return {
+            ...u,
+            tier,
+            daysSinceActive,
+            isNew,
+            engagementScore
+        };
+    });
+
+    const filtered = processedUsers.filter((u) => {
+        const matchSearch = !search ||
+            (u.full_name ?? '').toLowerCase().includes(search.toLowerCase()) || 
+            (u.email ?? '').toLowerCase().includes(search.toLowerCase()) || 
+            u.user_id.toLowerCase().includes(search.toLowerCase());
+
+        if (!matchSearch) return false;
+
+        if (filterTier === 'all') return true;
+        if (filterTier === 'new') return u.isNew;
+        return u.tier === filterTier;
+    });
+
+    // Sorting
+    const sorted = [...filtered].sort((a, b) => {
+        if (sortMode === 'attention') {
+            // Dormant / needs attention first (most days since active, least engagement score)
+            if (a.daysSinceActive !== b.daysSinceActive) {
+                return b.daysSinceActive - a.daysSinceActive; // Larger days since active first
+            }
+            return a.engagementScore - b.engagementScore; // Lower score first
+        } else {
+            // Most engaged first
+            if (a.tier !== b.tier) {
+                const tierPriority = { power: 4, active: 3, casual: 2, dormant: 1 };
+                return tierPriority[b.tier] - tierPriority[a.tier];
+            }
+            return b.engagementScore - a.engagementScore;
+        }
+    });
+
     return (
         <div className="space-y-4">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search by name, email, or user ID..."
-                    className="h-10 pl-9 rounded-xl bg-muted border-border"
-                />
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search by name, email, or user ID..."
+                        className="h-10 pl-9 rounded-xl bg-muted border-border"
+                    />
+                </div>
+
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setSortMode('engaged')}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+                            sortMode === 'engaged'
+                                ? 'bg-primary text-primary-foreground border-transparent'
+                                : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                        }`}
+                    >
+                        Most Engaged
+                    </button>
+                    <button
+                        onClick={() => setSortMode('attention')}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+                            sortMode === 'attention'
+                                ? 'bg-destructive/15 text-destructive border-destructive/20'
+                                : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                        }`}
+                    >
+                        Needs Attention
+                    </button>
+                </div>
             </div>
 
-            <div className="text-xs text-muted-foreground font-semibold px-1">
-                {filtered.length} user{filtered.length !== 1 ? 's' : ''} with activity tracking
+            {/* Filter Pills */}
+            <div className="flex flex-wrap gap-1.5">
+                {(['all', 'power', 'active', 'casual', 'dormant', 'new'] as const).map((t) => {
+                    let label = t === 'all' ? 'All Users' : t === 'new' ? 'New (7d)' : TIER_META[t].label;
+                    return (
+                        <button
+                            key={t}
+                            onClick={() => setFilterTier(t)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                                filterTier === t
+                                    ? 'bg-primary/15 text-primary border-primary/30'
+                                    : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                            }`}
+                        >
+                            {label}
+                        </button>
+                    );
+                })}
             </div>
 
-            {filtered.length === 0 ? (
+            <div className="text-xs text-muted-foreground font-semibold px-1 flex justify-between items-center">
+                <span>{sorted.length} user{sorted.length !== 1 ? 's' : ''} showing</span>
+                {sortMode === 'attention' && <span className="text-destructive font-bold uppercase tracking-wider text-[9px]">Sorted by needs attention</span>}
+            </div>
+
+            {sorted.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground text-sm">No users found</div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filtered.map((u) => (
-                        <div key={u.user_id} className="bg-card/60 backdrop-blur-sm border border-border rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-200 hover:border-primary/10 relative overflow-hidden group">
-                            {/* Accent decoration */}
-                            <div className="absolute -right-4 -bottom-4 h-24 w-24 rounded-full bg-primary/[0.01] group-hover:bg-primary/[0.03] transition-colors pointer-events-none" />
+                    {sorted.map((u) => {
+                        const meta = TIER_META[u.tier];
+                        const needsGlow = u.tier === 'dormant' || u.daysSinceActive >= 14;
 
-                            <div className="space-y-3">
-                                {/* Header / User Profile Info */}
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-primary/10 text-primary font-black text-sm shrink-0 border border-primary/10">
-                                            {(u.full_name ?? '?')[0]?.toUpperCase() ?? '?'}
+                        return (
+                            <div 
+                                key={u.user_id} 
+                                className={`bg-card/60 backdrop-blur-sm border rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-200 hover:border-primary/10 relative overflow-hidden group ${
+                                    needsGlow ? 'border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]' : 'border-border'
+                                }`}
+                            >
+                                {/* Accent decoration */}
+                                <div className="absolute -right-4 -bottom-4 h-24 w-24 rounded-full bg-primary/[0.01] group-hover:bg-primary/[0.03] transition-colors pointer-events-none" />
+
+                                <div className="space-y-3">
+                                    {/* Header / User Profile Info */}
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-primary/10 text-primary font-black text-sm shrink-0 border border-primary/10">
+                                                {(u.full_name ?? '?')[0]?.toUpperCase() ?? '?'}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="text-sm font-black truncate">{u.full_name || 'Unnamed User'}</div>
+                                                <div className="text-[11px] text-muted-foreground/80 truncate font-medium">{u.email}</div>
+                                                <div className="text-[9px] text-muted-foreground/50 font-mono mt-0.5">{u.user_id}</div>
+                                            </div>
                                         </div>
-                                        <div className="min-w-0">
-                                            <div className="text-sm font-black truncate">{u.full_name || 'Unnamed User'}</div>
-                                            <div className="text-[11px] text-muted-foreground/80 truncate font-medium">{u.email}</div>
-                                            <div className="text-[9px] text-muted-foreground/50 font-mono mt-0.5">{u.user_id}</div>
+                                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                            <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${meta.bgColor} ${meta.color} ${meta.borderColor}`}>
+                                                {meta.label}
+                                            </span>
+                                            {u.is_personalized && (
+                                                <span className="text-[8px] font-black uppercase tracking-wider text-emerald-500 bg-emerald-500/5 px-1.5 py-0.5 rounded border border-emerald-500/10">Personalized</span>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                                        {u.is_personalized ? (
-                                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">Personalized</span>
-                                        ) : (
-                                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">Pending Setup</span>
-                                        )}
-                                        <span className="text-[9px] text-muted-foreground/60 font-semibold">
-                                            Joined {new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                        </span>
+
+                                    {/* Activity Stats Grid */}
+                                    <div className="grid grid-cols-4 gap-2 pt-1">
+                                        <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
+                                            <Target className="h-3.5 w-3.5 text-blue-400" />
+                                            <span className="text-xs font-black text-foreground mt-0.5">{u.goals_count}</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Goals</span>
+                                        </div>
+                                        <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
+                                            <Zap className="h-3.5 w-3.5 text-amber-400" />
+                                            <span className="text-xs font-black text-foreground mt-0.5">{u.habits_count}</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Habits</span>
+                                        </div>
+                                        <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
+                                            <Calendar className="h-3.5 w-3.5 text-violet-400" />
+                                            <span className="text-xs font-black text-foreground mt-0.5">{u.week_plans_count}</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Plans</span>
+                                        </div>
+                                        <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
+                                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                                            <span className="text-xs font-black text-foreground mt-0.5">{u.completed_days_count}</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Done Days</span>
+                                        </div>
                                     </div>
+
+                                    {/* Working On / Recent Goals Section */}
+                                    {u.recent_goals && u.recent_goals.length > 0 && (
+                                        <div className="bg-muted/15 border border-border/40 rounded-xl p-3 space-y-1.5">
+                                            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                                                <Activity className="h-3 w-3 text-primary" />
+                                                Active Focus / Recent Goals
+                                            </div>
+                                            <div className="space-y-1">
+                                                {u.recent_goals.map((g, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between text-xs font-semibold text-foreground/95 bg-muted/20 px-2.5 py-1 rounded-lg border border-border/30">
+                                                        <span className="truncate flex-1 pr-2">{g.name}</span>
+                                                        {g.start_date && (
+                                                            <span className="text-[9px] text-muted-foreground shrink-0 font-mono">
+                                                                Starts: {new Date(g.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Activity Stats Grid */}
-                                <div className="grid grid-cols-4 gap-2 pt-1">
-                                    <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
-                                        <Target className="h-3.5 w-3.5 text-blue-400" />
-                                        <span className="text-xs font-black text-foreground mt-0.5">{u.goals_count}</span>
-                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Goals</span>
-                                    </div>
-                                    <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
-                                        <Zap className="h-3.5 w-3.5 text-amber-400" />
-                                        <span className="text-xs font-black text-foreground mt-0.5">{u.habits_count}</span>
-                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Habits</span>
-                                    </div>
-                                    <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
-                                        <Calendar className="h-3.5 w-3.5 text-violet-400" />
-                                        <span className="text-xs font-black text-foreground mt-0.5">{u.week_plans_count}</span>
-                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Plans</span>
-                                    </div>
-                                    <div className="bg-muted/30 border border-border/40 rounded-xl p-2 text-center flex flex-col items-center justify-center gap-0.5">
-                                        <Check className="h-3.5 w-3.5 text-emerald-400" />
-                                        <span className="text-xs font-black text-foreground mt-0.5">{u.completed_days_count}</span>
-                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Done Days</span>
-                                    </div>
+                                {/* Footer / Last Active Time */}
+                                <div className="border-t border-border/40 pt-2.5 flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3 text-muted-foreground/60" />
+                                        Last Active:
+                                    </span>
+                                    <span className={`font-bold ${u.last_active_at ? 'text-primary' : 'text-muted-foreground/50'}`}>
+                                        {getRelativeTime(u.last_active_at)}
+                                    </span>
                                 </div>
-
-                                {/* Working On / Recent Goals Section */}
-                                {u.recent_goals && u.recent_goals.length > 0 && (
-                                    <div className="bg-muted/15 border border-border/40 rounded-xl p-3 space-y-1.5">
-                                        <div className="text-[9px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                            <Activity className="h-3 w-3 text-primary" />
-                                            Active Focus / Recent Goals
-                                        </div>
-                                        <div className="space-y-1">
-                                            {u.recent_goals.map((g, idx) => (
-                                                <div key={idx} className="flex items-center justify-between text-xs font-semibold text-foreground/95 bg-muted/20 px-2.5 py-1 rounded-lg border border-border/30">
-                                                    <span className="truncate flex-1 pr-2">{g.name}</span>
-                                                    {g.start_date && (
-                                                        <span className="text-[9px] text-muted-foreground shrink-0 font-mono">
-                                                            Starts: {new Date(g.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
-
-                            {/* Footer / Last Active Time */}
-                            <div className="border-t border-border/40 pt-2.5 flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3 text-muted-foreground/60" />
-                                    Last Active:
-                                </span>
-                                <span className={`font-bold ${u.last_active_at ? 'text-primary' : 'text-muted-foreground/50'}`}>
-                                    {getRelativeTime(u.last_active_at)}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>
@@ -793,6 +1091,7 @@ const LandingTab: React.FC = () => {
     const [mobileVideo, setMobileVideo] = useState('');
     const [desktopGallery, setDesktopGallery] = useState<string[]>([]);
     const [mobileGallery, setMobileGallery] = useState<string[]>([]);
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [newDesktopUrl, setNewDesktopUrl] = useState('');
     const [newMobileUrl, setNewMobileUrl] = useState('');
 
@@ -803,6 +1102,7 @@ const LandingTab: React.FC = () => {
             setMobileVideo(settings.mobile_video_url || '');
             setDesktopGallery(settings.desktop_gallery || []);
             setMobileGallery(settings.mobile_gallery || []);
+            setMaintenanceMode(settings.maintenance_mode || false);
         }
     }, [settings]);
 
@@ -812,6 +1112,7 @@ const LandingTab: React.FC = () => {
             mobile_video_url: mobileVideo,
             desktop_gallery: desktopGallery,
             mobile_gallery: mobileGallery,
+            maintenance_mode: maintenanceMode,
         });
     };
 
@@ -849,6 +1150,29 @@ const LandingTab: React.FC = () => {
 
     return (
         <div className="space-y-8 pb-20">
+            {/* Maintenance Mode Card */}
+            <div className="bg-card/60 border border-border rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Maintenance / Upgrade Mode</h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Enable this mode before performing system upgrades or database restarts. Logged-in users will see a friendly upgrade/maintenance page instead of database errors.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setMaintenanceMode(!maintenanceMode)}
+                        className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${
+                            maintenanceMode ? 'bg-amber-500' : 'bg-muted'
+                        }`}
+                    >
+                        <span className={`absolute top-[2px] left-[2px] w-4.5 h-4.5 rounded-full bg-white transition-transform ${
+                            maintenanceMode ? 'translate-x-[18px]' : ''
+                        }`} />
+                    </button>
+                </div>
+            </div>
+
             {/* Hero Video & Product Gallery Config */}
             <div className="bg-card/60 border border-border rounded-2xl p-5 space-y-6">
                 <div>
@@ -953,7 +1277,7 @@ const LandingTab: React.FC = () => {
                 </div>
 
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-                    {(feedbacks ?? []).map((f) => (
+                    {(feedbacks ?? []).filter(f => f.category === 'About Legacy Life Builder').map((f) => (
                         <div key={f.id} className="bg-muted/30 border border-border/80 p-4 rounded-2xl flex flex-col gap-4 transition-all hover:border-border">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div className="space-y-1.5 flex-1 min-w-0">
@@ -985,7 +1309,7 @@ const LandingTab: React.FC = () => {
 
                             {!f.consent_to_show && f.show_on_landing && (
                                 <div className="bg-destructive/10 border border-destructive/20 text-destructive text-[11px] p-2.5 rounded-xl flex items-center gap-2 font-medium">
-                                    <span>⚠️ Warning: User has not given consent to show this feedback publicly.</span>
+                                    <span>Warning: User has not given consent to show this feedback publicly.</span>
                                 </div>
                             )}
 
@@ -1057,7 +1381,7 @@ const LandingTab: React.FC = () => {
                             </div>
                         </div>
                     ))}
-                    {(feedbacks ?? []).length === 0 && (
+                    {(feedbacks ?? []).filter(f => f.category === 'About Legacy Life Builder').length === 0 && (
                         <div className="text-center py-8 text-xs text-muted-foreground">No user feedbacks received yet.</div>
                     )}
                 </div>

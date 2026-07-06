@@ -1,224 +1,145 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  RefreshCw, Cloud, Sparkles, Check, Zap 
+  Mail, Linkedin, Instagram, MessageSquare, ExternalLink, Info, Code 
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 
 export const AppUpdaterSimulator: React.FC = () => {
-  const [checking, setChecking] = useState<boolean>(false);
-  const [updateReady, setUpdateReady] = useState<boolean>(false);
-  const [installing, setInstalling] = useState<boolean>(false);
-  const [isUpToDate, setIsUpToDate] = useState<boolean>(false);
-  
-  const [currentVersion, setCurrentVersion] = useState<string>(() => {
-    const lastSeenBuild = localStorage.getItem('llb-last-seen-build');
-    if (lastSeenBuild !== __APP_VERSION__) {
-      localStorage.setItem('llb-last-seen-build', __APP_VERSION__);
-      localStorage.removeItem('llb-app-version');
-      localStorage.removeItem('llb-server-version');
-      localStorage.removeItem('llb-last-update-check');
-      return __APP_VERSION__;
-    }
-    return localStorage.getItem('llb-app-version') || __APP_VERSION__;
-  });
-  
-  const [serverVersion] = useState<string>(() => {
-    const updatedVersion = localStorage.getItem('llb-app-version');
-    if (updatedVersion) {
-      return updatedVersion;
-    }
-    return `${__APP_VERSION__}-patch.1`;
-  });
-
-  const [lastChecked, setLastChecked] = useState<string>(() => {
-    return localStorage.getItem('llb-last-update-check') || 'Never';
-  });
-
-  const handleCheckForUpdates = () => {
-    setChecking(true);
-    setUpdateReady(false);
-    setIsUpToDate(false);
-    
-    // Simulate check
-    setTimeout(() => {
-      setChecking(false);
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-      setLastChecked(now);
-      localStorage.setItem('llb-last-update-check', now);
-
-      if (currentVersion !== serverVersion) {
-        setUpdateReady(true);
-        toast.success(`New version v${serverVersion} found and downloaded successfully!`);
-        
-        // Show native browser notification if permission is granted
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('App Update Available', {
-            body: `Version v${serverVersion} is ready. Click to apply update.`,
-            icon: '/white-logo.svg',
-          });
-        }
-      } else {
-        setIsUpToDate(true);
-        toast.success('Your app is up to date!');
-      }
-    }, 2000);
-  };
-
-  const handleInstallUpdate = () => {
-    setInstalling(true);
-    setUpdateReady(false);
-
-    // Simulate reloading & installing
-    setTimeout(() => {
-      setInstalling(false);
-      setCurrentVersion(serverVersion);
-      localStorage.setItem('llb-app-version', serverVersion);
-      toast.success(`App updated to version v${serverVersion}!`);
-      // Perform a clean reload of the tab to refresh page assets
-      window.location.reload();
-    }, 2500);
-  };
-
-
+  const currentVersion = '1.0.4';
 
   return (
-    <div className="w-full space-y-6">
-      {/* Main Container Card (matching NotificationPreferencesSection layout) */}
+    <div className="w-full space-y-6 animate-in fade-in duration-200">
+      {/* Outer Card */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden w-full">
-        {/* Section Header */}
+        {/* Header */}
         <div className="px-5 py-4 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Zap size={16} className="text-primary" />
+              <Info size={16} className="text-primary" />
             </div>
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">App Update & Offline</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">Info</h3>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                Check and install the latest system version and planner assets.
+                About the planner, creator details, and vision.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="p-5 space-y-6">
-          {/* Status Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-muted/20 rounded-xl border border-border/80 flex flex-col justify-between">
-              <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">
-                Current Version
-              </span>
-              <div className="flex items-baseline gap-1.5 mt-2">
-                <span className="text-xl font-black text-slate-150">v{currentVersion}</span>
-                <span className="text-[8px] font-bold text-emerald-400 uppercase bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
-                  Active
-                </span>
-              </div>
+        {/* Content Area */}
+        <div className="p-6 grid grid-cols-1 md:grid-cols-[300px_1fr] gap-8">
+          
+          {/* Left Column: Profile Card */}
+          <div className="flex flex-col items-center text-center space-y-4 md:border-r md:border-border md:pr-8 md:items-start md:text-left">
+            {/* Avatar with beautiful gradient border */}
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-indigo-500 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+              <img 
+                src="/Nirmal%20Kalubovila.jpeg" 
+                alt="Nirmal Kalubovila" 
+                className="relative w-36 h-36 rounded-2xl object-cover border border-border shadow-lg"
+              />
             </div>
 
-            <div className="p-4 bg-muted/20 rounded-xl border border-border/80 flex flex-col justify-between">
-              <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">
-                Last Checked
-              </span>
-              <div className="text-base font-bold text-slate-200 mt-2 font-mono">
-                {lastChecked}
-              </div>
+            <div className="space-y-1">
+              <h4 className="text-lg font-black tracking-wide text-foreground">Nirmal Kalubovila</h4>
+              <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                3rd year IT undergraduate, University of Moratuwa | Intern Full Stack Developer at Prologics IT Solutions | Content Creator
+              </p>
             </div>
-          </div>
 
-          {/* Action buttons and progress stages */}
-          <div className="space-y-4">
-            {!updateReady && !checking && !installing && (
-              <Button
-                onClick={handleCheckForUpdates}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/95 hover:to-indigo-750 text-white border-0 font-bold text-xs h-10 shadow-lg shadow-primary/10 rounded-xl transition-all duration-300 transform hover:scale-[1.005]"
+            {/* Social Links List */}
+            <div className="w-full space-y-2 pt-2">
+              <a 
+                href="mailto:nirmalpriyankara.web@gmail.com"
+                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/20 hover:bg-muted/40 border border-border/60 transition-colors text-xs text-muted-foreground hover:text-foreground font-medium group"
               >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Check for Updates
-              </Button>
-            )}
+                <Mail size={14} className="text-primary group-hover:scale-110 transition-transform" />
+                <span className="truncate">nirmalpriyankara.web@gmail.com</span>
+              </a>
+              <a 
+                href="https://www.linkedin.com/in/nirmal-kalubovila"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/20 hover:bg-muted/40 border border-border/60 transition-colors text-xs text-muted-foreground hover:text-foreground font-medium group"
+              >
+                <Linkedin size={14} className="text-primary group-hover:scale-110 transition-transform" />
+                <span>LinkedIn Profile</span>
+                <ExternalLink size={10} className="ml-auto opacity-40 group-hover:opacity-100 transition-opacity" />
+              </a>
+              <a 
+                href="https://www.instagram.com/the_nirrmal"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/20 hover:bg-muted/40 border border-border/60 transition-colors text-xs text-muted-foreground hover:text-foreground font-medium group"
+              >
+                <Instagram size={14} className="text-primary group-hover:scale-110 transition-transform" />
+                <span>Instagram</span>
+                <ExternalLink size={10} className="ml-auto opacity-40 group-hover:opacity-100 transition-opacity" />
+              </a>
+              <a 
+                href="https://wa.me/qr/4GTB5HLNOGY7N1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/20 hover:bg-muted/40 border border-border/60 transition-colors text-xs text-muted-foreground hover:text-foreground font-medium group"
+              >
+                <MessageSquare size={14} className="text-primary group-hover:scale-110 transition-transform" />
+                <span>WhatsApp Contact</span>
+                <ExternalLink size={10} className="ml-auto opacity-40 group-hover:opacity-100 transition-opacity" />
+              </a>
+            </div>
 
-            {checking && (
-              <div className="p-6 bg-muted/10 rounded-xl border border-border/40 flex flex-col items-center justify-center text-center space-y-3 animate-pulse">
-                <RefreshCw className="h-5 w-5 text-primary animate-spin" />
-                <div className="text-xs font-bold text-slate-200">Checking for updates...</div>
-                <p className="text-[10px] text-muted-foreground max-w-[240px]">
-                  Comparing current planner files with the release server CDN.
-                </p>
+            {/* Version Badge at the bottom of the card */}
+            <div className="w-full pt-4 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>App Version</span>
+              <span className="font-bold font-mono bg-muted px-2 py-0.5 rounded border border-border text-foreground">
+                v{currentVersion}
+              </span>
+            </div>
+          </div>
+
+          {/* Right Column: Mission and Tiktok Highlight */}
+          <div className="space-y-6">
+            
+            {/* The Mission Card */}
+            <div className="p-5 rounded-2xl bg-muted/10 border border-border/60 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground uppercase tracking-wider">
+                <Code size={14} className="text-primary" />
+                Why I Built Legacy Life Builder
               </div>
-            )}
+              <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                I built this to make our personal system 100% executable without doing so much planning. Because personally, I spend so much time planning rather than executing. I think most people have this same weakness, so I built this to remove it and make it more executable. Here, it mainly follows the personal system building template we discussed on my TikTok page. So join with me and let's build a legacy.
+              </p>
+            </div>
 
-            {updateReady && (
-              <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-4 animate-in fade-in duration-300">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 mt-0.5">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-200">New Version Ready!</h4>
-                    <p className="text-[10.5px] text-muted-foreground leading-relaxed mt-0.8">
-                      An update (v{serverVersion}) has been pre-downloaded in the background. Apply this update now to load new planner widgets and stability improvements.
-                    </p>
-                  </div>
+            {/* TikTok CTA - Heavily Highlighted */}
+            <div className="relative overflow-hidden rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/20 via-background to-primary/5 p-6 group">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-primary/10 rounded-full blur-xl group-hover:bg-primary/20 transition-colors"></div>
+              
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                  TikTok Tutorial & Community
                 </div>
-                <Button
-                  onClick={handleInstallUpdate}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9.5 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/5"
+                
+                <h4 className="text-sm font-bold text-foreground leading-snug">
+                  Follow me on TikTok to know how to build a legacy and exactly how to use this.
+                </h4>
+                
+                <a 
+                  href="https://tiktok.com/@nirmal_kalubovila"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-foreground hover:bg-foreground/90 text-background font-bold text-xs uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-black/10"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Restart & Apply Update
-                </Button>
+                  <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.85.97 2 1.69 3.29 2.05v3.9c-1.39-.08-2.74-.63-3.83-1.5-.24-.18-.46-.38-.67-.58v5.52c0 3.26-1.87 6.17-4.8 7.37-2.6 1.07-5.63.76-7.97-.84-2.13-1.46-3.29-3.99-3.02-6.52.27-2.58 2-4.82 4.49-5.63 1.34-.44 2.8-.39 4.1.1v4c-.87-.36-1.85-.38-2.73-.04-1.28.48-2.12 1.8-2.03 3.17.1 1.48 1.33 2.7 2.82 2.69 1.49-.01 2.66-1.21 2.66-2.7V.02h.18z"/>
+                  </svg>
+                  Join Me on TikTok
+                </a>
               </div>
-            )}
+            </div>
 
-            {isUpToDate && (
-              <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-2 animate-in fade-in duration-300">
-                <div className="flex items-start gap-3">
-                  <div className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 mt-0.5">
-                    <Check className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-200">System Up to Date</h4>
-                    <p className="text-[10.5px] text-muted-foreground leading-relaxed mt-0.8">
-                      Your planner is running the latest system build (v{currentVersion}). All pages and offline modules are fully synced.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {installing && (
-              <div className="p-6 bg-muted/10 rounded-xl border border-border/40 flex flex-col items-center justify-center text-center space-y-3">
-                <RefreshCw className="h-5 w-5 text-emerald-400 animate-spin" />
-                <div className="text-xs font-bold text-slate-200">Installing Update...</div>
-                <p className="text-[10px] text-muted-foreground max-w-[240px]">
-                  Replacing cached planner modules. The page will refresh in a moment.
-                </p>
-              </div>
-            )}
-          </div>
-
-
-        </div>
-      </div>
-
-      {/* Offline Storage card */}
-      <div className="rounded-2xl border border-border bg-card overflow-hidden w-full p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-secondary/50 border border-border/80 flex items-center justify-center">
-            <Cloud className="h-4 w-4 text-blue-400" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-slate-200">Offline Availability</div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              The planner is fully cached and runs entirely without an internet connection.
-            </p>
           </div>
         </div>
-        <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 rounded-full text-[9px] font-bold flex items-center gap-1 shrink-0">
-          <Check className="h-3 w-3" />
-          Ready Offline
-        </span>
       </div>
     </div>
   );

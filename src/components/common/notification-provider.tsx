@@ -32,30 +32,42 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const hasSynced = useRef(false);
   const lastUser = useRef<string | null>(null);
 
-  // Invalidate queries and check for SW updates when tab becomes visible (PWA open/focus)
+  // Invalidate queries and check for SW updates when tab becomes visible (PWA open/focus) or periodically
   useEffect(() => {
+    const checkUpdate = async () => {
+      try {
+        const reg = await navigator.serviceWorker?.getRegistration();
+        if (reg) {
+          await reg.update();
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to check for Service Worker update:', err);
+      }
+    };
+
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         queryClient.invalidateQueries();
-
-        // Also check for Service Worker updates when the app is focused/opened
-        try {
-          const reg = await navigator.serviceWorker?.getRegistration();
-          if (reg) {
-            await reg.update();
-            if (reg.waiting) {
-              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-          }
-        } catch (err) {
-          console.warn('Failed to check for Service Worker update:', err);
-        }
+        await checkUpdate();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Initial check on mount if visible
+    if (document.visibilityState === 'visible') {
+      checkUpdate();
+    }
+
+    // Periodically check for updates every 5 minutes (300000ms)
+    const updateInterval = setInterval(checkUpdate, 5 * 60 * 1000);
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(updateInterval);
     };
   }, [queryClient]);
 

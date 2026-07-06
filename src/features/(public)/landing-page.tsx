@@ -5,6 +5,7 @@ import HowItWorks from "./components/HowItWorks";
 import ProductGallery from "./components/ProductGallery";
 import Features from "./components/Features";
 import UniversalAccess from "./components/UniversalAccess";
+import CreatorProfile from "./components/CreatorProfile";
 import Footer from "./components/Footer";
 import { useLandingSettings, usePublicFeedbacks } from "@/api/services/feedback-service";
 
@@ -36,6 +37,9 @@ export function LandingPage() {
       </div>
       <div className="border-t border-zinc-900/40">
         <UniversalAccess desktopVideoUrl={desktopVideoUrl} mobileVideoUrl={mobileVideoUrl} />
+      </div>
+      <div className="border-t border-zinc-900/40">
+        <CreatorProfile />
       </div>
       <div>
         <Footer />
