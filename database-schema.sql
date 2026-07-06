@@ -198,3 +198,19 @@ CREATE POLICY "Users can read own feedback" ON feedbacks FOR SELECT USING (auth.
 CREATE POLICY "Admin can read all feedbacks" ON feedbacks FOR SELECT USING (auth.jwt() ->> 'email' = 'legacylifebuilder.konik@email.com');
 CREATE POLICY "Admin can update feedbacks" ON feedbacks FOR UPDATE USING (auth.jwt() ->> 'email' = 'legacylifebuilder.konik@email.com');
 CREATE POLICY "Admin can read all profiles" ON user_profiles FOR SELECT USING (auth.jwt() ->> 'email' = 'legacylifebuilder.konik@email.com');
+
+-- Create missed_tasks table
+CREATE TABLE missed_tasks (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  "createdAt" timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  name text NOT NULL,
+  description text,
+  "startTime" text NOT NULL,
+  "endTime" text NOT NULL,
+  "daysOfWeek" jsonb NOT NULL DEFAULT '[]'::jsonb
+);
+
+ALTER TABLE missed_tasks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own missed_tasks" ON missed_tasks FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
