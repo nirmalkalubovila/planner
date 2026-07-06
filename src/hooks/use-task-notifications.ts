@@ -60,6 +60,9 @@ const cleanOldTaskNotifKeys = (currentDay: string) => {
   } catch {}
 };
 
+// Module-level timestamps array for rate-limiting client-side overdue notifications
+const recentOverdueNotifTimestamps: number[] = [];
+
 /**
  * Monitors today's tasks and:
  * 1. Schedules a notification 5 minutes before each task starts
@@ -87,6 +90,7 @@ export function useTaskNotifications() {
 
     const { shownKeys, deletedKeys } = useNotificationStore.getState();
     const newScheduled = new Set<string>();
+    const inAppTimers: ReturnType<typeof setTimeout>[] = [];
 
     tasks.forEach((task: TaskItem) => {
       const startTime = timeToTodayDate(task.startTime);
@@ -126,6 +130,7 @@ export function useTaskNotifications() {
             dedupKey,
           });
         }, delay);
+        inAppTimers.push(timer);
 
         newScheduled.add(notifId);
       }
@@ -141,6 +146,7 @@ export function useTaskNotifications() {
 
     return () => {
       newScheduled.forEach((id) => cancelScheduledNotification(id));
+      inAppTimers.forEach((timer) => clearTimeout(timer));
     };
   }, [tasks, preferences, addNotification, currentDayStr]);
 
@@ -160,6 +166,18 @@ export function useTaskNotifications() {
       });
 
       if (overdueTasks.length === 0) return;
+
+      // Global hourly frequency cap check (max 3 overdue notifications per hour)
+      const nowTime = Date.now();
+      const oneHourAgo = nowTime - 60 * 60 * 1000;
+      while (recentOverdueNotifTimestamps.length > 0 && recentOverdueNotifTimestamps[0] < oneHourAgo) {
+        recentOverdueNotifTimestamps.shift();
+      }
+
+      if (recentOverdueNotifTimestamps.length >= 3) {
+        console.warn('[Notifications] Frequency cap reached. Postponing overdue task alerts.');
+        return;
+      }
 
       cleanOldTaskNotifKeys(currentDayStr);
 
@@ -194,6 +212,8 @@ export function useTaskNotifications() {
             actionUrl: '/today',
             dedupKey: batchDedupKey,
           });
+
+          recentOverdueNotifTimestamps.push(nowTime);
         }
       } else {
         // Show individual notifications for overdue tasks
@@ -202,6 +222,11 @@ export function useTaskNotifications() {
         overdueTasks.forEach((task: TaskItem) => {
           const taskId = task.id;
           const taskDedupKey = `task-overdue-${taskId}-${currentDayStr}`;
+
+          // Check if we hit the cap during processing individual notifications
+          if (recentOverdueNotifTimestamps.length >= 3) {
+            return;
+          }
 
           if (
             !notifiedTasks.has(taskId) &&
@@ -231,6 +256,8 @@ export function useTaskNotifications() {
               actionUrl: '/today',
               dedupKey: taskDedupKey,
             });
+
+            recentOverdueNotifTimestamps.push(nowTime);
           }
         });
 

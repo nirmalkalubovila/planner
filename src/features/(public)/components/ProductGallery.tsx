@@ -53,29 +53,34 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ desktopImages, m
           </div>
 
           {/* Toggle buttons */}
-          <div className="flex bg-zinc-900/80 p-1 rounded-xl border border-zinc-800/80 w-fit self-start md:self-auto shadow-inner">
-            <button
-              onClick={() => { setViewMode('desktop'); setCurrentIndex(0); }}
-              className={`flex items-center gap-2 px-4.5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer ${
-                viewMode === 'desktop'
-                  ? 'bg-white text-black shadow-md'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Monitor size={14} />
-              Desktop View
-            </button>
-            <button
-              onClick={() => { setViewMode('mobile'); setCurrentIndex(0); }}
-              className={`flex items-center gap-2 px-4.5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer ${
-                viewMode === 'mobile'
-                  ? 'bg-white text-black shadow-md'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Smartphone size={14} />
-              Mobile View
-            </button>
+          <div className="flex flex-col items-start md:items-end gap-1.5 self-start md:self-auto">
+            <div className="flex bg-zinc-900/80 p-1 rounded-xl border border-zinc-800/80 w-fit shadow-inner">
+              <button
+                onClick={() => { setViewMode('desktop'); setCurrentIndex(0); }}
+                className={`flex items-center gap-2 px-4.5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer ${
+                  viewMode === 'desktop'
+                    ? 'bg-white text-black shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Monitor size={14} />
+                Desktop View
+              </button>
+              <button
+                onClick={() => { setViewMode('mobile'); setCurrentIndex(0); }}
+                className={`flex items-center gap-2 px-4.5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer ${
+                  viewMode === 'mobile'
+                    ? 'bg-white text-black shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Smartphone size={14} />
+                Mobile View
+              </button>
+            </div>
+            <span className="text-[10px] text-zinc-550 font-mono italic select-none">
+              *This is the actual app. No mockups.*
+            </span>
           </div>
         </div>
 

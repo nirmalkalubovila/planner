@@ -1,13 +1,15 @@
 {
   "name": "Legacy Life Builder",
   "short_name": "Legacy LB",
-  "description": "Plan your goals, build daily habits, and leave a legacy. An AI-powered life planner.",
+  "description": "An AI-powered personal operating system that streamlines goal management, habit formation, and weekly planning. It replaces physical books and manual progress checking by offering zero-friction execution, smart time slotting, and strict time-boxing to reduce decision fatigue.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/today",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#09090b",
   "orientation": "any",
-  "categories": ["productivity", "lifestyle"],
+  "categories": ["productivity", "lifestyle", "business"],
   "icons": [
     {
       "src": "/white-logo.svg",

@@ -133,6 +133,12 @@ export default function Testimonials({ curatedFeedbacks }: TestimonialsProps) {
 
       <div className="px-5 sm:px-8 mb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
+          <div className="flex items-center gap-1.5 mb-2 bg-zinc-900/30 border border-zinc-800/40 rounded-full px-2.5 py-0.5 w-fit select-none">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="text-[10px] font-bold tracking-wide text-zinc-450 uppercase">
+              20+ builders are executing right now! START EXECUTE WITH THAT 1%
+            </span>
+          </div>
           <span className="text-[10px] font-bold tracking-[0.25em] text-zinc-500 uppercase">
             Wall of Love
           </span>

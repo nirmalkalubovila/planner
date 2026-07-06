@@ -123,8 +123,38 @@ export interface NotificationOptions {
 /**
  * Check if a notification of this type is enabled in user preferences.
  */
-function isTypeEnabled(_type: NotificationType | undefined, prefs: NotificationPreferences): boolean {
-  return prefs.enabled;
+function isTypeEnabled(type: NotificationType | undefined, prefs: NotificationPreferences): boolean {
+  if (!prefs.enabled) return false;
+  if (!type) return true;
+
+  switch (type) {
+    case 'task_starting':
+    case 'task_overdue':
+      return prefs.taskReminders;
+    case 'daily_briefing':
+      return prefs.dailyBriefing;
+    case 'goal_deadline':
+      return prefs.goalDeadlines;
+    case 'goal_completed':
+      return prefs.goalCompletion;
+    case 'day_summary':
+      return prefs.daySummary;
+    case 'weekly_summary':
+      return prefs.weeklySummary;
+    case 'stats_changed':
+      return prefs.statsChanges;
+    case 'streak_milestone':
+      return prefs.streakMilestones;
+    case 'burnout_warning':
+      return prefs.burnoutWarning;
+    case 'sleep_start':
+    case 'sleep_end':
+      return prefs.sleepNotifications !== false;
+    case 'weekly_planning':
+      return prefs.weeklyPlanning !== false;
+    default:
+      return true;
+  }
 }
 
 /**

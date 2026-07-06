@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="py-8 px-5 sm:px-8 bg-black border-t border-zinc-900/50">
       <div className="w-full">
         {/* Final CTA */}
-        <div className="py-16 sm:py-24 flex flex-col items-center justify-center text-center">
+        <div className="pt-4 pb-10 sm:pt-6 sm:pb-16 flex flex-col items-center justify-center text-center">
           <h3 className="text-3xl sm:text-5xl font-black text-white tracking-tight uppercase mb-3">
             Build your legacy.
           </h3>
@@ -59,22 +59,18 @@ export default function Footer() {
 
           {/* Column 3: Trust Architecture */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Trust Architecture</h4>
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Want more about Legacy Life Builder?</h4>
             <ul className="space-y-4 text-[11px] text-zinc-500 leading-relaxed font-medium">
               <li>
-                <Link to="/refund" className="hover:text-white transition-colors font-bold text-zinc-400">Refund Policies:</Link>
-                <span className="block text-[10px] text-zinc-500 font-medium mt-0.5">Clear, transparent guarantees.</span>
+                <Link to="/refund" className="hover:text-white transition-colors font-bold text-zinc-400">Refund Policies</Link>
+                <span className="block text-[10px] text-zinc-500 font-medium mt-0.5">Cancel anytime, no questions asked.</span>
               </li>
               <li>
-                <span className="font-bold text-zinc-400">Zero Tracking:</span>
-                <span className="block text-[10px] text-zinc-500 font-medium mt-0.5">Your data, tasks, and matrices are yours alone. We sell zero data.</span>
+                <Link to="/privacy" className="hover:text-white transition-colors font-bold text-zinc-400">Privacy Policy</Link>
+                <span className="block text-[10px] text-zinc-500 font-medium mt-0.5">Read exactly what we do — and don't do — with your data.</span>
               </li>
               <li>
-                <Link to="/privacy" className="hover:text-white transition-colors font-bold text-zinc-400">Privacy Policy:</Link>
-                <span className="block text-[10px] text-zinc-500 font-medium mt-0.5">How we strictly protect your information.</span>
-              </li>
-              <li>
-                <Link to="/terms" className="hover:text-white transition-colors font-bold text-zinc-400">Terms of Service:</Link>
+                <Link to="/terms" className="hover:text-white transition-colors font-bold text-zinc-400">Terms and Conditions</Link>
                 <span className="block text-[10px] text-zinc-500 font-medium mt-0.5">The rules of the Konik ecosystem.</span>
               </li>
             </ul>
