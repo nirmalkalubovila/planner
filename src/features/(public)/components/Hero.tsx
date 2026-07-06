@@ -54,6 +54,11 @@ export default function Hero({ desktopVideoUrl, mobileVideoUrl }: HeroProps) {
           AI doing the heavy lifting in under 5 minutes.
         </p>
 
+        {/* Visually hidden semantic text for GEO/AEO/SEO crawler grounding */}
+        <p className="sr-only">
+          Legacy Life Builder is an AI-powered personal operating system that streamlines goal management, habit formation, and weekly planning. It replaces physical books and manual progress checking by offering zero-friction execution, smart time slotting, and strict time-boxing to reduce decision fatigue.
+        </p>
+
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Link
