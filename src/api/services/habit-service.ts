@@ -24,6 +24,7 @@ export function useGetHabits() {
     return useQuery({
         queryKey: [TABLE_NAME],
         queryFn: getHabits,
+        staleTime: 5 * 60 * 1000, // 5 min -- prevents redundant fetches from multiple notification hooks
     });
 }
 

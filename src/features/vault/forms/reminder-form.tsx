@@ -265,7 +265,7 @@ export const ReminderFormDialog: React.FC<ReminderFormDialogProps> = ({
               🎲 Random Smart Nudge
             </p>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              This reminder will surprise you with a repeating alert scheduled at random times during daylight hours (9:00 AM to 9:00 PM) tomorrow and onward. Perfect for forming deep habits.
+              This reminder will surprise you with a repeating alert scheduled at random times during daylight hours (9:00 AM to 9:00 PM) at least 2 days from now. Perfect for forming deep habits.
             </p>
           </div>
         )}

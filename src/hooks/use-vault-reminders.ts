@@ -2,8 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useReminders, useUpdateReminder, calculateNextFire } from '@/api/services/reminder-service';
 import { useNotificationStore } from '@/lib/notification-store';
 import { sendNotification } from '@/lib/notification-service';
-import { toast } from 'sonner';
-
 export function useVaultReminders() {
   const { data: reminders = [] } = useReminders();
   const updateReminder = useUpdateReminder();
@@ -31,28 +29,27 @@ export function useVaultReminders() {
 
           triggeredRef.current[reminder.id] = currentMs;
 
+          const rawBody = reminder.body || reminder.vault_notes?.content || '';
+          const reminderBody = rawBody.trim()
+            ? (rawBody.length > 100 ? rawBody.substring(0, 97) + '...' : rawBody)
+            : 'Reminder from your Vault.';
+
           // 1. Add notification in-app
           addNotification({
             type: 'weekly_planning', // using an existing NotificationType that fits reminder style
             title: reminder.title,
-            body: reminder.body || 'Reminder from your Vault.',
+            body: reminderBody,
             actionUrl: '/vault',
           });
 
-          // 2. Show browser Toast
-          toast(reminder.title, {
-            description: reminder.body || 'Vault reminder',
-            icon: '🔔',
-            duration: 8000,
-          });
-
-          // 3. Trigger Service Worker push notification
+          // 2. Trigger Service Worker push notification (no Sonner toast here as requested)
           sendNotification(
             reminder.title,
             {
-              body: reminder.body || 'Vault reminder',
+              body: reminderBody,
               url: '/vault',
               tag: `vault-reminder-${reminder.id}`,
+              bypassRateLimit: reminder.repeat_type !== 'random',
             },
             preferences
           );

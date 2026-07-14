@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
+import { Mail, Linkedin, Instagram } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="py-8 px-5 sm:px-8 bg-black border-t border-zinc-900/50">
+    <footer className="py-12 px-5 sm:px-8 bg-black border-t border-zinc-900/50">
       <div className="w-full">
         {/* Final CTA */}
-        <div className="pt-4 pb-10 sm:pt-6 sm:pb-16 flex flex-col items-center justify-center text-center">
+        <div className="pt-4 pb-12 sm:pt-6 sm:pb-20 flex flex-col items-center justify-center text-center">
           <h3 className="text-3xl sm:text-5xl font-black text-white tracking-tight uppercase mb-3">
             Build your legacy.
           </h3>
@@ -21,33 +22,65 @@ export default function Footer() {
         </div>
 
         {/* 3-Column Footer Grid */}
-        <div className="border-t border-zinc-900 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="border-t border-zinc-900/80 py-12 grid grid-cols-1 md:grid-cols-3 gap-10">
           
-          {/* Column 1: The Brand & Mission */}
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <img src="/KONIK NEW - WHITE.png" alt="Konik Logo" className="h-5 w-auto object-contain opacity-90" />
-                <span>What is Konik?</span>
-              </h4>
-              <p className="text-[11px] leading-relaxed text-zinc-500 font-medium">
-                Konik is a clothing brand that represents a legacy life, not just apparel. We design for individuals who refuse to be average. As an extension of our mission, we engineer digital tools like the Legacy Life Builder to give you the clinical, execution-first systems needed to actually build that legacy.
-              </p>
+          {/* Column 1: Creator Details */}
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <span className="text-[9px] font-bold tracking-[0.2em] text-indigo-400 uppercase">
+                Creator & Developer
+              </span>
+              <h4 className="text-sm font-bold text-white tracking-tight">Nirmal Kalubovila</h4>
             </div>
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Why We Built This</h4>
-              <p className="text-[11px] leading-relaxed text-zinc-500 font-medium">
-                Society is engineered to keep you trapped in the 40-40-40 scam. We built Konik to provide both the identity and the framework for your escape. You wear the discipline, and you use our offline-ready tools to take control of your wealth and time in your early 20s. Expect more to come.
-              </p>
+            <p className="text-[11px] leading-relaxed text-zinc-500 font-medium max-w-sm">
+              3rd year IT undergraduate at University of Moratuwa & Intern Full Stack Developer. Engineering systems to eliminate decision fatigue and help you execute daily.
+            </p>
+            <div className="flex items-center gap-3 pt-2">
+              <a
+                href="mailto:nirmalpriyankara.web@gmail.com"
+                title="Email Creator"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-900 text-zinc-500 hover:text-white hover:border-zinc-800 transition-colors"
+              >
+                <Mail size={14} />
+              </a>
+              <a
+                href="https://www.linkedin.com/in/nirmal-kalubovila"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="LinkedIn Profile"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-900 text-zinc-500 hover:text-white hover:border-zinc-800 transition-colors"
+              >
+                <Linkedin size={14} />
+              </a>
+              <a
+                href="https://www.instagram.com/the_nirrmal"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Instagram Profile"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-900 text-zinc-500 hover:text-white hover:border-zinc-800 transition-colors"
+              >
+                <Instagram size={14} />
+              </a>
+              <a
+                href="https://tiktok.com/@nirmal_kalubovila"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="TikTok Profile"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-900 text-zinc-500 hover:text-white hover:border-zinc-800 transition-colors flex items-center justify-center"
+              >
+                <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.85.97 2 1.69 3.29 2.05v3.9c-1.39-.08-2.74-.63-3.83-1.5-.24-.18-.46-.38-.67-.58v5.52c0 3.26-1.87 6.17-4.8 7.37-2.6 1.07-5.63.76-7.97-.84-2.13-1.46-3.29-3.99-3.02-6.52.27-2.58 2-4.82 4.49-5.63 1.34-.44 2.8-.39 4.1.1v4c-.87-.36-1.85-.38-2.73-.04-1.28.48-2.12 1.8-2.03 3.17.1 1.48 1.33 2.7 2.82 2.69 1.49-.01 2.66-1.21 2.66-2.7V.02h.18z"/>
+                </svg>
+              </a>
             </div>
           </div>
 
           {/* Column 2: Products */}
           <div className="space-y-4">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Products</h4>
-            <ul className="space-y-2 text-[11px] font-semibold text-zinc-500">
+            <ul className="space-y-2.5 text-[11px] font-semibold text-zinc-500">
               <li className="flex items-center gap-2">
-                <img src="/white-logo.svg" alt="Legacy Life Builder Logo" className="h-5.5 w-auto object-contain opacity-90" />
+                <img src="/white-logo.svg" alt="Legacy Life Builder Logo" className="h-5 w-auto object-contain opacity-90" />
                 <Link to="/" className="hover:text-white transition-colors">Legacy Life Builder</Link>
               </li>
               <li className="flex items-center gap-2">
@@ -57,21 +90,18 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 3: Trust Architecture */}
+          {/* Column 3: Trust & Policies */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Want more about Legacy Life Builder?</h4>
-            <ul className="space-y-4 text-[11px] text-zinc-500 leading-relaxed font-medium">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Trust & Policies</h4>
+            <ul className="space-y-2.5 text-[11px] text-zinc-500 leading-relaxed font-semibold">
               <li>
-                <Link to="/refund" className="hover:text-white transition-colors font-bold text-zinc-400">Refund Policies</Link>
-                <span className="block text-[10px] text-zinc-500 font-medium mt-0.5">Cancel anytime, no questions asked.</span>
+                <Link to="/refund" className="hover:text-white transition-colors">Refund Policies</Link>
               </li>
               <li>
-                <Link to="/privacy" className="hover:text-white transition-colors font-bold text-zinc-400">Privacy Policy</Link>
-                <span className="block text-[10px] text-zinc-500 font-medium mt-0.5">Read exactly what we do — and don't do — with your data.</span>
+                <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
               </li>
               <li>
-                <Link to="/terms" className="hover:text-white transition-colors font-bold text-zinc-400">Terms and Conditions</Link>
-                <span className="block text-[10px] text-zinc-500 font-medium mt-0.5">The rules of the Konik ecosystem.</span>
+                <Link to="/terms" className="hover:text-white transition-colors">Terms and Conditions</Link>
               </li>
             </ul>
           </div>
@@ -93,29 +123,14 @@ export default function Footer() {
                 <p className="text-[9px] font-bold tracking-widest text-white font-mono uppercase">
                   LEGACY LIFE BUILDER
                 </p>
-                <p className="text-[7px] font-bold text-zinc-600 uppercase tracking-widest mt-0.5">
-                  A KONIK PRODUCT
-                </p>
               </div>
-            </div>
-
-            {/* KONIK Presentation Brand */}
-            <div className="flex flex-col gap-0.5 items-start">
-              <img 
-                src="/KONIK NEW - WHITE.png" 
-                alt="KONIK Brand Logo" 
-                className="h-3.5 w-auto object-contain opacity-70" 
-              />
-              <span className="text-[7px] font-bold tracking-[0.2em] text-zinc-500 font-mono uppercase">
-                Average Is A Choice
-              </span>
             </div>
 
           </div>
 
           <div className="text-center md:text-right">
             <p className="text-[10px] text-zinc-500 font-semibold tracking-wide">
-              &copy; {new Date().getFullYear()} Konik Systems. Built for execution, not distraction.
+              &copy; {new Date().getFullYear()} Built for execution, not distraction.
             </p>
           </div>
         </div>

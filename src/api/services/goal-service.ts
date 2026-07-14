@@ -24,6 +24,7 @@ export function useGetGoals() {
     return useQuery({
         queryKey: [TABLE_NAME],
         queryFn: getGoals,
+        staleTime: 5 * 60 * 1000, // 5 min -- also used by notification hooks
     });
 }
 

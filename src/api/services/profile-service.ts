@@ -139,6 +139,7 @@ export function useUserProfile(user: User | null) {
         queryKey: [TABLE_NAME, user?.id],
         queryFn: () => fetchUserProfile(user!.id),
         enabled: !!user?.id,
+        staleTime: 5 * 60 * 1000, // 5 min -- profile rarely changes; called from 3+ components
     });
 
     const profile: Partial<UserProfile> | null = query.data ?? null;

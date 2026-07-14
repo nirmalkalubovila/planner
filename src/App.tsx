@@ -96,6 +96,33 @@ const MaintenanceGuard: React.FC<{ children: React.ReactNode }> = ({ children })
 
   React.useEffect(() => {
     let active = true;
+
+    // Check sessionStorage first for instant render on subsequent navigations
+    const cached = sessionStorage.getItem('llb-maintenance-mode');
+    if (cached !== null) {
+      setMaintenanceMode(cached === 'true');
+      setIsLoading(false);
+      // Still refresh in background to catch changes, but don't block render
+      (async () => {
+        try {
+          const { data, error } = await supabase
+            .from("landing_page_settings")
+            .select("maintenance_mode")
+            .eq("id", 1)
+            .maybeSingle();
+
+          if (!active) return;
+          if (!error && data) {
+            const mode = data.maintenance_mode ?? false;
+            sessionStorage.setItem('llb-maintenance-mode', String(mode));
+            setMaintenanceMode(mode);
+          }
+        } catch { /* non-blocking */ }
+      })();
+      return () => { active = false; };
+    }
+
+    // First load: blocking fetch
     const fetchMaintenanceStatus = async () => {
       try {
         const { data, error } = await supabase
@@ -109,7 +136,9 @@ const MaintenanceGuard: React.FC<{ children: React.ReactNode }> = ({ children })
         if (error) {
           setDbError(error);
         } else {
-          setMaintenanceMode(data?.maintenance_mode ?? false);
+          const mode = data?.maintenance_mode ?? false;
+          sessionStorage.setItem('llb-maintenance-mode', String(mode));
+          setMaintenanceMode(mode);
         }
       } catch (err) {
         if (active) setDbError(err);
@@ -123,7 +152,7 @@ const MaintenanceGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     return () => {
       active = false;
     };
-  }, [location.pathname]);
+  }, []); // Only fetch once on mount, not on every pathname change
 
   const isAdmin = user?.email === 'legacylifebuilder.konik@email.com';
   const isAdminPath = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');

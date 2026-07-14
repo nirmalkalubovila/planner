@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
@@ -50,7 +50,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
-        queryClient.invalidateQueries();
+        // Targeted invalidation: only refresh critical user-facing data first
+        // to avoid overwhelming Supabase with 15+ simultaneous requests
+        queryClient.invalidateQueries({ queryKey: ['planner'] });
+        queryClient.invalidateQueries({ queryKey: ['completed'] });
+        queryClient.invalidateQueries({ queryKey: ['habits'] });
+
+        // Stagger less-critical data refreshes to avoid connection pool exhaustion
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['vault_notes'] });
+          queryClient.invalidateQueries({ queryKey: ['goals'] });
+          queryClient.invalidateQueries({ queryKey: ['user_stats_cache'] });
+        }, 2000);
+
         await checkUpdate();
       }
     };
@@ -202,9 +214,22 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
   }, [user, preferences.enabled]);
 
+  const [shouldLoadHooks, setShouldLoadHooks] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const timer = setTimeout(() => {
+        setShouldLoadHooks(true);
+      }, 4000); // 4-second delay to prioritize the active page's initial queries
+      return () => clearTimeout(timer);
+    } else {
+      setShouldLoadHooks(false);
+    }
+  }, [user]);
+
   return (
     <>
-      {user && <NotificationHooks />}
+      {user && shouldLoadHooks && <NotificationHooks />}
       <NotificationPermissionBanner />
       <InstallPWAPrompt />
       {children}

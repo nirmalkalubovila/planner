@@ -101,4 +101,4 @@ export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
 export const MAX_NOTIFICATIONS_PER_HOUR = 3;
 
 /** How many minutes before a task starts to send the reminder */
-export const TASK_REMINDER_MINUTES = 5;
+export const TASK_REMINDER_MINUTES = 15;

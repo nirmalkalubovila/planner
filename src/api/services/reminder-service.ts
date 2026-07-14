@@ -15,6 +15,9 @@ export interface VaultReminder {
   is_active: boolean;
   snooze_count: number;
   created_at: string;
+  vault_notes?: {
+    content: string;
+  } | null;
 }
 
 const TABLE_NAME = 'vault_reminders';
@@ -25,9 +28,9 @@ export function calculateNextFire(repeatType: string, remindAt?: string | null):
   const next = new Date();
 
   if (repeatType === 'random') {
-    // Random hour between 9:00 AM and 9:00 PM tomorrow
-    // Tomorrow:
-    next.setDate(next.getDate() + 1);
+    // Random days in the future (at least 2 days later, up to 4 days) to prevent notification fatigue
+    const randomDays = 2 + Math.floor(Math.random() * 3); // 2, 3, or 4 days
+    next.setDate(next.getDate() + randomDays);
     const startHour = 9;
     const endHour = 21;
     const randomHour = startHour + Math.floor(Math.random() * (endHour - startHour));
@@ -62,13 +65,13 @@ export function calculateNextFire(repeatType: string, remindAt?: string | null):
   return next;
 }
 
-async function getReminders(): Promise<VaultReminder[]> {
+async function getReminders(): Promise<any[]> {
   const userId = await getOptionalUserId();
   if (!userId) return [];
 
   const { data, error } = await supabase
     .from(TABLE_NAME)
-    .select('*')
+    .select('*, vault_notes(content)')
     .eq('user_id', userId)
     .order('next_fire', { ascending: true });
 
