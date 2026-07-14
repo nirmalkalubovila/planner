@@ -145,7 +145,7 @@ export function useAdminUsersActivity() {
             if (error) throw new Error(error.message);
             return (data ?? []) as UserActivity[];
         },
-        staleTime: 30_000, // 30s cache
+        staleTime: 2 * 60 * 1000, // 2 min -- heavy server-side aggregation across all users
     });
 }
 

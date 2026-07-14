@@ -56,6 +56,7 @@ export function useGlobalSmtpSettings() {
   const query = useQuery({
     queryKey: SMTP_QUERY_KEY,
     queryFn: fetchGlobalSmtpSettings,
+    staleTime: 5 * 60 * 1000, // 5 min -- admin settings rarely change
   });
 
   const saveMutation = useMutation({
@@ -122,6 +123,7 @@ export function useGlobalEmailTemplates() {
   const query = useQuery({
     queryKey: TEMPLATE_QUERY_KEY,
     queryFn: fetchGlobalEmailTemplates,
+    staleTime: 5 * 60 * 1000, // 5 min -- templates rarely change
   });
 
   const saveMutation = useMutation({

@@ -66,6 +66,7 @@ export function useSleepAndPlanningNotifications() {
             url: '/today',
             tag: 'sleep-start',
             notificationType: 'sleep_start',
+            bypassRateLimit: true,
           }, preferences);
 
           addNotification({
@@ -101,6 +102,7 @@ export function useSleepAndPlanningNotifications() {
             url: '/today',
             tag: 'sleep-end',
             notificationType: 'sleep_end',
+            bypassRateLimit: true,
           }, preferences);
 
           addNotification({
@@ -137,6 +139,7 @@ export function useSleepAndPlanningNotifications() {
             url: '/planner',
             tag: 'weekly-planning',
             notificationType: 'weekly_planning',
+            bypassRateLimit: true,
           }, preferences);
 
           addNotification({

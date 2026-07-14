@@ -116,6 +116,8 @@ export interface NotificationOptions {
   renotify?: boolean;
   silent?: boolean;
   /** Notification type for preference checking */
+  /** Option to bypass rate limits for time-critical user-scheduled notifications */
+  bypassRateLimit?: boolean;
   notificationType?: NotificationType;
   bypassChecks?: boolean;
 }
@@ -179,7 +181,7 @@ export async function sendNotification(
   if (!options.bypassChecks && isQuietHours(preferences)) return false;
 
   // Check rate limit
-  if (!options.bypassChecks && isRateLimited()) return false;
+  if (!options.bypassChecks && !options.bypassRateLimit && isRateLimited()) return false;
 
   recordNotification();
 

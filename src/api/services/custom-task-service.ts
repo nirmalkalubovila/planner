@@ -39,6 +39,7 @@ export function useGetCustomTasks() {
     return useQuery({
         queryKey: [TABLE_NAME],
         queryFn: getCustomTasks,
+        staleTime: 5 * 60 * 1000, // 5 min -- prevents unnecessary re-fetches on mount
     });
 }
 

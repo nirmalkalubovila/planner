@@ -24,6 +24,7 @@ export function useGetMissedTasks() {
     return useQuery({
         queryKey: [TABLE_NAME],
         queryFn: getMissedTasks,
+        staleTime: 5 * 60 * 1000, // 5 min -- prevents unnecessary re-fetches on mount
     });
 }
 

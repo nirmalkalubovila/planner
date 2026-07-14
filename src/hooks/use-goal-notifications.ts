@@ -46,6 +46,7 @@ export function useGoalNotifications() {
 
       // Check each deadline threshold
       const alreadyNotified = notifiedDeadlines[goalId] || [];
+      const displayGoalName = goal.name.length > 40 ? goal.name.substring(0, 37) + '...' : goal.name;
 
       DEADLINE_DAYS.forEach((threshold) => {
         if (preferences.goalDeadlines === false) return;
@@ -58,7 +59,7 @@ export function useGoalNotifications() {
             : 0;
 
           const dayWord = diffDays === 1 ? 'day' : 'days';
-          const title = `🎯 "${goal.name}" deadline in ${diffDays} ${dayWord}`;
+          const title = `🎯 "${displayGoalName}" deadline in ${diffDays} ${dayWord}`;
           const body = progress > 0
             ? `You're at ${progress}% progress. ${diffDays <= 1 ? 'Final push!' : 'Keep working on it!'}`
             : `Deadline approaching. Start making progress on your milestones!`;
@@ -74,7 +75,7 @@ export function useGoalNotifications() {
 
           addNotification({
             type: 'goal_deadline',
-            title: `"${goal.name}" deadline in ${diffDays} ${dayWord}`,
+            title: `"${displayGoalName}" deadline in ${diffDays} ${dayWord}`,
             body,
             icon: '🎯',
             actionUrl: '/goals',
@@ -97,7 +98,7 @@ export function useGoalNotifications() {
       ) {
         notifiedCompleted.push(goalId);
 
-        const title = `🏆 Goal "${goal.name}" completed!`;
+        const title = `🏆 Goal "${displayGoalName}" completed!`;
         const body = `Congratulations! You've finished all ${milestones.length} milestones. Time to set a new goal!`;
 
         const dedupKey = `goal-completed-${goalId}`;
@@ -111,7 +112,7 @@ export function useGoalNotifications() {
 
         addNotification({
           type: 'goal_completed',
-          title: `Goal "${goal.name}" completed!`,
+          title: `Goal "${displayGoalName}" completed!`,
           body,
           icon: '🏆',
           actionUrl: '/goals',

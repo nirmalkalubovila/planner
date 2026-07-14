@@ -113,6 +113,7 @@ export function useTaskNotifications() {
             url: '/today',
             tag: notifId,
             notificationType: 'task_starting',
+            bypassRateLimit: true,
           },
           reminderTime,
           preferences,

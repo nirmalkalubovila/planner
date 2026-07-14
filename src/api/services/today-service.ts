@@ -51,6 +51,7 @@ export function useGetCompletedTasks(dayStr: string) {
     return useQuery({
         queryKey: ["completed", dayStr],
         queryFn: () => getCompletedTasks(dayStr),
+        staleTime: 2 * 60 * 1000, // 2 min -- active data but reduces duplicate fetches from notification hooks
     });
 }
 
@@ -58,7 +59,8 @@ export function useGetWeekCompletedTasks(dayStrs: string[]) {
     return useQuery({
         queryKey: ["completed_week", ...dayStrs],
         queryFn: () => getWeekCompletedTasks(dayStrs),
-        enabled: dayStrs.length > 0
+        enabled: dayStrs.length > 0,
+        staleTime: 2 * 60 * 1000,
     });
 }
 

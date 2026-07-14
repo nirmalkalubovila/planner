@@ -426,7 +426,7 @@ interface CustomTask {
 }
 
 const MAX_NOTIFICATIONS_PER_HOUR = 3;
-const TASK_REMINDER_MINUTES = 5;
+const TASK_REMINDER_MINUTES = 15;
 const DEADLINE_DAYS = [7, 3, 1];
 
 /**
@@ -850,6 +850,7 @@ Deno.serve(async (req: Request) => {
             if (pushSent) {
               await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
               totalPushSent++;
+              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
             }
           }
         }
@@ -860,6 +861,13 @@ Deno.serve(async (req: Request) => {
         const isOverdue = userCurrentMinutes > taskEndMinutes && !completedIds.includes(task.id);
         logDebug(`[DEBUG] Task ${task.id} (${task.name}) overdue check: userCurrentMinutes=${userCurrentMinutes}, taskEndMinutes=${taskEndMinutes}, isCompleted=${completedIds.includes(task.id)}, isOverdue=${isOverdue}`);
         if (isOverdue) {
+          // Double check cap before sending overdue alert
+          const currentCountOverdue = sentInLastHour.get(userId) || 0;
+          if (currentCountOverdue >= 3) {
+            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping overdue alert.`);
+            continue;
+          }
+
           const datePart = userLocalTime.toISOString().slice(0, 10);
           const tag = `task-overdue-${task.id}-${datePart}`;
 
@@ -883,6 +891,7 @@ Deno.serve(async (req: Request) => {
             if (pushSent) {
               await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
               totalPushSent++;
+              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
             }
           }
         }
@@ -914,16 +923,23 @@ Deno.serve(async (req: Request) => {
             tag,
           };
 
-          let pushSent = false;
-          for (const sub of subs) {
-            const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
-            if (res.gone) staleSubscriptions.push(sub.id);
-            else if (res.success) pushSent = true;
-          }
+          // Enforce push cap check
+          const currentCountBriefing = sentInLastHour.get(userId) || 0;
+          if (currentCountBriefing >= 3) {
+            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping daily briefing.`);
+          } else {
+            let pushSent = false;
+            for (const sub of subs) {
+              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (res.gone) staleSubscriptions.push(sub.id);
+              else if (res.success) pushSent = true;
+            }
 
-          if (pushSent) {
-            await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-            totalPushSent++;
+            if (pushSent) {
+              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+              totalPushSent++;
+              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+            }
           }
         }
       }
@@ -939,6 +955,8 @@ Deno.serve(async (req: Request) => {
         const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
         // Goal deadline approaching
+        const displayGoalName = goal.name.length > 40 ? goal.name.substring(0, 37) + "..." : goal.name;
+
         for (const threshold of DEADLINE_DAYS) {
           if (diffDays <= threshold && diffDays > 0) {
             const tag = `goal-deadline-${goal.id}-${threshold}`;
@@ -951,7 +969,7 @@ Deno.serve(async (req: Request) => {
               const dayWord = diffDays === 1 ? "day" : "days";
 
               const pushPayload = {
-                title: `🎯 "${goal.name}" deadline in ${diffDays} ${dayWord}`,
+                title: `🎯 "${displayGoalName}" deadline in ${diffDays} ${dayWord}`,
                 body: progress > 0
                   ? `You're at ${progress}% progress. ${diffDays <= 1 ? "Final push!" : "Keep working on it!"}`
                   : "Deadline approaching. Start making progress on your milestones!",
@@ -959,16 +977,23 @@ Deno.serve(async (req: Request) => {
                 tag,
               };
 
-              let pushSent = false;
-              for (const sub of subs) {
-                const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
-                if (res.gone) staleSubscriptions.push(sub.id);
-                else if (res.success) pushSent = true;
-              }
+              // Enforce push cap check
+              const currentCountDeadlines = sentInLastHour.get(userId) || 0;
+              if (currentCountDeadlines >= 3) {
+                logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping goal deadline.`);
+              } else {
+                let pushSent = false;
+                for (const sub of subs) {
+                  const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                  if (res.gone) staleSubscriptions.push(sub.id);
+                  else if (res.success) pushSent = true;
+                }
 
-              if (pushSent) {
-                await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-                totalPushSent++;
+                if (pushSent) {
+                  await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                  totalPushSent++;
+                  sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+                }
               }
             }
           }
@@ -981,22 +1006,29 @@ Deno.serve(async (req: Request) => {
           if (prefs.goalCompletion !== false && !userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
-              title: `🏆 Goal "${goal.name}" completed!`,
+              title: `🏆 Goal "${displayGoalName}" completed!`,
               body: `Congratulations! You've finished all ${milestones.length} milestones. Time to set a new goal!`,
               url: "/goals",
               tag,
             };
 
-            let pushSent = false;
-            for (const sub of subs) {
-              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
-              if (res.gone) staleSubscriptions.push(sub.id);
-              else if (res.success) pushSent = true;
-            }
+            // Enforce push cap check
+            const currentCountCompletion = sentInLastHour.get(userId) || 0;
+            if (currentCountCompletion >= 3) {
+              logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping goal completion.`);
+            } else {
+              let pushSent = false;
+              for (const sub of subs) {
+                const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                if (res.gone) staleSubscriptions.push(sub.id);
+                else if (res.success) pushSent = true;
+              }
 
-            if (pushSent) {
-              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-              totalPushSent++;
+              if (pushSent) {
+                await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                totalPushSent++;
+                sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+              }
             }
           }
         }
@@ -1034,16 +1066,23 @@ Deno.serve(async (req: Request) => {
           const subs = userSubs.get(userId) || [];
           const pushPayload = { title, body, url: "/statistics", tag };
 
-          let pushSent = false;
-          for (const sub of subs) {
-            const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
-            if (res.gone) staleSubscriptions.push(sub.id);
-            else if (res.success) pushSent = true;
-          }
+          // Enforce push cap check
+          const currentCountSummary = sentInLastHour.get(userId) || 0;
+          if (currentCountSummary >= 3) {
+            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping day summary.`);
+          } else {
+            let pushSent = false;
+            for (const sub of subs) {
+              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (res.gone) staleSubscriptions.push(sub.id);
+              else if (res.success) pushSent = true;
+            }
 
-          if (pushSent) {
-            await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-            totalPushSent++;
+            if (pushSent) {
+              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+              totalPushSent++;
+              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+            }
           }
         }
       }
@@ -1064,16 +1103,23 @@ Deno.serve(async (req: Request) => {
               tag,
             };
 
-            let pushSent = false;
-            for (const sub of subs) {
-              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
-              if (res.gone) staleSubscriptions.push(sub.id);
-              else if (res.success) pushSent = true;
-            }
+            // Enforce push cap check
+            const currentCountWeekly = sentInLastHour.get(userId) || 0;
+            if (currentCountWeekly >= 3) {
+              logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping weekly summary.`);
+            } else {
+              let pushSent = false;
+              for (const sub of subs) {
+                const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                if (res.gone) staleSubscriptions.push(sub.id);
+                else if (res.success) pushSent = true;
+              }
 
-            if (pushSent) {
-              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-              totalPushSent++;
+              if (pushSent) {
+                await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                totalPushSent++;
+                sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+              }
             }
           }
         }
@@ -1102,6 +1148,7 @@ Deno.serve(async (req: Request) => {
             if (pushSent) {
               await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
               totalPushSent++;
+              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
             }
           }
         }
@@ -1128,6 +1175,7 @@ Deno.serve(async (req: Request) => {
             if (pushSent) {
               await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
               totalPushSent++;
+              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
             }
           }
         }
@@ -1163,6 +1211,7 @@ Deno.serve(async (req: Request) => {
               if (pushSent) {
                 await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
                 totalPushSent++;
+                sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
               }
             }
           }
