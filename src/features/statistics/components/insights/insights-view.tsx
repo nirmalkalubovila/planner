@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Calendar, Play, HelpCircle } from 'lucide-react';
+import { Sparkles, Calendar, Play, HelpCircle, Trophy, Flame, Zap, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useInsights } from '../../hooks/use-insights';
 import { StoryViewer } from './story-viewer';
@@ -23,6 +23,7 @@ export const InsightsView: React.FC = () => {
   const monthlyCards = data.monthly || [];
   
   const currentCards = activeTab === 'weekly' ? weeklyCards : monthlyCards;
+  const wins = activeTab === 'weekly' ? data.weeklyWins || [] : data.monthlyWins || [];
   
   // Create deterministic hash seed for color styling
   const hashSeed = activeTab === 'weekly' 
@@ -210,6 +211,68 @@ export const InsightsView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Point-wise system wins section */}
+      <div className="mt-8 space-y-4">
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-primary" />
+          <h3 className="text-xs font-black uppercase tracking-widest text-foreground">
+            {activeTab === 'weekly' ? "Weekly System Breakthroughs" : "Monthly System Breakthroughs"}
+          </h3>
+        </div>
+        
+        {wins.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {wins.map((win, idx) => (
+              <motion.div
+                key={win.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: idx * 0.05 }}
+                className="relative rounded-2xl border border-border bg-card/60 p-4 pl-6 flex gap-4 items-start hover:border-primary/30 transition-colors"
+              >
+                {/* Left accent border color depending on type */}
+                <div className={cn(
+                  "absolute left-0 top-4 bottom-4 w-1 rounded-r-lg",
+                  win.type === 'goal' && "bg-intent-goal",
+                  win.type === 'habit' && "bg-intent-habit",
+                  win.type === 'execution' && "bg-intent-warning",
+                  win.type === 'vault' && "bg-indigo-400"
+                )} />
+                
+                <div className="p-2 rounded-xl bg-muted shrink-0 text-foreground">
+                  {win.type === 'goal' && <Trophy size={16} className="text-intent-goal" />}
+                  {win.type === 'habit' && <Flame size={16} className="text-intent-habit" />}
+                  {win.type === 'execution' && <Zap size={16} className="text-intent-warning" />}
+                  {win.type === 'vault' && <Brain size={16} className="text-indigo-400" />}
+                </div>
+                
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-xs font-black uppercase tracking-tight text-foreground truncate">{win.title}</h4>
+                    {win.badge && (
+                      <span className={cn(
+                        "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border",
+                        win.type === 'goal' && "bg-intent-goal/10 border-intent-goal/20 text-intent-goal",
+                        win.type === 'habit' && "bg-intent-habit/10 border-intent-habit/20 text-intent-habit",
+                        win.type === 'execution' && "bg-intent-warning/10 border-intent-warning/20 text-intent-warning",
+                        win.type === 'vault' && "bg-indigo-500/10 border-indigo-500/20 text-indigo-400"
+                      )}>
+                        {win.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-normal">{win.description}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-card/10 p-6 text-center text-xs text-muted-foreground">
+            No breakthroughs detected yet for this period. Complete tasks, build habits, and complete goals to record system wins!
+          </div>
+        )}
+      </div>
 
       {/* Story Viewer overlay component */}
       <StoryViewer

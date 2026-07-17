@@ -16,6 +16,7 @@ export interface GoalAnalysis {
   velocityMultiplier: number;
   projectedCompletion: string;
   weightedScore: number;
+  goalType?: 'Week' | 'Month' | 'Year';
 }
 
 export interface HabitAnalysis {
@@ -167,6 +168,7 @@ export function analyzeGoal(
     weightedScore: totalMilestones > 0
       ? progressRatio * velocity * 100
       : 0,
+    goalType: goal.goalType,
   };
 }
 

@@ -1,9 +1,42 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Check, Sparkles, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CircularProgress } from '@/components/ui/circular-progress';
 import type { DetailedAnalytics } from '../hooks/use-detailed-stats';
+
+const GoldenSparkles = () => {
+  const sparkles = Array.from({ length: 5 });
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+      {sparkles.map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute text-yellow-500/30"
+          initial={{
+            x: Math.random() * 80 + 10 + '%',
+            y: '100%',
+            scale: Math.random() * 0.4 + 0.4,
+            opacity: 0
+          }}
+          animate={{
+            y: '-10%',
+            opacity: [0, 0.7, 0.7, 0],
+            rotate: Math.random() * 360
+          }}
+          transition={{
+            duration: Math.random() * 4 + 3,
+            repeat: Infinity,
+            delay: Math.random() * 5,
+            ease: "easeInOut"
+          }}
+        >
+          <Sparkles size={8 + Math.random() * 6} />
+        </motion.div>
+      ))}
+    </div>
+  );
+};
 
 const Panel: React.FC<{
   title: string;
@@ -105,33 +138,79 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => (
       {data.goals.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4">No goals created yet.</p>
       ) : (
-        data.goals.map((goal, i) => (
-          <motion.div
-            key={goal.id}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, delay: i * 0.04 }}
-            className="flex items-center gap-3 sm:gap-4 rounded-2xl bg-glass border border-border p-3 sm:p-4"
-          >
-            <CircularProgress
-              value={goal.progress}
-              size={48}
-              strokeWidth={4}
-              color="stroke-intent-goal"
-              delay={0.2 + i * 0.04}
-              className="shrink-0"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-medium text-foreground truncate">{goal.name}</p>
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap mt-1 text-[10px] sm:text-[11px] text-muted-foreground">
-                <span>Milestones: {goal.completedMilestones}/{goal.totalMilestones}</span>
-                <span>Velocity: {goal.velocityMultiplier}x</span>
-                <span>Target: {goal.projectedCompletion}</span>
+        data.goals.map((goal, i) => {
+          const isCompleted = goal.progress >= 100;
+          const cardClass = isCompleted
+            ? goal.goalType === 'Week'
+              ? "border-emerald-500/30 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.08)] relative overflow-hidden"
+              : goal.goalType === 'Month'
+                ? "border-violet-500/30 bg-violet-500/5 shadow-[0_0_20px_rgba(139,92,246,0.12)] relative overflow-hidden"
+                : "border-yellow-500/40 bg-yellow-500/5 shadow-[0_0_25px_rgba(234,179,8,0.15)] relative overflow-hidden"
+            : "bg-glass border-border";
+
+          const progressColor = isCompleted
+            ? goal.goalType === 'Week'
+              ? 'text-emerald-400'
+              : goal.goalType === 'Month'
+                ? 'text-violet-400'
+                : 'text-yellow-400'
+            : 'text-intent-goal';
+
+          return (
+            <motion.div
+              key={goal.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: i * 0.04 }}
+              className={cn("flex items-center gap-3 sm:gap-4 rounded-2xl border p-3 sm:p-4 transition-all", cardClass)}
+            >
+              {isCompleted && goal.goalType === 'Year' && <GoldenSparkles />}
+              
+              {isCompleted ? (
+                <div className={cn(
+                  "w-12 h-12 rounded-full border flex items-center justify-center shrink-0 z-10",
+                  goal.goalType === 'Week' && "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+                  goal.goalType === 'Month' && "border-violet-500/30 bg-violet-500/10 text-violet-400",
+                  goal.goalType === 'Year' && "border-yellow-500/35 bg-yellow-500/10 text-yellow-400"
+                )}>
+                  {goal.goalType === 'Week' && <Check size={16} />}
+                  {goal.goalType === 'Month' && <Sparkles size={16} />}
+                  {goal.goalType === 'Year' && <Trophy size={16} />}
+                </div>
+              ) : (
+                <CircularProgress
+                  value={goal.progress}
+                  size={48}
+                  strokeWidth={4}
+                  color="stroke-intent-goal"
+                  delay={0.2 + i * 0.04}
+                  className="shrink-0"
+                />
+              )}
+              
+              <div className="flex-1 min-w-0 z-10 relative">
+                <p className={cn("text-xs sm:text-sm font-medium truncate", isCompleted ? progressColor : "text-foreground")}>
+                  {goal.name}
+                </p>
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap mt-1 text-[10px] sm:text-[11px] text-muted-foreground">
+                  <span>Milestones: {goal.completedMilestones}/{goal.totalMilestones}</span>
+                  <span>Velocity: {goal.velocityMultiplier}x</span>
+                  <span>Target: {goal.projectedCompletion}</span>
+                </div>
               </div>
-            </div>
-            <span className="text-xs sm:text-sm font-bold text-intent-goal shrink-0">{goal.progress}%</span>
-          </motion.div>
-        ))
+              <span className={cn("text-xs sm:text-sm font-bold shrink-0 z-10 relative", progressColor)}>
+                {isCompleted
+                  ? goal.goalType === 'Week'
+                    ? '100% Met'
+                    : goal.goalType === 'Month'
+                      ? '100% Achieved'
+                      : '100% Built'
+                  : `${goal.progress}%`
+                }
+              </span>
+            </motion.div>
+          );
+        })
       )}
     </Panel>
 

@@ -1,7 +1,11 @@
 import { Link } from "react-router-dom";
 import { Mail, Linkedin, Instagram } from "lucide-react";
+import { useLatestUpdate } from "@/hooks/use-latest-update";
 
 export default function Footer() {
+  const { data: latestUpdate } = useLatestUpdate();
+  const version = latestUpdate?.version || "";
+
   return (
     <footer className="py-12 px-5 sm:px-8 bg-black border-t border-zinc-900/50">
       <div className="w-full">
@@ -130,7 +134,7 @@ export default function Footer() {
 
           <div className="text-center md:text-right">
             <p className="text-[10px] text-zinc-500 font-semibold tracking-wide">
-              &copy; {new Date().getFullYear()} Built for execution, not distraction.
+              &copy; {new Date().getFullYear()} Built for execution, not distraction.{version && ` | ${version}`}
             </p>
           </div>
         </div>
