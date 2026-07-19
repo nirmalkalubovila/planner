@@ -1,12 +1,46 @@
 import React, { useMemo } from 'react';
 import { Goal, GridState } from '@/types/global-types';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Check, Edit2, Trash2, ChevronDown, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, Edit2, Trash2, ChevronDown, Clock, Sparkles, Trophy } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { GoalProgressBar } from './goal-progress-bar';
 import { MasterActionPlan } from './master-action-plan';
 import { cn } from '@/lib/utils';
 import { calculateGoalProgress } from '@/utils/analytics-engine';
+import { motion } from 'framer-motion';
+
+const GoldenSparkles = () => {
+    const sparkles = Array.from({ length: 6 });
+    return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+            {sparkles.map((_, i) => (
+                <motion.div
+                    key={i}
+                    className="absolute text-yellow-500/30"
+                    initial={{
+                        x: Math.random() * 80 + 10 + '%',
+                        y: '100%',
+                        scale: Math.random() * 0.4 + 0.4,
+                        opacity: 0
+                    }}
+                    animate={{
+                        y: '-10%',
+                        opacity: [0, 0.7, 0.7, 0],
+                        rotate: Math.random() * 360
+                    }}
+                    transition={{
+                        duration: Math.random() * 4 + 3,
+                        repeat: Infinity,
+                        delay: Math.random() * 5,
+                        ease: "easeInOut"
+                    }}
+                >
+                    <Sparkles size={10 + Math.random() * 8} />
+                </motion.div>
+            ))}
+        </div>
+    );
+};
 
 interface GoalCardProps {
     goal: Goal;
@@ -115,6 +149,32 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         };
     }, [goal, weekPlan, completedDays, currentWeek]);
 
+    const isCompleted = progressPercentage >= 100;
+
+    const cardBorderClass = isCompleted
+        ? goal.goalType === 'Week'
+            ? 'border-emerald-500/40 hover:border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
+            : goal.goalType === 'Month'
+                ? 'border-violet-500/40 hover:border-violet-500/60 shadow-[0_0_24px_rgba(139,92,246,0.15)]'
+                : 'border-yellow-500/50 hover:border-yellow-500/70 shadow-[0_0_30px_rgba(234,179,8,0.2)]'
+        : 'border-border hover:border-primary/40';
+
+    const cardBgClass = isCompleted
+        ? goal.goalType === 'Week'
+            ? 'bg-gradient-to-r from-emerald-500/5 via-transparent to-transparent'
+            : goal.goalType === 'Month'
+                ? 'bg-gradient-to-br from-violet-500/10 via-transparent to-transparent'
+                : 'bg-gradient-to-br from-yellow-500/10 via-amber-500/5 to-transparent'
+        : 'bg-card';
+
+    const accentLineClass = isCompleted
+        ? goal.goalType === 'Week'
+            ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse'
+            : goal.goalType === 'Month'
+                ? 'bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)] animate-pulse'
+                : 'bg-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.5)] animate-pulse'
+        : 'bg-primary';
+
     const intensityOpacity = totalMilestones > 0
         ? Math.max(0.4, progressPercentage / 100)
         : 0.4;
@@ -125,14 +185,17 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             <div
                 className={cn(
                     'group relative rounded-2xl border overflow-hidden flex flex-col',
-                    'bg-card border-border hover:border-primary/40',
+                    cardBorderClass,
+                    cardBgClass,
                     'transition-[border-color,box-shadow] duration-150',
-                    progressPercentage >= 40 && 'hover:shadow-[0_0_24px_rgba(var(--primary-rgb,99,102,241),0.12)]',
+                    !isCompleted && progressPercentage >= 40 && 'hover:shadow-[0_0_24px_rgba(var(--primary-rgb,99,102,241),0.12)]',
                 )}
             >
+                {isCompleted && goal.goalType === 'Year' && <GoldenSparkles />}
+                
                 {/* Left accent bar */}
                 <div
-                    className="absolute top-0 left-0 w-1 h-full bg-primary rounded-l-2xl"
+                    className={cn("absolute top-0 left-0 w-1 h-full rounded-l-2xl z-10", accentLineClass)}
                     style={{ opacity: intensityOpacity }}
                 />
 
@@ -161,7 +224,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     </Button>
                 </div>
 
-                <div className="p-4 pl-5 flex flex-col gap-2.5">
+                <div className="p-4 pl-5 flex flex-col gap-2.5 z-10 relative">
                     {/* Row 1: Badges */}
                     <div className="flex flex-wrap items-center gap-1.5 pr-24">
                         <span className="text-[8px] font-black uppercase tracking-widest bg-primary/15 text-primary border border-primary/20 px-1.5 py-0.5 rounded">
@@ -182,10 +245,34 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                                 {totalAllocatedHours}h Allocated
                             </span>
                         )}
+                        {isCompleted && (
+                            <span className={cn(
+                                "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-0.5 animate-pulse",
+                                goal.goalType === 'Week' && "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+                                goal.goalType === 'Month' && "bg-violet-500/20 text-violet-400 border border-violet-500/30",
+                                goal.goalType === 'Year' && "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                            )}>
+                                {goal.goalType === 'Week' && <Check size={8} />}
+                                {goal.goalType === 'Month' && <Sparkles size={8} />}
+                                {goal.goalType === 'Year' && <Trophy size={8} />}
+                                {goal.goalType === 'Week' && 'Week Objective Met'}
+                                {goal.goalType === 'Month' && 'Month Goal Achieved'}
+                                {goal.goalType === 'Year' && 'Yearly Legacy Built'}
+                            </span>
+                        )}
                     </div>
 
                     {/* Row 2: Title */}
-                    <h3 className="font-bold text-[15px] leading-snug text-foreground tracking-tight">
+                    <h3 className={cn(
+                        "font-bold text-[15px] leading-snug tracking-tight transition-colors duration-150",
+                        isCompleted
+                            ? goal.goalType === 'Week'
+                                ? 'text-emerald-400'
+                                : goal.goalType === 'Month'
+                                    ? 'text-violet-400'
+                                    : 'text-yellow-400'
+                            : 'text-foreground'
+                    )}>
                         {goal.title || goal.name}
                     </h3>
 

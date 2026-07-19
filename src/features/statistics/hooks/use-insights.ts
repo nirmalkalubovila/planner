@@ -3,11 +3,20 @@ import { supabase } from '@/lib/supabaseClient';
 import type { Goal, Habit } from '@/types/global-types';
 import type { VaultNote } from '@/types/vault';
 import type { GridState } from '@/types/planner';
-import { generateWeeklyInsights, generateMonthlyInsights, type InsightCardData } from '@/utils/insights-engine';
+import {
+  generateWeeklyInsights,
+  generateMonthlyInsights,
+  generateWeeklyWins,
+  generateMonthlyWins,
+  type InsightCardData,
+  type SystemWin
+} from '@/utils/insights-engine';
 
 export interface InsightsResult {
   weekly: InsightCardData[];
   monthly: InsightCardData[];
+  weeklyWins: SystemWin[];
+  monthlyWins: SystemWin[];
 }
 
 const fetchInsights = async (): Promise<InsightsResult> => {
@@ -58,10 +67,14 @@ const fetchInsights = async (): Promise<InsightsResult> => {
 
   const weekly = generateWeeklyInsights(currentWeek, goals, habits, completedMap, weekPlans, vaultNotes);
   const monthly = generateMonthlyInsights(currentMonth, goals, habits, completedMap, weekPlans, vaultNotes);
+  const weeklyWins = generateWeeklyWins(currentWeek, goals, habits, completedMap, weekPlans, vaultNotes);
+  const monthlyWins = generateMonthlyWins(currentMonth, goals, habits, completedMap, weekPlans, vaultNotes);
 
   return {
     weekly,
     monthly,
+    weeklyWins,
+    monthlyWins,
   };
 };
 

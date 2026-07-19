@@ -5,7 +5,8 @@ import { WeekUtils } from '@/utils/week';
 import {
   analyzeGoal,
   analyzeHabit,
-  analyzeWeekExecution
+  analyzeWeekExecution,
+  calculateGoalProgress
 } from '@/utils/analytics-engine';
 
 export interface InsightCardData {
@@ -475,4 +476,260 @@ export function generateMonthlyInsights(
   });
   
   return cards;
+}
+
+export interface SystemWin {
+  id: string;
+  type: 'goal' | 'habit' | 'execution' | 'vault';
+  title: string;
+  description: string;
+  badge?: string;
+}
+
+export function generateWeeklyWins(
+  weekKey: string,
+  goals: Goal[],
+  habits: Habit[],
+  completedMap: Record<string, string[]>,
+  weekPlans: { week: string; state: GridState }[],
+  vaultNotes?: VaultNote[]
+): SystemWin[] {
+  const wins: SystemWin[] = [];
+  const currentWeekNorm = WeekUtils.normalizeWeek(weekKey);
+  const dbWeekKey = WeekUtils.formatWeekDisplay(currentWeekNorm);
+  const currentWeekPlan = weekPlans.find(wp => wp.week === dbWeekKey);
+
+  // 1. Goal Wins
+  goals.forEach(g => {
+    const progress = calculateGoalProgress(g, currentWeekNorm, currentWeekPlan?.state, completedMap);
+    if (Math.round(progress) >= 100) {
+      wins.push({
+        id: `goal-${g.id}-completed`,
+        type: 'goal',
+        title: 'Goal Achieved',
+        description: `Successfully finished your ${g.goalType} goal: "${g.title || g.name}"!`,
+        badge: `${g.goalType} Goal`
+      });
+    }
+  });
+
+  // 2. Habit Consistency Wins
+  habits.forEach(h => {
+    const daysOfWeek = h.daysOfWeek ?? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const dayNameToIndex: Record<string, number> = {
+      Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6
+    };
+    const activeDayIndices = new Set(daysOfWeek.map(d => dayNameToIndex[d]).filter(v => v !== undefined));
+
+    let expectedWeekDays = 0;
+    let completedWeekDays = 0;
+    for (let d = 1; d <= 7; d++) {
+      const dayStr = `${currentWeekNorm}-${d}`;
+      const dayIdx = d === 7 ? 0 : d;
+      if (!activeDayIndices.has(dayIdx)) continue;
+      expectedWeekDays++;
+      const dayTasks = completedMap[dayStr] ?? [];
+      const wasCompleted = dayTasks.some(tid =>
+        tid.startsWith(`habit-${h.name}-`) ||
+        tid === h.id ||
+        tid === `habit-${h.id}`
+      );
+      if (wasCompleted) {
+        completedWeekDays++;
+      }
+    }
+    const weekConsistency = expectedWeekDays > 0 ? Math.round((completedWeekDays / expectedWeekDays) * 100) : 0;
+    
+    if (weekConsistency >= 80) {
+      wins.push({
+        id: `habit-${h.id}-consistency`,
+        type: 'habit',
+        title: 'Habit Consistency Win',
+        description: `Maintained a solid ${weekConsistency}% consistency for "${h.name}" this week.`,
+        badge: 'Habit'
+      });
+    }
+  });
+
+  // 3. Execution Wins
+  const currentPlan = weekPlans.find(wp => WeekUtils.normalizeWeek(wp.week) === currentWeekNorm);
+  const weekExecution = currentPlan 
+    ? analyzeWeekExecution(currentWeekNorm, currentPlan.state, completedMap)
+    : { planned: 0, completed: 0, efficiency: 0 };
+  
+  if (weekExecution.efficiency >= 75) {
+    wins.push({
+      id: `execution-${currentWeekNorm}-win`,
+      type: 'execution',
+      title: 'Schedule Mastery',
+      description: `Executed a high-efficiency week completing ${weekExecution.efficiency}% of your planned blocks!`,
+      badge: 'Execution'
+    });
+  }
+
+  // 4. Daily Flow Wins
+  let bestDayCount = 0;
+  let bestDayName = '';
+  const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  DAY_NAMES.forEach((name, idx) => {
+    const dayStr = `${currentWeekNorm}-${idx + 1}`;
+    const completedCount = completedMap[dayStr]?.length || 0;
+    if (completedCount > bestDayCount) {
+      bestDayCount = completedCount;
+      bestDayName = name;
+    }
+  });
+  if (bestDayCount >= 3) {
+    wins.push({
+      id: `execution-flow-${currentWeekNorm}-win`,
+      type: 'execution',
+      title: 'Momentum Breakthrough',
+      description: `Reached peak daily momentum on ${bestDayName} by crushing ${bestDayCount} tasks in a single day!`,
+      badge: 'Flow State'
+    });
+  }
+
+  // 5. Vault Wins
+  const weeklyVaultNotes = vaultNotes
+    ? vaultNotes.filter(note => {
+        const noteDate = new Date(note.createdAt);
+        const startOfYear = new Date(noteDate.getFullYear(), 0, 1);
+        const days = Math.floor((noteDate.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+        const startDay = startOfYear.getDay() || 7;
+        const weekNum = Math.ceil((days + startDay) / 7);
+        const noteWeek = `${noteDate.getFullYear()}-${String(weekNum).padStart(2, '0')}`;
+        return WeekUtils.normalizeWeek(noteWeek) === currentWeekNorm;
+      })
+    : [];
+  
+  if (weeklyVaultNotes.length >= 2) {
+    wins.push({
+      id: `vault-notes-${currentWeekNorm}-win`,
+      type: 'vault',
+      title: 'Intellectual Growth',
+      description: `Compounded your self-awareness by logging ${weeklyVaultNotes.length} insights/notes in the Vault.`,
+      badge: 'Vault'
+    });
+  }
+
+  return wins;
+}
+
+export function generateMonthlyWins(
+  monthKey: string,
+  goals: Goal[],
+  habits: Habit[],
+  completedMap: Record<string, string[]>,
+  weekPlans: { week: string; state: GridState }[],
+  vaultNotes?: VaultNote[]
+): SystemWin[] {
+  const wins: SystemWin[] = [];
+  
+  const [yearStr, monthStr] = monthKey.split('-');
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10) - 1; // 0-indexed
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const totalDays = lastDay.getDate();
+
+  // 1. Goal Wins
+  goals.forEach(g => {
+    const currentWeek = WeekUtils.getCurrentWeek();
+    const dbWeekKey = WeekUtils.formatWeekDisplay(currentWeek);
+    const currentWeekPlan = weekPlans.find(wp => wp.week === dbWeekKey);
+    const progress = calculateGoalProgress(g, currentWeek, currentWeekPlan?.state, completedMap);
+    if (Math.round(progress) >= 100) {
+      wins.push({
+        id: `goal-${g.id}-completed-monthly`,
+        type: 'goal',
+        title: 'Goal Achieved',
+        description: `Successfully finished your ${g.goalType} goal: "${g.title || g.name}"!`,
+        badge: `${g.goalType} Goal`
+      });
+    }
+  });
+
+  // 2. Habit Wins over the month
+  habits.forEach(h => {
+    const daysOfWeek = h.daysOfWeek ?? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const dayNameToIndex: Record<string, number> = {
+      Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6
+    };
+    const activeDayIndices = new Set(daysOfWeek.map(d => dayNameToIndex[d]).filter(v => v !== undefined));
+
+    let expectedMonthDays = 0;
+    let completedMonthDays = 0;
+
+    for (let d = 1; d <= totalDays; d++) {
+      const date = new Date(year, month, d);
+      const weekKey = WeekUtils.getWeekFromDate(date);
+      const dayOfWeek = date.getDay();
+      if (!activeDayIndices.has(dayOfWeek)) continue;
+      expectedMonthDays++;
+      
+      const dayNum = dayOfWeek === 0 ? 7 : dayOfWeek;
+      const dayStr = `${weekKey}-${dayNum}`;
+      const dayTasks = completedMap[dayStr] ?? [];
+      const wasCompleted = dayTasks.some(tid =>
+        tid.startsWith(`habit-${h.name}-`) ||
+        tid === h.id ||
+        tid === `habit-${h.id}`
+      );
+      if (wasCompleted) {
+        completedMonthDays++;
+      }
+    }
+    
+    const monthlyConsistency = expectedMonthDays > 0 ? Math.round((completedMonthDays / expectedMonthDays) * 100) : 0;
+    if (monthlyConsistency >= 75) {
+      wins.push({
+        id: `habit-${h.id}-monthly-win`,
+        type: 'habit',
+        title: 'Habit Consistency Win',
+        description: `Maintained a strong ${monthlyConsistency}% consistency for "${h.name}" throughout the month.`,
+        badge: 'Habit'
+      });
+    }
+  });
+
+  // 3. System Momentum / Active Days
+  let activeDays = 0;
+  for (let d = 1; d <= totalDays; d++) {
+    const date = new Date(year, month, d);
+    const weekKey = WeekUtils.getWeekFromDate(date);
+    const dayOfWeek = date.getDay();
+    const dayNum = dayOfWeek === 0 ? 7 : dayOfWeek;
+    const dayStr = `${weekKey}-${dayNum}`;
+    const completed = completedMap[dayStr]?.length || 0;
+    if (completed > 0) activeDays++;
+  }
+  if (activeDays >= 15) {
+    wins.push({
+      id: `execution-active-days-monthly`,
+      type: 'execution',
+      title: 'Consistent System Momentum',
+      description: `Executed your routines on ${activeDays} out of ${totalDays} days this month.`,
+      badge: 'System Active'
+    });
+  }
+
+  // 4. Vault Wisdom
+  const monthlyVaultNotes = vaultNotes
+    ? vaultNotes.filter(note => {
+        const noteDate = new Date(note.createdAt);
+        return noteDate >= firstDay && noteDate <= lastDay;
+      })
+    : [];
+  
+  if (monthlyVaultNotes.length >= 5) {
+    wins.push({
+      id: `vault-monthly-win`,
+      type: 'vault',
+      title: 'Intellectual Compounder',
+      description: `Logged ${monthlyVaultNotes.length} ideas, solutions, and resources in your Vault.`,
+      badge: 'Vault'
+    });
+  }
+
+  return wins;
 }
