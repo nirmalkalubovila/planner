@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, Plus } from 'lucide-react';
+import { Target, Plus, Trophy } from 'lucide-react';
+import { calculateGoalProgress } from '@/utils/analytics-engine';
 import { toast } from 'sonner';
 import { useGetGoals, useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/api/services/goal-service';
 import { useAuth } from '@/contexts/auth-context';
@@ -182,8 +183,23 @@ export const GoalsPage: React.FC = () => {
         : step === 2 ? 'AI Plan Preview' : 'Manual Plan';
 
     const dialogSubtitle = step === 1
-        ? 'Define strategic parameters'
+        ? 'Set up your goal'
         : step === 2 ? 'Review your AI-generated roadmap' : 'Define milestones manually';
+
+    const { activeGoals, completedGoals } = useMemo(() => {
+        const active: Goal[] = [];
+        const completed: Goal[] = [];
+        goals.forEach((goal: Goal) => {
+            const completedDaysMap = completedDays ? Object.keys(completedDays).reduce<Record<string, string[]>>((acc, key) => { acc[key] = completedDays[key]; return acc; }, {}) : undefined;
+            const progress = calculateGoalProgress(goal, currentWeek, weekPlan, completedDaysMap);
+            if (progress >= 100) {
+                completed.push(goal);
+            } else {
+                active.push(goal);
+            }
+        });
+        return { activeGoals: active, completedGoals: completed };
+    }, [goals, weekPlan, completedDays, currentWeek]);
 
     return (
         <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
@@ -223,7 +239,7 @@ export const GoalsPage: React.FC = () => {
                 </div>
             ) : (
                 <div className="flex flex-col gap-6 w-full pb-20">
-                    {goals.map((goal: Goal) => (
+                    {activeGoals.map((goal: Goal) => (
                         <GoalCard
                             key={goal.id}
                             goal={goal}
@@ -237,6 +253,33 @@ export const GoalsPage: React.FC = () => {
                             onUpdateGoal={(updatedGoal) => updateGoal.mutate(updatedGoal)}
                         />
                     ))}
+
+                    {completedGoals.length > 0 && (
+                        <>
+                            <div className="flex items-center gap-3 pt-4">
+                                <div className="h-px flex-1 bg-border" />
+                                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                    <Trophy size={12} className="text-emerald-500" />
+                                    <span>Completed ({completedGoals.length})</span>
+                                </div>
+                                <div className="h-px flex-1 bg-border" />
+                            </div>
+                            {completedGoals.map((goal: Goal) => (
+                                <GoalCard
+                                    key={goal.id}
+                                    goal={goal}
+                                    isExpanded={!!expandedGoals[goal.id!]}
+                                    onToggle={toggleGoal}
+                                    onEdit={handleEdit}
+                                    onDelete={(id) => { setGoalIdToDelete(id); setShowDeleteConfirm(true); }}
+                                    weekPlan={weekPlan || {}}
+                                    completedDays={completedDays || {}}
+                                    currentWeek={currentWeek}
+                                    onUpdateGoal={(updatedGoal) => updateGoal.mutate(updatedGoal)}
+                                />
+                            ))}
+                        </>
+                    )}
                 </div>
             )}
 

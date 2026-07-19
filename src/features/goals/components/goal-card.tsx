@@ -208,13 +208,15 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     >
                         <ChevronDown size={13} className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
                     </Button>
-                    <Button
-                        variant="ghost" size="icon"
-                        className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent"
-                        onClick={() => onEdit(goal)}
-                    >
-                        <Edit2 size={13} />
-                    </Button>
+                    {!isCompleted && (
+                        <Button
+                            variant="ghost" size="icon"
+                            className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent"
+                            onClick={() => onEdit(goal)}
+                        >
+                            <Edit2 size={13} />
+                        </Button>
+                    )}
                     <Button
                         variant="ghost" size="icon"
                         className="h-7 w-7 rounded-lg text-muted-foreground hover:text-destructive hover:bg-accent"
