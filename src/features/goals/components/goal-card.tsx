@@ -200,7 +200,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 />
 
                 {/* Action buttons - habit card style */}
-                <div className="absolute top-2.5 right-2.5 flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-100 z-10">
+                <div className="absolute top-2.5 right-2.5 flex gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-100 z-20">
                     <Button
                         variant="ghost" size="icon"
                         className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent"
