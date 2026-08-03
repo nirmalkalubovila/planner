@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
@@ -98,7 +99,12 @@ export const ProfilePage: React.FC = () => {
         }
     };
 
-    const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'contact' | 'updater'>('profile');
+    const [searchParams] = useSearchParams();
+    const tabParam = searchParams.get('tab');
+    const validTabs = ['profile', 'preferences', 'notifications', 'contact', 'updater'] as const;
+    type TabId = typeof validTabs[number];
+    const initialTab: TabId = tabParam && validTabs.includes(tabParam as TabId) ? (tabParam as TabId) : 'profile';
+    const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
     if (!user) return null;
 

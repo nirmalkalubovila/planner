@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Sparkles, X, Check } from 'lucide-react';
+import { AlertTriangle, Sparkles, X, Check, ExternalLink } from 'lucide-react';
 import { useLatestUpdate } from '@/hooks/use-latest-update';
 import { useLandingSettings } from '@/api/services/feedback-service';
+import { useNavigate } from 'react-router-dom';
 
 export const AnnouncementBanner: React.FC = () => {
     const { data: latestUpdate } = useLatestUpdate();
     const { data: landingSettings } = useLandingSettings();
     const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         setDismissedVersion(localStorage.getItem('dismissed_update_version'));
@@ -51,14 +53,15 @@ export const AnnouncementBanner: React.FC = () => {
 
     return (
         <>
-            <div className="bg-primary/10 border-b border-primary/20 backdrop-blur-md px-4 py-2.5 text-xs text-foreground select-none relative z-45 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_4px_12px_rgba(var(--primary-rgb,99,102,241),0.05)] animate-in slide-in-from-top duration-300 w-full">
-                <div className="flex items-center gap-2.5">
+            {/* Top Banner - Fixed Single Line */}
+            <div className="bg-primary/10 border-b border-primary/20 backdrop-blur-md px-3 sm:px-4 py-2 text-xs text-foreground select-none relative z-40 flex items-center justify-between gap-3 shadow-[0_4px_12px_rgba(var(--primary-rgb,99,102,241),0.05)] animate-in slide-in-from-top duration-300 w-full h-10 overflow-hidden whitespace-nowrap">
+                <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
                     <span className="flex h-2 w-2 relative shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                     </span>
                     <Sparkles size={13} className="text-primary shrink-0 animate-pulse" />
-                    <span className="font-bold tracking-tight">
+                    <span className="font-bold tracking-tight text-xs truncate">
                         Update {latestUpdate.version}: {latestUpdate.title}
                     </span>
                 </div>
@@ -66,112 +69,118 @@ export const AnnouncementBanner: React.FC = () => {
                 <button
                     type="button"
                     onClick={() => setModalOpen(true)}
-                    className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-primary text-primary-foreground hover:bg-primary/95 transition-all shadow-md active:scale-95 shrink-0 cursor-pointer"
+                    className="px-2.5 py-0.5 my-1 rounded-md text-[9px] font-black uppercase tracking-wider bg-white text-black hover:bg-white/90 transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer"
                 >
-                    Read Release Notes
+                    What's New
                 </button>
             </div>
 
-            {/* What's New Modal */}
+            {/* Premium Full-Screen / Modal Experience */}
             <AnimatePresence>
                 {modalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        {/* Overlay */}
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+                        {/* Overlay - Opaque so navbar and header are completely hidden */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setModalOpen(false)}
-                            className="absolute inset-0 bg-[#06080E]/80 backdrop-blur-sm cursor-pointer"
+                            className="absolute inset-0 bg-[#06080E]/98 backdrop-blur-2xl cursor-pointer"
                         />
 
-                        {/* Modal Panel */}
+                        {/* Modal Panel Card */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 15 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 15 }}
                             transition={{ type: "spring", duration: 0.4 }}
-                            className="relative w-full max-w-md bg-card/95 border border-border backdrop-blur-md rounded-3xl p-6 shadow-2xl z-10 flex flex-col gap-5 overflow-hidden select-none"
+                            className="relative w-full max-w-lg max-h-[85vh] sm:max-h-[88vh] bg-card/95 border border-border/80 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-2xl z-10 flex flex-col gap-4 overflow-hidden select-none"
                         >
-                            {/* Decorative background glow */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[60px] pointer-events-none" />
+                            {/* Ambient background glow */}
+                            <div className="absolute -top-10 -right-10 w-44 h-44 bg-primary/10 rounded-full blur-[70px] pointer-events-none" />
+                            <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none" />
 
                             {/* Header */}
-                            <div className="flex justify-between items-start gap-4">
+                            <div className="flex justify-between items-start gap-4 shrink-0 relative z-10">
                                 <div className="space-y-1">
-                                    <div className="flex items-center gap-1.5 text-primary text-[10px] font-black uppercase tracking-wider">
-                                        <Sparkles size={11} />
-                                        <span>What's New</span>
+                                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[9px] font-black uppercase tracking-widest">
+                                        <Sparkles size={10} />
+                                        <span>Release Notes</span>
                                     </div>
-                                    <h3 className="text-lg font-black tracking-tight text-foreground uppercase">
+                                    <h3 className="text-lg sm:text-xl font-black tracking-tight text-foreground uppercase leading-tight pt-1">
                                         Version {latestUpdate.version}
                                     </h3>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setModalOpen(false)}
-                                    className="p-1.5 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                    className="p-2 rounded-2xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-all cursor-pointer border border-border/50 shrink-0"
                                 >
-                                    <X size={14} />
+                                    <X size={15} />
                                 </button>
                             </div>
 
-                            {/* Title & Date */}
-                            <div className="space-y-1 pb-2 border-b border-border">
-                                <h4 className="text-sm font-bold text-foreground leading-snug">
+                            {/* Title & Date Banner */}
+                            <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/60 space-y-1 shrink-0 relative z-10">
+                                <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug">
                                     {latestUpdate.title}
                                 </h4>
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
                                     Released {new Date(latestUpdate.release_date).toLocaleDateString()}
                                 </p>
                             </div>
 
-                            {/* Point-wise Release Notes */}
-                            <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-1.5">
+                            {/* Point-wise Release Notes - Scrollable Container */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2.5 min-h-0 relative z-10 py-1">
                                 {bulletPoints.length > 0 ? (
-                                    <ul className="space-y-2.5">
+                                    <div className="space-y-2">
                                         {bulletPoints.map((point, index) => (
-                                            <li key={index} className="flex gap-2.5 items-start text-xs leading-relaxed text-muted-foreground">
-                                                <div className="p-1 rounded bg-primary/10 text-primary shrink-0 mt-0.5">
-                                                    <Check size={10} />
+                                            <div 
+                                                key={index} 
+                                                className="flex gap-2.5 items-start p-2.5 rounded-xl bg-card/60 border border-border/40 text-[11px] leading-relaxed text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
+                                            >
+                                                <div className="p-1 rounded-lg bg-primary/15 text-primary shrink-0 mt-0.5 border border-primary/20">
+                                                    <Check size={10} strokeWidth={2.5} />
                                                 </div>
-                                                <span>{point}</span>
-                                            </li>
+                                                <span className="font-normal">{point}</span>
+                                            </div>
                                         ))}
-                                    </ul>
+                                    </div>
                                 ) : (
-                                    <p className="text-xs leading-relaxed text-muted-foreground whitespace-pre-line">
+                                    <p className="text-xs leading-relaxed text-muted-foreground whitespace-pre-line p-2">
                                         {latestUpdate.description}
                                     </p>
                                 )}
                             </div>
 
-                            {/* TikTok Follow CTA */}
-                            <a
-                                href="https://tiktok.com/@nirmal_kalubovila"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-primary/5 to-transparent border border-indigo-500/20 hover:border-indigo-500/40 transition-all group"
-                            >
-                                <div className="p-2 rounded-xl bg-foreground text-background shrink-0">
-                                    <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.85.97 2 1.69 3.29 2.05v3.9c-1.39-.08-2.74-.63-3.83-1.5-.24-.18-.46-.38-.67-.58v5.52c0 3.26-1.87 6.17-4.8 7.37-2.6 1.07-5.63.76-7.97-.84-2.13-1.46-3.29-3.99-3.02-6.52.27-2.58 2-4.82 4.49-5.63 1.34-.44 2.8-.39 4.1.1v4c-.87-.36-1.85-.38-2.73-.04-1.28.48-2.12 1.8-2.03 3.17.1 1.48 1.33 2.7 2.82 2.69 1.49-.01 2.66-1.21 2.66-2.7V.02h.18z"/>
-                                    </svg>
+                            {/* Footer Action Area */}
+                            <div className="space-y-3 shrink-0 pt-3 border-t border-border/60 relative z-10">
+                                {/* Small subtle info bar */}
+                                <div className="flex items-center justify-between text-[10px] text-muted-foreground/80 px-1">
+                                    <a
+                                        href="https://tiktok.com/@nirmal_kalubovila"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:text-foreground transition-colors"
+                                    >
+                                        Follow on TikTok for updates
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setModalOpen(false); navigate('/profile?tab=updater'); }}
+                                        className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer font-medium"
+                                    >
+                                        More info <ExternalLink size={9} />
+                                    </button>
                                 </div>
-                                <div className="space-y-0.5 min-w-0">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 block">Follow for Updates</span>
-                                    <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">Follow me on TikTok to learn about new features and how to build your legacy</span>
-                                </div>
-                            </a>
 
-                            {/* Got it, Mark as Read Button */}
-                            <div className="pt-2">
+                                {/* Got it, Mark as Read Button */}
                                 <button
                                     type="button"
                                     onClick={handleMarkAsRead}
-                                    className="w-full py-3 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-xs flex items-center justify-center gap-1.5 hover:scale-[1.01] hover:bg-white/90 active:scale-95 transition-all shadow-lg cursor-pointer"
+                                    className="w-full py-3 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:scale-[1.01] hover:bg-white/90 active:scale-95 transition-all shadow-xl shadow-black/20 cursor-pointer"
                                 >
-                                    <Check size={13} strokeWidth={3} />
+                                    <Check size={14} strokeWidth={3} />
                                     <span>Got it, Mark as Read</span>
                                 </button>
                             </div>
