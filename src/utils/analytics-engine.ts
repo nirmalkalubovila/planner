@@ -40,6 +40,7 @@ export interface LifeTrajectoryScore {
   goalScore: number;
   habitScore: number;
   executionScore: number;
+  balanceScore: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -387,22 +388,31 @@ export function analyzeAllWeeks(
 }
 
 // ---------------------------------------------------------------------------
-// Ultimate Life Trajectory Score
+// Ultimate Life Trajectory Score (4 Weighted Dimensions)
 // ---------------------------------------------------------------------------
 
-const GOAL_WEIGHT = 0.40;
-const HABIT_WEIGHT = 0.35;
+const GOAL_WEIGHT = 0.30;
+const HABIT_WEIGHT = 0.30;
 const EXECUTION_WEIGHT = 0.25;
+const BALANCE_WEIGHT = 0.15;
 
 export function computeLifeTrajectory(
   goalAvg: number,
   habitAvg: number,
   executionAvg: number,
+  balanceAvg: number = 50,
 ): LifeTrajectoryScore {
   const goalScore = Math.min(goalAvg, 100) * GOAL_WEIGHT;
   const habitScore = Math.min(habitAvg, 100) * HABIT_WEIGHT;
   const executionScore = Math.min(executionAvg, 100) * EXECUTION_WEIGHT;
-  const total = Math.round(goalScore + habitScore + executionScore);
+  const balanceScore = Math.min(balanceAvg, 100) * BALANCE_WEIGHT;
+  const total = Math.round(goalScore + habitScore + executionScore + balanceScore);
 
-  return { total, goalScore: Math.round(goalScore), habitScore: Math.round(habitScore), executionScore: Math.round(executionScore) };
+  return {
+    total,
+    goalScore: Math.round(goalScore),
+    habitScore: Math.round(habitScore),
+    executionScore: Math.round(executionScore),
+    balanceScore: Math.round(balanceScore),
+  };
 }

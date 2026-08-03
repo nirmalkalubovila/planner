@@ -2,6 +2,8 @@ import type { Goal, Habit } from '@/types/global-types';
 import type { VaultNote } from '@/types/vault';
 import type { GridState } from '@/types/planner';
 import { WeekUtils } from '@/utils/week';
+import { calculateWeekBucketHours } from '@/utils/bucket-engine';
+import { BUCKET_META } from '@/types/time';
 import {
   analyzeGoal,
   analyzeHabit,
@@ -10,7 +12,7 @@ import {
 } from '@/utils/analytics-engine';
 
 export interface InsightCardData {
-  type: 'intro' | 'stats' | 'ranking' | 'comparison' | 'grade' | 'radar' | 'quote' | 'vaultStats' | 'heatmap' | 'outro' | 'summary';
+  type: 'intro' | 'stats' | 'ranking' | 'comparison' | 'grade' | 'radar' | 'quote' | 'vaultStats' | 'heatmap' | 'outro' | 'summary' | 'bucketBalance' | 'executionBalance';
   title: string;
   subtitle?: string;
   metrics?: { label: string; value: string | number; change?: number; changeType?: 'up' | 'down' | 'neutral' }[];
@@ -199,6 +201,32 @@ export function generateWeeklyInsights(
     highlightText: gradeText,
     icon: '⚡',
   });
+
+  // 4 Life Buckets Balance Card
+  const bucketStats = calculateWeekBucketHours(currentWeekPlan?.state || {}, goals, habits, []);
+
+  const totalAssignedHours = Object.values(bucketStats.bucketHours).reduce((a, b) => a + b, 0);
+
+  if (totalAssignedHours > 0) {
+    let focusMsg = 'Balanced distribution across your Life Buckets!';
+    if (bucketStats.weakestBucket) {
+      focusMsg = `Your ${BUCKET_META[bucketStats.weakestBucket].label} bucket received the least allocated hours (${bucketStats.bucketHours[bucketStats.weakestBucket]}h). Consider protecting time for it next week.`;
+    }
+
+    cards.push({
+      type: 'bucketBalance',
+      title: 'Life Bucket Balance',
+      subtitle: 'Your weekly time distribution',
+      metrics: [
+        { label: 'Income-Producing', value: `${bucketStats.bucketHours.income}h` },
+        { label: 'Asset-Building', value: `${bucketStats.bucketHours.asset}h` },
+        { label: 'Recovery', value: `${bucketStats.bucketHours.recovery}h` },
+        { label: 'Relational', value: `${bucketStats.bucketHours.relational}h` },
+      ],
+      highlightText: focusMsg,
+      icon: '⚖️',
+    });
+  }
 
   // Weekly Impact Summary Card (Grand Finale for Social Status)
   let rankPct = 60;

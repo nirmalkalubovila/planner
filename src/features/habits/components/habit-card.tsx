@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Habit } from '@/types/global-types';
 import { cn } from '@/lib/utils';
 
+import { BUCKET_META } from '@/types/time';
+
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_MAP: Record<string, string> = {
     Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed',
@@ -57,14 +59,19 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
             </div>
 
             <div className="p-4 pl-5 flex flex-col gap-3 flex-1">
-                {/* Row 1: Name + everyday badge */}
-                <div className="flex items-start gap-2 pr-14">
+                {/* Row 1: Name + everyday badge + bucket badge */}
+                <div className="flex items-start gap-1.5 flex-wrap pr-14">
                     <h3 className="font-bold text-[15px] leading-snug text-foreground tracking-tight">
                         {habit.name}
                     </h3>
                     {isEveryday && (
                         <span className="shrink-0 mt-0.5 text-[8px] font-black uppercase tracking-widest bg-primary/15 text-primary border border-primary/20 px-1.5 py-0.5 rounded">
                             Daily
+                        </span>
+                    )}
+                    {habit.bucket && BUCKET_META[habit.bucket] && (
+                        <span className={cn("shrink-0 mt-0.5 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", BUCKET_META[habit.bucket].badgeClass)}>
+                            {BUCKET_META[habit.bucket].label}
                         </span>
                     )}
                 </div>

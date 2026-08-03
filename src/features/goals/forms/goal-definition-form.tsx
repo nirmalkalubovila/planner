@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 
+import { BucketSelector } from '@/components/common/bucket-selector';
+import { LifeBucket } from '@/types/time';
+
 function parseLegacyName(text: string): { currentState: string; ultimateGoal: string } {
     if (!text) return { currentState: '', ultimateGoal: '' };
     const marker1 = 'Current State:\n';
@@ -65,6 +68,7 @@ export interface GoalFormValues {
     startDate: string;
     goalType: 'Week' | 'Month' | 'Year';
     durationValue?: number;
+    bucket?: LifeBucket;
 }
 
 interface GoalDefinitionFormProps {
@@ -74,6 +78,7 @@ interface GoalDefinitionFormProps {
 
 export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialValues, onSubmit }) => {
     const [copied, setCopied] = useState(false);
+    const [bucket, setBucket] = useState<LifeBucket | null>(initialValues?.bucket || null);
     const templateText = `I am [your age] and currently [your situation, e.g., a student / working at / freelancing].
 I want to [your goal, e.g., build a clothing brand / start a YouTube channel / get fit].
 My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginner].`;
@@ -112,6 +117,7 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
             startDate: formValues.startDate,
             goalType: formValues.goalType,
             durationValue: formValues.durationValue,
+            bucket: bucket || undefined,
         });
     };
 
@@ -161,6 +167,10 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                     </label>
                     <textarea {...form.register('constraints')} placeholder="e.g., I can only work on this 2 hours a day, my budget is around 15,000 LKR, and I have no marketing experience." className="flex min-h-[70px] w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none" />
                     {form.formState.errors.constraints && <p className="text-xs text-destructive">{form.formState.errors.constraints.message}</p>}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                    <BucketSelector value={bucket} onChange={setBucket} />
                 </div>
 
                 <div className="space-y-2">

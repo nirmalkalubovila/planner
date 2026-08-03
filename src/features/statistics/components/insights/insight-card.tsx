@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { InsightCardData } from '@/utils/insights-engine';
 import type { InsightTheme } from './insight-themes';
-import { Target, Sparkles, TrendingUp, TrendingDown, BookOpen, AlertCircle } from 'lucide-react';
+import { Target, Sparkles, TrendingUp, TrendingDown, BookOpen, AlertCircle, Layers, HeartPulse, Briefcase, Users } from 'lucide-react';
+import { LIFE_BUCKETS, BUCKET_META } from '@/types/time';
 
 interface InsightCardProps {
   data: InsightCardData;
@@ -501,6 +502,55 @@ const RenderCardContent: React.FC<{
                 Global Rank
               </div>
               <p className="text-xs font-black leading-snug text-white/90 pr-20">{data.highlightText}</p>
+            </div>
+          )}
+        </motion.div>
+      );
+
+    case 'bucketBalance':
+      return (
+        <motion.div variants={itemVariants} className="w-full flex flex-col gap-4 text-left">
+          <div className="grid grid-cols-2 gap-3">
+            {LIFE_BUCKETS.map((bucketKey) => {
+              const meta = BUCKET_META[bucketKey];
+              const metric = data.metrics?.find(m => m.label.toLowerCase().includes(bucketKey) || m.label === meta.label);
+              const val = metric ? metric.value : '0h';
+              return (
+                <div key={bucketKey} className={cn("p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-1.5")}>
+                  <span className={cn("text-[9px] font-black uppercase tracking-widest", meta.color)}>
+                    {meta.label}
+                  </span>
+                  <span className="text-xl font-black text-white">{val}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {data.highlightText && (
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
+              <p className="text-xs font-bold leading-relaxed text-white/80">{data.highlightText}</p>
+            </div>
+          )}
+        </motion.div>
+      );
+
+    case 'executionBalance':
+      return (
+        <motion.div variants={itemVariants} className="w-full flex flex-col gap-4 text-center items-center justify-center">
+          <div className="grid grid-cols-2 gap-4 w-full">
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-center">
+              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-1">Execution Score</span>
+              <span className="text-3xl font-black text-emerald-400">{data.metrics?.[0]?.value || '0'}%</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-center">
+              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-1">Balance Score</span>
+              <span className="text-3xl font-black text-violet-400">{data.metrics?.[1]?.value || '0'}/10</span>
+            </div>
+          </div>
+
+          {data.highlightText && (
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-left w-full">
+              <p className="text-xs font-bold leading-relaxed text-white/80">{data.highlightText}</p>
             </div>
           )}
         </motion.div>

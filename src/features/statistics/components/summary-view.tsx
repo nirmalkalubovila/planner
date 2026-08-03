@@ -5,6 +5,7 @@ import { CircularProgress } from '@/components/ui/circular-progress';
 import { WeekUtils } from '@/utils/week';
 import type { UserStatsCache } from '../hooks/use-user-stats';
 import type { DetailedAnalytics } from '../hooks/use-detailed-stats';
+import { LIFE_BUCKETS, BUCKET_META } from '@/types/time';
 
 const Card: React.FC<{
   className?: string;
@@ -87,7 +88,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
             delay={0.2}
           />
           {trajectory && (
-            <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap text-[11px] sm:text-xs text-muted-foreground font-medium mt-4 sm:mt-6">
+            <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap text-[11px] sm:text-xs text-muted-foreground font-medium mt-4 sm:mt-6">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-intent-goal" />
                 Goals {trajectory.goalScore}%
@@ -99,6 +100,10 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-intent-warning" />
                 Execution {trajectory.executionScore}%
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-violet-400" />
+                Balance {trajectory.balanceScore}%
               </span>
             </div>
           )}
@@ -243,6 +248,81 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
         </Card>
       </div>
 
+      {/* Row — Life Balance (4 Buckets Overview) */}
+      <Card delay={0.6}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div>
+            <Label text="Life Balance — 4 Buckets" />
+            <p className="text-xs text-muted-foreground font-normal -mt-3">
+              Weekly hour distribution across Income, Assets, Recovery, and Relationships
+            </p>
+          </div>
+          {detailed?.bucketStats?.weakestBucket && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg self-start sm:self-auto">
+              Focus: {BUCKET_META[detailed.bucketStats.weakestBucket].label}
+            </span>
+          )}
+        </div>
+
+        {detailed?.bucketStats ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              {LIFE_BUCKETS.map((bucketKey) => {
+                const meta = BUCKET_META[bucketKey];
+                const hours = detailed.bucketStats.bucketHours[bucketKey] || 0;
+                const pct = detailed.bucketStats.bucketPercentages[bucketKey] || 0;
+                const isZero = hours === 0;
+
+                return (
+                  <div
+                    key={bucketKey}
+                    className={cn(
+                      "p-3.5 rounded-2xl border transition-all flex flex-col justify-between space-y-2",
+                      isZero
+                        ? "bg-muted/30 border-border opacity-70"
+                        : cn("bg-glass", meta.borderClass)
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={cn("text-xs font-bold uppercase tracking-wider", meta.color)}>
+                        {meta.label}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-foreground">
+                        {hours}h
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, pct)}%` }}
+                          transition={{ duration: 0.6, delay: 0.2 }}
+                          className={cn("h-full rounded-full", isZero ? "bg-muted-foreground/30" : meta.bgClass.replace('/10', '/80'))}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                        <span>{pct}% of assigned</span>
+                        {isZero && <span className="text-amber-400 font-semibold">0h logged</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {detailed.bucketStats.unassignedHours > 0 && (
+              <p className="text-[11px] text-muted-foreground text-center pt-2">
+                Note: {detailed.bucketStats.unassignedHours}h of tasks in your planner don't have a Life Bucket tag yet. Edit your goals and habits to tag them.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="p-6 text-center text-xs text-muted-foreground bg-muted/20 rounded-2xl border border-border">
+            Assign Life Buckets to your goals and habits to view your weekly balance.
+          </div>
+        )}
+      </Card>
 
     </div>
   );

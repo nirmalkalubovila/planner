@@ -8,6 +8,9 @@
 -- ALTER TABLE goals ADD COLUMN IF EXISTS plans jsonb;
 -- ALTER TABLE goals ADD COLUMN IF EXISTS "durationValue" numeric;
 -- ALTER TABLE goals ADD COLUMN IF EXISTS milestones jsonb;
+-- ALTER TABLE goals ADD COLUMN IF EXISTS bucket text;
+-- ALTER TABLE habits ADD COLUMN IF EXISTS bucket text;
+-- ALTER TABLE custom_tasks ADD COLUMN IF EXISTS bucket text;
 CREATE TABLE goals (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -21,7 +24,8 @@ CREATE TABLE goals (
   "goalType" text NOT NULL,
   "durationValue" numeric,
   plans jsonb,
-  milestones jsonb
+  milestones jsonb,
+  bucket text
 );
 
 -- Create habits table
@@ -38,7 +42,8 @@ CREATE TABLE habits (
   purpose text,
   "startDate" text,
   "endDate" text,
-  "daysOfWeek" jsonb
+  "daysOfWeek" jsonb,
+  bucket text
 );
 
 -- Create week_plans table
@@ -60,7 +65,8 @@ CREATE TABLE custom_tasks (
   description text,
   "startTime" text NOT NULL,
   "endTime" text NOT NULL,
-  "daysOfWeek" jsonb NOT NULL DEFAULT '[]'::jsonb
+  "daysOfWeek" jsonb NOT NULL DEFAULT '[]'::jsonb,
+  bucket text
 );
 
 -- Create user_profiles table (planner preferences - persists across OAuth sign-in)

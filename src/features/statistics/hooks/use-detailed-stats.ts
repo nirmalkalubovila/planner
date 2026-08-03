@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import type { Goal, Habit } from '@/types/global-types';
+import type { Goal, Habit, CustomTask } from '@/types/global-types';
 import type { GridState } from '@/types/planner';
+import type { LifeBucket } from '@/types/time';
 import { WeekUtils } from '@/utils/week';
 import {
   analyzeAllGoals,
@@ -13,6 +14,13 @@ import {
   type WeekExecution,
   type LifeTrajectoryScore,
 } from '@/utils/analytics-engine';
+import {
+  calculateWeekBucketHours,
+  detectEmptyBucketStreaks,
+  calculateBucketBalanceScores,
+  type BucketStats,
+  type WeeklyBucketHistory,
+} from '@/utils/bucket-engine';
 
 export interface DetailedAnalytics {
   trajectory: LifeTrajectoryScore;
@@ -28,6 +36,15 @@ export interface DetailedAnalytics {
   weeks: WeekExecution[];
   weekAverage: number;
   bestWeek: WeekExecution | null;
+
+  // Life Buckets Analytics
+  bucketStats: BucketStats;
+  bucketHistory: WeeklyBucketHistory[];
+  emptyBucketStreaks: Record<LifeBucket, number>;
+  bucketBalanceScores: Record<LifeBucket, number>;
+  rawGoals: Goal[];
+  rawHabits: Habit[];
+  rawCustomTasks: CustomTask[];
 }
 
 const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
@@ -35,15 +52,17 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
   const userId = session?.user?.id;
   if (!userId) throw new Error('Not authenticated');
 
-  const [goalsRes, habitsRes, completedRes, weekPlansRes] = await Promise.all([
+  const [goalsRes, habitsRes, customTasksRes, completedRes, weekPlansRes] = await Promise.all([
     supabase.from('goals').select('*').eq('user_id', userId),
     supabase.from('habits').select('*').eq('user_id', userId),
+    supabase.from('custom_tasks').select('*').eq('user_id', userId),
     supabase.from('completed_tasks').select('dayStr, taskIds').eq('user_id', userId),
     supabase.from('week_plans').select('week, state').eq('user_id', userId),
   ]);
 
   const goals: Goal[] = goalsRes.data ?? [];
   const habits: Habit[] = habitsRes.data ?? [];
+  const customTasks: CustomTask[] = customTasksRes.data ?? [];
 
   const completedMap: Record<string, string[]> = {};
   for (const row of (completedRes.data ?? [])) {
@@ -66,7 +85,26 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
   const { analyses: habitAnalyses, average: habitAverage, best: bestHabit } = analyzeAllHabits(habits, completedMap);
   const { weeks, average: weekAverage, best: bestWeek } = analyzeAllWeeks(weekPlans, completedMap);
 
-  const trajectory = computeLifeTrajectory(goalAverage, habitAverage, weekAverage);
+  // Compute bucket stats for current week
+  const currentGridState = currentWeekPlan?.state || {};
+  const bucketStats = calculateWeekBucketHours(currentGridState, goals, habits, customTasks);
+
+  // Compute bucket stats history across all tracked weeks
+  const bucketHistory: WeeklyBucketHistory[] = weekPlans.map((wp) => {
+    const stats = calculateWeekBucketHours(wp.state, goals, habits, customTasks);
+    return {
+      week: wp.week,
+      hours: stats.bucketHours,
+      unassignedHours: stats.unassignedHours,
+      totalHours: stats.totalAllocatedHours,
+    };
+  });
+
+  const emptyBucketStreaks = detectEmptyBucketStreaks(bucketHistory);
+  const bucketBalanceScores = calculateBucketBalanceScores(bucketHistory);
+
+  const avgBalanceScore = (Object.values(bucketBalanceScores).reduce((a, b) => a + b, 0) / 4) * 10;
+  const trajectory = computeLifeTrajectory(goalAverage, habitAverage, weekAverage, avgBalanceScore);
 
   return {
     trajectory,
@@ -79,6 +117,13 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
     weeks,
     weekAverage,
     bestWeek,
+    bucketStats,
+    bucketHistory,
+    emptyBucketStreaks,
+    bucketBalanceScores,
+    rawGoals: goals,
+    rawHabits: habits,
+    rawCustomTasks: customTasks,
   };
 };
 
@@ -89,3 +134,4 @@ export const useDetailedAnalytics = (enabled: boolean) =>
     enabled,
     staleTime: 60 * 1000,
   });
+
