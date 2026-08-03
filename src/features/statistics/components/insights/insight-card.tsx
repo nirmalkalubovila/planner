@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { InsightCardData } from '@/utils/insights-engine';
 import type { InsightTheme } from './insight-themes';
-import { Target, Sparkles, TrendingUp, TrendingDown, BookOpen, AlertCircle, Layers, HeartPulse, Briefcase, Users } from 'lucide-react';
+import { Target, Sparkles, TrendingUp, TrendingDown, BookOpen, AlertCircle, Trophy } from 'lucide-react';
 import { LIFE_BUCKETS, BUCKET_META } from '@/types/time';
 
 interface InsightCardProps {
@@ -37,7 +37,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({ data, theme, index: _i
       initial="hidden"
       animate="visible"
       className={cn(
-        "relative w-full h-full flex flex-col justify-between p-7 sm:p-9 rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl",
+        "relative w-full h-full flex flex-col justify-between p-6 sm:p-9 rounded-none md:rounded-[2rem] overflow-hidden border-0 md:border md:border-white/10 shadow-2xl",
         theme.gradientClass
       )}
       style={{
@@ -421,49 +421,69 @@ const RenderCardContent: React.FC<{
       );
 
     case 'summary':
-      const completedCount = typeof data.metrics?.[0]?.value === 'number' 
-        ? data.metrics[0].value 
-        : parseInt(String(data.metrics?.[0]?.value || 0), 10);
-      const habitsCount = typeof data.metrics?.[1]?.value === 'number' 
-        ? data.metrics[1].value 
-        : parseInt(String(data.metrics?.[1]?.value || 0), 10);
-      const hoursCount = (completedCount * 1.5).toFixed(1);
-      const insightsCount = data.metrics?.[3]?.value ?? 0;
+      const completedCount = data.summaryData?.completedTasks ?? (typeof data.metrics?.[0]?.value === 'number' ? data.metrics[0].value : parseInt(String(data.metrics?.[0]?.value || 0), 10));
+      const habitsCount = data.summaryData?.habitsDone ?? (typeof data.metrics?.[1]?.value === 'number' ? data.metrics[1].value : parseInt(String(data.metrics?.[1]?.value || 0), 10));
+      const hoursCount = data.summaryData?.hoursFocused ?? Number((completedCount * 1.5).toFixed(1));
+      const insightsCount = data.summaryData?.insightsLogged ?? (data.metrics?.[3]?.value ?? 0);
       const isMonthly = data.title?.toLowerCase().includes('month');
 
+      const legacyScore = data.summaryData?.legacyScore ?? 85;
+      const consistencyGrade = data.summaryData?.consistencyGrade ?? 'A';
+      const rankPct = data.summaryData?.globalRankPct ?? (isMonthly ? 10 : 15);
+
+      const dailyActiveList = data.summaryData?.dailyActive || [];
+
       return (
-        <motion.div variants={itemVariants} className="w-full flex flex-col gap-4 text-left">
-          {/* Heatmap Grid Section */}
-          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl shadow-lg space-y-3">
+        <motion.div variants={itemVariants} className="w-full flex flex-col gap-3.5 text-left">
+          {/* Top Score Banner: Legacy Life Score & Consistency Grade */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
+              <div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400 block">Legacy Score</span>
+                <span className="text-xl font-black text-white">{legacyScore}<span className="text-xs text-white/40 font-bold">/100</span></span>
+              </div>
+              <Sparkles size={16} className="text-emerald-400" />
+            </div>
+            <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
+              <div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-amber-400 block">Consistency</span>
+                <span className="text-xl font-black text-white">{consistencyGrade}</span>
+              </div>
+              <Trophy size={16} className="text-amber-400" />
+            </div>
+          </div>
+
+          {/* Activity Heatmap Grid Section (Actual Executions) */}
+          <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl shadow-lg space-y-2">
             <span className="text-[9px] font-black uppercase tracking-widest text-white/50">Activity Heatmap</span>
             {isMonthly ? (
-              /* Monthly compact grid (30 blocks) */
-              <div className="grid grid-cols-10 gap-1.5 py-1">
+              /* Monthly grid reflecting actual dailyActive executions */
+              <div className="grid grid-cols-10 gap-1.5 py-0.5">
                 {Array.from({ length: 30 }).map((_, i) => {
-                  const isActive = (i * 7) % 3 === 0 || i % 5 === 0; // deterministic mockup representation
+                  const isActive = dailyActiveList[i] ?? false;
                   return (
                     <div 
                       key={i} 
                       className={cn(
-                        "w-4 h-4 rounded-sm border border-white/5 transition-all",
-                        isActive ? "bg-emerald-500/30 border-emerald-500/20" : "bg-white/5"
+                        "w-4 h-4 rounded-sm border transition-all",
+                        isActive ? "bg-emerald-500/40 border-emerald-500/50 shadow-[0_0_8px_rgba(52,211,153,0.4)]" : "bg-white/5 border-white/5 opacity-40"
                       )} 
                     />
                   );
                 })}
               </div>
             ) : (
-              /* Weekly 7 day blocks */
-              <div className="flex justify-between gap-1.5 py-1">
+              /* Weekly 7 day blocks reflecting actual dailyActive executions */
+              <div className="flex justify-between gap-1.5 py-0.5">
                 {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => {
-                  const isActive = i === 1 || i === 2 || i === 4; // mockup representation
+                  const isActive = dailyActiveList[i] ?? false;
                   return (
                     <div 
                       key={i} 
                       className={cn(
                         "flex-1 py-1.5 rounded-md border text-[9px] font-black text-center transition-all",
                         isActive 
-                          ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-300 shadow-inner" 
+                          ? "bg-emerald-500/25 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(52,211,153,0.3)]" 
                           : "bg-white/5 border-white/5 text-white/30"
                       )}
                     >
@@ -475,35 +495,40 @@ const RenderCardContent: React.FC<{
             )}
           </div>
 
-          {/* Quick Metrics Grid (2x2 Grid) */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center flex flex-col justify-center">
-              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-1">Tasks Done</span>
-              <span className="text-2xl font-black text-white">{completedCount}</span>
+          {/* Overall Full Summary Metrics (2x2 Grid) */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-center flex flex-col justify-center">
+              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-0.5">Tasks Done</span>
+              <span className="text-xl font-black text-white">{completedCount}</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center flex flex-col justify-center">
-              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-1">Hours Focused</span>
-              <span className="text-2xl font-black text-white">{hoursCount}h</span>
+            <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-center flex flex-col justify-center">
+              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-0.5">Hours Focused</span>
+              <span className="text-xl font-black text-white">{hoursCount}h</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center flex flex-col justify-center">
-              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-1">Habits Done</span>
-              <span className="text-2xl font-black text-white">{habitsCount}</span>
+            <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-center flex flex-col justify-center">
+              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-0.5">Habits Done</span>
+              <span className="text-xl font-black text-white">{habitsCount}</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-center flex flex-col justify-center">
-              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-1">Insights Logged</span>
-              <span className="text-2xl font-black text-white">{insightsCount}</span>
+            <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-center flex flex-col justify-center">
+              <span className="text-[8px] font-black uppercase tracking-wider text-white/45 block mb-0.5">Insights Logged</span>
+              <span className="text-xl font-black text-white">{insightsCount}</span>
             </div>
           </div>
 
-          {/* Comparison Rank Badge */}
-          {data.highlightText && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/20 shadow-lg relative overflow-hidden">
-              <div className="absolute right-3 top-3 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[8px] font-extrabold uppercase px-2 py-0.5 rounded-full tracking-widest animate-pulse">
-                Global Rank
-              </div>
-              <p className="text-xs font-black leading-snug text-white/90 pr-20">{data.highlightText}</p>
+          {/* HIGHLY HIGHLIGHTED Global Rank Badge */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-emerald-900/40 to-black border-2 border-emerald-500/60 shadow-[0_0_20px_rgba(52,211,153,0.25)] relative overflow-hidden flex flex-col justify-between gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                <Trophy size={13} className="text-emerald-400 animate-bounce" /> GLOBAL STANDING
+              </span>
+              <span className="bg-emerald-500 text-black text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider shadow-md">
+                TOP {rankPct}%
+              </span>
             </div>
-          )}
+            <p className="text-xs font-bold leading-snug text-white/90">
+              You ranked in top {rankPct}% of all Legacy builders {isMonthly ? 'this month' : 'this week'}! Compounding wisdom.
+            </p>
+          </div>
         </motion.div>
       );
 

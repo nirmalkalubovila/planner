@@ -46,13 +46,14 @@ CREATE TABLE habits (
   bucket text
 );
 
--- Create week_plans table
+-- ALTER TABLE week_plans ADD COLUMN IF NOT EXISTS bucket_actions jsonb DEFAULT '{}'::jsonb;
 CREATE TABLE week_plans (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
   "createdAt" timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   week text NOT NULL,
   state jsonb NOT NULL,
+  bucket_actions jsonb DEFAULT '{}'::jsonb,
   UNIQUE(user_id, week)
 );
 

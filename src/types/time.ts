@@ -44,3 +44,13 @@ export const BUCKET_META: Record<LifeBucket, BucketMeta> = {
     description: 'Family, friends, real human connection',
   },
 };
+
+export interface WeeklyBucketAction {
+  text: string;
+  linkedItemId?: string;
+  linkedItemType?: 'goal' | 'habit' | 'custom';
+  linkedItemName?: string;
+}
+
+export type WeeklyBucketActions = Partial<Record<LifeBucket, WeeklyBucketAction>>;
+

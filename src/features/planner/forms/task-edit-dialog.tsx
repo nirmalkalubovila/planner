@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 import { useGetGoals } from '@/api/services/goal-service';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
+import { BucketSelector } from '@/components/common/bucket-selector';
+import { LifeBucket } from '@/types/time';
 
 interface TaskEditDialogProps {
     isOpen: boolean;
@@ -21,6 +23,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
     const [goalId, setGoalId] = useState('');
     const [isReminder, setIsReminder] = useState(false);
     const [time, setTime] = useState('09:00');
+    const [bucket, setBucket] = useState<LifeBucket | null>(null);
     const { data: goals } = useGetGoals();
 
     useEffect(() => {
@@ -30,6 +33,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
             setGoalId(initialData.goalId || '');
             setIsReminder(!!initialData.isReminder);
             setTime(initialData.time || initialData.startTime || '09:00');
+            setBucket(initialData.bucket || null);
         }
     }, [isOpen, initialData]);
 
@@ -41,6 +45,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
             goalId: initialData.type === 'goal' ? goalId : undefined,
             isReminder,
             time,
+            bucket: bucket || undefined,
         });
         onClose();
     };
@@ -81,13 +86,19 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
                 </div>
             }
         >
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-5">
                 <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
                         <Tag size={12} /> Name / Title {isHabitType && "(Fixed)"}
                     </label>
                     <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Working on..." className="text-base h-11 rounded-xl" autoFocus={!isHabitType} disabled={isHabitType} />
                 </div>
+
+                {(!isGoalType && !isHabitType) && (
+                    <div className="space-y-2">
+                        <BucketSelector value={bucket} onChange={setBucket} />
+                    </div>
+                )}
 
                 {isGoalType && !isReminder && (
                     <div className="space-y-2">
@@ -107,7 +118,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
                     </div>
                 )}
 
-                {/* When editing an existing reminder, show the time field directly (no checkbox needed) */}
+                {/* When editing an existing reminder, show the time field directly */}
                 {isReminder && (
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">

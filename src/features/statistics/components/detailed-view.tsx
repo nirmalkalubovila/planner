@@ -119,9 +119,10 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
 
     // Check 1: Unassigned bucket tasks
     if (data.bucketStats?.unassignedHours > 0) {
+      const namesList = data.bucketStats.unassignedTaskNames?.length > 0 ? data.bucketStats.unassignedTaskNames.join(', ') : 'scheduled tasks';
       steps.push({
-        title: 'Tag Unassigned Hours',
-        desc: `You have ${data.bucketStats.unassignedHours}h of scheduled tasks without a Life Bucket. Edit your goals/habits to categorize them.`,
+        title: 'Tag Unassigned Tasks',
+        desc: `Unassigned tasks on planner (${data.bucketStats.unassignedHours}h): ${namesList}.`,
         type: 'urgent',
       });
     }
@@ -492,34 +493,40 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
             </div>
           )}
 
-          {/* Bucket Balance Scores */}
+          {/* Bucket Hours Allocated */}
           <div className="space-y-2">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">Bucket Health & Balance Scores</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">Weekly Bucket Hours Allocated</span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {LIFE_BUCKETS.map((bucketKey) => {
                 const meta = BUCKET_META[bucketKey];
-                const score = data.bucketBalanceScores?.[bucketKey] || 1;
                 const hours = data.bucketStats?.bucketHours?.[bucketKey] || 0;
+                const pct = data.bucketStats?.bucketPercentages?.[bucketKey] || 0;
 
                 return (
-                  <div key={bucketKey} className={cn("p-3 rounded-2xl border flex flex-col justify-between space-y-1.5 bg-glass", meta.borderClass)}>
+                  <div key={bucketKey} className={cn("p-3.5 rounded-2xl border flex flex-col justify-between space-y-2 bg-glass", meta.borderClass)}>
                     <span className={cn("text-[10px] font-bold uppercase tracking-wider truncate", meta.color)}>
                       {meta.label}
                     </span>
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xl font-black text-foreground">{score}/10</span>
-                      <span className="text-[10px] font-mono text-muted-foreground">{hours}h this wk</span>
+                    <div className="flex flex-wrap items-baseline justify-between gap-1">
+                      <span className="text-2xl font-black text-foreground font-mono">{hours}h</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">{hours}h / 168h ({pct}%)</span>
                     </div>
                     <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                       <div
-                        className={cn("h-full rounded-full", meta.bgClass.replace('/10', '/80'))}
-                        style={{ width: `${score * 10}%` }}
+                        className={cn("h-full rounded-full", hours > 0 ? meta.bgClass.replace('/10', '/80') : "bg-muted-foreground/20")}
+                        style={{ width: `${Math.min(100, Math.max(hours > 0 ? 10 : 0, pct))}%` }}
                       />
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {data?.bucketStats && (
+              <p className="text-[10px] text-muted-foreground/80 italic text-center pt-2">
+                Note: Recovery bucket includes {data.bucketStats.userSleepHours || 56}h preference sleep ({Math.round((data.bucketStats.userSleepHours || 56) / 7)}h/day) and {data.bucketStats.userPlanHours || 1}h weekly planning.
+              </p>
+            )}
           </div>
 
           {/* 8-Week Bucket Trend */}
@@ -562,12 +569,6 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
             </div>
           )}
 
-          {/* Prompt for unassigned tasks */}
-          {data.bucketStats?.unassignedHours > 0 && (
-            <div className="p-3 rounded-xl bg-muted/40 border border-border text-center text-xs text-muted-foreground">
-              You have <strong className="text-foreground">{data.bucketStats.unassignedHours}h</strong> of scheduled work without Life Buckets. Assigning buckets to your goals and habits gives you full clarity on where your life energy goes.
-            </div>
-          )}
         </div>
       </Panel>
 

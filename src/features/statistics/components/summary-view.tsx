@@ -134,8 +134,8 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
         </Card>
       </div>
 
-      {/* Row — Three circular progress cards: Goals / Habits / Execution */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Row — Four circular progress cards: Goals / Habits / Execution / Balance (2x2 Grid) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Goals */}
         <Card className="items-center" delay={0.2}>
           <Label text="Goal Progress" />
@@ -192,6 +192,36 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
             <div className="mt-4 pt-3 border-t border-border w-full text-center">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">All-Time Avg</p>
               <p className="text-lg font-black text-intent-warning/80 mt-1">{detailed.weekAverage}%</p>
+            </div>
+          )}
+        </Card>
+
+        {/* Life Balance */}
+        <Card className="items-center" delay={0.5}>
+          <Label text="Life Balance" />
+          <CircularProgress
+            value={
+              detailed?.bucketBalanceScores
+                ? Math.round((Object.values(detailed.bucketBalanceScores).reduce((a, b) => a + b, 0) / 4) * 10)
+                : 50
+            }
+            size={90}
+            strokeWidth={7}
+            color="stroke-violet-400"
+            label={
+              detailed?.bucketStats?.weakestBucket
+                ? `Focus: ${BUCKET_META[detailed.bucketStats.weakestBucket].label}`
+                : 'Balanced'
+            }
+            sublabel="Bucket Health"
+            delay={0.6}
+          />
+          {detailed && (
+            <div className="mt-4 pt-3 border-t border-border w-full text-center">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">4 Buckets Avg</p>
+              <p className="text-lg font-black text-violet-400 mt-1">
+                {Math.round((Object.values(detailed.bucketBalanceScores || {}).reduce((a, b) => a + b, 0) / 4) * 10)}%
+              </p>
             </div>
           )}
         </Card>
@@ -254,14 +284,19 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
           <div>
             <Label text="Life Balance — 4 Buckets" />
             <p className="text-xs text-muted-foreground font-normal -mt-3">
-              Weekly hour distribution across Income, Assets, Recovery, and Relationships
+              Current 7-day week hour distribution across Income, Assets, Recovery, and Relationships
             </p>
           </div>
-          {detailed?.bucketStats?.weakestBucket && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg self-start sm:self-auto">
-              Focus: {BUCKET_META[detailed.bucketStats.weakestBucket].label}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
+              Total Allocated: {detailed?.bucketStats?.totalAllocatedHours || 0}h / 168h
             </span>
-          )}
+            {detailed?.bucketStats?.weakestBucket && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg self-start sm:self-auto">
+                Focus: {BUCKET_META[detailed.bucketStats.weakestBucket].label}
+              </span>
+            )}
+          </div>
         </div>
 
         {detailed?.bucketStats ? (
@@ -302,7 +337,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
                         />
                       </div>
                       <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                        <span>{pct}% of assigned</span>
+                        <span>{hours}h / 168h ({pct}% of week)</span>
                         {isZero && <span className="text-amber-400 font-semibold">0h logged</span>}
                       </div>
                     </div>
@@ -311,9 +346,9 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
               })}
             </div>
 
-            {detailed.bucketStats.unassignedHours > 0 && (
-              <p className="text-[11px] text-muted-foreground text-center pt-2">
-                Note: {detailed.bucketStats.unassignedHours}h of tasks in your planner don't have a Life Bucket tag yet. Edit your goals and habits to tag them.
+            {detailed?.bucketStats && (
+              <p className="text-[10px] text-muted-foreground/80 italic text-center pt-2">
+                Note: Recovery bucket includes {detailed.bucketStats.userSleepHours || 56}h preference sleep ({Math.round((detailed.bucketStats.userSleepHours || 56) / 7)}h/day) and {detailed.bucketStats.userPlanHours || 1}h weekly planning.
               </p>
             )}
           </div>

@@ -125,6 +125,102 @@ export async function renderShareCardToCanvas(
       currentY += capH + 25;
     });
   } 
+  else if (data.type === 'bucketBalance' && data.metrics) {
+    const gridW = width * 0.88;
+    const startColX = (width - gridW) / 2;
+    const capW = gridW / 2;
+    const capH = 110;
+    const rowGap = 20;
+    const rowY = contentY + 10;
+
+    const colors: Record<string, string> = {
+      'Income-Producing': '#34d399',
+      'Asset-Building': '#a855f7',
+      'Recovery': '#3b82f6',
+      'Relational': '#f59e0b',
+    };
+
+    data.metrics.forEach((m, idx) => {
+      const colIdx = idx % 2;
+      const rowIdx = Math.floor(idx / 2);
+      
+      const x = startColX + colIdx * capW;
+      const y = rowY + rowIdx * (capH + rowGap);
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 1;
+      
+      drawRoundedRect(ctx, x + 8, y, capW - 16, capH, 20);
+      ctx.fill();
+      ctx.stroke();
+
+      // Label text with bucket theme color
+      const labelColor = colors[m.label] || '#FFFFFF';
+      ctx.fillStyle = labelColor;
+      ctx.font = '900 11px sans-serif';
+      ctx.letterSpacing = '1px';
+      ctx.textAlign = 'left';
+      ctx.fillText(m.label.toUpperCase(), x + 24, y + 36);
+      ctx.letterSpacing = '0px';
+
+      // Value text
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 32px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(String(m.value), x + 24, y + 80);
+    });
+
+    // Highlight text container under 2x2 grid
+    if (data.highlightText) {
+      const msgY = rowY + (capH + rowGap) * 2 + 25;
+      const msgW = width * 0.88;
+      const msgX = (width - msgW) / 2;
+      const msgH = 120;
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1;
+
+      drawRoundedRect(ctx, msgX, msgY, msgW, msgH, 20);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.textAlign = 'center';
+      wrapText(ctx, data.highlightText, width / 2, msgY + 45, msgW - 40, 24);
+    }
+  }
+  else if (data.type === 'heatmap') {
+    const cardY = contentY + 40;
+    const cardW = width * 0.85;
+    const cardX = (width - cardW) / 2;
+    const cardH = 280;
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 24);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 64px sans-serif';
+    ctx.textAlign = 'center';
+    const val = data.metrics?.[0]?.value || 0;
+    ctx.fillText(String(val), width / 2, cardY + 120);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.font = '900 12px sans-serif';
+    ctx.letterSpacing = '1px';
+    if (data.highlightText) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.font = 'bold 15px sans-serif';
+      ctx.textAlign = 'center';
+      wrapText(ctx, data.highlightText, width / 2, cardY + 210, cardW - 50, 22);
+    }
+  }
   else if (data.type === 'ranking' && data.listItems) {
     let currentY = contentY;
     data.listItems.forEach(item => {
@@ -317,21 +413,70 @@ export async function renderShareCardToCanvas(
     }
   }
   else if (data.type === 'summary' && data.metrics) {
-    const completedVal = Number(data.metrics[0].value) || 0;
-    const habitsVal = Number(data.metrics[1].value) || 0;
-    const hoursVal = (completedVal * 1.5).toFixed(1);
-    const gradeVal = String(data.metrics[2]?.value || 'A+');
-    const insightsVal = Number(data.metrics[3]?.value) || 0;
+    const summary = data.summaryData;
+    const completedVal = summary?.completedTasks ?? Number(data.metrics[0]?.value || 0);
+    const habitsVal = summary?.habitsDone ?? Number(data.metrics[1]?.value || 0);
+    const hoursVal = summary?.hoursFocused ?? Number((completedVal * 1.5).toFixed(1));
+    const insightsVal = summary?.insightsLogged ?? Number(data.metrics[3]?.value || 0);
+    const legacyScoreVal = summary?.legacyScore ?? 85;
+    const gradeVal = summary?.consistencyGrade ?? String(data.metrics[2]?.value || 'A+');
+    const rankPctVal = summary?.globalRankPct ?? 10;
+    const dailyActive = summary?.dailyActive || [];
     const isMonthly = data.title.toLowerCase().includes('month');
 
-    // 1. Draw grid of activity heatmap blocks (scaled up)
-    const blockY = contentY + 5;
-    const blockW = 54;
-    const blockH = 54;
-    const gap = 14;
+    // 1. Top Banner: Legacy Life Score & Consistency Grade
+    const topBannerY = contentY;
+    const topBannerW = width * 0.88;
+    const topBannerX = (width - topBannerW) / 2;
+    const topCapW = topBannerW / 2;
+    const topCapH = 75;
+
+    // Legacy Score Box
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.strokeStyle = 'rgba(52, 211, 153, 0.3)';
+    ctx.lineWidth = 1.5;
+    drawRoundedRect(ctx, topBannerX + 6, topBannerY, topCapW - 12, topCapH, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#34d399';
+    ctx.font = '900 11px sans-serif';
+    ctx.letterSpacing = '1px';
+    ctx.textAlign = 'left';
+    ctx.fillText('LEGACY SCORE', topBannerX + 22, topBannerY + 30);
+    ctx.letterSpacing = '0px';
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 28px sans-serif';
+    ctx.fillText(`${legacyScoreVal}/100`, topBannerX + 22, topBannerY + 60);
+
+    // Consistency Grade Box
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
+    ctx.lineWidth = 1.5;
+    drawRoundedRect(ctx, topBannerX + topCapW + 6, topBannerY, topCapW - 12, topCapH, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = '900 11px sans-serif';
+    ctx.letterSpacing = '1px';
+    ctx.textAlign = 'left';
+    ctx.fillText('CONSISTENCY', topBannerX + topCapW + 22, topBannerY + 30);
+    ctx.letterSpacing = '0px';
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 28px sans-serif';
+    ctx.fillText(gradeVal, topBannerX + topCapW + 22, topBannerY + 60);
+
+    // 2. Draw Activity Heatmap Blocks (Actual Executions)
+    const blockY = topBannerY + topCapH + 20;
+    const blockW = isMonthly ? 48 : 54;
+    const blockH = isMonthly ? 48 : 54;
+    const gap = isMonthly ? 10 : 14;
     
     if (isMonthly) {
-      // Draw a 30-day mini grid (10 columns x 3 rows)
+      // Draw 30-day mini grid (10 cols x 3 rows) with actual dailyActive execution
       const cols = 10;
       const rows = 3;
       const totalW = (blockW * cols) + (gap * (cols - 1));
@@ -340,16 +485,18 @@ export async function renderShareCardToCanvas(
       for (let rIdx = 0; rIdx < rows; rIdx++) {
         for (let cIdx = 0; cIdx < cols; cIdx++) {
           const idx = rIdx * cols + cIdx;
-          const isActive = (idx * 7) % 3 === 0 || idx % 5 === 0;
+          const isActive = dailyActive[idx] ?? false;
           const x = startX + cIdx * (blockW + gap);
           const y = blockY + rIdx * (blockH + gap);
 
           if (isActive) {
-            ctx.fillStyle = 'rgba(52, 211, 153, 0.22)';
-            ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+            ctx.fillStyle = 'rgba(52, 211, 153, 0.4)';
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 1.5;
           } else {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 1;
           }
 
           drawRoundedRect(ctx, x, y, blockW, blockH, 10);
@@ -358,27 +505,28 @@ export async function renderShareCardToCanvas(
         }
       }
     } else {
-      // Weekly 7 blocks
+      // Weekly 7 blocks with actual dailyActive execution
       const totalW = (blockW * 7) + (gap * 6);
       const startX = (width - totalW) / 2;
       
       for (let i = 0; i < 7; i++) {
-        const isActive = i === 1 || i === 2 || i === 4;
+        const isActive = dailyActive[i] ?? false;
         const x = startX + i * (blockW + gap);
 
         if (isActive) {
-          ctx.fillStyle = 'rgba(52, 211, 153, 0.22)';
-          ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+          ctx.fillStyle = 'rgba(52, 211, 153, 0.35)';
+          ctx.strokeStyle = '#34d399';
+          ctx.lineWidth = 1.5;
         } else {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.lineWidth = 1;
         }
 
         drawRoundedRect(ctx, x, blockY, blockW, blockH, 12);
         ctx.fill();
         ctx.stroke();
 
-        // Draw day character
         ctx.fillStyle = isActive ? '#34d399' : 'rgba(255, 255, 255, 0.35)';
         ctx.font = '900 13px sans-serif';
         ctx.textAlign = 'center';
@@ -387,17 +535,17 @@ export async function renderShareCardToCanvas(
       }
     }
 
-    // 2. Draw Quick Stats Grid Row (2x2 Grid)
-    const rowY = isMonthly ? blockY + (blockH + gap) * 3 + 35 : blockY + blockH + 45;
-    const gridW = width * 0.85;
+    // 3. Draw Quick Stats Grid Row (2x2 Grid)
+    const rowY = isMonthly ? blockY + (blockH + gap) * 3 + 25 : blockY + blockH + 35;
+    const gridW = width * 0.88;
     const startColX = (width - gridW) / 2;
     const capW = gridW / 2;
-    const capH = 92;
-    const rowGap = 18;
+    const capH = 85;
+    const rowGap = 16;
 
     const stats = [
       { label: 'TASKS DONE', val: completedVal },
-      { label: 'HOURS FOCUS', val: `${hoursVal}H` },
+      { label: 'HOURS FOCUSED', val: `${hoursVal}H` },
       { label: 'HABITS DONE', val: habitsVal },
       { label: 'INSIGHTS LOGGED', val: insightsVal }
     ];
@@ -418,107 +566,63 @@ export async function renderShareCardToCanvas(
       ctx.stroke();
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-      ctx.font = '900 11px sans-serif';
+      ctx.font = '900 10px sans-serif';
+      ctx.letterSpacing = '1px';
       ctx.textAlign = 'center';
-      ctx.fillText(st.label, x + capW / 2, y + 32);
+      ctx.fillText(st.label, x + capW / 2, y + 28);
+      ctx.letterSpacing = '0px';
 
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '900 32px sans-serif';
+      ctx.font = '900 28px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(String(st.val), x + capW / 2, y + 68);
+      ctx.fillText(String(st.val), x + capW / 2, y + 62);
     });
 
-    // 3. Draw Comparison Rank Badge (Highly Highlighted + Grade Badge)
-    const badgeY = rowY + (capH + rowGap) * 2 + 25;
-    const badgeW = width * 0.85;
+    // 4. Draw HIGHLY HIGHLIGHTED Global Rank Badge Container
+    const badgeY = rowY + (capH + rowGap) * 2 + 20;
+    const badgeW = width * 0.88;
     const badgeX = (width - badgeW) / 2;
-    const badgeH = 135;
+    const badgeH = 125;
 
-    // Glowing green shadow for Global Rank container
-    ctx.shadowColor = 'rgba(52, 211, 153, 0.35)';
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = 'rgba(52, 211, 153, 0.08)';
+    ctx.shadowColor = 'rgba(52, 211, 153, 0.45)';
+    ctx.shadowBlur = 25;
+    ctx.fillStyle = 'rgba(6, 40, 25, 0.85)';
     ctx.strokeStyle = '#34d399';
-    ctx.lineWidth = 2;
-    drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 24);
+    ctx.lineWidth = 2.5;
+    drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 22);
     ctx.fill();
     ctx.stroke();
-    
-    // Reset shadow
     ctx.shadowBlur = 0;
 
-    // Draw Standing Label
+    // Global Standing header line
     ctx.fillStyle = '#34d399';
-    ctx.font = '900 11px sans-serif';
-    ctx.letterSpacing = '1px';
+    ctx.font = '900 12px sans-serif';
+    ctx.letterSpacing = '1.5px';
     ctx.textAlign = 'left';
-    ctx.fillText('GLOBAL STANDING', badgeX + 25, badgeY + 35);
+    ctx.fillText('🏆 GLOBAL STANDING', badgeX + 25, badgeY + 35);
     ctx.letterSpacing = '0px';
 
-    // Draw Standing Description Text (wrapped within 70% of box width)
-    if (data.highlightText) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.font = 'bold 15px sans-serif';
-      ctx.textAlign = 'left';
-      wrapText(ctx, data.highlightText, badgeX + 25, badgeY + 68, badgeW - 150, 24);
-    }
+    // Highlighted Top Rank Badge (right side)
+    const badgePillW = 110;
+    const badgePillH = 32;
+    const badgePillX = badgeX + badgeW - badgePillW - 20;
+    const badgePillY = badgeY + 18;
 
-    // Draw Consistency Grade Circular Badge (right side)
-    const gradeCX = badgeX + badgeW - 65;
-    const gradeCY = badgeY + badgeH / 2;
-    const gradeRadius = 40;
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
-    ctx.strokeStyle = 'rgba(52, 211, 153, 0.3)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(gradeCX, gradeCY, gradeRadius, 0, Math.PI * 2);
+    ctx.fillStyle = '#34d399';
+    drawRoundedRect(ctx, badgePillX, badgePillY, badgePillW, badgePillH, 16);
     ctx.fill();
-    ctx.stroke();
 
-    ctx.fillStyle = 'rgba(52, 211, 153, 0.6)';
-    ctx.font = '900 9px sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.font = '900 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('GRADE', gradeCX, gradeCY - 16);
+    ctx.fillText(`TOP ${rankPctVal}%`, badgePillX + badgePillW / 2, badgePillY + 21);
 
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '900 36px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(gradeVal, gradeCX, gradeCY + 15);
-
-    // 4. Draw Pinned Vault Quote Section (at the bottom)
-    const quoteY = badgeY + badgeH + 30;
-    const quoteW = width * 0.85;
-    const quoteX = (width - quoteW) / 2;
-    const quoteH = 150;
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.lineWidth = 1;
-    drawRoundedRect(ctx, quoteX, quoteY, quoteW, quoteH, 20);
-    ctx.fill();
-    ctx.stroke();
-
-    // Giant background quote mark
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
-    ctx.font = 'italic 120px sans-serif';
+    // Highlight text description
+    const rankMsg = `You ranked in top ${rankPctVal}% of all Legacy builders ${isMonthly ? 'this month' : 'this week'}! Compounding wisdom.`;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.font = 'bold 15px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('“', quoteX + 20, quoteY + 95);
-
-    // Quote content text
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.font = 'italic bold 16px sans-serif';
-    ctx.textAlign = 'left';
-    const quoteText = data.quote?.text || 'Compounding wisdom daily.';
-    wrapText(ctx, quoteText, quoteX + 60, quoteY + 45, quoteW - 90, 24);
-
-    // Quote author
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.font = '900 11px sans-serif';
-    ctx.letterSpacing = '1px';
-    ctx.textAlign = 'right';
-    ctx.fillText(data.quote?.author?.toUpperCase() || 'VAULT', quoteX + quoteW - 25, quoteY + quoteH - 22);
-    ctx.letterSpacing = '0px';
+    wrapText(ctx, rankMsg, badgeX + 25, badgeY + 74, badgeW - 50, 24);
   }
   else {
     // Intro or fallback: simple centered message

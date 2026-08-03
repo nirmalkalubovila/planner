@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { GridState } from "@/types/global-types";
+import { WeeklyBucketActions } from "@/types/time";
 import { WeekUtils } from "@/utils/week-utils";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
@@ -124,12 +125,78 @@ export function useClearWeekPlan() {
 
             if (error) throw new Error(error.message);
         },
-        onError: (err) => {
+        onError: (err: Error) => {
             toast.error("Failed to clear plan: " + err.message);
         },
-        onSuccess: (_, week) => {
+        onSuccess: (_: void, week: string) => {
             toast.success("Week plan cleared.");
             queryClient.invalidateQueries({ queryKey: ["planner", WeekUtils.normalizeWeek(week)] });
+        },
+    });
+}
+
+export function useGetWeekBucketActions(week: string) {
+    return useQuery({
+        queryKey: ["planner_bucket_actions", WeekUtils.normalizeWeek(week)],
+        queryFn: async (): Promise<WeeklyBucketActions> => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+            if (!userId) return {};
+
+            const normalizedWeek = WeekUtils.normalizeWeek(week);
+            const dbWeekKey = WeekUtils.formatWeekDisplay(normalizedWeek);
+            const { data } = await supabase
+                .from(TABLE_NAME)
+                .select("bucket_actions")
+                .eq("week", dbWeekKey)
+                .eq("user_id", userId)
+                .maybeSingle();
+
+            return data?.bucket_actions || {};
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+}
+
+export function useSaveBucketActions() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ week, bucketActions }: { week: string; bucketActions: WeeklyBucketActions }) => {
+            const { data: { session } } = await supabase.auth.getSession();
+            const userId = session?.user?.id;
+            if (!userId) throw new Error("Not authenticated");
+
+            const normalizedWeek = WeekUtils.normalizeWeek(week);
+            const dbWeekKey = WeekUtils.formatWeekDisplay(normalizedWeek);
+
+            // Fetch existing plan state first to avoid overwriting grid state
+            const { data: existing } = await supabase
+                .from(TABLE_NAME)
+                .select("state")
+                .eq("week", dbWeekKey)
+                .eq("user_id", userId)
+                .maybeSingle();
+
+            const currentState = existing?.state || {};
+
+            const { error } = await supabase
+                .from(TABLE_NAME)
+                .upsert(
+                    { user_id: userId, week: dbWeekKey, state: currentState, bucket_actions: bucketActions },
+                    { onConflict: 'user_id,week' }
+                );
+
+            if (error) throw new Error(error.message);
+            return bucketActions;
+        },
+        onSuccess: (_, variables) => {
+            const normalizedWeek = WeekUtils.normalizeWeek(variables.week);
+            queryClient.invalidateQueries({ queryKey: ["planner_bucket_actions", normalizedWeek] });
+            toast.success("Sunday 4-Bucket Focus Targets saved!");
+        },
+        onError: (err) => {
+            toast.error("Failed to save bucket actions: " + err.message);
         },
     });
 }
