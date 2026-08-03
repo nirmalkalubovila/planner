@@ -99,13 +99,13 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ isOpen, onClose, cards
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 touch-none select-none"
+        className="fixed inset-0 z-[300] bg-black backdrop-blur-md flex flex-col items-center justify-center p-0 md:p-4 touch-none select-none"
       >
         {/* Main Content Area */}
-        <div className="relative w-full max-w-[420px] h-[calc(100vh-6rem)] sm:h-[680px] flex flex-col justify-between">
+        <div className="relative w-full h-full max-w-full md:max-w-[420px] md:h-[720px] flex flex-col justify-between overflow-hidden rounded-none md:rounded-[2.5rem] bg-black shadow-2xl">
           
           {/* Top Segmented Progress Indicators */}
-          <div className="absolute top-4 inset-x-0 flex gap-1 px-4 z-50">
+          <div className="absolute top-3 inset-x-0 flex gap-1 px-4 z-50">
             {cards.map((_, idx) => (
               <div key={idx} className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
                 <div 
@@ -119,8 +119,8 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ isOpen, onClose, cards
             ))}
           </div>
 
-          {/* Floating top right close icon */}
-          <div className="absolute top-8 right-4 z-50">
+          {/* Floating top right close icon (Desktop view only, on mobile users swipe/back) */}
+          <div className="hidden md:block absolute top-6 right-4 z-50">
             <button
               onClick={onClose}
               className="p-2.5 rounded-full bg-black/40 border border-white/10 text-white/80 hover:text-white hover:bg-black/60 backdrop-blur-md transition-all active:scale-95 shadow-lg"
@@ -131,7 +131,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ isOpen, onClose, cards
           </div>
 
           {/* Left/Right Invisible Tap Zones for Mobile Quick Navigation */}
-          <div className="absolute inset-x-0 top-16 bottom-20 flex z-30 pointer-events-none">
+          <div className="absolute inset-x-0 top-14 bottom-20 flex z-30 pointer-events-none">
             <div 
               className="w-1/4 h-full pointer-events-auto cursor-w-resize"
               onPointerDown={() => setIsPaused(true)}
@@ -152,7 +152,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ isOpen, onClose, cards
           </div>
 
           {/* The Active Card container with spring physics slide animations */}
-          <div className="flex-1 mt-18 mb-4 rounded-[2rem] overflow-hidden relative shadow-2xl">
+          <div className="flex-1 w-full h-full relative overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeIdx}
@@ -167,30 +167,33 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({ isOpen, onClose, cards
             </AnimatePresence>
           </div>
 
-          {/* Bottom user action & navigation toolbar */}
-          <div className="flex items-center justify-between px-4 pb-2 z-40 gap-4">
+          {/* Desktop Chevron Navigation Left */}
+          <div className="hidden md:flex absolute bottom-6 left-6 z-50 pointer-events-auto">
             <button
               onClick={handlePrev}
               disabled={activeIdx === 0}
-              className="p-3 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed hover:bg-white/10 backdrop-blur-md transition-all active:scale-90"
+              className="flex items-center justify-center p-3 rounded-full bg-black/60 border border-white/10 text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed hover:bg-black/80 backdrop-blur-md transition-all active:scale-90"
               title="Previous"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={18} />
             </button>
+          </div>
 
-            {/* Glowing, user-friendly Share Button centered at the bottom of screen */}
-            <div className="shadow-lg shadow-black/40 rounded-full">
-              <ShareButton cardData={currentCard} theme={currentTheme} index={activeIdx} />
-            </div>
-
+          {/* Desktop Chevron Navigation Right (Offset next to share button) */}
+          <div className="hidden md:flex absolute bottom-6 right-20 z-50 pointer-events-auto">
             <button
               onClick={handleNext}
               disabled={activeIdx === cards.length - 1}
-              className="p-3 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed hover:bg-white/10 backdrop-blur-md transition-all active:scale-90"
+              className="flex items-center justify-center p-3 rounded-full bg-black/60 border border-white/10 text-white/70 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed hover:bg-black/80 backdrop-blur-md transition-all active:scale-90"
               title="Next"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={18} />
             </button>
+          </div>
+
+          {/* Floating Share Button at Bottom Right Corner */}
+          <div className="absolute bottom-5 right-5 z-50 pointer-events-auto">
+            <ShareButton cardData={currentCard} theme={currentTheme} index={activeIdx} />
           </div>
 
         </div>

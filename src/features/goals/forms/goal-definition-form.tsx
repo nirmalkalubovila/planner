@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 
+import { BucketSelector } from '@/components/common/bucket-selector';
+import { LifeBucket } from '@/types/time';
+
 function parseLegacyName(text: string): { currentState: string; ultimateGoal: string } {
     if (!text) return { currentState: '', ultimateGoal: '' };
     const marker1 = 'Current State:\n';
@@ -65,15 +68,18 @@ export interface GoalFormValues {
     startDate: string;
     goalType: 'Week' | 'Month' | 'Year';
     durationValue?: number;
+    bucket?: LifeBucket;
 }
 
 interface GoalDefinitionFormProps {
     initialValues?: Partial<GoalFormValues>;
-    onSubmit: (values: GoalFormValues) => void;
+    onSubmit: (values: GoalFormValues, mode?: 'save' | 'replan') => void;
+    isEditing?: boolean;
 }
 
-export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialValues, onSubmit }) => {
+export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialValues, onSubmit, isEditing }) => {
     const [copied, setCopied] = useState(false);
+    const [bucket, setBucket] = useState<LifeBucket | null>(initialValues?.bucket || null);
     const templateText = `I am [your age] and currently [your situation, e.g., a student / working at / freelancing].
 I want to [your goal, e.g., build a clothing brand / start a YouTube channel / get fit].
 My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginner].`;
@@ -102,7 +108,7 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
 
     const watchedGoalType = form.watch('goalType');
 
-    const handleFormSubmit = (formValues: FormValues) => {
+    const handleFormSubmit = (formValues: FormValues, mode: 'save' | 'replan' = 'replan') => {
         const name = `Current State:\n${formValues.currentState}\n\nUltimate Goal:\n${formValues.ultimateGoal}`;
         const purpose = `Strict Constraints:\n${formValues.constraints}`;
         onSubmit({
@@ -112,11 +118,12 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
             startDate: formValues.startDate,
             goalType: formValues.goalType,
             durationValue: formValues.durationValue,
-        });
+            bucket: bucket || undefined,
+        }, mode);
     };
 
     return (
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-5">
+        <form onSubmit={form.handleSubmit((v) => handleFormSubmit(v, 'replan'))} className="space-y-5">
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
                 <div className="flex justify-between items-center">
                     <span className="text-xs font-bold uppercase tracking-wider text-primary">Quick Template</span>
@@ -163,6 +170,10 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                     {form.formState.errors.constraints && <p className="text-xs text-destructive">{form.formState.errors.constraints.message}</p>}
                 </div>
 
+                <div className="space-y-2 md:col-span-2">
+                    <BucketSelector value={bucket} onChange={setBucket} />
+                </div>
+
                 <div className="space-y-2">
                     <label className="text-sm font-medium flex items-center gap-2"><CalendarIcon size={14} /> Start Date</label>
                     <Controller
@@ -201,10 +212,32 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                     {form.formState.errors.durationValue && <p className="text-xs text-destructive">{form.formState.errors.durationValue.message}</p>}
                 </div>
             </div>
-            <div className="flex justify-end pt-2">
-                <Button type="submit" className="w-full sm:w-auto">
-                    Save & Continue <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
+
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2">
+                {isEditing ? (
+                    <>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full sm:w-auto font-bold h-9 text-xs"
+                            onClick={form.handleSubmit((v) => handleFormSubmit(v, 'save'))}
+                        >
+                            Save Goal
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="default"
+                            className="w-full sm:w-auto font-bold h-9 text-xs"
+                            onClick={form.handleSubmit((v) => handleFormSubmit(v, 'replan'))}
+                        >
+                            Re-plan Goal <ChevronRight className="ml-1.5 h-4 w-4" />
+                        </Button>
+                    </>
+                ) : (
+                    <Button type="submit" className="w-full sm:w-auto font-bold h-9 text-xs">
+                        Save & Continue <ChevronRight className="ml-1.5 h-4 w-4" />
+                    </Button>
+                )}
             </div>
         </form>
     );

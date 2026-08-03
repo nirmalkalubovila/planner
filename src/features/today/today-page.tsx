@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGetWeekPlan } from '@/api/services/planner-service';
+import { useGetWeekPlan, useGetWeekBucketActions } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetCompletedTasks, useToggleCompletedTask } from '@/api/services/today-service';
 import { WeekUtils } from '@/utils/week-utils';
@@ -8,6 +8,7 @@ import { Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ActiveTheme } from './components/active-theme';
+import { WeeklyTargetsBanner } from './components/weekly-targets-banner';
 import { useTodayTasks } from './hooks/use-today-tasks';
 
 export const TodayPage: React.FC = () => {
@@ -17,6 +18,7 @@ export const TodayPage: React.FC = () => {
     const dayIdx = parseInt(currentDayStr.split('-')[2]) - 1;
 
     const { data: weekPlan } = useGetWeekPlan(currentWeek);
+    const { data: bucketActions = {} } = useGetWeekBucketActions(currentWeek);
     const { data: habits } = useGetHabits();
     const { data: completedTasks } = useGetCompletedTasks(currentDayStr);
     const toggleTask = useToggleCompletedTask();
@@ -57,6 +59,8 @@ export const TodayPage: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <WeeklyTargetsBanner bucketActions={bucketActions} />
 
             {tasks.length > 0 && (
                 <div className="w-full shrink-0">

@@ -10,6 +10,9 @@ import { CustomDatePicker } from '@/components/ui/date-picker';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { cn } from '@/lib/utils';
 
+import { BucketSelector } from '@/components/common/bucket-selector';
+import { LifeBucket } from '@/types/time';
+
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export const habitSchema = z.object({
@@ -22,7 +25,9 @@ export const habitSchema = z.object({
     daysOfWeek: z.array(z.string()).min(1, "Select at least one day"),
 });
 
-export type HabitFormValues = z.infer<typeof habitSchema>;
+export type HabitFormValues = z.infer<typeof habitSchema> & {
+    bucket?: LifeBucket;
+};
 
 interface HabitDefinitionFormProps {
     initialValues?: Partial<HabitFormValues>;
@@ -35,7 +40,8 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
     onSubmit,
     isPending
 }) => {
-    const form = useForm<HabitFormValues>({
+    const [bucket, setBucket] = React.useState<LifeBucket | null>(initialValues?.bucket || null);
+    const form = useForm<z.infer<typeof habitSchema>>({
         resolver: zodResolver(habitSchema),
         defaultValues: {
             name: initialValues?.name || '',
@@ -48,8 +54,15 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
         },
     });
 
+    const handleFormSubmit = (values: z.infer<typeof habitSchema>) => {
+        onSubmit({
+            ...values,
+            bucket: bucket || undefined,
+        });
+    };
+
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Habit Name <span className="text-destructive">*</span></label>
@@ -60,6 +73,10 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
                     <label className="text-sm font-medium">Habit Purpose <span className="text-destructive">*</span></label>
                     <Input {...form.register('purpose')} placeholder="e.g., Build strength & discipline" />
                     {form.formState.errors.purpose && <p className="text-xs text-destructive">{form.formState.errors.purpose.message}</p>}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                    <BucketSelector value={bucket} onChange={setBucket} />
                 </div>
 
                 <div className="space-y-2">

@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { useGetWeekPlan, usePrefetchAdjacentWeeks } from '@/api/services/planner-service';
+import { useGetWeekPlan, usePrefetchAdjacentWeeks, useGetWeekBucketActions } from '@/api/services/planner-service';
 import { useGetGoals } from '@/api/services/goal-service';
+import { useGetHabits } from '@/api/services/habit-service';
 import { WeekUtils } from '@/utils/week-utils';
-import { Goal, CustomTask, ReminderItem } from '@/types/global-types';
+import { Goal, Habit, CustomTask, ReminderItem, PlanSlot } from '@/types/global-types';
 import { useGetCustomTasks, useDeleteCustomTask } from '@/api/services/custom-task-service';
 import { useGetMissedTasks, useDeleteMissedTask } from '@/api/services/missed-task-service';
 import { useNotes, useDeleteNote } from '@/api/services/vault-service';
+import { LIFE_BUCKETS } from '@/types/time';
 
 import { PlannerToolbar } from './components/planner-toolbar';
 import { PlannerGrid } from './components/planner-grid';
+import { SundayFocusDialog } from './forms/sunday-focus-dialog';
 import { CustomTaskDialog } from './forms/custom-task-dialog';
 import { GoalToolDialog } from './forms/goal-tool-dialog';
 import { TaskEditDialog } from './forms/task-edit-dialog';
@@ -29,6 +32,7 @@ export const PlannerPage: React.FC = () => {
     const [isCustomTaskDialogOpen, setIsCustomTaskDialogOpen] = useState(false);
     const [selectedLibraryTask, setSelectedLibraryTask] = useState<CustomTask | null>(null);
     const [isGoalToolDialogOpen, setIsGoalToolDialogOpen] = useState(false);
+    const [isSundayFocusDialogOpen, setIsSundayFocusDialogOpen] = useState(false);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [showTaskDeleteConfirm, setShowTaskDeleteConfirm] = useState(false);
     const [showLibraryDeleteConfirm, setShowLibraryDeleteConfirm] = useState(false);
@@ -42,7 +46,9 @@ export const PlannerPage: React.FC = () => {
 
     // Data queries
     const { data: weekPlan } = useGetWeekPlan(currentWeek);
-    const { data: goals } = useGetGoals();
+    const { data: bucketActions = {} } = useGetWeekBucketActions(currentWeek);
+    const { data: goals = [] } = useGetGoals();
+    const { data: habits = [] } = useGetHabits();
     const { data: libraryTasks } = useGetCustomTasks();
     const { data: missedLibraryTasks } = useGetMissedTasks();
     const { data: notes = [] } = useNotes();
@@ -131,6 +137,66 @@ export const PlannerPage: React.FC = () => {
         }
     };
 
+    const activeHabitsForWeek = useMemo(() => {
+        return (habits || []).filter((h: Habit) => {
+            if (!h.startDate) return true;
+            const startWk = WeekUtils.getWeekFromDate(h.startDate);
+            const endWk = h.endDate ? WeekUtils.getWeekFromDate(h.endDate) : '9999-W52';
+            return WeekUtils.compareWeeks(startWk, currentWeek) <= 0 && WeekUtils.compareWeeks(endWk, currentWeek) >= 0;
+        });
+    }, [habits, currentWeek]);
+
+    const allCustomTasks = useMemo(() => {
+        const tasksMap = new Map<string, CustomTask>();
+        
+        // Collect custom tasks currently placed on the planner grid for this week
+        Object.entries(localGridState || {}).forEach(([slotKey, rawCell]) => {
+            if (slotKey === 'reminders' || !rawCell || typeof rawCell !== 'object' || Array.isArray(rawCell)) return;
+            const cell = rawCell as PlanSlot;
+            if (cell.name && cell.type === 'custom') {
+                const key = cell.name.trim().toLowerCase();
+                if (!tasksMap.has(key)) {
+                    tasksMap.set(key, {
+                        id: `task-${key}`,
+                        name: cell.name.trim(),
+                        description: cell.description || '',
+                        startTime: '09:00',
+                        endTime: '10:00',
+                        daysOfWeek: [],
+                        bucket: cell.bucket,
+                    });
+                }
+            }
+        });
+
+        // Collect reminders currently placed on localGridState for this week
+        (localGridState?.reminders || []).forEach((r: ReminderItem) => {
+            if (r.name) {
+                const key = r.name.trim().toLowerCase();
+                if (!tasksMap.has(key)) {
+                    tasksMap.set(key, {
+                        id: r.id || `reminder-${key}`,
+                        name: r.name.trim(),
+                        description: r.description || '',
+                        startTime: r.time || '09:00',
+                        endTime: '09:30',
+                        daysOfWeek: [],
+                        isReminder: true,
+                        bucket: r.bucket,
+                    });
+                }
+            }
+        });
+
+        return Array.from(tasksMap.values());
+    }, [localGridState]);
+
+    const sundayFocusCount = useMemo(() => {
+        return (LIFE_BUCKETS || ['income', 'asset', 'recovery', 'relational']).filter(
+            b => !!bucketActions[b as keyof typeof bucketActions]?.text?.trim()
+        ).length;
+    }, [bucketActions]);
+
     return (
         <div className={cn(
             "flex flex-col flex-1 h-full w-full overflow-hidden relative",
@@ -182,8 +248,20 @@ export const PlannerPage: React.FC = () => {
                     onCancelPreview={() => { }}
                     commitPreviewPlan={() => { }}
                     onGoalToolClick={() => setIsGoalToolDialogOpen(true)}
+                    onOpenSundayFocus={() => setIsSundayFocusDialogOpen(true)}
+                    sundayFocusCount={sundayFocusCount}
                 />
             </div>
+
+            <SundayFocusDialog
+                isOpen={isSundayFocusDialogOpen}
+                onClose={() => setIsSundayFocusDialogOpen(false)}
+                currentWeek={currentWeek}
+                existingActions={bucketActions}
+                goals={activeGoalsForWeek}
+                habits={activeHabitsForWeek}
+                customTasks={allCustomTasks}
+            />
 
             <GoalToolDialog
                 isOpen={isGoalToolDialogOpen}
@@ -228,6 +306,7 @@ export const PlannerPage: React.FC = () => {
                                 dayIdx: editingTaskCell.dayIdx,
                                 color: '#f43f5e',
                                 isReminder: true,
+                                bucket: data.bucket,
                             });
                             newState.reminders = reminders;
                         } else {
@@ -237,6 +316,7 @@ export const PlannerPage: React.FC = () => {
                                 name: data.name,
                                 description: data.description,
                                 goalId: (data.type === 'goal' || newState[key]?.type === 'goal') ? data.goalId : undefined,
+                                bucket: data.bucket,
                             };
                         }
                     } else if (editingReminder) {
@@ -254,6 +334,7 @@ export const PlannerPage: React.FC = () => {
                                     name: data.name,
                                     color: editingReminder.color || '#f59e0b',
                                     description: data.description,
+                                    bucket: data.bucket,
                                 };
                             } else {
                                 reminders[idx] = {
@@ -261,6 +342,7 @@ export const PlannerPage: React.FC = () => {
                                     name: data.name,
                                     description: data.description,
                                     time: data.time || '09:00',
+                                    bucket: data.bucket,
                                 };
                                 newState.reminders = reminders;
                             }

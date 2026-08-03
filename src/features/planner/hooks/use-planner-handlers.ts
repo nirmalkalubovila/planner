@@ -90,6 +90,7 @@ export function createPlannerHandlers(deps: HandlerDeps) {
                             dayIdx,
                             color: '#f43f5e',
                             isReminder: true,
+                            bucket: data.bucket,
                         });
                     }
                 });
@@ -147,7 +148,8 @@ export function createPlannerHandlers(deps: HandlerDeps) {
                             type: 'custom',
                             name: data.name,
                             color: data.color,
-                            description: data.description
+                            description: data.description,
+                            bucket: data.bucket,
                         };
                     }
                 }

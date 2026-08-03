@@ -146,6 +146,24 @@ export const AnnouncementBanner: React.FC = () => {
                                 )}
                             </div>
 
+                            {/* TikTok Follow CTA */}
+                            <a
+                                href="https://tiktok.com/@nirmal_kalubovila"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-primary/5 to-transparent border border-indigo-500/20 hover:border-indigo-500/40 transition-all group"
+                            >
+                                <div className="p-2 rounded-xl bg-foreground text-background shrink-0">
+                                    <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.85.97 2 1.69 3.29 2.05v3.9c-1.39-.08-2.74-.63-3.83-1.5-.24-.18-.46-.38-.67-.58v5.52c0 3.26-1.87 6.17-4.8 7.37-2.6 1.07-5.63.76-7.97-.84-2.13-1.46-3.29-3.99-3.02-6.52.27-2.58 2-4.82 4.49-5.63 1.34-.44 2.8-.39 4.1.1v4c-.87-.36-1.85-.38-2.73-.04-1.28.48-2.12 1.8-2.03 3.17.1 1.48 1.33 2.7 2.82 2.69 1.49-.01 2.66-1.21 2.66-2.7V.02h.18z"/>
+                                    </svg>
+                                </div>
+                                <div className="space-y-0.5 min-w-0">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 block">Follow for Updates</span>
+                                    <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">Follow me on TikTok to learn about new features and how to build your legacy</span>
+                                </div>
+                            </a>
+
                             {/* Got it, Mark as Read Button */}
                             <div className="pt-2">
                                 <button

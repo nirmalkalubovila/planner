@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { calculateGoalProgress } from '@/utils/analytics-engine';
 import { motion } from 'framer-motion';
 
+import { BUCKET_META } from '@/types/time';
+
 const GoldenSparkles = () => {
     const sparkles = Array.from({ length: 6 });
     return (
@@ -232,6 +234,11 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                         <span className="text-[8px] font-black uppercase tracking-widest bg-primary/15 text-primary border border-primary/20 px-1.5 py-0.5 rounded">
                             {goal.goalType}
                         </span>
+                        {goal.bucket && BUCKET_META[goal.bucket] && (
+                            <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", BUCKET_META[goal.bucket].badgeClass)}>
+                                {BUCKET_META[goal.bucket].label}
+                            </span>
+                        )}
                         {hasPlan && (
                             <span className="text-[8px] font-black uppercase tracking-widest bg-intent-goal-muted text-intent-goal border border-intent-goal/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                                 <Check size={8} /> Plan

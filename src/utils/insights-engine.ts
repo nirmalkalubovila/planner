@@ -2,6 +2,8 @@ import type { Goal, Habit } from '@/types/global-types';
 import type { VaultNote } from '@/types/vault';
 import type { GridState } from '@/types/planner';
 import { WeekUtils } from '@/utils/week';
+import { calculateWeekBucketHours } from '@/utils/bucket-engine';
+import { BUCKET_META, LifeBucket } from '@/types/time';
 import {
   analyzeGoal,
   analyzeHabit,
@@ -10,7 +12,7 @@ import {
 } from '@/utils/analytics-engine';
 
 export interface InsightCardData {
-  type: 'intro' | 'stats' | 'ranking' | 'comparison' | 'grade' | 'radar' | 'quote' | 'vaultStats' | 'heatmap' | 'outro' | 'summary';
+  type: 'intro' | 'stats' | 'ranking' | 'comparison' | 'grade' | 'radar' | 'quote' | 'vaultStats' | 'heatmap' | 'outro' | 'summary' | 'bucketBalance' | 'executionBalance';
   title: string;
   subtitle?: string;
   metrics?: { label: string; value: string | number; change?: number; changeType?: 'up' | 'down' | 'neutral' }[];
@@ -21,6 +23,16 @@ export interface InsightCardData {
   progressValue?: number;
   highlightText?: string;
   icon?: string;
+  summaryData?: {
+    dailyActive: boolean[];
+    completedTasks: number;
+    hoursFocused: number;
+    habitsDone: number;
+    insightsLogged: number;
+    legacyScore: number;
+    consistencyGrade: string;
+    globalRankPct: number;
+  };
 }
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -200,6 +212,32 @@ export function generateWeeklyInsights(
     icon: '⚡',
   });
 
+  // 4 Life Buckets Balance Card
+  const bucketStats = calculateWeekBucketHours(currentWeekPlan?.state || {}, goals, habits, []);
+
+  const totalAssignedHours = Object.values(bucketStats.bucketHours).reduce((a, b) => a + b, 0);
+
+  if (totalAssignedHours > 0) {
+    let focusMsg = 'Balanced distribution across your Life Buckets!';
+    if (bucketStats.weakestBucket) {
+      focusMsg = `Your ${BUCKET_META[bucketStats.weakestBucket].label} bucket received the least allocated hours (${bucketStats.bucketHours[bucketStats.weakestBucket]}h). Consider protecting time for it next week.`;
+    }
+
+    cards.push({
+      type: 'bucketBalance',
+      title: 'Life Bucket Balance',
+      subtitle: 'Your weekly time distribution',
+      metrics: [
+        { label: 'Income-Producing', value: `${bucketStats.bucketHours.income}h` },
+        { label: 'Asset-Building', value: `${bucketStats.bucketHours.asset}h` },
+        { label: 'Recovery', value: `${bucketStats.bucketHours.recovery}h` },
+        { label: 'Relational', value: `${bucketStats.bucketHours.relational}h` },
+      ],
+      highlightText: focusMsg,
+      icon: '⚖️',
+    });
+  }
+
   // Weekly Impact Summary Card (Grand Finale for Social Status)
   let rankPct = 60;
   if (eff >= 80) rankPct = 2; // top 2%
@@ -212,6 +250,8 @@ export function generateWeeklyInsights(
     ? (weeklyQuotes[0].content || weeklyQuotes[0].title) 
     : 'Take it one percent at a time.';
 
+  const weeklyActiveDays = currentDayStats.map(d => d.count > 0);
+
   cards.push({
     type: 'summary',
     title: 'Weekly Impact Summary',
@@ -222,7 +262,17 @@ export function generateWeeklyInsights(
       { label: 'Weekly Grade', value: weeklyGrade },
       { label: 'Insights Logged', value: weeklyVaultCount },
     ],
-    highlightText: `You ranked in the top ${rankPct}% of all Legacy builders this week! Keep executing daily.`,
+    summaryData: {
+      dailyActive: weeklyActiveDays,
+      completedTasks: currentWeekCompleted,
+      hoursFocused: Number((currentWeekCompleted * 1.5).toFixed(1)),
+      habitsDone: sortedHabits.length,
+      insightsLogged: weeklyVaultCount,
+      legacyScore: eff,
+      consistencyGrade: weeklyGrade,
+      globalRankPct: rankPct,
+    },
+    highlightText: `You ranked in top ${rankPct}% of all Legacy builders this week! Keep executing daily.`,
     quote: {
       text: weeklyQuoteText,
       author: 'Weekly Reflection'
@@ -437,13 +487,40 @@ export function generateMonthlyInsights(
   
   cards.push({
     type: 'grade',
-    title: 'Monthly Progress Grade',
-    subtitle: 'Calculated from active daily task execution',
+    title: 'Legacy Life Score',
+    subtitle: `${monthName} System Rating`,
     grade: monthlyGrade,
     progressValue: overallMonthScore,
-    highlightText: monthlyGradeText,
-    icon: '🏅',
+    highlightText: `Your overall Legacy Life Score for ${monthName} is ${overallMonthScore}/100. ${monthlyGradeText}`,
+    icon: '⚡',
   });
+
+  // Calculate total monthly bucket hours across all week plans in the month
+  const monthlyBucketHours: Record<LifeBucket, number> = { income: 0, asset: 0, recovery: 0, relational: 0 };
+  weekPlans.forEach(wp => {
+    const bStats = calculateWeekBucketHours(wp.state || {}, goals, habits, []);
+    (Object.keys(monthlyBucketHours) as LifeBucket[]).forEach(key => {
+      monthlyBucketHours[key] += (bStats.bucketHours[key] || 0);
+    });
+  });
+
+  const monthlyTotalAssigned = Object.values(monthlyBucketHours).reduce((a, b) => a + b, 0);
+
+  if (monthlyTotalAssigned > 0) {
+    cards.push({
+      type: 'bucketBalance',
+      title: 'Monthly Life Bucket Balance',
+      subtitle: `Monthly time distribution (${monthName})`,
+      metrics: [
+        { label: 'Income-Producing', value: `${monthlyBucketHours.income}h` },
+        { label: 'Asset-Building', value: `${monthlyBucketHours.asset}h` },
+        { label: 'Recovery', value: `${monthlyBucketHours.recovery}h` },
+        { label: 'Relational', value: `${monthlyBucketHours.relational}h` },
+      ],
+      highlightText: `Total hours allocated across Life Buckets during ${monthName}.`,
+      icon: '⚖️',
+    });
+  }
 
   // Monthly Impact Summary Card (Grand Finale for Social Status)
   let monthlyRankPct = 70;
@@ -457,6 +534,8 @@ export function generateMonthlyInsights(
     ? (monthlyQuotes[0].content || monthlyQuotes[0].title) 
     : 'Self-awareness compounds daily.';
 
+  const monthlyActiveDays = dayStats.map(d => d.count > 0);
+
   cards.push({
     type: 'summary',
     title: 'Monthly Impact Summary',
@@ -467,7 +546,17 @@ export function generateMonthlyInsights(
       { label: 'Monthly Grade', value: monthlyGrade },
       { label: 'Insights Logged', value: monthlyVaultNotes.length },
     ],
-    highlightText: `You ranked in the top ${monthlyRankPct}% of all Legacy builders this month! Compounding wisdom.`,
+    summaryData: {
+      dailyActive: monthlyActiveDays,
+      completedTasks: monthlyCompleted,
+      hoursFocused: Number((monthlyCompleted * 1.5).toFixed(1)),
+      habitsDone: habits.length,
+      insightsLogged: monthlyVaultNotes.length,
+      legacyScore: overallMonthScore,
+      consistencyGrade: monthlyGrade,
+      globalRankPct: monthlyRankPct,
+    },
+    highlightText: `You ranked in top ${monthlyRankPct}% of all Legacy builders this month! Compounding wisdom.`,
     quote: {
       text: monthlyQuoteText,
       author: 'Monthly Reflection'

@@ -8,6 +8,9 @@ import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { CUSTOM_TASK_COLORS } from '@/utils/color-utils';
 import { StandardDialog } from '@/components/common/standard-dialog';
 
+import { BucketSelector } from '@/components/common/bucket-selector';
+import { LifeBucket } from '@/types/time';
+
 interface CustomTaskDialogProps {
     isOpen: boolean;
     onClose: () => void;
@@ -20,6 +23,7 @@ interface CustomTaskDialogProps {
         color?: string;
         saveToLibrary: boolean;
         isReminder?: boolean;
+        bucket?: LifeBucket;
     }) => void;
     onDelete?: (id: string) => void;
     initialData?: {
@@ -31,6 +35,7 @@ interface CustomTaskDialogProps {
         daysOfWeek: string[];
         color?: string;
         isReminder?: boolean;
+        bucket?: LifeBucket;
     } | null;
 }
 
@@ -46,6 +51,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
     const [color, setColor] = useState(CUSTOM_TASK_COLORS[0]);
     const [saveToLibrary, setSaveToLibrary] = useState(false);
     const [isReminder, setIsReminder] = useState(false);
+    const [bucket, setBucket] = useState<LifeBucket | null>(null);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -58,6 +64,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 setColor(initialData.color || CUSTOM_TASK_COLORS[0]);
                 setSaveToLibrary(false);
                 setIsReminder(!!initialData.isReminder);
+                setBucket(initialData.bucket || null);
             } else {
                 setName('');
                 setDescription('');
@@ -67,6 +74,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 setColor(CUSTOM_TASK_COLORS[0]);
                 setSaveToLibrary(false);
                 setIsReminder(false);
+                setBucket(null);
             }
         }
     }, [isOpen, initialData]);
@@ -101,7 +109,8 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
             daysOfWeek: selectedDays,
             color,
             saveToLibrary,
-            isReminder
+            isReminder,
+            bucket: bucket || undefined
         });
 
         if (saveToLibrary) {
@@ -112,7 +121,8 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                 endTime: resolvedEndTime,
                 daysOfWeek: selectedDays,
                 color,
-                isReminder
+                isReminder,
+                bucket: bucket || undefined
             } as any);
         }
 
@@ -121,6 +131,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
         setSelectedDays([]);
         setSaveToLibrary(false);
         setIsReminder(false);
+        setBucket(null);
         onClose();
     };
 
@@ -167,6 +178,8 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                     <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Description (Optional)</label>
                     <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief details..." className="h-10" />
                 </div>
+
+                <BucketSelector value={bucket} onChange={setBucket} />
 
                 <div
                     className="flex items-center gap-3 p-3 bg-rose-500/5 rounded-xl cursor-pointer select-none group border border-transparent hover:border-rose-500/20 transition-all mb-1"

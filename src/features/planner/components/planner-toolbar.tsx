@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand, FolderHeart } from 'lucide-react';
+import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand, FolderHeart, Compass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomTask } from '@/types/global-types';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,8 @@ interface PlannerToolbarProps {
     onCancelPreview: () => void;
     commitPreviewPlan: () => void;
     onGoalToolClick: () => void;
+    onOpenSundayFocus?: () => void;
+    sundayFocusCount?: number;
 }
 
 export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
@@ -30,7 +32,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
     onCreateCustomTask,
     libraryTasks, missedTasks,
     previewPlan, onCancelPreview, commitPreviewPlan,
-    onGoalToolClick
+    onGoalToolClick, onOpenSundayFocus, sundayFocusCount
 }) => {
     // Shrinked by default for a cleaner landing
     const [isCollapsed, setIsCollapsed] = useState(true);
@@ -211,6 +213,34 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                     >
                                         <Plus size={22} strokeWidth={2.5} />
                                     </Button>
+
+                                    {onOpenSundayFocus && (
+                                        <Button
+                                            onClick={onOpenSundayFocus}
+                                            variant="ghost"
+                                            size="icon"
+                                            className={cn(
+                                                "rounded-xl transition-all h-9 w-9 relative",
+                                                isCollapsed && "mx-auto",
+                                                sundayFocusCount === 4
+                                                    ? "text-emerald-400 hover:bg-emerald-500/10"
+                                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                            )}
+                                            title={`This Week Main Priorities (${sundayFocusCount ?? 0}/4 Priorities Set)`}
+                                        >
+                                            <Compass size={16} />
+                                            {sundayFocusCount !== undefined && (
+                                                <span className={cn(
+                                                    "absolute -top-1 -right-1 min-w-[15px] h-[15px] flex items-center justify-center text-[9px] font-bold font-mono rounded-full border shadow-sm px-1",
+                                                    sundayFocusCount === 4
+                                                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                                        : "bg-muted text-muted-foreground border-border"
+                                                )}>
+                                                    {sundayFocusCount}
+                                                </span>
+                                            )}
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -391,9 +421,36 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             variant="ghost"
                             size="icon"
                             className="shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11"
+                            title="Add Custom Task"
                         >
                             <Plus size={22} strokeWidth={2.5} />
                         </Button>
+                        {onOpenSundayFocus && (
+                            <Button
+                                onClick={onOpenSundayFocus}
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                    "shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11 relative",
+                                    sundayFocusCount === 4
+                                        ? "text-emerald-400 hover:bg-emerald-500/10"
+                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                )}
+                                title={`This Week Main Priorities (${sundayFocusCount ?? 0}/4 Priorities Set)`}
+                            >
+                                <Compass size={18} />
+                                {sundayFocusCount !== undefined && (
+                                    <span className={cn(
+                                        "absolute -top-1 -right-1 min-w-[15px] h-[15px] flex items-center justify-center text-[9px] font-bold font-mono rounded-full border shadow-sm px-1",
+                                        sundayFocusCount === 4
+                                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                            : "bg-muted text-muted-foreground border-border"
+                                    )}>
+                                        {sundayFocusCount}
+                                    </span>
+                                )}
+                            </Button>
+                        )}
                     </div>
 
                     <div className="w-px h-8 bg-border mx-1" />

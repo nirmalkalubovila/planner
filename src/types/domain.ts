@@ -1,3 +1,5 @@
+import { LifeBucket } from './time';
+
 export enum Status {
     ACTIVE = "ACTIVE",
     INACTIVE = "INACTIVE",
@@ -20,6 +22,7 @@ export interface Habit extends GlobalRecords {
     startDate?: string;
     endDate?: string;
     daysOfWeek?: string[];
+    bucket?: LifeBucket;
 }
 
 export interface Milestone {
@@ -47,6 +50,7 @@ export interface Goal extends GlobalRecords {
     durationValue?: number;
     plans?: AIGeneratedPlanSlot[];
     milestones?: Milestone[];
+    bucket?: LifeBucket;
 }
 
 export interface CustomTask extends GlobalRecords {
@@ -57,4 +61,5 @@ export interface CustomTask extends GlobalRecords {
     daysOfWeek: string[];
     color?: string;
     isReminder?: boolean;
+    bucket?: LifeBucket;
 }

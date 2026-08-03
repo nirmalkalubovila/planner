@@ -59,6 +59,7 @@ export const HabitsPage: React.FC = () => {
             startDate: values.startDate,
             endDate: values.endDate,
             daysOfWeek: values.daysOfWeek,
+            bucket: values.bucket,
         };
 
         if (editingHabit?.id) {
@@ -151,6 +152,7 @@ export const HabitsPage: React.FC = () => {
                             startDate: editingHabit.startDate || new Date().toISOString().split('T')[0],
                             endDate: editingHabit.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
                             daysOfWeek: editingHabit.daysOfWeek || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                            bucket: editingHabit.bucket,
                         } : undefined}
                         onSubmit={onSubmit}
                         isPending={createHabit.isPending || updateHabit.isPending}

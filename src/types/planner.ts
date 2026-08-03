@@ -1,3 +1,5 @@
+import { LifeBucket } from './time';
+
 export interface ReminderItem {
     id: string;
     name: string;
@@ -6,18 +8,19 @@ export interface ReminderItem {
     description?: string;
     color?: string;
     isReminder?: boolean;
+    bucket?: LifeBucket;
 }
 
 export interface PlanSlot {
-    type: 'goal' | 'custom' | 'habit';
+    type: 'goal' | 'custom' | 'habit' | 'sleep' | 'plan';
     name: string;
     goalId?: string;
     color?: string;
     isReminder?: boolean;
     description?: string;
+    bucket?: LifeBucket;
 }
 
 export type GridState = Record<string, PlanSlot> & {
     reminders?: ReminderItem[];
 };
-

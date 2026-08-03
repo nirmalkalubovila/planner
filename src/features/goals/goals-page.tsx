@@ -80,13 +80,61 @@ export const GoalsPage: React.FC = () => {
         setIsFormOpen(true);
     };
 
-    const onDefinitionSubmit = (values: GoalFormValues) => {
+    const onDefinitionSubmit = (values: GoalFormValues, mode: 'save' | 'replan' = 'replan') => {
         if (activeGoal && activeGoal.id) {
-            setPendingValues(values);
-            setShowConfirm(true);
+            if (mode === 'save') {
+                // Direct Save without forcing re-planning
+                executeDirectSave(values);
+            } else {
+                setPendingValues(values);
+                setShowConfirm(true);
+            }
         } else {
             executeDefinitionSubmit(values);
         }
+    };
+
+    const executeDirectSave = (values: GoalFormValues) => {
+        if (!activeGoal?.id) return;
+        const start = parseISO(values.startDate);
+        let end = start;
+        const generatedMilestones: Milestone[] = [];
+
+        for (let i = 1; i <= (values.durationValue || 1); i++) {
+            let milestoneDate = new Date(start);
+            let title = "";
+            if (values.goalType === 'Week') {
+                milestoneDate = addWeeks(start, i);
+                title = `End of Week ${i}`;
+            } else if (values.goalType === 'Month') {
+                milestoneDate = addMonths(start, i);
+                title = `End of Month ${i}`;
+            } else if (values.goalType === 'Year') {
+                milestoneDate = addYears(start, i);
+                title = `End of Year ${i}`;
+            }
+            end = milestoneDate;
+            generatedMilestones.push({
+                id: crypto.randomUUID(),
+                title,
+                targetDate: format(milestoneDate, 'yyyy-MM-dd'),
+                completed: false
+            });
+        }
+
+        const goalData: Goal = {
+            ...activeGoal,
+            ...values,
+            endDate: format(end, 'yyyy-MM-dd'),
+            milestones: generatedMilestones,
+        };
+
+        updateGoal.mutate(goalData, {
+            onSuccess: () => {
+                closeDialog();
+                toast.success('Goal updated successfully');
+            }
+        });
     };
 
     const executeDefinitionSubmit = (values: GoalFormValues) => {
@@ -94,7 +142,7 @@ export const GoalsPage: React.FC = () => {
         let end = start;
         const generatedMilestones: Milestone[] = [];
 
-        for (let i = 1; i <= values.durationValue; i++) {
+        for (let i = 1; i <= (values.durationValue || 1); i++) {
             let milestoneDate = new Date(start);
             let title = "";
             if (values.goalType === 'Week') {
@@ -295,13 +343,15 @@ export const GoalsPage: React.FC = () => {
                     {step === 1 ? (
                         <GoalDefinitionForm
                             key={activeGoal?.id || 'new'}
+                            isEditing={isEditing}
                             initialValues={activeGoal ? {
                                 title: activeGoal.title || activeGoal.name,
                                 name: activeGoal.name,
                                 goalType: activeGoal.goalType,
                                 purpose: activeGoal.purpose || '',
                                 startDate: activeGoal.startDate,
-                                durationValue: activeGoal.milestones?.length || 1
+                                durationValue: activeGoal.milestones?.length || 1,
+                                bucket: activeGoal.bucket,
                             } : {}}
                             onSubmit={onDefinitionSubmit}
                         />
