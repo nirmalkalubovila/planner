@@ -2,9 +2,12 @@ import React from 'react';
 import { 
   Mail, Linkedin, Instagram, MessageSquare, ExternalLink, Info, Code 
 } from 'lucide-react';
+import { useLatestUpdate } from '@/hooks/use-latest-update';
 
 export const AppUpdaterSimulator: React.FC = () => {
-  const currentVersion = '1.0.4';
+  const { data: latestUpdate } = useLatestUpdate();
+  const rawVersion = latestUpdate?.version || '1.1.3';
+  const currentVersion = rawVersion.toLowerCase().startsWith('v') ? rawVersion : `v${rawVersion}`;
 
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-200">
@@ -92,7 +95,7 @@ export const AppUpdaterSimulator: React.FC = () => {
             <div className="w-full pt-4 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
               <span>App Version</span>
               <span className="font-bold font-mono bg-muted px-2 py-0.5 rounded border border-border text-foreground">
-                v{currentVersion}
+                {currentVersion}
               </span>
             </div>
           </div>
