@@ -1,11 +1,61 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Briefcase, TrendingUp, Moon, HeartHandshake, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CircularProgress } from '@/components/ui/circular-progress';
 import { WeekUtils } from '@/utils/week';
 import type { UserStatsCache } from '../hooks/use-user-stats';
 import type { DetailedAnalytics } from '../hooks/use-detailed-stats';
-import { LIFE_BUCKETS, BUCKET_META } from '@/types/time';
+import { LIFE_BUCKETS, BUCKET_META, type LifeBucket } from '@/types/time';
+import { MilestonesShowcase } from './milestones/milestones-showcase';
+import { generateMilestoneInsightCard } from '@/utils/insights-engine';
+import { INSIGHT_THEMES } from './insights/insight-themes';
+import { renderShareCardToCanvas } from './insights/share-card-renderer';
+import { shareToSocial, downloadShareImage, copyToClipboard } from '@/utils/share-utils';
+import { toast } from 'sonner';
+import type { MilestoneStage } from '@/utils/milestone-engine';
+
+const BUCKET_VESSEL_CONFIG: Record<LifeBucket, {
+  label: string;
+  icon: React.ElementType;
+  accentText: string;
+  accentBorder: string;
+  liquidBg: string;
+  liquidBorder: string;
+}> = {
+  income: {
+    label: 'Income-Producing',
+    icon: Briefcase,
+    accentText: 'text-emerald-400',
+    accentBorder: 'border-emerald-500/20 group-hover:border-emerald-500/40',
+    liquidBg: 'bg-gradient-to-t from-emerald-600/30 via-emerald-500/20 to-emerald-400/30',
+    liquidBorder: 'border-emerald-400/50',
+  },
+  asset: {
+    label: 'Asset-Building',
+    icon: TrendingUp,
+    accentText: 'text-violet-400',
+    accentBorder: 'border-violet-500/20 group-hover:border-violet-500/40',
+    liquidBg: 'bg-gradient-to-t from-violet-600/30 via-violet-500/20 to-violet-400/30',
+    liquidBorder: 'border-violet-400/50',
+  },
+  recovery: {
+    label: 'Recovery',
+    icon: Moon,
+    accentText: 'text-sky-400',
+    accentBorder: 'border-sky-500/20 group-hover:border-sky-500/40',
+    liquidBg: 'bg-gradient-to-t from-sky-600/30 via-sky-500/20 to-sky-400/30',
+    liquidBorder: 'border-sky-400/50',
+  },
+  relational: {
+    label: 'Relational',
+    icon: HeartHandshake,
+    accentText: 'text-amber-400',
+    accentBorder: 'border-amber-500/20 group-hover:border-amber-500/40',
+    liquidBg: 'bg-gradient-to-t from-amber-600/30 via-amber-500/20 to-amber-400/30',
+    liquidBorder: 'border-amber-400/50',
+  },
+};
 
 const Card: React.FC<{
   className?: string;
@@ -43,6 +93,7 @@ interface SummaryViewProps {
 
 export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwitchToInsights }) => {
   const trajectory = detailed?.trajectory;
+  const milestoneProgress = detailed?.milestoneProgress;
 
   const currentWeek = WeekUtils.getCurrentWeek();
   const currentWeekExecution = detailed?.weeks?.find(w => w.weekKey === currentWeek);
@@ -62,12 +113,37 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
     return 'bg-primary/90';
   };
 
+  const handleShareMilestone = async (stage: MilestoneStage) => {
+    try {
+      const totalDays = milestoneProgress?.totalDaysExecuted ?? 0;
+      const streak = milestoneProgress?.currentStreak ?? 0;
+      const cardData = generateMilestoneInsightCard(stage, totalDays, streak);
+      const theme = INSIGHT_THEMES[3]; // Midnight Gold theme matching LLB
+      const blob = await renderShareCardToCanvas(cardData, theme, 'story');
+      const shared = await shareToSocial(blob, `I reached ${stage.title} (${stage.days} days consistent) on Legacy Life Builder!`);
+      if (shared) {
+        toast.success('Shared milestone card!');
+      } else {
+        const copied = await copyToClipboard(blob);
+        downloadShareImage(blob, `legacy-milestone-stage-${stage.stageNumber}.png`);
+        if (copied) {
+          toast.success('Card copied to clipboard & downloaded!');
+        } else {
+          toast.success('Downloaded milestone share card!');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not generate milestone share card');
+    }
+  };
+
   return (
-    <div className="space-y-4 animate-in fade-in duration-500">
-      {/* Top Row — Legacy Life Score + Grade + Rank */}
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Top Row — Legacy Life Score (Centered & Bigger) + Consistency Grade + Global Rank */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Consistency Grade */}
-        <Card className="items-center justify-center" delay={0.1}>
+        <Card className="items-center justify-center text-center" delay={0.1}>
           <Label text="Consistency Grade" />
           <div className="relative">
             <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-foreground to-foreground/40 select-none">
@@ -75,9 +151,19 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
             </span>
             <div className="absolute inset-0 bg-primary opacity-15 blur-[40px] -z-10 rounded-full" />
           </div>
+          <div className="mt-4 flex flex-col items-center gap-0.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+              Based on 30-Day Activity
+            </span>
+            {milestoneProgress && (
+              <span className="text-[10px] font-bold text-muted-foreground/80 mt-0.5">
+                {milestoneProgress.totalDaysExecuted} Total Days • {milestoneProgress.currentStreak}d Streak
+              </span>
+            )}
+          </div>
         </Card>
 
-        {/* Hero — Your Legacy Life Score */}
+        {/* Hero — Your Legacy Life Score (Centered & Prominent) */}
         <Card className="md:col-span-2 items-center justify-center py-6 sm:py-8" delay={0.15}>
           <Label text="Your Legacy Life Score" />
           <CircularProgress
@@ -278,32 +364,115 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
         </Card>
       </div>
 
-      {/* Row — Life Balance (4 Buckets Overview) */}
+      {/* Row — Life Balance (Single Unified Master Bucket with 4 Color Layers) */}
       <Card delay={0.6}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-          <div>
-            <Label text="Life Balance — 4 Buckets" />
-            <p className="text-xs text-muted-foreground font-normal -mt-3">
-              Current 7-day week hour distribution across Income, Assets, Recovery, and Relationships
-            </p>
-          </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
-              Total Allocated: {detailed?.bucketStats?.totalAllocatedHours || 0}h / 168h
+            <h3 className="text-xs font-black uppercase tracking-widest text-foreground">
+              Life Balance
+            </h3>
+            <span className="text-muted-foreground/40">•</span>
+            <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+              <Calendar size={12} className="text-primary" />
+              {WeekUtils.formatWeekDisplay(currentWeek)}
             </span>
-            {detailed?.bucketStats?.weakestBucket && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg self-start sm:self-auto">
-                Focus: {BUCKET_META[detailed.bucketStats.weakestBucket].label}
-              </span>
-            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-xl bg-primary/10 text-primary border border-primary/20">
+              {detailed?.bucketStats?.totalAllocatedHours || 0}h / 168h ({Math.round(((detailed?.bucketStats?.totalAllocatedHours || 0) / 168) * 100)}%)
+            </span>
           </div>
         </div>
 
         {detailed?.bucketStats ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="flex flex-col md:flex-row items-center gap-5 sm:gap-8">
+            {/* The Single Master Glass Bucket Vessel */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative w-32 sm:w-36 h-56 rounded-3xl bg-black/60 border-2 border-white/15 p-1 flex flex-col-reverse overflow-hidden backdrop-blur-md shadow-inner">
+                {/* Measurement Guide Ticks */}
+                <div className="absolute right-2 top-[25%] text-[8px] font-mono text-muted-foreground/40 select-none z-10 pointer-events-none">
+                  126h
+                </div>
+                <div className="absolute right-2 top-[50%] text-[8px] font-mono text-muted-foreground/40 select-none z-10 pointer-events-none">
+                  84h
+                </div>
+                <div className="absolute right-2 top-[75%] text-[8px] font-mono text-muted-foreground/40 select-none z-10 pointer-events-none">
+                  42h
+                </div>
+
+                {/* 1. Income Layer (Bottom) */}
+                {(detailed.bucketStats.bucketHours.income || 0) > 0 && (
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${detailed.bucketStats.bucketPercentages.income}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
+                    className="w-full bg-gradient-to-t from-emerald-600/60 to-emerald-400/50 border-t border-emerald-300/40 relative rounded-b-2xl flex items-center justify-center"
+                    title={`Income-Producing: ${detailed.bucketStats.bucketHours.income}h (${detailed.bucketStats.bucketPercentages.income}%)`}
+                  >
+                    <span className="text-[10px] font-mono font-black text-emerald-100 drop-shadow-sm">
+                      {detailed.bucketStats.bucketPercentages.income >= 8 ? `${detailed.bucketStats.bucketHours.income}h` : ''}
+                    </span>
+                  </motion.div>
+                )}
+
+                {/* 2. Asset Layer */}
+                {(detailed.bucketStats.bucketHours.asset || 0) > 0 && (
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${detailed.bucketStats.bucketPercentages.asset}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+                    className="w-full bg-gradient-to-t from-violet-600/60 to-violet-400/50 border-t border-violet-300/40 relative flex items-center justify-center"
+                    title={`Asset-Building: ${detailed.bucketStats.bucketHours.asset}h (${detailed.bucketStats.bucketPercentages.asset}%)`}
+                  >
+                    <span className="text-[10px] font-mono font-black text-violet-100 drop-shadow-sm">
+                      {detailed.bucketStats.bucketPercentages.asset >= 8 ? `${detailed.bucketStats.bucketHours.asset}h` : ''}
+                    </span>
+                  </motion.div>
+                )}
+
+                {/* 3. Recovery Layer */}
+                {(detailed.bucketStats.bucketHours.recovery || 0) > 0 && (
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${detailed.bucketStats.bucketPercentages.recovery}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
+                    className="w-full bg-gradient-to-t from-sky-600/60 to-sky-400/50 border-t border-sky-300/40 relative flex items-center justify-center"
+                    title={`Recovery: ${detailed.bucketStats.bucketHours.recovery}h (${detailed.bucketStats.bucketPercentages.recovery}%)`}
+                  >
+                    <span className="text-[10px] font-mono font-black text-sky-100 drop-shadow-sm">
+                      {detailed.bucketStats.bucketPercentages.recovery >= 8 ? `${detailed.bucketStats.bucketHours.recovery}h` : ''}
+                    </span>
+                  </motion.div>
+                )}
+
+                {/* 4. Relational Layer (Top) */}
+                {(detailed.bucketStats.bucketHours.relational || 0) > 0 && (
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${detailed.bucketStats.bucketPercentages.relational}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
+                    className="w-full bg-gradient-to-t from-amber-600/60 to-amber-400/50 border-t border-amber-300/50 relative flex items-center justify-center"
+                    title={`Relational: ${detailed.bucketStats.bucketHours.relational}h (${detailed.bucketStats.bucketPercentages.relational}%)`}
+                  >
+                    <span className="text-[10px] font-mono font-black text-amber-100 drop-shadow-sm">
+                      {detailed.bucketStats.bucketPercentages.relational >= 8 ? `${detailed.bucketStats.bucketHours.relational}h` : ''}
+                    </span>
+                  </motion.div>
+                )}
+
+                {/* Glass Reflection Highlight */}
+                <div className="absolute inset-y-0 left-2 w-1.5 bg-gradient-to-b from-white/20 via-white/5 to-transparent rounded-full pointer-events-none z-10" />
+              </div>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                168h Master Bucket
+              </span>
+            </div>
+
+            {/* Right Side: 4 Clean Volume Breakdown Cards */}
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {LIFE_BUCKETS.map((bucketKey) => {
-                const meta = BUCKET_META[bucketKey];
+                const config = BUCKET_VESSEL_CONFIG[bucketKey];
                 const hours = detailed.bucketStats.bucketHours[bucketKey] || 0;
                 const pct = detailed.bucketStats.bucketPercentages[bucketKey] || 0;
                 const isZero = hours === 0;
@@ -312,52 +481,43 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
                   <div
                     key={bucketKey}
                     className={cn(
-                      "p-3.5 rounded-2xl border transition-all flex flex-col justify-between space-y-2",
+                      "p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 bg-card/60 backdrop-blur-sm",
                       isZero
-                        ? "bg-muted/30 border-border opacity-70"
-                        : cn("bg-glass", meta.borderClass)
+                        ? "border-border/40 opacity-50"
+                        : cn("border-white/10 hover:border-white/20", config.accentBorder)
                     )}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={cn("text-xs font-bold uppercase tracking-wider", meta.color)}>
-                        {meta.label}
+                    <div>
+                      <span className={cn("text-xs font-black uppercase tracking-wider block", isZero ? "text-muted-foreground" : config.accentText)}>
+                        {config.label}
                       </span>
-                      <span className="text-xs font-mono font-bold text-foreground">
-                        {hours}h
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {hours}h ({pct}% of week)
                       </span>
                     </div>
 
-                    <div className="space-y-1">
-                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, pct)}%` }}
-                          transition={{ duration: 0.6, delay: 0.2 }}
-                          className={cn("h-full rounded-full", isZero ? "bg-muted-foreground/30" : meta.bgClass.replace('/10', '/80'))}
-                        />
-                      </div>
-                      <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-                        <span>{hours}h / 168h ({pct}% of week)</span>
-                        {isZero && <span className="text-amber-400 font-semibold">0h logged</span>}
-                      </div>
-                    </div>
+                    <span className="text-base font-mono font-black text-foreground">
+                      {pct}%
+                    </span>
                   </div>
                 );
               })}
             </div>
-
-            {detailed?.bucketStats && (
-              <p className="text-[10px] text-muted-foreground/80 italic text-center pt-2">
-                Note: Recovery bucket includes {detailed.bucketStats.userSleepHours || 56}h preference sleep ({Math.round((detailed.bucketStats.userSleepHours || 56) / 7)}h/day) and {detailed.bucketStats.userPlanHours || 1}h weekly planning.
-              </p>
-            )}
           </div>
         ) : (
-          <div className="p-6 text-center text-xs text-muted-foreground bg-muted/20 rounded-2xl border border-border">
+          <div className="p-4 text-center text-xs text-muted-foreground bg-muted/20 rounded-2xl border border-border">
             Assign Life Buckets to your goals and habits to view your weekly balance.
           </div>
         )}
       </Card>
+
+      {/* Consistency Milestone Stages & Replay Section (Placed after all core stats) */}
+      {milestoneProgress && (
+        <MilestonesShowcase
+          progress={milestoneProgress}
+          onShareMilestone={handleShareMilestone}
+        />
+      )}
 
     </div>
   );

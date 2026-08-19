@@ -296,7 +296,8 @@ export function analyzeAllHabits(
 
 // Helper to resolve weekKey (which might be a display string like "May 25 - May 31, 2026")
 // back to the standard week code format "2026-22".
-function getWeekKeyFromDisplay(display: string): string {
+export function getWeekKeyFromDisplay(display: string): string {
+  if (!display) return '';
   if (/^\d{4}-\d{2}$/.test(display)) {
     return WeekUtils.normalizeWeek(display);
   }
@@ -375,7 +376,14 @@ export function analyzeAllWeeks(
   average: number;
   best: WeekExecution | null;
 } {
-  const weeks = weekPlans.map(wp => analyzeWeekExecution(wp.week, wp.state, completedMap));
+  const weeks = weekPlans
+    .map(wp => analyzeWeekExecution(wp.week, wp.state, completedMap))
+    .sort((a, b) => {
+      const kA = getWeekKeyFromDisplay(a.weekKey);
+      const kB = getWeekKeyFromDisplay(b.weekKey);
+      return WeekUtils.compareWeeks(kA, kB);
+    });
+
   const withPlanned = weeks.filter(w => w.planned > 0);
   const average =
     withPlanned.length > 0

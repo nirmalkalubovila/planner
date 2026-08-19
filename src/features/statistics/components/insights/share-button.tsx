@@ -21,7 +21,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ cardData, theme, index
     
     try {
       const blob = await renderShareCardToCanvas(cardData, theme, 'story');
-      const shared = await shareToSocial(blob, 'Check out my Legacy status card! ⚡');
+      const shared = await shareToSocial(blob, 'Check out my Legacy status card!');
       
       if (shared) {
         toast.success('Shared to WhatsApp Status!');

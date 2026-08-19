@@ -1,20 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Sparkles, X, Check, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Sparkles, X, Check, ExternalLink, Star, Send, MessageSquareCheck } from 'lucide-react';
 import { useLatestUpdate } from '@/hooks/use-latest-update';
-import { useLandingSettings } from '@/api/services/feedback-service';
+import { useLandingSettings, useSubmitFeedback } from '@/api/services/feedback-service';
+import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@/api/services/profile-service';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+
+const RATING_LABELS: Record<number, string> = {
+    1: 'Needs Work',
+    2: 'Fair',
+    3: 'Good',
+    4: 'Great',
+    5: 'Exceptional',
+};
 
 export const AnnouncementBanner: React.FC = () => {
     const { data: latestUpdate } = useLatestUpdate();
     const { data: landingSettings } = useLandingSettings();
+    const { user } = useAuth();
+    const { profile } = useUserProfile(user);
+    const submitFeedbackMutation = useSubmitFeedback();
+
     const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const navigate = useNavigate();
 
+    // Feedback collector states
+    const [rating, setRating] = useState<number>(5);
+    const [hoverRating, setHoverRating] = useState<number | null>(null);
+    const [feedbackNote, setFeedbackNote] = useState('');
+    const [isFeedbackSubmitted, setIsFeedbackSubmitted] = useState(false);
+
     useEffect(() => {
         setDismissedVersion(localStorage.getItem('dismissed_update_version'));
     }, []);
+
+    useEffect(() => {
+        if (latestUpdate?.version) {
+            const hasSubmitted = localStorage.getItem(`update_feedback_submitted_${latestUpdate.version}`);
+            setIsFeedbackSubmitted(Boolean(hasSubmitted));
+        }
+    }, [latestUpdate?.version]);
 
     const maintenanceMode = landingSettings?.maintenance_mode ?? false;
     const hasNewUpdate = latestUpdate && latestUpdate.version !== dismissedVersion;
@@ -27,6 +55,40 @@ export const AnnouncementBanner: React.FC = () => {
             setDismissedVersion(latestUpdate.version);
         }
         setModalOpen(false);
+    };
+
+    const handleFeedbackSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!latestUpdate) return;
+
+        if (!user) {
+            toast.error('Please log in to submit your rating.');
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const noteText = feedbackNote.trim();
+            const message = noteText.length > 0
+                ? noteText
+                : `User rated Update ${latestUpdate.version} (${latestUpdate.title}) with ${rating} out of 5 stars.`;
+
+            await submitFeedbackMutation.mutateAsync({
+                category: 'About Legacy Life Builder',
+                subject: `Update ${latestUpdate.version} Feedback`,
+                message,
+                rating,
+                author_name: profile?.fullName || null,
+                author_position: profile?.currentProfession || null,
+                consent_to_show: false,
+            });
+
+            localStorage.setItem(`update_feedback_submitted_${latestUpdate.version}`, `${rating}`);
+            setIsFeedbackSubmitted(true);
+            setFeedbackNote('');
+        } catch (error) {
+            // Handled by mutation toast
+        }
     };
 
     // Render Maintenance Mode Warning
@@ -50,6 +112,8 @@ export const AnnouncementBanner: React.FC = () => {
     const bulletPoints = latestUpdate.description
         ? latestUpdate.description.split('\n').map(p => p.replace(/^[-\*\s\•]+/, '').trim()).filter(Boolean)
         : [];
+
+    const activeRating = hoverRating ?? rating;
 
     return (
         <>
@@ -94,7 +158,7 @@ export const AnnouncementBanner: React.FC = () => {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 15 }}
                             transition={{ type: "spring", duration: 0.4 }}
-                            className="relative w-full max-w-lg max-h-[85vh] sm:max-h-[88vh] bg-card/95 border border-border/80 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-2xl z-10 flex flex-col gap-4 overflow-hidden select-none"
+                            className="relative w-full max-w-lg max-h-[88vh] bg-card/95 border border-border/80 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl z-10 flex flex-col gap-3.5 sm:gap-4 overflow-hidden select-none"
                         >
                             {/* Ambient background glow */}
                             <div className="absolute -top-10 -right-10 w-44 h-44 bg-primary/10 rounded-full blur-[70px] pointer-events-none" />
@@ -121,7 +185,7 @@ export const AnnouncementBanner: React.FC = () => {
                             </div>
 
                             {/* Title & Date Banner */}
-                            <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/60 space-y-1 shrink-0 relative z-10">
+                            <div className="p-3 sm:p-3.5 rounded-2xl bg-muted/20 border border-border/60 space-y-0.5 sm:space-y-1 shrink-0 relative z-10">
                                 <h4 className="text-xs sm:text-sm font-bold text-foreground leading-snug">
                                     {latestUpdate.title}
                                 </h4>
@@ -130,8 +194,9 @@ export const AnnouncementBanner: React.FC = () => {
                                 </p>
                             </div>
 
-                            {/* Point-wise Release Notes - Scrollable Container */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2.5 min-h-0 relative z-10 py-1">
+                            {/* Scrollable Container (Notes + Feedback Collector) */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-4 min-h-0 relative z-10 py-1">
+                                {/* Point-wise Release Notes */}
                                 {bulletPoints.length > 0 ? (
                                     <div className="space-y-2">
                                         {bulletPoints.map((point, index) => (
@@ -151,10 +216,114 @@ export const AnnouncementBanner: React.FC = () => {
                                         {latestUpdate.description}
                                     </p>
                                 )}
+
+                                {/* Feedback Collector Section */}
+                                <div className="p-3.5 sm:p-4 rounded-2xl bg-muted/30 border border-border/70 space-y-3 relative overflow-hidden">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="space-y-0.5">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5">
+                                                <Sparkles size={11} />
+                                                How Does This Update Feel?
+                                            </span>
+                                            <p className="text-[10px] text-muted-foreground">
+                                                Rate your experience and let us know your thoughts
+                                            </p>
+                                        </div>
+                                        {isFeedbackSubmitted && (
+                                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 uppercase tracking-wider">
+                                                <Check size={10} />
+                                                Submitted
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {isFeedbackSubmitted ? (
+                                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2.5 text-xs text-emerald-300">
+                                            <MessageSquareCheck size={16} className="text-emerald-400 shrink-0" />
+                                            <div className="text-[11px] leading-tight">
+                                                <p className="font-bold text-foreground">Thank you for your feedback!</p>
+                                                <p className="text-muted-foreground mt-0.5">Your rating helps us continue perfecting Legacy Life Builder.</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {/* Star Rating Controls */}
+                                            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-background/50 border border-border/50">
+                                                <div className="flex items-center gap-1">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <button
+                                                            key={star}
+                                                            type="button"
+                                                            onClick={() => setRating(star)}
+                                                            onMouseEnter={() => setHoverRating(star)}
+                                                            onMouseLeave={() => setHoverRating(null)}
+                                                            className="p-1 rounded-lg hover:bg-muted/80 transition-transform active:scale-90 cursor-pointer"
+                                                            title={`${star} out of 5 - ${RATING_LABELS[star]}`}
+                                                        >
+                                                            <Star
+                                                                size={18}
+                                                                className={`transition-colors ${
+                                                                    star <= activeRating
+                                                                        ? 'fill-amber-400 text-amber-400'
+                                                                        : 'text-zinc-600 hover:text-zinc-400'
+                                                                }`}
+                                                            />
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex items-center gap-2 text-right">
+                                                    <span className="text-[11px] font-bold text-foreground">
+                                                        {RATING_LABELS[activeRating] || 'Great'}
+                                                    </span>
+                                                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/40">
+                                                        {activeRating} / 5
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Small Note Input */}
+                                            <div className="space-y-1.5">
+                                                <textarea
+                                                    value={feedbackNote}
+                                                    onChange={(e) => setFeedbackNote(e.target.value)}
+                                                    placeholder="Add a small note or impression (optional)..."
+                                                    maxLength={280}
+                                                    rows={2}
+                                                    className="w-full text-xs rounded-xl bg-background/60 border border-border/70 p-2.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50 resize-none transition-colors"
+                                                />
+                                                <div className="flex items-center justify-between text-[9px] text-muted-foreground px-1">
+                                                    <span>Keep it short and direct</span>
+                                                    <span>{feedbackNote.length}/280</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Quick Submit Rating Button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleFeedbackSubmit()}
+                                                disabled={submitFeedbackMutation.isPending}
+                                                className="w-full py-2 px-3 rounded-xl bg-muted/80 hover:bg-muted text-foreground hover:text-white border border-border/80 hover:border-primary/30 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                                            >
+                                                {submitFeedbackMutation.isPending ? (
+                                                    <>
+                                                        <div className="h-3 w-3 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+                                                        <span>Submitting...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Send size={12} className="text-primary" />
+                                                        <span>Submit Update Rating ({rating}/5)</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Footer Action Area */}
-                            <div className="space-y-3 shrink-0 pt-3 border-t border-border/60 relative z-10">
+                            <div className="space-y-3 shrink-0 pt-2 sm:pt-3 border-t border-border/60 relative z-10">
                                 {/* Small subtle info bar */}
                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground/80 px-1">
                                     <a

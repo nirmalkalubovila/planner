@@ -1,5 +1,5 @@
-import React from 'react';
-import { Bell, BellOff, Clock, MessageSquare, Target, Calendar, Moon, BarChart3, Trophy, Flame, TrendingUp, Sparkles, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, BellOff, CheckCircle2, AlertCircle, ShieldAlert, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNotificationStore } from '@/lib/notification-store';
 import {
@@ -7,361 +7,231 @@ import {
   requestNotificationPermission,
   subscribeToPush,
   unsubscribeFromPush,
+  sendNotification,
+  isNotificationSupported,
 } from '@/lib/notification-service';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
-
-interface ToggleProps {
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  enabled: boolean;
-  onChange: (val: boolean) => void;
-  disabled?: boolean;
-}
-
-const Toggle: React.FC<ToggleProps> = ({ label, description, icon, enabled, onChange, disabled }) => (
-  <div className={cn(
-    'flex items-center justify-between gap-3 py-3 px-3.5 rounded-xl transition-all duration-200 border border-transparent',
-    disabled ? 'opacity-40' : 'hover:bg-accent/40 hover:border-border/10'
-  )}>
-    <div className="flex items-center gap-3.5 min-w-0">
-      <div className="flex-shrink-0 w-8.5 h-8.5 rounded-xl bg-muted border border-border/80 flex items-center justify-center text-muted-foreground shadow-sm">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-bold text-foreground tracking-wide">{label}</p>
-        <p className="text-[10px] text-muted-foreground/80 mt-0.5 leading-relaxed font-medium">{description}</p>
-      </div>
-    </div>
-    <button
-      onClick={() => !disabled && onChange(!enabled)}
-      disabled={disabled}
-      className={cn(
-        'relative flex-shrink-0 w-10 h-6 rounded-full transition-all duration-300 outline-none border border-border/40',
-        disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
-        enabled ? 'bg-emerald-500/90 shadow-sm shadow-emerald-500/10' : 'bg-muted/80'
-      )}
-    >
-      <motion.div
-        animate={{ x: enabled ? 18 : 2 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        className={cn(
-          "absolute top-[2px] w-4.5 h-4.5 rounded-full shadow-sm",
-          enabled ? "bg-white" : "bg-muted-foreground/60"
-        )}
-      />
-    </button>
-  </div>
-);
-
-const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
-  <div className="pt-2 pb-1 px-3.5">
-    <h4 className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{label}</h4>
-  </div>
-);
 
 export const NotificationPreferencesSection: React.FC = () => {
   const preferences = useNotificationStore((s) => s.preferences);
   const updatePreferences = useNotificationStore((s) => s.updatePreferences);
   const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
   const { user } = useAuth();
+  const [testSent, setTestSent] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
+  const supported = isNotificationSupported();
   const currentPermission = getPermissionStatus();
   const isGranted = currentPermission === 'granted';
   const isDenied = currentPermission === 'denied';
+  const isEnabled = preferences.enabled && isGranted;
 
-  const handleRequestPermission = async () => {
-    const result = await requestNotificationPermission();
-    if (result !== 'unsupported') {
-      setPermissionStatus(result);
-      // Auto-subscribe to push after granting permission
-      if (result === 'granted' && user) {
-        subscribeToPush(user.id);
+  const handleToggle = async () => {
+    if (!supported || isProcessing) return;
+
+    if (!isGranted && !isDenied) {
+      // Request permission
+      setIsProcessing(true);
+      try {
+        const result = await requestNotificationPermission();
+        if (result !== 'unsupported') {
+          setPermissionStatus(result);
+          if (result === 'granted') {
+            updatePreferences({ enabled: true });
+            if (user) {
+              await subscribeToPush(user.id);
+            }
+          }
+        }
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    if (isGranted) {
+      const nextState = !preferences.enabled;
+      setIsProcessing(true);
+      try {
+        updatePreferences({ enabled: nextState });
+        if (user) {
+          if (nextState) {
+            await subscribeToPush(user.id);
+          } else {
+            await unsubscribeFromPush(user.id);
+          }
+        }
+      } finally {
+        setIsProcessing(false);
       }
     }
   };
 
-  /** Toggle master switch — also manages push subscription */
-  const handleMasterToggle = async (val: boolean) => {
-    updatePreferences({ enabled: val });
-    if (user) {
-      if (val && isGranted) {
-        subscribeToPush(user.id);
-      } else if (!val) {
-        unsubscribeFromPush(user.id);
-      }
-    }
+  const handleSendTest = async () => {
+    if (!isGranted || testSent) return;
+    setTestSent(true);
+    await sendNotification(
+      'Legacy Life Builder',
+      {
+        body: 'Push notifications are configured and working properly.',
+        bypassChecks: true,
+      },
+      preferences
+    );
+    setTimeout(() => setTestSent(false), 3000);
   };
-
-  const notificationsEnabled = preferences.enabled;
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
       {/* Section Header */}
       <div className="px-5 py-4 border-b border-border bg-muted/30">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
               <Bell size={16} className="text-primary" />
             </div>
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest text-foreground">Notifications</h3>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {preferences.enabled ? 'Enabled' : 'Disabled'}
+              <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">
+                {isEnabled ? 'Active & Delivering' : isDenied ? 'Permission Blocked' : 'Permission Required'}
               </p>
             </div>
           </div>
 
           {/* Permission status badge */}
-          <div className={cn(
-            'px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border',
-            isGranted
-              ? 'bg-green-500/10 border-green-500/20 text-green-400'
-              : isDenied
-              ? 'bg-red-500/10 border-red-500/20 text-red-400'
-              : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-          )}>
-            {isGranted ? 'Granted' : isDenied ? 'Blocked' : 'Pending'}
+          <div
+            className={cn(
+              'px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border',
+              isGranted && preferences.enabled
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                : isDenied
+                ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+            )}
+          >
+            {isGranted && preferences.enabled ? 'Granted' : isDenied ? 'Blocked' : isGranted ? 'Paused' : 'Pending'}
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-3 space-y-0.5">
-        {/* Master toggle */}
-        <Toggle
-          label="Enable All Notifications"
-          description="Master switch for all notification types"
-          icon={preferences.enabled ? <Bell size={14} /> : <BellOff size={14} />}
-          enabled={preferences.enabled}
-          onChange={handleMasterToggle}
-        />
-
-        <Toggle
-          label="Quiet Hours (Sleep Time)"
-          description={`No notifications during sleep (${preferences.quietHoursStart} - ${preferences.quietHoursEnd})`}
-          icon={<Clock size={14} />}
-          enabled={preferences.quietHoursEnabled}
-          onChange={(val) => updatePreferences({ quietHoursEnabled: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <Toggle
-          label="Sleep Start & End Alerts"
-          description="Alert when your bedtime or wake-up time is reached"
-          icon={<Moon size={14} />}
-          enabled={preferences.sleepNotifications !== false}
-          onChange={(val) => updatePreferences({ sleepNotifications: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <div className="h-px bg-border mx-3 my-2" />
-
-        {/* Reminders & Tasks */}
-        <SectionLabel label="Reminders & Tasks" />
-
-        <Toggle
-          label="Task Reminders"
-          description="Alert when a task is starting soon or overdue"
-          icon={<Calendar size={14} />}
-          enabled={preferences.taskReminders !== false}
-          onChange={(val) => updatePreferences({ taskReminders: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <Toggle
-          label="Day Summary"
-          description="Motivational summary of your day at sleep time"
-          icon={<Moon size={14} />}
-          enabled={preferences.daySummary !== false}
-          onChange={(val) => updatePreferences({ daySummary: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <div className="h-px bg-border mx-3 my-2" />
-
-        {/* Planning & Progress */}
-        <SectionLabel label="Planning & Progress" />
-
-        <Toggle
-          label="Daily Briefing"
-          description="Morning summary of today's tasks at wake-up"
-          icon={<MessageSquare size={14} />}
-          enabled={preferences.dailyBriefing !== false}
-          onChange={(val) => updatePreferences({ dailyBriefing: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <Toggle
-          label="Weekly Summary"
-          description="Performance review every Monday morning"
-          icon={<BarChart3 size={14} />}
-          enabled={preferences.weeklySummary !== false}
-          onChange={(val) => updatePreferences({ weeklySummary: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <Toggle
-          label="Weekly Planning Reminder"
-          description="Alert when it is time to plan your upcoming week"
-          icon={<Clock size={14} />}
-          enabled={preferences.weeklyPlanning !== false}
-          onChange={(val) => updatePreferences({ weeklyPlanning: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <Toggle
-          label="Stats & Grade Changes"
-          description="Alerts when your consistency grade changes"
-          icon={<TrendingUp size={14} />}
-          enabled={preferences.statsChanges !== false}
-          onChange={(val) => updatePreferences({ statsChanges: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <Toggle
-          label="Streak Milestones"
-          description="Celebrate when you hit 3, 7, 14, 30+ day streaks"
-          icon={<Flame size={14} />}
-          enabled={preferences.streakMilestones !== false}
-          onChange={(val) => updatePreferences({ streakMilestones: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <Toggle
-          label="Burnout Warning"
-          description="Alert when burnout risk is detected"
-          icon={<Flame size={14} />}
-          enabled={preferences.burnoutWarning !== false}
-          onChange={(val) => updatePreferences({ burnoutWarning: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <div className="h-px bg-border mx-3 my-2" />
-
-        {/* Insights & Reports */}
-        <SectionLabel label="Insights & Reports" />
-
-        <Toggle
-          label="Weekly Reflection Report"
-          description="Generate your weekly wrapped-style reflection"
-          icon={<Sparkles size={14} />}
-          enabled={preferences.weeklyReportEnabled !== false}
-          onChange={(val) => updatePreferences({ weeklyReportEnabled: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        {preferences.weeklyReportEnabled !== false && notificationsEnabled && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pl-12 pr-4 py-2 border-l-2 border-border/40 ml-6 mb-2 animate-in slide-in-from-left duration-200">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Day:</span>
-              <Select
-                value={preferences.weeklyReportDay || 'Sunday'}
-                onValueChange={(val) => updatePreferences({ weeklyReportDay: val })}
-              >
-                <SelectTrigger className="h-8 text-xs min-w-[110px] bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Time:</span>
-              <div className="w-[120px]">
-                <SimpleTimePicker
-                  value={preferences.weeklyReportTime || '20:00'}
-                  onChange={(val) => updatePreferences({ weeklyReportTime: val })}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <Toggle
-          label="Monthly Life Report"
-          description="Generate your monthly life check-in"
-          icon={<FileText size={14} />}
-          enabled={preferences.monthlyReportEnabled !== false}
-          onChange={(val) => updatePreferences({ monthlyReportEnabled: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        {preferences.monthlyReportEnabled !== false && notificationsEnabled && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pl-12 pr-4 py-2 border-l-2 border-border/40 ml-6 mb-2 animate-in slide-in-from-left duration-200">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Day:</span>
-              <Select
-                value={String(preferences.monthlyReportDay || 1)}
-                onValueChange={(val) => updatePreferences({ monthlyReportDay: parseInt(val, 10) })}
-              >
-                <SelectTrigger className="h-8 text-xs min-w-[80px] bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 28 }, (_, idx) => idx + 1).map(d => (
-                    <SelectItem key={d} value={String(d)}>{d === 1 ? '1st' : d === 2 ? '2nd' : d === 3 ? '3rd' : `${d}th`}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Time:</span>
-              <div className="w-[120px]">
-                <SimpleTimePicker
-                  value={preferences.monthlyReportTime || '20:00'}
-                  onChange={(val) => updatePreferences({ monthlyReportTime: val })}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="h-px bg-border mx-3 my-2" />
-
-        {/* Goals & Achievements */}
-        <SectionLabel label="Goals & Achievements" />
-
-        <Toggle
-          label="Goal Deadlines"
-          description="Alerts for upcoming goal deadlines (7, 3, 1 day)"
-          icon={<Target size={14} />}
-          enabled={preferences.goalDeadlines !== false}
-          onChange={(val) => updatePreferences({ goalDeadlines: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <Toggle
-          label="Goal Completion"
-          description="Celebrate when all milestones of a goal are done"
-          icon={<Trophy size={14} />}
-          enabled={preferences.goalCompletion !== false}
-          onChange={(val) => updatePreferences({ goalCompletion: val })}
-          disabled={!notificationsEnabled}
-        />
-
-        <div className="h-px bg-border mx-3 my-2" />
-
-        {/* Permission action */}
-        <div className="flex items-center gap-2 px-3 py-2">
-          {!isGranted && !isDenied && (
-            <button
-              onClick={handleRequestPermission}
-              className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95"
+      <div className="p-5 space-y-4">
+        {/* Single Permission Switch */}
+        <div
+          className={cn(
+            'flex items-center justify-between gap-4 p-4 rounded-xl border transition-all duration-200',
+            isEnabled
+              ? 'bg-emerald-500/[0.03] border-emerald-500/20'
+              : isDenied
+              ? 'bg-red-500/[0.03] border-red-500/20'
+              : 'bg-muted/30 border-border'
+          )}
+        >
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div
+              className={cn(
+                'flex-shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center transition-colors',
+                isEnabled
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : isDenied
+                  ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                  : 'bg-muted border-border text-muted-foreground'
+              )}
             >
-              <Bell size={12} />
-              Enable Browser Notifications
-            </button>
-          )}
+              {isEnabled ? (
+                <Bell size={18} />
+              ) : isDenied ? (
+                <ShieldAlert size={18} />
+              ) : (
+                <BellOff size={18} />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-foreground tracking-wide">
+                Push Notifications
+              </p>
+              <p className="text-xs text-muted-foreground/90 mt-0.5 leading-relaxed">
+                {!supported
+                  ? 'Push notifications are not supported on this browser.'
+                  : isDenied
+                  ? 'Notifications are blocked in your browser settings.'
+                  : isEnabled
+                  ? 'Push notifications are enabled for alerts, reminders, and updates.'
+                  : isGranted
+                  ? 'Notifications are paused. Turn on to resume alerts.'
+                  : 'Allow push notifications to receive real-time alerts and briefings.'}
+              </p>
+            </div>
+          </div>
 
-          {isDenied && (
-            <p className="text-[10px] text-red-400/80 font-medium px-1">
-              Notifications are blocked. Please enable them in your browser settings for this site.
-            </p>
-          )}
+          <button
+            onClick={handleToggle}
+            disabled={!supported || isDenied || isProcessing}
+            aria-label="Toggle push notifications"
+            className={cn(
+              'relative flex-shrink-0 w-11 h-6 rounded-full transition-all duration-300 outline-none border border-border/40',
+              !supported || isDenied || isProcessing ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer',
+              isEnabled ? 'bg-emerald-500/90 shadow-sm shadow-emerald-500/10' : 'bg-muted/80'
+            )}
+          >
+            <motion.div
+              animate={{ x: isEnabled ? 22 : 2 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className={cn(
+                'absolute top-[2px] w-4.5 h-4.5 rounded-full shadow-sm',
+                isEnabled ? 'bg-white' : 'bg-muted-foreground/60'
+              )}
+            />
+          </button>
         </div>
+
+        {/* Action / Guidance details */}
+        {isDenied && (
+          <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-300 leading-relaxed flex items-start gap-3">
+            <AlertCircle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-200">Browser Permissions Blocked</p>
+              <p className="mt-0.5 text-red-300/80">
+                To receive notifications, open your browser site settings (usually the lock or tune icon in the address bar) and set Notifications to Allow.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!isGranted && !isDenied && supported && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+            <p className="text-xs text-muted-foreground">
+              Click the switch or the button to grant notification access.
+            </p>
+            <button
+              onClick={handleToggle}
+              disabled={isProcessing}
+              className="w-full sm:w-auto px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Bell size={14} />
+              {isProcessing ? 'Requesting...' : 'Allow Notifications'}
+            </button>
+          </div>
+        )}
+
+        {isEnabled && (
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+              <CheckCircle2 size={14} />
+              <span>Permission granted and ready</span>
+            </div>
+            <button
+              onClick={handleSendTest}
+              disabled={testSent}
+              className="px-3 py-1.5 text-[11px] font-semibold tracking-wide rounded-lg bg-muted border border-border/80 hover:bg-accent text-foreground hover:text-primary transition-all active:scale-95 flex items-center gap-1.5"
+            >
+              <Send size={12} />
+              {testSent ? 'Notification Sent' : 'Send Test'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+

@@ -1,10 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Check, Sparkles, Trophy, AlertTriangle, Target, ArrowRight, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, Check, Sparkles, ArrowRight, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CircularProgress } from '@/components/ui/circular-progress';
 import type { DetailedAnalytics } from '../hooks/use-detailed-stats';
 import { LIFE_BUCKETS, BUCKET_META, LifeBucket } from '@/types/time';
+import { WeekUtils } from '@/utils/week';
+import { getWeekKeyFromDisplay } from '@/utils/analytics-engine';
+
+interface ActionStep {
+  title: string;
+  desc: string;
+  type: 'urgent' | 'action' | 'success';
+}
+
+const BUCKET_ACCENT_COLORS: Record<LifeBucket, string> = {
+  income: 'bg-emerald-400',
+  asset: 'bg-violet-400',
+  recovery: 'bg-sky-400',
+  relational: 'bg-amber-400',
+};
 
 const GoldenSparkles = () => {
   const sparkles = Array.from({ length: 5 });
@@ -113,9 +128,8 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
     return map;
   }, [data.rawHabits]);
 
-  // Executive Action Plan & Diagnosis
-  const actionPlan = React.useMemo(() => {
-    const steps: { title: string; desc: string; type: 'urgent' | 'action' | 'success' }[] = [];
+  const actionPlan = useMemo(() => {
+    const steps: ActionStep[] = [];
 
     // Check 1: Unassigned bucket tasks
     if (data.bucketStats?.unassignedHours > 0) {
@@ -127,17 +141,22 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
       });
     }
 
-    // Check 2: Neglected buckets
-    if (data.bucketStats?.weakestBucket) {
-      const wBucket = BUCKET_META[data.bucketStats.weakestBucket];
-      const hours = data.bucketStats.bucketHours[data.bucketStats.weakestBucket] || 0;
-      if (hours === 0) {
-        steps.push({
-          title: `Restore ${wBucket.label} Bucket`,
-          desc: `${wBucket.label} has 0 hours allocated this week. Schedule at least one block in your weekly planner for ${wBucket.label.toLowerCase()}.`,
-          type: 'urgent',
-        });
-      }
+    // Check 2: Neglected buckets (empty streaks or 0 hours)
+    if (data.emptyBucketStreaks) {
+      Object.entries(data.emptyBucketStreaks).forEach(([bKey, streak]) => {
+        if (streak >= 1) {
+          const wBucket = BUCKET_META[bKey as LifeBucket];
+          if (wBucket && !steps.some(s => s.title.includes(wBucket.label))) {
+            steps.push({
+              title: `Restore ${wBucket.label} Bucket`,
+              desc: streak >= 2
+                ? `${wBucket.label} has been empty for ${streak} consecutive weeks. Schedule at least one block in your weekly planner.`
+                : `${wBucket.label} has 0 hours allocated this week. Schedule at least one block in your weekly planner for ${wBucket.label.toLowerCase()}.`,
+              type: 'urgent',
+            });
+          }
+        }
+      });
     }
 
     // Check 3: Weak habits
@@ -172,41 +191,129 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
     return steps.slice(0, 3);
   }, [data]);
 
+  const overallBucketStats = React.useMemo<{
+    avgHoursByBucket: Record<LifeBucket, number>;
+    dominantBucket: LifeBucket | null;
+    dominantBucketHours: number;
+    dominantBucketPct: number;
+    avgWeeklyHours: number;
+    avgWeeklyPct: number;
+    activeWeeksCount: number;
+    totalWeeksCount: number;
+    avgActiveBucketsPerWeek: number;
+  }>(() => {
+    const history = data.bucketHistory || [];
+    const activeWeeks = history.filter(w => (w.totalHours || 0) > 0);
+    const totalWeeksCount = history.length;
+    const activeWeeksCount = activeWeeks.length;
+
+    const avgHoursByBucket: Record<LifeBucket, number> = {
+      income: 0,
+      asset: 0,
+      recovery: 0,
+      relational: 0,
+    };
+
+    if (activeWeeksCount === 0) {
+      return {
+        avgHoursByBucket,
+        dominantBucket: null,
+        dominantBucketHours: 0,
+        dominantBucketPct: 0,
+        avgWeeklyHours: 0,
+        avgWeeklyPct: 0,
+        activeWeeksCount: 0,
+        totalWeeksCount,
+        avgActiveBucketsPerWeek: 0,
+      };
+    }
+
+    const totalHoursByBucket: Record<LifeBucket, number> = {
+      income: 0,
+      asset: 0,
+      recovery: 0,
+      relational: 0,
+    };
+
+    let totalAllocatedSum = 0;
+    let totalActiveBucketsCount = 0;
+
+    activeWeeks.forEach((w) => {
+      totalAllocatedSum += Math.min(168, w.totalHours || 0);
+      let weekActiveCount = 0;
+      LIFE_BUCKETS.forEach((b) => {
+        const h = w.hours?.[b] || 0;
+        totalHoursByBucket[b] += h;
+        if (h > 0) weekActiveCount++;
+      });
+      totalActiveBucketsCount += weekActiveCount;
+    });
+
+    LIFE_BUCKETS.forEach((b) => {
+      avgHoursByBucket[b] = Math.round((totalHoursByBucket[b] / activeWeeksCount) * 10) / 10;
+    });
+
+    const avgWeeklyHours = Math.round((totalAllocatedSum / activeWeeksCount) * 10) / 10;
+    const avgWeeklyPct = Math.min(100, Math.round((avgWeeklyHours / 168) * 100));
+
+    let maxAvgHours = -1;
+    let dominantBucket: LifeBucket | null = null;
+
+    LIFE_BUCKETS.forEach((b) => {
+      const avgH = avgHoursByBucket[b];
+      if (avgH > maxAvgHours && avgH > 0) {
+        maxAvgHours = avgH;
+        dominantBucket = b;
+      }
+    });
+
+    const dominantBucketHours = dominantBucket ? avgHoursByBucket[dominantBucket] : 0;
+    const dominantBucketPct = dominantBucket
+      ? Math.min(100, Math.round((dominantBucketHours / 168) * 100))
+      : 0;
+    const avgActiveBucketsPerWeek = Math.round((totalActiveBucketsCount / activeWeeksCount) * 10) / 10;
+
+    return {
+      avgHoursByBucket,
+      dominantBucket,
+      dominantBucketHours,
+      dominantBucketPct,
+      avgWeeklyHours,
+      avgWeeklyPct,
+      activeWeeksCount,
+      totalWeeksCount,
+      avgActiveBucketsPerWeek,
+    };
+  }, [data.bucketHistory]);
+
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
 
       {/* Executive Feedback & Action Plan Section */}
-      <div className="rounded-3xl bg-card/90 backdrop-blur-md border border-border p-4 sm:p-6 space-y-4 shadow-sm">
+      <div className="rounded-3xl bg-card/80 backdrop-blur-md border border-border p-4 sm:p-5 space-y-3.5 shadow-sm">
         <div className="flex items-center justify-between border-b border-border pb-3">
-          <div className="flex items-center gap-2">
-            <Target size={16} className="text-primary" />
-            <h3 className="text-xs uppercase tracking-widest font-bold text-foreground">Actionable Execution Feedback</h3>
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-            Legacy Score: {data.trajectory?.total || 0}%
-          </span>
+          <h3 className="text-xs uppercase tracking-widest font-black text-foreground">
+            Actionable Execution Feedback
+          </h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {actionPlan.map((step, idx) => (
             <div
               key={idx}
-              className={cn(
-                "p-3.5 rounded-2xl border flex flex-col justify-between space-y-2 text-xs",
-                step.type === 'urgent'
-                  ? "bg-amber-500/10 border-amber-500/20 text-amber-300"
-                  : step.type === 'action'
-                    ? "bg-primary/10 border-primary/20 text-foreground"
-                    : "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
-              )}
+              className="p-3.5 rounded-2xl bg-card/60 border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between space-y-2 text-xs"
             >
-              <div className="flex items-center gap-2 font-bold">
-                {step.type === 'urgent' && <ShieldAlert size={14} className="text-amber-400 shrink-0" />}
-                {step.type === 'action' && <ArrowRight size={14} className="text-primary shrink-0" />}
-                {step.type === 'success' && <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />}
-                <span className="truncate">{step.title}</span>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
+                  <ArrowRight size={12} className="text-white" />
+                </div>
+                <span className="font-black uppercase tracking-wider text-foreground truncate">
+                  {step.title}
+                </span>
               </div>
-              <p className="text-[11px] opacity-80 leading-relaxed">{step.desc}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {step.desc}
+              </p>
             </div>
           ))}
         </div>
@@ -443,7 +550,7 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
             <div className="space-y-1.5 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
               {data.weeks
                 .slice()
-                .sort((a, b) => (a.weekKey > b.weekKey ? -1 : 1))
+                .sort((a, b) => WeekUtils.compareWeeks(getWeekKeyFromDisplay(b.weekKey), getWeekKeyFromDisplay(a.weekKey)))
                 .map((w, i) => (
                   <motion.div
                     key={w.weekKey}
@@ -452,16 +559,16 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
                     transition={{ duration: 0.15, delay: i * 0.02 }}
                     className="flex items-center gap-3 text-xs py-1"
                   >
-                    <span className="text-muted-foreground w-16 sm:w-24 shrink-0 font-mono text-[10px] sm:text-[11px] truncate">{w.weekKey}</span>
+                    <span className="text-muted-foreground w-20 sm:w-28 shrink-0 font-mono text-[10px] sm:text-[11px] truncate">{w.weekKey}</span>
                     <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.min(w.efficiency, 100)}%` }}
                         transition={{ duration: 0.5, delay: 0.1 + i * 0.02 }}
-                        className="h-full rounded-full bg-intent-warning/60"
+                        className="h-full rounded-full bg-intent-warning/80"
                       />
                     </div>
-                    <span className="text-muted-foreground w-9 text-right font-medium">{w.efficiency}%</span>
+                    <span className="text-yellow-400 font-bold w-10 text-right font-mono">{w.efficiency}%</span>
                   </motion.div>
                 ))}
             </div>
@@ -470,98 +577,89 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
       </Panel>
 
       {/* Panel 4: Life Buckets Deep Analysis (Shrinked by default) */}
-      <Panel title="Life Buckets Deep Analysis" count={4} defaultOpen={false}>
-        <div className="space-y-5 pt-1">
+      <Panel title="Life Buckets Deep Analysis" count={overallBucketStats.totalWeeksCount || 8} defaultOpen={false}>
+        <div className="space-y-4 pt-1">
 
-          {/* Empty bucket warnings */}
-          {Object.entries(data.emptyBucketStreaks || {}).some(([_, streak]) => streak >= 2) && (
-            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 space-y-1.5">
-              <div className="flex items-center gap-2 font-bold text-xs">
-                <AlertTriangle size={14} className="shrink-0" />
-                <span>Bucket Neglect Warning</span>
-              </div>
-              {LIFE_BUCKETS.map((bucket) => {
-                const streak = data.emptyBucketStreaks[bucket] || 0;
-                if (streak < 2) return null;
-                const meta = BUCKET_META[bucket];
-                return (
-                  <p key={bucket} className="text-xs text-amber-300/90 pl-5">
-                    <strong>{meta.label}</strong> bucket has been empty for <span className="underline">{streak} consecutive weeks</span>.
-                  </p>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Bucket Hours Allocated */}
-          <div className="space-y-2">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">Weekly Bucket Hours Allocated</span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {LIFE_BUCKETS.map((bucketKey) => {
-                const meta = BUCKET_META[bucketKey];
-                const hours = data.bucketStats?.bucketHours?.[bucketKey] || 0;
-                const pct = data.bucketStats?.bucketPercentages?.[bucketKey] || 0;
-
-                return (
-                  <div key={bucketKey} className={cn("p-3.5 rounded-2xl border flex flex-col justify-between space-y-2 bg-glass", meta.borderClass)}>
-                    <span className={cn("text-[10px] font-bold uppercase tracking-wider truncate", meta.color)}>
-                      {meta.label}
-                    </span>
-                    <div className="flex flex-wrap items-baseline justify-between gap-1">
-                      <span className="text-2xl font-black text-foreground font-mono">{hours}h</span>
-                      <span className="text-[10px] font-mono text-muted-foreground">{hours}h / 168h ({pct}%)</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={cn("h-full rounded-full", hours > 0 ? meta.bgClass.replace('/10', '/80') : "bg-muted-foreground/20")}
-                        style={{ width: `${Math.min(100, Math.max(hours > 0 ? 10 : 0, pct))}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {data?.bucketStats && (
-              <p className="text-[10px] text-muted-foreground/80 italic text-center pt-2">
-                Note: Recovery bucket includes {data.bucketStats.userSleepHours || 56}h preference sleep ({Math.round((data.bucketStats.userSleepHours || 56) / 7)}h/day) and {data.bucketStats.userPlanHours || 1}h weekly planning.
-              </p>
-            )}
+          {/* 3 Summary Feedback StatBoxes matching Weekly Execution */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3">
+            <StatBox
+              label="Overall Focus"
+              value={overallBucketStats.dominantBucket ? BUCKET_META[overallBucketStats.dominantBucket].label : '—'}
+              sub={overallBucketStats.dominantBucket ? `Avg ${overallBucketStats.dominantBucketHours}h/wk (${overallBucketStats.dominantBucketPct}%)` : undefined}
+            />
+            <StatBox
+              label="All-Time Avg"
+              value={`${overallBucketStats.avgWeeklyPct}%`}
+              sub={`Avg ${overallBucketStats.avgWeeklyHours}h / 168h`}
+            />
+            <StatBox
+              label="Weeks Tracked"
+              value={`${overallBucketStats.totalWeeksCount}`}
+              sub={`Avg ${overallBucketStats.avgActiveBucketsPerWeek} of 4 active`}
+            />
           </div>
 
-          {/* 8-Week Bucket Trend */}
+          {/* 4 Bucket All-Time Averages Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
+            {LIFE_BUCKETS.map((bucketKey) => {
+              const meta = BUCKET_META[bucketKey];
+              const avgHours = overallBucketStats.avgHoursByBucket[bucketKey] || 0;
+              const avgPct = Math.min(100, Math.round((avgHours / 168) * 100));
+
+              return (
+                <div
+                  key={bucketKey}
+                  className={cn("p-3 rounded-2xl border flex flex-col justify-between space-y-2 bg-glass", meta.borderClass)}
+                >
+                  <span className={cn("text-[9px] sm:text-[10px] font-bold uppercase tracking-wider truncate", meta.color)}>
+                    {meta.label}
+                  </span>
+                  <div className="flex items-baseline justify-between gap-1">
+                    <span className="text-xl sm:text-2xl font-black text-foreground font-mono">
+                      {avgHours}h
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      Avg {avgPct}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full", BUCKET_ACCENT_COLORS[bucketKey])}
+                      style={{ width: `${Math.min(100, Math.max(avgHours > 0 ? 8 : 0, avgPct))}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 8-Week Bucket Trend (Percentage of 168h capacity matching Week Execution) */}
           {data.bucketHistory && data.bucketHistory.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-border/50">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">8-Week Bucket Allocation Trend</span>
-              <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
-                {data.bucketHistory
-                  .slice()
-                  .sort((a, b) => (a.week > b.week ? -1 : 1))
-                  .slice(0, 8)
-                  .map((historyItem) => {
-                    const total = historyItem.totalHours || 1;
+              <div className="space-y-1.5 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+                {[...data.bucketHistory]
+                  .reverse()
+                  .map((historyItem, i) => {
+                    const totalHours = Math.min(168, historyItem.totalHours || 0);
+                    const weekPct = Math.min(100, Math.round((totalHours / 168) * 100));
+
                     return (
-                      <div key={historyItem.week} className="space-y-1">
-                        <div className="flex justify-between items-center text-[10px] font-mono">
-                          <span className="text-muted-foreground font-bold">{historyItem.week}</span>
-                          <span className="text-muted-foreground">{historyItem.totalHours}h total</span>
+                      <div key={historyItem.week} className="flex items-center gap-3 text-xs py-1">
+                        <span className="text-muted-foreground w-20 sm:w-28 shrink-0 font-mono text-[10px] sm:text-[11px] truncate">
+                          {historyItem.week}
+                        </span>
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${weekPct}%` }}
+                            transition={{ duration: 0.5, delay: 0.05 + i * 0.02 }}
+                            className="h-full rounded-full bg-intent-warning/80"
+                          />
                         </div>
-                        <div className="flex h-2.5 w-full rounded-full overflow-hidden bg-muted gap-0.5">
-                          {LIFE_BUCKETS.map((bucketKey) => {
-                            const hours = historyItem.hours[bucketKey] || 0;
-                            if (hours === 0) return null;
-                            const pct = Math.round((hours / total) * 100);
-                            const meta = BUCKET_META[bucketKey];
-                            return (
-                              <div
-                                key={bucketKey}
-                                className={cn("h-full", meta.bgClass.replace('/10', '/90'))}
-                                style={{ width: `${pct}%` }}
-                                title={`${meta.label}: ${hours}h (${pct}%)`}
-                              />
-                            );
-                          })}
-                        </div>
+                        <span className="text-yellow-400 font-bold w-10 text-right font-mono">
+                          {weekPct}%
+                        </span>
                       </div>
                     );
                   })}

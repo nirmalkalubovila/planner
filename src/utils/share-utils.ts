@@ -15,7 +15,7 @@ export function canNativeShare(blob: Blob): boolean {
 /**
  * Invokes native share dialog on mobile (WhatsApp, IG Stories, TikTok)
  */
-export async function shareToSocial(blob: Blob, text: string = 'Check out my weekly wrapped stats on Legacy Life Builder! ⚡'): Promise<boolean> {
+export async function shareToSocial(blob: Blob, text: string = 'Check out my weekly wrapped stats on Legacy Life Builder!'): Promise<boolean> {
   if (!navigator.share) return false;
 
   try {

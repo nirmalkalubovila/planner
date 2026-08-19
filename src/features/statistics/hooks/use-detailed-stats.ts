@@ -21,6 +21,10 @@ import {
   type BucketStats,
   type WeeklyBucketHistory,
 } from '@/utils/bucket-engine';
+import {
+  computeMilestoneProgress,
+  type MilestoneProgress,
+} from '@/utils/milestone-engine';
 
 export interface DetailedAnalytics {
   trajectory: LifeTrajectoryScore;
@@ -45,6 +49,10 @@ export interface DetailedAnalytics {
   rawGoals: Goal[];
   rawHabits: Habit[];
   rawCustomTasks: CustomTask[];
+
+  // Milestone & Consistency Analytics
+  milestoneProgress: MilestoneProgress;
+  completedMap: Record<string, string[]>;
 }
 
 const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
@@ -158,10 +166,22 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
     userPlanHours
   );
 
-  // Compute bucket stats history across all tracked weeks
-  const bucketHistory: WeeklyBucketHistory[] = weekPlans.map((wp) => {
+  // Compute bucket stats history across the trailing 8 consecutive chronological weeks
+  const trailingWeeksChronological: string[] = [];
+  for (let i = 7; i >= 0; i--) {
+    trailingWeeksChronological.push(WeekUtils.addWeeks(currentWeek, -i));
+  }
+
+  const bucketHistory: WeeklyBucketHistory[] = trailingWeeksChronological.map((wCode) => {
+    const wp = weekPlans.find(
+      (p) =>
+        p.week === wCode ||
+        p.week === WeekUtils.formatWeekDisplay(wCode) ||
+        WeekUtils.getWeekFromDate(p.week) === wCode
+    );
+
     const stats = calculateWeekBucketHours(
-      wp.state,
+      wp?.state || {},
       goals,
       habits,
       mergedCustomTasks,
@@ -170,8 +190,9 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
       userPlanDay,
       userPlanHours
     );
+
     return {
-      week: wp.week,
+      week: WeekUtils.formatWeekDisplay(wCode),
       hours: stats.bucketHours,
       unassignedHours: stats.unassignedHours,
       totalHours: stats.totalAllocatedHours,
@@ -183,6 +204,7 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
 
   const avgBalanceScore = (Object.values(bucketBalanceScores).reduce((a, b) => a + b, 0) / 4) * 10;
   const trajectory = computeLifeTrajectory(goalAverage, habitAverage, weekAverage, avgBalanceScore);
+  const milestoneProgress = computeMilestoneProgress(completedMap);
 
   return {
     trajectory,
@@ -202,6 +224,8 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
     rawGoals: goals,
     rawHabits: habits,
     rawCustomTasks: customTasks,
+    milestoneProgress,
+    completedMap,
   };
 };
 

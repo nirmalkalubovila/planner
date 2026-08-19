@@ -141,6 +141,43 @@ export function calculateWeekBucketHours(
     relational: 0,
   };
 
+  // If no gridState or empty object, return 0s (no phantom data)
+  if (!gridState || Object.keys(gridState).length === 0) {
+    return {
+      bucketHours,
+      unassignedHours: 0,
+      unassignedTaskNames: [],
+      totalAllocatedHours: 0,
+      totalWeekHours: TOTAL_WEEK_HOURS,
+      userSleepHours: 0,
+      userPlanHours: 0,
+      bucketPercentages: { income: 0, asset: 0, recovery: 0, relational: 0 },
+      strongestBucket: null,
+      weakestBucket: null,
+    };
+  }
+
+  // Check if grid has at least one real planned cell or reminder
+  const hasPlannedContent = Object.keys(gridState).some((k) => {
+    const slot = gridState[k];
+    return slot && typeof slot === 'object' && 'name' in slot && Boolean(slot.name);
+  }) || (Array.isArray(gridState.reminders) && gridState.reminders.length > 0);
+
+  if (!hasPlannedContent) {
+    return {
+      bucketHours,
+      unassignedHours: 0,
+      unassignedTaskNames: [],
+      totalAllocatedHours: 0,
+      totalWeekHours: TOTAL_WEEK_HOURS,
+      userSleepHours: 0,
+      userPlanHours: 0,
+      bucketPercentages: { income: 0, asset: 0, recovery: 0, relational: 0 },
+      strongestBucket: null,
+      weakestBucket: null,
+    };
+  }
+
   let unassignedSlots = 0;
   let totalSlots = 0;
   const unassignedTaskNames: string[] = [];
@@ -181,7 +218,7 @@ export function calculateWeekBucketHours(
   const planDayIdx = DAYS_OF_WEEK.indexOf(userPlanDay as any) !== -1 ? DAYS_OF_WEEK.indexOf(userPlanDay as any) : 6;
   const planSlotCount = Math.round(userPlanHours * 2);
 
-  // Evaluate 7 days x 48 slots grid
+  // Evaluate 7 days x 48 slots grid (max 336 slots = 168h)
   for (let d = 0; d < 7; d++) {
     for (let s = 0; s < 48; s++) {
       const key = `${d}-${s}`;
@@ -231,7 +268,8 @@ export function calculateWeekBucketHours(
     }
   });
 
-  const totalAllocatedHours = totalSlots * 0.5;
+  // Ensure total allocated hours never exceeds full week capacity (168h)
+  const totalAllocatedHours = Math.min(TOTAL_WEEK_HOURS, totalSlots * 0.5);
   const unassignedHours = unassignedSlots * 0.5;
   const userSleepWeeklyHours = userSleepDuration * 7;
 
@@ -248,9 +286,10 @@ export function calculateWeekBucketHours(
   let weakestBucket: LifeBucket | null = null;
 
   LIFE_BUCKETS.forEach((bucket) => {
-    const hours = bucketHours[bucket];
-    // Percentage calculated against full 168h total week
-    bucketPercentages[bucket] = Math.round((hours / TOTAL_WEEK_HOURS) * 100);
+    const hours = Math.min(TOTAL_WEEK_HOURS, bucketHours[bucket]);
+    bucketHours[bucket] = hours;
+    // Percentage calculated against full 168h total week (capped at 100%)
+    bucketPercentages[bucket] = Math.min(100, Math.round((hours / TOTAL_WEEK_HOURS) * 100));
 
     if (hours > maxHours && hours > 0) {
       maxHours = hours;

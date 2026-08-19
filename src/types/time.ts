@@ -45,12 +45,31 @@ export const BUCKET_META: Record<LifeBucket, BucketMeta> = {
   },
 };
 
-export interface WeeklyBucketAction {
+export interface WeeklyPriorityItem {
   text: string;
   linkedItemId?: string;
   linkedItemType?: 'goal' | 'habit' | 'custom';
   linkedItemName?: string;
+  bucket?: LifeBucket;
 }
 
-export type WeeklyBucketActions = Partial<Record<LifeBucket, WeeklyBucketAction>>;
+export interface DailyOutcomeItem {
+  text: string;
+  contributesToKey?: string;
+  linkedItemId?: string;
+  linkedItemType?: 'goal' | 'habit' | 'custom';
+  linkedItemName?: string;
+  completed?: boolean;
+}
+
+export interface WeeklyBucketActionsData {
+  p1?: WeeklyPriorityItem;
+  p2?: WeeklyPriorityItem;
+  p3?: WeeklyPriorityItem;
+  dailyWins?: Record<string, DailyOutcomeItem>;
+  [key: string]: any;
+}
+
+export type WeeklyBucketAction = WeeklyPriorityItem;
+export type WeeklyBucketActions = WeeklyBucketActionsData | Partial<Record<LifeBucket, WeeklyPriorityItem>>;
 
