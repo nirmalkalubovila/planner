@@ -278,6 +278,44 @@ export function useAdminStats() {
     const remaining = Math.max(0, growthTarget - activeUsers7d);
     const weeksToTarget = avgWeeklySignups > 0 ? Math.ceil(remaining / avgWeeklySignups) : null;
 
+    // ── Ratings & Sentiment Metrics ──
+    const ratingsWithVal = feedbacks.filter(f => typeof f.rating === 'number' && f.rating > 0);
+    const totalRated = ratingsWithVal.length;
+    const avgRatingVal = totalRated > 0 
+        ? +(ratingsWithVal.reduce((s, f) => s + (f.rating || 5), 0) / totalRated).toFixed(1) 
+        : 5.0;
+    
+    const ratingDist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    ratingsWithVal.forEach(f => {
+        const r = Math.min(5, Math.max(1, Math.round(f.rating || 5))) as 1 | 2 | 3 | 4 | 5;
+        ratingDist[r] = (ratingDist[r] || 0) + 1;
+    });
+
+    const positiveSentimentCount = (ratingDist[5] || 0) + (ratingDist[4] || 0);
+    const criticalSentimentCount = (ratingDist[1] || 0) + (ratingDist[2] || 0);
+    const positiveSentimentPct = totalRated > 0 ? Math.round((positiveSentimentCount / totalRated) * 100) : 100;
+    const criticalSentimentPct = totalRated > 0 ? Math.round((criticalSentimentCount / totalRated) * 100) : 0;
+
+    // ── Features Ignored & Friction Points ──
+    const unpersonalizedUsers = Math.max(0, totalUsers - personalizedCount);
+    const unpersonalizedPct = totalUsers > 0 ? Math.round((unpersonalizedUsers / totalUsers) * 100) : 0;
+    
+    const goalsWithoutPlans = activity.filter(u => u.goals_count > 0 && u.week_plans_count === 0).length;
+    const goalsWithoutPlansPct = withGoals > 0 ? Math.round((goalsWithoutPlans / withGoals) * 100) : 0;
+
+    const zeroExecutionUsers = activity.filter(u => (u.goals_count > 0 || u.habits_count > 0) && u.completed_days_count === 0).length;
+    const zeroExecutionPct = totalActivity > 0 ? Math.round((zeroExecutionUsers / totalActivity) * 100) : 0;
+
+    const dormantUsers = tiers.dormant;
+    const dormantPct = totalActivity > 0 ? Math.round((dormantUsers / totalActivity) * 100) : 0;
+
+    // ── Open High-Priority Actionable Needs ──
+    const openBugList = feedbacks.filter(f => f.category === 'Bug Report' && f.status === 'open');
+    const openFeatureRequestsList = feedbacks.filter(f => f.category === 'Feature Request' && f.status === 'open');
+    const recentPositiveFeedback = feedbacks
+        .filter(f => (f.rating || 5) >= 4 && f.message && f.message.length > 5)
+        .slice(0, 5);
+
     return {
         isLoading: feedbacksQuery.isLoading || usersQuery.isLoading || activityQuery.isLoading,
         // Basic
@@ -288,8 +326,17 @@ export function useAdminStats() {
         resolvedCount,
         recentUsers,
         personalizedUsers: personalizedCount,
+        unpersonalizedUsers,
+        unpersonalizedPct,
         bugReports,
         featureRequests,
+        // Sentiment & Ratings
+        totalRated,
+        averageRating: avgRatingVal,
+        ratingDist,
+        positiveSentimentPct,
+        criticalSentimentPct,
+        recentPositiveFeedback,
         // Advanced
         activeUsers7d,
         activeUsers14d,
@@ -305,6 +352,15 @@ export function useAdminStats() {
         growthTarget,
         remaining,
         weeksToTarget,
+        // Friction & Neglect Analysis
+        goalsWithoutPlans,
+        goalsWithoutPlansPct,
+        zeroExecutionUsers,
+        zeroExecutionPct,
+        dormantUsers,
+        dormantPct,
+        openBugList,
+        openFeatureRequestsList,
     };
 }
 
