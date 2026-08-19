@@ -8,9 +8,11 @@ import {
   generateMonthlyInsights,
   generateWeeklyWins,
   generateMonthlyWins,
+  generateMilestoneInsightCard,
   type InsightCardData,
   type SystemWin
 } from '@/utils/insights-engine';
+import { computeMilestoneProgress } from '@/utils/milestone-engine';
 
 export interface InsightsResult {
   weekly: InsightCardData[];
@@ -69,6 +71,21 @@ const fetchInsights = async (): Promise<InsightsResult> => {
   const monthly = generateMonthlyInsights(currentMonth, goals, habits, completedMap, weekPlans, vaultNotes);
   const weeklyWins = generateWeeklyWins(currentWeek, goals, habits, completedMap, weekPlans, vaultNotes);
   const monthlyWins = generateMonthlyWins(currentMonth, goals, habits, completedMap, weekPlans, vaultNotes);
+
+  const milestoneProgress = computeMilestoneProgress(completedMap);
+  if (milestoneProgress.currentStage) {
+    const milestoneCard = generateMilestoneInsightCard(
+      milestoneProgress.currentStage,
+      milestoneProgress.totalDaysExecuted,
+      milestoneProgress.currentStreak
+    );
+    // Insert milestone card into decks right after intro
+    if (weekly.length > 1) weekly.splice(1, 0, milestoneCard);
+    else weekly.push(milestoneCard);
+
+    if (monthly.length > 1) monthly.splice(1, 0, milestoneCard);
+    else monthly.push(milestoneCard);
+  }
 
   return {
     weekly,

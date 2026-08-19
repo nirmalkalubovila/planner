@@ -581,6 +581,71 @@ const RenderCardContent: React.FC<{
         </motion.div>
       );
 
+    case 'milestone': {
+      const mData = data.milestoneData;
+      const streakDays = mData?.streakDays ?? (data.metrics?.[0]?.value || 7);
+      const totalExecuted = mData?.totalDaysExecuted ?? (data.metrics?.[2]?.value || 7);
+      const stageNum = mData?.stageNumber ?? 1;
+      const stageTitle = mData?.stageTitle ?? data.title.replace(/^Stage \d+:\s*/i, '');
+
+      return (
+        <motion.div variants={itemVariants} className="w-full flex flex-col items-center text-center space-y-4">
+          {/* Glowing Radial Emblem */}
+          <div className="relative flex items-center justify-center my-1">
+            <div className="absolute w-32 h-32 rounded-full bg-amber-500/20 blur-3xl animate-pulse" />
+            <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-b from-amber-500/20 via-black/80 to-black border-2 border-amber-400/50 flex flex-col items-center justify-center shadow-[0_0_35px_rgba(245,158,11,0.35)] p-2">
+              <span className="text-[9px] font-black uppercase tracking-wider text-amber-400">STAGE {stageNum}</span>
+              <span className="text-3xl font-black text-white leading-none mt-0.5">{streakDays}</span>
+              <span className="text-[8px] font-black uppercase tracking-widest text-amber-400 mt-0.5">DAYS</span>
+            </div>
+          </div>
+
+          {/* Stage Title */}
+          <div className="space-y-0.5">
+            <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-white">
+              {stageTitle}
+            </h3>
+            <p className="text-xs font-bold text-amber-400 tracking-wide">
+              {streakDays} Days of Unbroken Consistency
+            </p>
+          </div>
+
+          {/* 4-Item Glass Grid */}
+          <div className="grid grid-cols-2 gap-2.5 w-full">
+            <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-left">
+              <span className="text-[8px] font-black uppercase tracking-wider text-amber-400 block mb-0.5">Active Streak</span>
+              <span className="text-lg font-black text-white">{streakDays} Days</span>
+              <span className="text-[9px] text-white/40 block font-medium">Unbroken Focus</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-left">
+              <span className="text-[8px] font-black uppercase tracking-wider text-amber-400 block mb-0.5">Total Days</span>
+              <span className="text-lg font-black text-white">{totalExecuted} Days</span>
+              <span className="text-[9px] text-white/40 block font-medium">Lifetime Log</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-left">
+              <span className="text-[8px] font-black uppercase tracking-wider text-amber-400 block mb-0.5">Mastery Tier</span>
+              <span className="text-lg font-black text-white">Stage {stageNum} / 7</span>
+              <span className="text-[9px] text-white/40 block font-medium">Unlocked</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-white/[0.04] border border-emerald-500/30 text-left bg-emerald-950/20">
+              <span className="text-[8px] font-black uppercase tracking-wider text-emerald-400 block mb-0.5">Global Standing</span>
+              <span className="text-lg font-black text-emerald-400">Top 2%</span>
+              <span className="text-[9px] text-emerald-300/60 block font-medium">Verified Discipline</span>
+            </div>
+          </div>
+
+          {/* Creed Quote */}
+          {data.highlightText && (
+            <div className="p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-center w-full">
+              <p className="text-xs font-semibold italic text-white/80 leading-relaxed">
+                “{data.highlightText}”
+              </p>
+            </div>
+          )}
+        </motion.div>
+      );
+    }
+
     default:
       return null;
   }

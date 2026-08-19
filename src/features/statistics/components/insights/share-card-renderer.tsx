@@ -40,6 +40,20 @@ export async function renderShareCardToCanvas(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get 2D context');
 
+  // If milestone card, execute dedicated world-class luxury renderer
+  if (data.type === 'milestone') {
+    renderMilestoneShareCard(ctx, data, width, height, logoImg, format);
+    const durationMs = Date.now() - start;
+    console.log(`Milestone share card drawn in ${durationMs}ms`);
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas export to Blob failed'));
+      }, 'image/png');
+    });
+  }
+
   // 1. Draw Gradient Background
   const grad = ctx.createLinearGradient(0, 0, width, height);
   const colors = theme.canvasGradient;
@@ -599,7 +613,7 @@ export async function renderShareCardToCanvas(
     ctx.font = '900 12px sans-serif';
     ctx.letterSpacing = '1.5px';
     ctx.textAlign = 'left';
-    ctx.fillText('🏆 GLOBAL STANDING', badgeX + 25, badgeY + 35);
+    ctx.fillText('GLOBAL STANDING', badgeX + 25, badgeY + 35);
     ctx.letterSpacing = '0px';
 
     // Highlighted Top Rank Badge (right side)
@@ -653,6 +667,488 @@ export async function renderShareCardToCanvas(
   });
 }
 
+/**
+ * World-class luxury canvas renderer for Consistency Milestone achievements
+ */
+function renderMilestoneShareCard(
+  ctx: CanvasRenderingContext2D,
+  data: InsightCardData,
+  width: number,
+  height: number,
+  logoImg: HTMLImageElement,
+  format: ShareFormat
+) {
+  const mData = data.milestoneData;
+  const streakDays = mData?.streakDays ?? (data.metrics?.[0]?.value || 7);
+  const totalExecuted = mData?.totalDaysExecuted ?? (data.metrics?.[2]?.value || 7);
+  const stageNum = mData?.stageNumber ?? 1;
+  const stageTitle = mData?.stageTitle ?? data.title.replace(/^Stage \d+:\s*/i, '');
+  const stageSubtitle = mData?.stageSubtitle ?? `${streakDays}-Day Consistent Milestone`;
+  const description = mData?.stageDescription ?? data.highlightText ?? 'Consistency is the silent architect of an unstoppable legacy.';
+
+  // 1. Deep Midnight Obsidian & Gold Luxury Gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+  bgGrad.addColorStop(0, '#030508');
+  bgGrad.addColorStop(0.2, '#07090F');
+  bgGrad.addColorStop(0.5, '#120F08');
+  bgGrad.addColorStop(0.8, '#080A10');
+  bgGrad.addColorStop(1, '#030508');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, width, height);
+
+  // 2. Subtle Geometric Diamond Dots Pattern (Celestial Grid)
+  ctx.fillStyle = 'rgba(245, 158, 11, 0.07)';
+  const step = 40;
+  for (let x = 20; x < width; x += step) {
+    for (let y = 20; y < height; y += step) {
+      ctx.beginPath();
+      ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 3. Dramatic Central Radial Gold Aura
+  const isStory = format === 'story';
+
+  const auraY = isStory ? height * 0.34 : height * 0.36;
+  const radGrad = ctx.createRadialGradient(width / 2, auraY, 20, width / 2, auraY, width * 0.55);
+  radGrad.addColorStop(0, 'rgba(245, 158, 11, 0.28)');
+  radGrad.addColorStop(0.35, 'rgba(245, 158, 11, 0.08)');
+  radGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = radGrad;
+  ctx.beginPath();
+  ctx.arc(width / 2, auraY, width * 0.55, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 4. Luxury Gold Corner Brackets [ ╔ ╗ ╚ ╝ ]
+  const margin = isStory ? 28 : 20;
+  const bracketSize = 22;
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+  ctx.lineWidth = 2;
+
+  // Top-Left
+  ctx.beginPath();
+  ctx.moveTo(margin, margin + bracketSize);
+  ctx.lineTo(margin, margin);
+  ctx.lineTo(margin + bracketSize, margin);
+  ctx.stroke();
+
+  // Top-Right
+  ctx.beginPath();
+  ctx.moveTo(width - margin - bracketSize, margin);
+  ctx.lineTo(width - margin, margin);
+  ctx.lineTo(width - margin, margin + bracketSize);
+  ctx.stroke();
+
+  // Bottom-Left
+  ctx.beginPath();
+  ctx.moveTo(margin, height - margin - bracketSize);
+  ctx.lineTo(margin, height - margin);
+  ctx.lineTo(margin + bracketSize, height - margin);
+  ctx.stroke();
+
+  // Bottom-Right
+  ctx.beginPath();
+  ctx.moveTo(width - margin - bracketSize, height - margin);
+  ctx.lineTo(width - margin, height - margin);
+  ctx.lineTo(width - margin, height - margin - bracketSize);
+  ctx.stroke();
+
+  // Outer Subtle Framing Border
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+  ctx.lineWidth = 1;
+  drawRoundedRect(ctx, margin + 5, margin + 5, width - (margin + 5) * 2, height - (margin + 5) * 2, 20);
+  ctx.stroke();
+
+  // 5. Header Branding: Logo + Tracking Title
+  const logoSize = isStory ? 44 : 36;
+  const logoY = isStory ? 52 : 30;
+  ctx.drawImage(logoImg, width / 2 - logoSize / 2, logoY, logoSize, logoSize);
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+  ctx.font = '900 11px sans-serif';
+  ctx.letterSpacing = '4px';
+  ctx.textAlign = 'center';
+  ctx.fillText('LEGACY LIFE BUILDER', width / 2, logoY + logoSize + 22);
+  ctx.letterSpacing = '0px';
+
+  // Stage Pill Badge
+  const pillW = 260;
+  const pillH = 26;
+  const pillY = logoY + logoSize + 34;
+  const pillX = (width - pillW) / 2;
+
+  ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+  ctx.lineWidth = 1;
+  drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 13);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = '900 10px sans-serif';
+  ctx.letterSpacing = '2px';
+  ctx.fillText(`PROOF OF CONSISTENCY • STAGE 0${stageNum}`, width / 2, pillY + 17);
+  ctx.letterSpacing = '0px';
+
+  if (isStory) {
+    // -------------------------------------------------------------
+    // STORY FORMAT (720 x 1280) — MAXIMUM GRAND LUXURY
+    // -------------------------------------------------------------
+
+    // 6. Centerpiece Radial Emblem Dial
+    const centerY = 370;
+    const outerR = 145;
+    const innerR = 120;
+
+    // Outer Dashed Gold Ring
+    ctx.save();
+    ctx.setLineDash([4, 8]);
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(width / 2, centerY, outerR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Solid Concentric Ring
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(width / 2, centerY, outerR - 12, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner Glowing Dark Obsidian Disc
+    const discGrad = ctx.createRadialGradient(width / 2, centerY, 10, width / 2, centerY, innerR);
+    discGrad.addColorStop(0, 'rgba(26, 20, 10, 0.95)');
+    discGrad.addColorStop(0.7, 'rgba(12, 14, 20, 0.98)');
+    discGrad.addColorStop(1, 'rgba(6, 8, 12, 1)');
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(245, 158, 11, 0.45)';
+    ctx.shadowBlur = 35;
+    ctx.fillStyle = discGrad;
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(width / 2, centerY, innerR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // Disc Interior Typography
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.9)';
+    ctx.font = '900 11px sans-serif';
+    ctx.letterSpacing = '2px';
+    ctx.textAlign = 'center';
+    ctx.fillText('CONSISTENCY STREAK', width / 2, centerY - 40);
+    ctx.letterSpacing = '0px';
+
+    // Giant Sculpted Digits
+    ctx.save();
+    ctx.shadowColor = 'rgba(245, 158, 11, 0.6)';
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 96px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(streakDays), width / 2, centerY + 34);
+    ctx.restore();
+
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = '900 13px sans-serif';
+    ctx.letterSpacing = '4px';
+    ctx.fillText('DAYS UNBROKEN', width / 2, centerY + 68);
+    ctx.letterSpacing = '0px';
+
+    // Stage Title & Subtitle Below Disc
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 32px sans-serif';
+    ctx.letterSpacing = '1px';
+    ctx.textAlign = 'center';
+    ctx.fillText(stageTitle.toUpperCase(), width / 2, 560);
+    ctx.letterSpacing = '0px';
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(stageSubtitle, width / 2, 590);
+
+    // 7. 2x2 Glass Achievement Grid
+    const gridY = 635;
+    const gridW = width * 0.88;
+    const startX = (width - gridW) / 2;
+    const capW = (gridW - 16) / 2;
+    const capH = 92;
+    const rowGap = 16;
+
+    const cards = [
+      { label: 'ACTIVE STREAK', val: `${streakDays} Days`, sub: 'Unbroken Focus', color: '#f59e0b' },
+      { label: 'TOTAL EXECUTED', val: `${totalExecuted} Days`, sub: 'Lifetime Output', color: '#f59e0b' },
+      { label: 'MASTERY TIER', val: `Stage ${stageNum} / 7`, sub: 'Pinnacle Rank', color: '#f59e0b' },
+      { label: 'GLOBAL STANDING', val: 'Top 2% Builder', sub: 'Verified Discipline', color: '#34d399' },
+    ];
+
+    cards.forEach((c, idx) => {
+      const colIdx = idx % 2;
+      const rowIdx = Math.floor(idx / 2);
+      const cx = startX + colIdx * (capW + 16);
+      const cy = gridY + rowIdx * (capH + rowGap);
+
+      // Glass Card
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
+      ctx.lineWidth = 1;
+      drawRoundedRect(ctx, cx, cy, capW, capH, 20);
+      ctx.fill();
+      ctx.stroke();
+
+      // Top Accent Line
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx + 20, cy);
+      ctx.lineTo(cx + capW - 20, cy);
+      ctx.stroke();
+
+      // Label
+      ctx.fillStyle = c.color;
+      ctx.font = '900 10px sans-serif';
+      ctx.letterSpacing = '1px';
+      ctx.textAlign = 'left';
+      ctx.fillText(c.label, cx + 22, cy + 28);
+      ctx.letterSpacing = '0px';
+
+      // Value
+      ctx.fillStyle = c.color === '#34d399' ? '#34d399' : '#FFFFFF';
+      ctx.font = '900 24px sans-serif';
+      ctx.fillText(c.val, cx + 22, cy + 58);
+
+      // Sub
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText(c.sub, cx + 22, cy + 78);
+    });
+
+    // 8. Inspiring Golden Creed / Quote Box
+    const quoteY = 865;
+    const quoteW = gridW;
+    const quoteH = 115;
+    const quoteX = startX;
+
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.04)';
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+    ctx.lineWidth = 1;
+    drawRoundedRect(ctx, quoteX, quoteY, quoteW, quoteH, 20);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.font = 'italic bold 15px sans-serif';
+    ctx.textAlign = 'center';
+    wrapText(ctx, `“${description}”`, width / 2, quoteY + 45, quoteW - 40, 24);
+
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.75)';
+    ctx.font = '900 11px sans-serif';
+    ctx.letterSpacing = '2px';
+    ctx.fillText('— LEGACY LIFE BUILDER CREED', width / 2, quoteY + 92);
+    ctx.letterSpacing = '0px';
+
+    // 9. Verified Footer & Branding
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(width * 0.15, 1165);
+    ctx.lineTo(width * 0.85, 1165);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.font = '900 11px sans-serif';
+    ctx.letterSpacing = '2px';
+    ctx.textAlign = 'center';
+    ctx.fillText('VERIFIED ON LEGACY LIFE BUILDER • ARCHITECT YOUR LEGACY', width / 2, 1195);
+
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = '900 12px sans-serif';
+    ctx.letterSpacing = '4px';
+    ctx.fillText('WWW.LEGACY.LIFE', width / 2, 1220);
+    ctx.letterSpacing = '0px';
+
+  } else {
+    // -------------------------------------------------------------
+    // POST (1:1) & STATUS (16:9) FORMATS — COMPACT LUXURY
+    // -------------------------------------------------------------
+    const isWide = isStatus;
+    const centerY = isWide ? 330 : 280;
+
+    // Left or Center Emblem
+    const emblemX = isWide ? width * 0.28 : width / 2;
+    const innerR = isWide ? 95 : 85;
+
+    // Radial Disc
+    const discGrad = ctx.createRadialGradient(emblemX, centerY, 10, emblemX, centerY, innerR);
+    discGrad.addColorStop(0, 'rgba(26, 20, 10, 0.95)');
+    discGrad.addColorStop(1, 'rgba(6, 8, 12, 1)');
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(245, 158, 11, 0.4)';
+    ctx.shadowBlur = 25;
+    ctx.fillStyle = discGrad;
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(emblemX, centerY, innerR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // Streak Number inside disc
+    ctx.save();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `900 ${isWide ? '72px' : '64px'} sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(String(streakDays), emblemX, centerY + 18);
+    ctx.restore();
+
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = '900 11px sans-serif';
+    ctx.letterSpacing = '3px';
+    ctx.textAlign = 'center';
+    ctx.fillText('DAYS UNBROKEN', emblemX, centerY + 46);
+    ctx.letterSpacing = '0px';
+
+    if (isWide) {
+      // Right side metrics for 16:9 format
+      const infoX = width * 0.52;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 28px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(stageTitle.toUpperCase(), infoX, 230);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(stageSubtitle, infoX, 258);
+
+      // 3 Mini Stat Pills
+      const pW = 160;
+      const pH = 70;
+      const statsList = [
+        { label: 'ACTIVE STREAK', val: `${streakDays} Days` },
+        { label: 'TOTAL EXECUTED', val: `${totalExecuted} Days` },
+        { label: 'GLOBAL RANK', val: 'Top 2%' },
+      ];
+
+      statsList.forEach((st, idx) => {
+        const sx = infoX + idx * (pW + 12);
+        const sy = 285;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        drawRoundedRect(ctx, sx, sy, pW, pH, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = '900 9px sans-serif';
+        ctx.letterSpacing = '1px';
+        ctx.textAlign = 'left';
+        ctx.fillText(st.label, sx + 14, sy + 24);
+        ctx.letterSpacing = '0px';
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '900 20px sans-serif';
+        ctx.fillText(st.val, sx + 14, sy + 52);
+      });
+
+      // Quote Box
+      const qW = width * 0.44;
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.04)';
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
+      ctx.lineWidth = 1;
+      drawRoundedRect(ctx, infoX, 375, qW, 80, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.font = 'italic bold 13px sans-serif';
+      ctx.textAlign = 'left';
+      wrapText(ctx, `“${description}”`, infoX + 18, 410, qW - 36, 20);
+
+    } else {
+      // 1:1 Square Post Layout
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 26px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(stageTitle.toUpperCase(), width / 2, 410);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(stageSubtitle, width / 2, 435);
+
+      // 2 Stat Pills side-by-side
+      const pW = 280;
+      const pH = 70;
+      const pY = 465;
+
+      // Box 1
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      drawRoundedRect(ctx, width / 2 - pW - 8, pY, pW, pH, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '900 10px sans-serif';
+      ctx.letterSpacing = '1px';
+      ctx.textAlign = 'left';
+      ctx.fillText('ACTIVE STREAK', width / 2 - pW + 10, pY + 26);
+      ctx.letterSpacing = '0px';
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 22px sans-serif';
+      ctx.fillText(`${streakDays} Days Unbroken`, width / 2 - pW + 10, pY + 54);
+
+      // Box 2
+      drawRoundedRect(ctx, width / 2 + 8, pY, pW, pH, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = '900 10px sans-serif';
+      ctx.letterSpacing = '1px';
+      ctx.textAlign = 'left';
+      ctx.fillText('TOTAL EXECUTED', width / 2 + 26, pY + 26);
+      ctx.letterSpacing = '0px';
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 22px sans-serif';
+      ctx.fillText(`${totalExecuted} Days Logged`, width / 2 + 26, pY + 54);
+
+      // Quote box
+      const qW = width * 0.82;
+      const qX = (width - qW) / 2;
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.04)';
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
+      ctx.lineWidth = 1;
+      drawRoundedRect(ctx, qX, 555, qW, 65, 14);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.font = 'italic bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      wrapText(ctx, `“${description}”`, width / 2, 592, qW - 30, 18);
+    }
+
+    // Footer
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.font = '900 10px sans-serif';
+    ctx.letterSpacing = '2px';
+    ctx.textAlign = 'center';
+    ctx.fillText('VERIFIED ON LEGACY LIFE BUILDER • WWW.LEGACY.LIFE', width / 2, height - 30);
+    ctx.letterSpacing = '0px';
+  }
+}
+
 // Draw rounded rectangle path helper
 function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
@@ -703,3 +1199,4 @@ function wrapText(
   }
   ctx.fillText(line, x, currentY);
 }
+

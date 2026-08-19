@@ -193,7 +193,7 @@ export function useSaveBucketActions() {
         onSuccess: (_, variables) => {
             const normalizedWeek = WeekUtils.normalizeWeek(variables.week);
             queryClient.invalidateQueries({ queryKey: ["planner_bucket_actions", normalizedWeek] });
-            toast.success("Sunday 4-Bucket Focus Targets saved!");
+            toast.success("Weekly Outcomes saved!");
         },
         onError: (err) => {
             toast.error("Failed to save bucket actions: " + err.message);

@@ -18,11 +18,13 @@ import { GoalToolDialog } from './forms/goal-tool-dialog';
 import { TaskEditDialog } from './forms/task-edit-dialog';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 
+import { useLocation } from 'react-router-dom';
 import { usePlannerGrid } from './hooks/use-planner-grid';
 import { usePlannerHistory } from './hooks/use-planner-history';
 import { createPlannerHandlers } from './hooks/use-planner-handlers';
 
 export const PlannerPage: React.FC = () => {
+    const location = useLocation();
     const [currentWeek, setCurrentWeek] = useState(WeekUtils.getCurrentWeek());
     const [selectedTool, setSelectedTool] = useState<'erase' | 'goal' | 'duplicate' | 'drag' | null>(null);
     const [copiedTask, setCopiedTask] = useState<any>(null);
@@ -37,6 +39,15 @@ export const PlannerPage: React.FC = () => {
     const [showTaskDeleteConfirm, setShowTaskDeleteConfirm] = useState(false);
     const [showLibraryDeleteConfirm, setShowLibraryDeleteConfirm] = useState(false);
     const [idToDeleteFromLibrary, setIdToDeleteFromLibrary] = useState<string | null>(null);
+
+    // Auto-open SundayFocusDialog if requested via navigation
+    useEffect(() => {
+        const state = location.state as any;
+        const params = new URLSearchParams(location.search);
+        if (state?.openOutcomes || params.get('openOutcomes') === 'true') {
+            setIsSundayFocusDialogOpen(true);
+        }
+    }, [location]);
 
     // Edit states
     const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false);

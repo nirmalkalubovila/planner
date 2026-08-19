@@ -11,8 +11,10 @@ import {
   calculateGoalProgress
 } from '@/utils/analytics-engine';
 
+import type { MilestoneStage } from '@/utils/milestone-engine';
+
 export interface InsightCardData {
-  type: 'intro' | 'stats' | 'ranking' | 'comparison' | 'grade' | 'radar' | 'quote' | 'vaultStats' | 'heatmap' | 'outro' | 'summary' | 'bucketBalance' | 'executionBalance';
+  type: 'intro' | 'stats' | 'ranking' | 'comparison' | 'grade' | 'radar' | 'quote' | 'vaultStats' | 'heatmap' | 'outro' | 'summary' | 'bucketBalance' | 'executionBalance' | 'milestone';
   title: string;
   subtitle?: string;
   metrics?: { label: string; value: string | number; change?: number; changeType?: 'up' | 'down' | 'neutral' }[];
@@ -23,6 +25,14 @@ export interface InsightCardData {
   progressValue?: number;
   highlightText?: string;
   icon?: string;
+  milestoneData?: {
+    stageNumber: number;
+    streakDays: number;
+    totalDaysExecuted: number;
+    stageTitle: string;
+    stageSubtitle: string;
+    stageDescription: string;
+  };
   summaryData?: {
     dailyActive: boolean[];
     completedTasks: number;
@@ -822,3 +832,38 @@ export function generateMonthlyWins(
 
   return wins;
 }
+
+/**
+ * Generates a dedicated Milestone celebration card for Insights deck & Social sharing
+ */
+export function generateMilestoneInsightCard(
+  stage: MilestoneStage,
+  totalDaysExecuted: number,
+  currentStreak: number
+): InsightCardData {
+  return {
+    type: 'milestone',
+    title: `Stage ${stage.stageNumber}: ${stage.title}`,
+    subtitle: `${stage.days}-Day Consistent Milestone`,
+    highlightText: stage.description,
+    milestoneData: {
+      stageNumber: stage.stageNumber,
+      streakDays: stage.days,
+      totalDaysExecuted,
+      stageTitle: stage.title,
+      stageSubtitle: stage.subtitle,
+      stageDescription: stage.description,
+    },
+    metrics: [
+      { label: 'Milestone Streak', value: `${stage.days} Days` },
+      { label: 'Current Streak', value: `${currentStreak} Days` },
+      { label: 'Total Executed', value: `${totalDaysExecuted} Days` },
+    ],
+    quote: {
+      text: 'Consistency is the architect of your future self.',
+      author: 'Legacy Life Builder',
+    },
+    icon: stage.iconName,
+  };
+}
+
