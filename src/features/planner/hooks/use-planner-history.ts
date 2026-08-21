@@ -13,6 +13,19 @@ export function usePlannerHistory(currentWeek: string) {
     const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastLoadedWeekRef = useRef<string>('');
     const savePlan = useSaveWeekPlan();
+    const pendingSaveRef = useRef<{ week: string; state: GridState } | null>(null);
+
+    const flushPendingSave = useCallback(() => {
+        if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+            autoSaveTimerRef.current = null;
+        }
+        if (pendingSaveRef.current) {
+            const { week, state } = pendingSaveRef.current;
+            pendingSaveRef.current = null;
+            savePlan.mutate({ week, state });
+        }
+    }, [savePlan]);
 
     const updateGridState = useCallback((newState: GridState, skipHistory = false) => {
         setLocalGridState(newState);
@@ -29,21 +42,25 @@ export function usePlannerHistory(currentWeek: string) {
             });
         }
 
+        pendingSaveRef.current = { week: currentWeek, state: newState };
         if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
         autoSaveTimerRef.current = setTimeout(() => {
             setSaveStatus('saving');
             savePlan.mutate({ week: currentWeek, state: newState }, {
-                onSuccess: () => setSaveStatus('saved'),
+                onSuccess: () => {
+                    setSaveStatus('saved');
+                    pendingSaveRef.current = null;
+                },
                 onError: () => setSaveStatus('idle'),
             });
-        }, 2000);
+        }, 400);
     }, [currentWeek, historyIndex, savePlan]);
 
     useEffect(() => {
         return () => {
-            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+            flushPendingSave();
         };
-    }, []);
+    }, [flushPendingSave]);
 
     const loadWeekPlan = useCallback((weekPlan: Record<string, any> | undefined) => {
         if (!weekPlan) return;

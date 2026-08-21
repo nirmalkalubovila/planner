@@ -37,92 +37,81 @@ export function resolveSlotBucket(
   slot: PlanSlot,
   goals: Goal[],
   habits: Habit[],
-  customTasks: CustomTask[]
+  customTasks: CustomTask[],
+  _dayIdx?: number,
+  _slotIdx?: number
 ): LifeBucket | null {
   if (!slot) return null;
+
+  const trimmed = slot.name ? slot.name.trim().toLowerCase() : '';
 
   // 0. Direct bucket specified on grid slot itself (ALWAYS TRUST THIS FIRST!)
   if (slot.bucket && LIFE_BUCKETS.includes(slot.bucket as LifeBucket)) {
     return slot.bucket as LifeBucket;
   }
 
-  // 1. Sleep and Weekly Planning slots default to Recovery
+  // 1. If slot is a custom task without an explicit bucket:
+  if (slot.type === 'custom') {
+    // Only check customTasks table by exact name match
+    if (trimmed) {
+      const task = customTasks.find((t) => {
+        const tName = (t.name || '').trim().toLowerCase();
+        return tName && tName === trimmed;
+      });
+      if (task?.bucket && LIFE_BUCKETS.includes(task.bucket as LifeBucket)) {
+        return task.bucket as LifeBucket;
+      }
+    }
+    // Otherwise it is explicitly unassigned / unaligned
+    return null;
+  }
+
+  // 2. Sleep and Weekly Planning slots default to Recovery
   if (slot.type === 'sleep' || slot.type === 'plan' || slot.name === 'Sleep' || slot.name === 'Weekly Planning') {
     return 'recovery';
   }
 
-  const trimmed = slot.name ? slot.name.trim().toLowerCase() : '';
-
-  // 2. Goal slot matching by goalId
-  if (slot.goalId) {
-    const goal = goals.find((g) => g.id === slot.goalId);
-    if (goal?.bucket && LIFE_BUCKETS.includes(goal.bucket as LifeBucket)) {
-      return goal.bucket as LifeBucket;
+  // 3. Goal slot matching by goalId (strict & string comparison)
+  if (slot.type === 'goal' || slot.goalId) {
+    if (slot.goalId) {
+      const goal = goals.find((g) => g.id === slot.goalId || String(g.id) === String(slot.goalId));
+      if (goal?.bucket && LIFE_BUCKETS.includes(goal.bucket as LifeBucket)) {
+        return goal.bucket as LifeBucket;
+      }
     }
+    if (trimmed) {
+      const goal = goals.find((g) => {
+        const gName = (g.name || '').trim().toLowerCase();
+        const gTitle = (g.title || '').trim().toLowerCase();
+        return gName === trimmed || gTitle === trimmed;
+      });
+      if (goal?.bucket && LIFE_BUCKETS.includes(goal.bucket as LifeBucket)) {
+        return goal.bucket as LifeBucket;
+      }
+    }
+    return null;
   }
 
-  // 2b. Goal slot matching by title/name substring & token overlap
-  if (trimmed) {
-    const goal = goals.find((g) => {
-      const gName = (g.name || '').trim().toLowerCase();
-      const gTitle = (g.title || '').trim().toLowerCase();
-      if (!gName && !gTitle) return false;
-
-      return (
-        gName === trimmed ||
-        gTitle === trimmed ||
-        (gName && trimmed.includes(gName)) ||
-        (gTitle && trimmed.includes(gTitle)) ||
-        (gName && gName.includes(trimmed)) ||
-        (gTitle && gTitle.includes(trimmed)) ||
-        (trimmed.length >= 3 && (
-          (gName && gName.split(/[\s,.-]+/).includes(trimmed)) ||
-          (gTitle && gTitle.split(/[\s,.-]+/).includes(trimmed))
-        ))
-      );
-    });
-    if (goal?.bucket && LIFE_BUCKETS.includes(goal.bucket as LifeBucket)) {
-      return goal.bucket as LifeBucket;
-    }
-  }
-
-  // 3. Habit slot matching
-  if (trimmed) {
+  // 4. Habit slot matching (exact habit name match)
+  if (slot.type === 'habit' && trimmed) {
     const habit = habits.find((h) => {
       const hName = (h.name || '').trim().toLowerCase();
-      return hName && (hName === trimmed || trimmed.includes(hName) || hName.includes(trimmed));
+      return hName === trimmed;
     });
     if (habit?.bucket && LIFE_BUCKETS.includes(habit.bucket as LifeBucket)) {
       return habit.bucket as LifeBucket;
     }
+    return null;
   }
 
-  // 4. Custom task slot matching
-  if (trimmed) {
-    const task = customTasks.find((t) => {
-      const tName = (t.name || '').trim().toLowerCase();
-      return tName && (tName === trimmed || trimmed.includes(tName) || tName.includes(trimmed));
-    });
-    if (task?.bucket && LIFE_BUCKETS.includes(task.bucket as LifeBucket)) {
-      return task.bucket as LifeBucket;
-    }
-  }
-
-  // 5. Fallback for Goal-typed slots: resolve to primary goal bucket if available
-  if (slot.type === 'goal' && goals.length > 0) {
-    const firstGoalBucket = goals.find(g => g.bucket && LIFE_BUCKETS.includes(g.bucket as LifeBucket))?.bucket;
-    if (firstGoalBucket) {
-      return firstGoalBucket as LifeBucket;
-    }
-  }
-
+  // If no explicit bucket or matching goal/habit/custom task with bucket, return null (unassigned)
   return null;
 }
 
 /**
  * Calculates bucket hours for a single week plan grid state (48 slots x 7 days)
- * accounting for explicit grid slots, habits scheduled via habit time slots, reminders,
- * AND user preference sleep time + Sunday weekly planning → Recovery.
+ * accounting for explicit grid slots, habits scheduled via habit time slots, recurring custom tasks,
+ * reminders, AND user preference sleep time + Sunday weekly planning → Recovery.
  */
 export function calculateWeekBucketHours(
   gridState: GridState,
@@ -204,6 +193,7 @@ export function calculateWeekBucketHours(
 
     const [hsH, hsM] = h.startTime.split(':').map(Number);
     const [heH, heM] = h.endTime.split(':').map(Number);
+    if (isNaN(hsH) || isNaN(heH)) return;
     const startSlot = hsH * 2 + (hsM >= 30 ? 1 : 0);
     const endSlot = heH * 2 + (heM >= 30 ? 1 : 0);
 
@@ -211,6 +201,26 @@ export function calculateWeekBucketHours(
       if (h.daysOfWeek && h.daysOfWeek.length > 0 && !h.daysOfWeek.includes(DAYS_OF_WEEK[d])) continue;
       for (let s = startSlot; s < endSlot; s++) {
         habitSlotBucketMap.set(`${d}-${s}`, h.bucket as LifeBucket);
+      }
+    }
+  });
+
+  // Build Custom Task Slot Map for recurring custom tasks time windows
+  const customTaskSlotBucketMap = new Map<string, LifeBucket>();
+  (customTasks || []).forEach((t) => {
+    if (!t.startTime || !t.endTime || !t.bucket) return;
+    if (!LIFE_BUCKETS.includes(t.bucket as LifeBucket)) return;
+
+    const [tsH, tsM] = t.startTime.split(':').map(Number);
+    const [teH, teM] = t.endTime.split(':').map(Number);
+    if (isNaN(tsH) || isNaN(teH)) return;
+    const startSlot = tsH * 2 + (tsM >= 30 ? 1 : 0);
+    const endSlot = teH * 2 + (teM >= 30 ? 1 : 0);
+
+    for (let d = 0; d < 7; d++) {
+      if (t.daysOfWeek && t.daysOfWeek.length > 0 && !t.daysOfWeek.includes(DAYS_OF_WEEK[d])) continue;
+      for (let s = startSlot; s < endSlot; s++) {
+        customTaskSlotBucketMap.set(`${d}-${s}`, t.bucket as LifeBucket);
       }
     }
   });
@@ -229,7 +239,14 @@ export function calculateWeekBucketHours(
 
       if (slot && typeof slot === 'object' && 'name' in slot) {
         totalSlots++;
-        const bucket = resolveSlotBucket(slot, goals, habits, customTasks);
+        let bucket = resolveSlotBucket(slot, goals, habits, customTasks, d, s);
+        if (!bucket && habitSlotBucketMap.has(key)) {
+          bucket = habitSlotBucketMap.get(key)!;
+        }
+        if (!bucket && customTaskSlotBucketMap.has(key)) {
+          bucket = customTaskSlotBucketMap.get(key)!;
+        }
+
         if (bucket && LIFE_BUCKETS.includes(bucket)) {
           bucketHours[bucket] += 0.5; // 30 min per slot
         } else {
@@ -243,6 +260,10 @@ export function calculateWeekBucketHours(
         totalSlots++;
         const bucket = habitSlotBucketMap.get(key)!;
         bucketHours[bucket] += 0.5; // 30 min per habit slot
+      } else if (customTaskSlotBucketMap.has(key)) {
+        totalSlots++;
+        const bucket = customTaskSlotBucketMap.get(key)!;
+        bucketHours[bucket] += 0.5; // 30 min per custom task slot
       } else if (isSleep || isPlan) {
         // User preference sleep and planning → Recovery
         totalSlots++;
@@ -268,9 +289,12 @@ export function calculateWeekBucketHours(
     }
   });
 
-  // Ensure total allocated hours never exceeds full week capacity (168h)
-  const totalAllocatedHours = Math.min(TOTAL_WEEK_HOURS, totalSlots * 0.5);
-  const unassignedHours = unassignedSlots * 0.5;
+  // Calculate total allocated hours across the 4 Life Buckets
+  const totalAllocatedHours = Math.min(
+    TOTAL_WEEK_HOURS,
+    Number((bucketHours.income + bucketHours.asset + bucketHours.recovery + bucketHours.relational).toFixed(2))
+  );
+  const unassignedHours = Number((unassignedSlots * 0.5).toFixed(2));
   const userSleepWeeklyHours = userSleepDuration * 7;
 
   const bucketPercentages: Record<LifeBucket, number> = {

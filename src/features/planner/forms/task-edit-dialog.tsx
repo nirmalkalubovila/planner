@@ -45,7 +45,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
             goalId: initialData.type === 'goal' ? goalId : undefined,
             isReminder,
             time,
-            bucket: bucket || undefined,
+            bucket: bucket || null,
         });
         onClose();
     };

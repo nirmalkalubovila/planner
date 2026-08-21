@@ -8,7 +8,7 @@ import { Goal, Habit, CustomTask, ReminderItem, PlanSlot } from '@/types/global-
 import { useGetCustomTasks, useDeleteCustomTask } from '@/api/services/custom-task-service';
 import { useGetMissedTasks, useDeleteMissedTask } from '@/api/services/missed-task-service';
 import { useNotes, useDeleteNote } from '@/api/services/vault-service';
-import { LIFE_BUCKETS } from '@/types/time';
+import { LIFE_BUCKETS, type LifeBucket } from '@/types/time';
 
 import { PlannerToolbar } from './components/planner-toolbar';
 import { PlannerGrid } from './components/planner-grid';
@@ -321,14 +321,47 @@ export const PlannerPage: React.FC = () => {
                             });
                             newState.reminders = reminders;
                         } else {
-                            newState[key] = {
-                                ...newState[key],
-                                type: data.type || newState[key]?.type || 'custom',
-                                name: data.name,
-                                description: data.description,
-                                goalId: (data.type === 'goal' || newState[key]?.type === 'goal') ? data.goalId : undefined,
-                                bucket: data.bucket,
-                            };
+                            const target = newState[key] || editingTaskData;
+                            let start = editingTaskCell.slotIdx;
+                            let end = editingTaskCell.slotIdx;
+
+                            if (target && target.name) {
+                                while (start > 0) {
+                                    const prevKey = `${editingTaskCell.dayIdx}-${start - 1}`;
+                                    const prev = newState[prevKey];
+                                    if (prev && (prev.name === target.name || (target.goalId && prev.goalId === target.goalId))) {
+                                        start--;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                while (end < 47) {
+                                    const nextKey = `${editingTaskCell.dayIdx}-${end + 1}`;
+                                    const next = newState[nextKey];
+                                    if (next && (next.name === target.name || (target.goalId && next.goalId === target.goalId))) {
+                                        end++;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+
+                            for (let s = start; s <= end; s++) {
+                                const slotKey = `${editingTaskCell.dayIdx}-${s}`;
+                                const updatedSlot = {
+                                    ...newState[slotKey],
+                                    type: data.type || newState[slotKey]?.type || target?.type || 'custom',
+                                    name: data.name,
+                                    description: data.description,
+                                    goalId: (data.type === 'goal' || target?.type === 'goal') ? data.goalId : undefined,
+                                };
+                                if (data.bucket && LIFE_BUCKETS.includes(data.bucket as LifeBucket)) {
+                                    updatedSlot.bucket = data.bucket;
+                                } else {
+                                    delete updatedSlot.bucket;
+                                }
+                                newState[slotKey] = updatedSlot;
+                            }
                         }
                     } else if (editingReminder) {
                         const idx = reminders.findIndex(r => r.id === editingReminder.id);
@@ -340,21 +373,29 @@ export const PlannerPage: React.FC = () => {
                                 const [h, m] = (data.time || '09:00').split(':').map(Number);
                                 const slotIdx = h * 2 + (m >= 30 ? 1 : 0);
                                 const key = `${editingReminder.dayIdx}-${slotIdx}`;
-                                newState[key] = {
+                                const slotObj: any = {
                                     type: 'custom',
                                     name: data.name,
                                     color: editingReminder.color || '#f59e0b',
                                     description: data.description,
-                                    bucket: data.bucket,
                                 };
+                                if (data.bucket && LIFE_BUCKETS.includes(data.bucket as LifeBucket)) {
+                                    slotObj.bucket = data.bucket;
+                                }
+                                newState[key] = slotObj;
                             } else {
-                                reminders[idx] = {
+                                const remObj: any = {
                                     ...reminders[idx],
                                     name: data.name,
                                     description: data.description,
                                     time: data.time || '09:00',
-                                    bucket: data.bucket,
                                 };
+                                if (data.bucket && LIFE_BUCKETS.includes(data.bucket as LifeBucket)) {
+                                    remObj.bucket = data.bucket;
+                                } else {
+                                    delete remObj.bucket;
+                                }
+                                reminders[idx] = remObj;
                                 newState.reminders = reminders;
                             }
                         }

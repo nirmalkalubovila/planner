@@ -1,9 +1,9 @@
-import type { Goal, Habit } from '@/types/global-types';
+import type { Goal, Habit, CustomTask } from '@/types/global-types';
 import type { VaultNote } from '@/types/vault';
 import type { GridState } from '@/types/planner';
 import { WeekUtils } from '@/utils/week';
 import { calculateWeekBucketHours } from '@/utils/bucket-engine';
-import { BUCKET_META, LifeBucket } from '@/types/time';
+import { BUCKET_META, LIFE_BUCKETS, type LifeBucket } from '@/types/time';
 import {
   analyzeGoal,
   analyzeHabit,
@@ -12,6 +12,52 @@ import {
 } from '@/utils/analytics-engine';
 
 import type { MilestoneStage } from '@/utils/milestone-engine';
+
+export function extractCustomTasksFromPlans(
+  weekPlans: { week: string; state: GridState }[],
+  customTasks: CustomTask[] = []
+): CustomTask[] {
+  const map = new Map<string, CustomTask>();
+  (customTasks || []).forEach((t) => {
+    if (t && t.name && t.bucket && LIFE_BUCKETS.includes(t.bucket as LifeBucket)) {
+      map.set(t.name.trim().toLowerCase(), t);
+    }
+  });
+
+  (weekPlans || []).forEach((wp) => {
+    if (wp.state) {
+      Object.values(wp.state).forEach((val: any) => {
+        if (val && typeof val === 'object' && val.name) {
+          const trimmed = val.name.trim().toLowerCase();
+          const bucket = val.bucket;
+          if (bucket && LIFE_BUCKETS.includes(bucket as LifeBucket)) {
+            map.set(trimmed, {
+              id: val.name,
+              name: val.name,
+              bucket: bucket,
+              type: 'custom',
+            } as any);
+          }
+        }
+      });
+      ((wp.state as any).reminders || []).forEach((r: any) => {
+        if (r && r.name && r.bucket) {
+          const trimmed = r.name.trim().toLowerCase();
+          if (!map.has(trimmed)) {
+            map.set(trimmed, {
+              id: r.name,
+              name: r.name,
+              bucket: r.bucket,
+              type: 'custom',
+            } as any);
+          }
+        }
+      });
+    }
+  });
+
+  return Array.from(map.values());
+}
 
 export interface InsightCardData {
   type: 'intro' | 'stats' | 'ranking' | 'comparison' | 'grade' | 'radar' | 'quote' | 'vaultStats' | 'heatmap' | 'outro' | 'summary' | 'bucketBalance' | 'executionBalance' | 'milestone';
@@ -56,26 +102,15 @@ export function generateWeeklyInsights(
   habits: Habit[],
   completedMap: Record<string, string[]>,
   weekPlans: { week: string; state: GridState }[],
-  vaultNotes?: VaultNote[]
+  vaultNotes?: VaultNote[],
+  customTasks?: CustomTask[]
 ): InsightCardData[] {
   const cards: InsightCardData[] = [];
+  const extractedCustomTasks = extractCustomTasksFromPlans(weekPlans, customTasks);
   
   // Normalized week codes
   const currentWeekNorm = WeekUtils.normalizeWeek(weekKey);
   const prevWeekNorm = WeekUtils.addWeeks(currentWeekNorm, -1);
-  
-  // Calculate vault notes count this week
-  const weeklyVaultCount = vaultNotes
-    ? vaultNotes.filter(note => {
-        const noteDate = new Date(note.createdAt);
-        const startOfYear = new Date(noteDate.getFullYear(), 0, 1);
-        const days = Math.floor((noteDate.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-        const startDay = startOfYear.getDay() || 7;
-        const weekNum = Math.ceil((days + startDay) / 7);
-        const noteWeek = `${noteDate.getFullYear()}-${String(weekNum).padStart(2, '0')}`;
-        return WeekUtils.normalizeWeek(noteWeek) === currentWeekNorm;
-      }).length
-    : 0;
   
   // 1. Calculate this week's tasks completed vs last week
   let currentWeekCompleted = 0;
@@ -223,7 +258,7 @@ export function generateWeeklyInsights(
   });
 
   // 4 Life Buckets Balance Card
-  const bucketStats = calculateWeekBucketHours(currentWeekPlan?.state || {}, goals, habits, []);
+  const bucketStats = calculateWeekBucketHours(currentWeekPlan?.state || {}, goals, habits, extractedCustomTasks);
 
   const totalAssignedHours = Object.values(bucketStats.bucketHours).reduce((a, b) => a + b, 0);
 
@@ -247,6 +282,19 @@ export function generateWeeklyInsights(
       icon: '⚖️',
     });
   }
+
+  // Calculate vault notes count this week
+  const weeklyVaultCount = vaultNotes
+    ? vaultNotes.filter(note => {
+        const noteDate = new Date(note.createdAt);
+        const startOfYear = new Date(noteDate.getFullYear(), 0, 1);
+        const days = Math.floor((noteDate.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+        const startDay = startOfYear.getDay() || 7;
+        const weekNum = Math.ceil((days + startDay) / 7);
+        const noteWeek = `${noteDate.getFullYear()}-${String(weekNum).padStart(2, '0')}`;
+        return WeekUtils.normalizeWeek(noteWeek) === currentWeekNorm;
+      }).length
+    : 0;
 
   // Weekly Impact Summary Card (Grand Finale for Social Status)
   let rankPct = 60;
@@ -318,9 +366,11 @@ export function generateMonthlyInsights(
   habits: Habit[],
   completedMap: Record<string, string[]>,
   weekPlans: { week: string; state: GridState }[],
-  vaultNotes: VaultNote[]
+  vaultNotes: VaultNote[],
+  customTasks?: CustomTask[]
 ): InsightCardData[] {
   const cards: InsightCardData[] = [];
+  const extractedCustomTasks = extractCustomTasksFromPlans(weekPlans, customTasks);
   
   const [yearStr, monthStr] = monthKey.split('-');
   const year = parseInt(yearStr, 10);
@@ -508,7 +558,7 @@ export function generateMonthlyInsights(
   // Calculate total monthly bucket hours across all week plans in the month
   const monthlyBucketHours: Record<LifeBucket, number> = { income: 0, asset: 0, recovery: 0, relational: 0 };
   weekPlans.forEach(wp => {
-    const bStats = calculateWeekBucketHours(wp.state || {}, goals, habits, []);
+    const bStats = calculateWeekBucketHours(wp.state || {}, goals, habits, extractedCustomTasks);
     (Object.keys(monthlyBucketHours) as LifeBucket[]).forEach(key => {
       monthlyBucketHours[key] += (bStats.bucketHours[key] || 0);
     });

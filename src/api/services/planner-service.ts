@@ -94,15 +94,17 @@ export function useSaveWeekPlan() {
             }
             return state;
         },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['detailed_analytics'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard_stats'] });
+            queryClient.invalidateQueries({ queryKey: ['vault_insights'] });
+        },
         onError: (_err, _variables, context) => {
             if (context?.previousPlan) {
                 queryClient.setQueryData(["planner", context.normalizedWeek], context.previousPlan);
             }
             handleFriendlyError(_err, "Failed to save plan");
         },
-        // No success toast — auto-save is silent (Google Docs style)
-        // No onSettled invalidation — we already do optimistic updates via onMutate,
-        // and invalidation would re-fetch and reset undo/redo history
     });
 }
 

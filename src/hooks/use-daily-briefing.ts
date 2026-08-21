@@ -63,7 +63,7 @@ export function useDailyBriefing() {
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
     const taskCount = tasks.length;
-    const title = `☀️ ${greeting}!`;
+    const title = `${greeting}!`;
     const body = taskCount > 0
       ? `You have ${taskCount} task${taskCount !== 1 ? 's' : ''} scheduled today.${yesterdayText} Let's build your legacy!`
       : `No tasks scheduled for today.${yesterdayText} Use the planner to add some!`;
@@ -83,7 +83,6 @@ export function useDailyBriefing() {
         type: 'daily_briefing',
         title: `${greeting}!`,
         body,
-        icon: '☀️',
         actionUrl: '/today',
         dedupKey,
       });
@@ -134,7 +133,7 @@ export function useDailyBriefing() {
     const dedupKey = `weekly-summary-${currentWeek}`;
 
     setTimeout(() => {
-      sendNotification('📊 Weekly Performance Summary', {
+      sendNotification('Weekly Performance Summary', {
         body: summaryBody,
         url: '/statistics',
         tag: 'weekly-summary',
@@ -145,7 +144,6 @@ export function useDailyBriefing() {
         type: 'weekly_summary',
         title: 'Weekly Performance Summary',
         body: summaryBody,
-        icon: '📊',
         actionUrl: '/statistics',
         dedupKey,
       });

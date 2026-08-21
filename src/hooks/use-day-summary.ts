@@ -57,20 +57,20 @@ export function useDaySummary() {
           tasks.some(t => t.id === id)
         ).length;
 
-        let title = '🌙 Reflect & Recharge';
+        let title = 'Reflect & Recharge';
         let body = '';
 
         if (totalTasks === 0) {
-          title = '🌙 Peaceful Evening';
+          title = 'Peaceful Evening';
           body = 'No tasks scheduled today. A restful day is just as essential for your long-term legacy. Sleep well!';
         } else if (completedCount === totalTasks) {
-          title = '🏆 A Masterclass Day!';
+          title = 'A Masterclass Day!';
           body = `Incredible work! You completed all ${completedCount}/${totalTasks} tasks today. Your discipline is inspiring. Rest deeply!`;
         } else if (completedCount >= totalTasks / 2) {
-          title = '📈 Proud of Your Progress';
+          title = 'Proud of Your Progress';
           body = `You checked off ${completedCount}/${totalTasks} tasks today. Every effort adds brick by brick to your legacy. Sleep well and recharge.`;
         } else {
-          title = '✨ Tomorrow is a New Canvas';
+          title = 'Tomorrow is a New Canvas';
           body = `You completed ${completedCount}/${totalTasks} tasks today. Remember, productivity has seasons, and resting is part of the work. Forgive the unfinished list and sleep peacefully.`;
         }
 
@@ -87,7 +87,6 @@ export function useDaySummary() {
           type: 'day_summary',
           title,
           body,
-          icon: '🌙',
           actionUrl: '/statistics',
           dedupKey,
         });

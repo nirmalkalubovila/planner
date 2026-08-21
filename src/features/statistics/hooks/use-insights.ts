@@ -39,9 +39,10 @@ const fetchInsights = async (): Promise<InsightsResult> => {
   // Get current month key e.g. "2026-06"
   const currentMonth = `${currentYear}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 
-  const [goalsRes, habitsRes, completedRes, weekPlansRes, vaultRes] = await Promise.all([
+  const [goalsRes, habitsRes, customTasksRes, completedRes, weekPlansRes, vaultRes] = await Promise.all([
     supabase.from('goals').select('*').eq('user_id', userId),
     supabase.from('habits').select('*').eq('user_id', userId),
+    supabase.from('custom_tasks').select('*').eq('user_id', userId),
     supabase.from('completed_tasks').select('dayStr, taskIds').eq('user_id', userId),
     supabase.from('week_plans').select('week, state').eq('user_id', userId),
     supabase.from('vault_notes').select('*').eq('user_id', userId),
@@ -49,6 +50,7 @@ const fetchInsights = async (): Promise<InsightsResult> => {
 
   const goals: Goal[] = goalsRes.data ?? [];
   const habits: Habit[] = habitsRes.data ?? [];
+  const customTasks = customTasksRes.data ?? [];
 
   const completedMap: Record<string, string[]> = {};
   for (const row of (completedRes.data ?? [])) {
@@ -67,8 +69,8 @@ const fetchInsights = async (): Promise<InsightsResult> => {
     tags: Array.isArray(row.tags) ? row.tags : (row.tags ? JSON.parse(row.tags as unknown as string) : []),
   }));
 
-  const weekly = generateWeeklyInsights(currentWeek, goals, habits, completedMap, weekPlans, vaultNotes);
-  const monthly = generateMonthlyInsights(currentMonth, goals, habits, completedMap, weekPlans, vaultNotes);
+  const weekly = generateWeeklyInsights(currentWeek, goals, habits, completedMap, weekPlans, vaultNotes, customTasks);
+  const monthly = generateMonthlyInsights(currentMonth, goals, habits, completedMap, weekPlans, vaultNotes, customTasks);
   const weeklyWins = generateWeeklyWins(currentWeek, goals, habits, completedMap, weekPlans, vaultNotes);
   const monthlyWins = generateMonthlyWins(currentMonth, goals, habits, completedMap, weekPlans, vaultNotes);
 

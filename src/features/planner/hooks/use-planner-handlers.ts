@@ -63,7 +63,8 @@ export function createPlannerHandlers(deps: HandlerDeps) {
                 newState[`${slot.dayIdx}-${slot.slotIdx}`] = {
                     type: 'goal',
                     name: targetGoal.title || targetGoal.name,
-                    goalId: targetGoal.id
+                    goalId: targetGoal.id,
+                    bucket: targetGoal.bucket,
                 };
                 slotsToAllocate--;
             }
@@ -73,7 +74,9 @@ export function createPlannerHandlers(deps: HandlerDeps) {
         updateGridState(newState);
         setIsGoalToolDialogOpen(false);
         toast.success(`Allocated ${hours} hours for "${targetGoal.title || targetGoal.name}"!`);
-    };    const handleCustomTaskConfirm = (data: any) => {
+    };
+
+    const handleCustomTaskConfirm = (data: any) => {
         const newState = { ...localGridState };
 
         if (data.isReminder) {
@@ -190,6 +193,7 @@ export function createPlannerHandlers(deps: HandlerDeps) {
                         type: 'habit',
                         name: cellContent.name,
                         description: cellContent.description || '',
+                        bucket: cellContent.bucket,
                     };
                 }
             } else {
@@ -219,10 +223,12 @@ export function createPlannerHandlers(deps: HandlerDeps) {
             if (existing && existing.type === 'goal' && existing.name && (!selectedGoalId || existing.goalId === selectedGoalId)) {
                 return;
             }
+            const targetGoal = activeGoalsForWeek.find(g => g.id === selectedGoalId);
             newState[key] = {
                 type: 'goal',
-                name: (existing && existing.name) ? existing.name : 'Goal Work',
-                goalId: selectedGoalId || (existing && (existing as any).goalId)
+                name: (existing && existing.name) ? existing.name : (targetGoal ? (targetGoal.title || targetGoal.name) : 'Goal Work'),
+                goalId: selectedGoalId || (existing && (existing as any).goalId),
+                bucket: targetGoal?.bucket || (existing && existing.bucket),
             };
         } else if (selectedTool === 'duplicate') {
             if (existing) {
