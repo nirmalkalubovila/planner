@@ -6,6 +6,7 @@ import { WeekUtils } from '@/utils/week-utils';
 import { useTodayTasks } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@/lib/notification-store';
 import { sendNotification } from '@/lib/notification-service';
+import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_BRIEFING = 'llb-last-briefing-date';
 const STORAGE_KEY_YESTERDAY = 'llb-yesterday-stats';
@@ -13,8 +14,11 @@ const STORAGE_KEY_YESTERDAY = 'llb-yesterday-stats';
 /**
  * Sends a daily morning briefing when the user first opens the app each day.
  * Includes: today's task count + yesterday's completion stats.
+ * All localStorage keys are scoped per-user to prevent cross-user dedup leaks.
  */
 export function useDailyBriefing() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const currentWeek = WeekUtils.getCurrentWeek();
   const currentDayStr = WeekUtils.getCurrentDay();
   const dayIdx = parseInt(currentDayStr.split('-')[2]) - 1;
@@ -30,18 +34,18 @@ export function useDailyBriefing() {
 
   // Send daily briefing
   useEffect(() => {
-    if (!preferences.enabled) return;
+    if (!userId || !preferences.enabled) return;
     if (!weekPlan || !habits) return; // Wait for data
 
     const today = new Date().toDateString();
-    const lastBriefing = localStorage.getItem(STORAGE_KEY_BRIEFING);
+    const lastBriefing = localStorage.getItem(`${STORAGE_KEY_BRIEFING}-${userId}`);
 
     if (lastBriefing === today) return; // Already sent today
 
-    localStorage.setItem(STORAGE_KEY_BRIEFING, today);
+    localStorage.setItem(`${STORAGE_KEY_BRIEFING}-${userId}`, today);
 
     // Get yesterday's stats
-    const yesterdayStats = localStorage.getItem(STORAGE_KEY_YESTERDAY);
+    const yesterdayStats = localStorage.getItem(`${STORAGE_KEY_YESTERDAY}-${userId}`);
     let yesterdayText = '';
     if (yesterdayStats) {
       try {
@@ -84,35 +88,36 @@ export function useDailyBriefing() {
         dedupKey,
       });
     }, 2000);
-  }, [weekPlan, habits, tasks.length, preferences, addNotification]);
+  }, [userId, weekPlan, habits, tasks.length, preferences, addNotification]);
 
   // Store today's completion data for tomorrow's briefing
   useEffect(() => {
+    if (!userId) return;
     if (tasks.length > 0) {
       localStorage.setItem(
-        STORAGE_KEY_YESTERDAY,
+        `${STORAGE_KEY_YESTERDAY}-${userId}`,
         JSON.stringify({
           completed: (completedTasks || []).length,
           total: tasks.length,
         })
       );
     }
-  }, [completedTasks, tasks.length]);
+  }, [userId, completedTasks, tasks.length]);
 
   // Weekly summary — fires on Mondays
   useEffect(() => {
-    if (!preferences.enabled || preferences.weeklySummary === false) return;
+    if (!userId || !preferences.enabled || preferences.weeklySummary === false) return;
 
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon
     if (dayOfWeek !== 1) return; // Only on Monday
 
-    const weeklyKey = `llb-weekly-summary-${currentWeek}`;
+    const weeklyKey = `llb-weekly-summary-${currentWeek}-${userId}`;
     if (localStorage.getItem(weeklyKey)) return;
 
     localStorage.setItem(weeklyKey, 'sent');
 
-    const yesterdayStats = localStorage.getItem(STORAGE_KEY_YESTERDAY);
+    const yesterdayStats = localStorage.getItem(`${STORAGE_KEY_YESTERDAY}-${userId}`);
     let summaryBody = 'Start of a new week! Check your statistics to see last week\'s performance.';
 
     if (yesterdayStats) {
@@ -145,5 +150,5 @@ export function useDailyBriefing() {
         dedupKey,
       });
     }, 5000);
-  }, [currentWeek, preferences, addNotification]);
+  }, [userId, currentWeek, preferences, addNotification]);
 }

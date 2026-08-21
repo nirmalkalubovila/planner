@@ -11,6 +11,7 @@ import { useDailyBriefing } from '@/hooks/use-daily-briefing';
 import { useDaySummary } from '@/hooks/use-day-summary';
 import { useSleepAndPlanningNotifications } from '@/hooks/use-sleep-and-planning-notifications';
 import { useVaultReminders } from '@/hooks/use-vault-reminders';
+import { useEngagementNotifications } from '@/hooks/use-engagement-notifications';
 import { NotificationPermissionBanner } from './notification-permission-banner';
 import { InstallPWAPrompt } from './install-pwa-prompt';
 
@@ -249,5 +250,6 @@ const NotificationHooks: React.FC = () => {
   useDaySummary();
   useSleepAndPlanningNotifications();
   useVaultReminders();
+  useEngagementNotifications();
   return null;
 };

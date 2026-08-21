@@ -6,14 +6,18 @@ import { WeekUtils } from '@/utils/week-utils';
 import { useTodayTasks } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@/lib/notification-store';
 import { sendNotification } from '@/lib/notification-service';
+import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_DAY_SUMMARY = 'llb-last-day-summary-date';
 
 /**
  * Fires a motivational Day Summary notification at sleep time (quietHoursStart).
  * Encouraging messages summarizing the day's achievements, even if tasks were missed.
+ * All localStorage keys are scoped per-user to prevent cross-user dedup leaks.
  */
 export function useDaySummary() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const currentWeek = WeekUtils.getCurrentWeek();
   const currentDayStr = WeekUtils.getCurrentDay();
   const dayIdx = parseInt(currentDayStr.split('-')[2]) - 1;
@@ -28,13 +32,13 @@ export function useDaySummary() {
   const addNotification = useNotificationStore((s) => s.addNotification);
 
   useEffect(() => {
-    if (!preferences.enabled || preferences.daySummary === false || !preferences.quietHoursStart) return;
+    if (!userId || !preferences.enabled || preferences.daySummary === false || !preferences.quietHoursStart) return;
     if (!weekPlan || !habits) return; // Wait for data
 
     const checkSleepTime = () => {
       const now = new Date();
       const today = now.toDateString();
-      const lastSummaryDate = localStorage.getItem(STORAGE_KEY_DAY_SUMMARY);
+      const lastSummaryDate = localStorage.getItem(`${STORAGE_KEY_DAY_SUMMARY}-${userId}`);
 
       if (lastSummaryDate === today) return; // Already fired today
 
@@ -46,7 +50,7 @@ export function useDaySummary() {
       const isPastSleepTime = currentH > sleepH || (currentH === sleepH && currentM >= sleepM);
 
       if (isPastSleepTime) {
-        localStorage.setItem(STORAGE_KEY_DAY_SUMMARY, today);
+        localStorage.setItem(`${STORAGE_KEY_DAY_SUMMARY}-${userId}`, today);
 
         const totalTasks = tasks.length;
         const completedCount = (completedTasks || []).filter(id => 
@@ -95,5 +99,6 @@ export function useDaySummary() {
     const interval = setInterval(checkSleepTime, 30_000);
 
     return () => clearInterval(interval);
-  }, [weekPlan, habits, tasks, completedTasks, preferences, addNotification]);
+  }, [userId, weekPlan, habits, tasks, completedTasks, preferences, addNotification]);
 }
+
