@@ -3,6 +3,7 @@ import { useGetGoals } from '@/api/services/goal-service';
 import { useNotificationStore } from '@/lib/notification-store';
 import { sendNotification } from '@/lib/notification-service';
 import type { Goal, Milestone } from '@/types/global-types';
+import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_DEADLINES = 'llb-notified-deadlines';
 const STORAGE_KEY_COMPLETED = 'llb-notified-goal-completed';
@@ -15,6 +16,8 @@ const DEADLINE_DAYS = [7, 3, 1]; // Days before deadline to notify
  * 2. Goal completion (all milestones done)
  */
 export function useGoalNotifications() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const { data: goals } = useGetGoals();
   const preferences = useNotificationStore((s) => s.preferences);
   const addNotification = useNotificationStore((s) => s.addNotification);
@@ -22,15 +25,15 @@ export function useGoalNotifications() {
 
   // Goal deadline notifications
   useEffect(() => {
-    if (!goals || !preferences.enabled) return;
+    if (!userId || !goals || !preferences.enabled) return;
     if (hasChecked.current) return;
     hasChecked.current = true;
 
     const notifiedDeadlines: Record<string, number[]> = JSON.parse(
-      localStorage.getItem(STORAGE_KEY_DEADLINES) || '{}'
+      localStorage.getItem(`${STORAGE_KEY_DEADLINES}-${userId}`) || '{}'
     );
     const notifiedCompleted: string[] = JSON.parse(
-      localStorage.getItem(STORAGE_KEY_COMPLETED) || '[]'
+      localStorage.getItem(`${STORAGE_KEY_COMPLETED}-${userId}`) || '[]'
     );
 
     const now = new Date();
@@ -121,7 +124,7 @@ export function useGoalNotifications() {
       }
     });
 
-    localStorage.setItem(STORAGE_KEY_DEADLINES, JSON.stringify(notifiedDeadlines));
-    localStorage.setItem(STORAGE_KEY_COMPLETED, JSON.stringify(notifiedCompleted));
-  }, [goals, preferences, addNotification]);
+    localStorage.setItem(`${STORAGE_KEY_DEADLINES}-${userId}`, JSON.stringify(notifiedDeadlines));
+    localStorage.setItem(`${STORAGE_KEY_COMPLETED}-${userId}`, JSON.stringify(notifiedCompleted));
+  }, [userId, goals, preferences, addNotification]);
 }

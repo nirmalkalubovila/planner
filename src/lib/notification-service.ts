@@ -131,8 +131,11 @@ function isTypeEnabled(type: NotificationType | undefined, prefs: NotificationPr
 
   switch (type) {
     case 'task_starting':
+      // Use upcomingTasks if defined, fall back to taskReminders for backward compat
+      return (prefs.upcomingTasks ?? prefs.taskReminders) !== false;
     case 'task_overdue':
-      return prefs.taskReminders;
+      // Use overdueTasks if defined, fall back to taskReminders for backward compat
+      return (prefs.overdueTasks ?? prefs.taskReminders) !== false;
     case 'daily_briefing':
       return prefs.dailyBriefing;
     case 'goal_deadline':
@@ -154,6 +157,10 @@ function isTypeEnabled(type: NotificationType | undefined, prefs: NotificationPr
       return prefs.sleepNotifications !== false;
     case 'weekly_planning':
       return prefs.weeklyPlanning !== false;
+    case 'midday_checkin':
+      return prefs.middayCheckin !== false;
+    case 'habit_streak_risk':
+      return prefs.habitStreakRisk !== false;
     default:
       return true;
   }

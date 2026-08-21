@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { Bell, BellOff, CheckCircle2, AlertCircle, ShieldAlert, Send } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+  Bell, BellOff, CheckCircle2, AlertCircle, ShieldAlert, Send,
+  ClipboardList, AlertTriangle, Sun, Moon, Target, Trophy,
+  BarChart3, Flame, Calendar, TrendingUp, Clock, ShieldCheck,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '@/lib/notification-store';
 import {
   getPermissionStatus,
@@ -12,6 +16,128 @@ import {
 } from '@/lib/notification-service';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
+import type { NotificationPreferences } from '@/types/notification-types';
+
+interface ToggleItem {
+  key: keyof NotificationPreferences;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  defaultOff?: boolean;
+}
+
+const TOGGLE_GROUPS: { title: string; items: ToggleItem[] }[] = [
+  {
+    title: 'Task Alerts',
+    items: [
+      {
+        key: 'upcomingTasks',
+        label: 'Upcoming Tasks',
+        description: 'Get notified 15 minutes before a task starts',
+        icon: <ClipboardList size={15} />,
+      },
+      {
+        key: 'overdueTasks',
+        label: 'Overdue Tasks',
+        description: 'Alert when a task passes its end time uncompleted',
+        icon: <AlertTriangle size={15} />,
+      },
+    ],
+  },
+  {
+    title: 'Daily Notifications',
+    items: [
+      {
+        key: 'dailyBriefing',
+        label: 'Daily Briefing',
+        description: 'Morning summary of your scheduled tasks',
+        icon: <Sun size={15} />,
+      },
+      {
+        key: 'daySummary',
+        label: 'Day Summary',
+        description: 'Evening reflection on completed vs missed tasks',
+        icon: <Moon size={15} />,
+      },
+      {
+        key: 'middayCheckin',
+        label: 'Midday Check-In',
+        description: 'Afternoon progress update with task stats',
+        icon: <Clock size={15} />,
+        defaultOff: true,
+      },
+    ],
+  },
+  {
+    title: 'Goals',
+    items: [
+      {
+        key: 'goalDeadlines',
+        label: 'Goal Deadlines',
+        description: 'Alerts at 7, 3, and 1 day before deadlines',
+        icon: <Target size={15} />,
+      },
+      {
+        key: 'goalCompletion',
+        label: 'Goal Completion',
+        description: 'Celebration when all milestones are completed',
+        icon: <Trophy size={15} />,
+      },
+    ],
+  },
+  {
+    title: 'Sleep and Planning',
+    items: [
+      {
+        key: 'sleepNotifications',
+        label: 'Sleep Reminders',
+        description: 'Bedtime and wake-up notifications',
+        icon: <Moon size={15} />,
+      },
+      {
+        key: 'weeklyPlanning',
+        label: 'Weekly Planning',
+        description: 'Reminder for your scheduled planning session',
+        icon: <Calendar size={15} />,
+      },
+    ],
+  },
+  {
+    title: 'Performance and Streaks',
+    items: [
+      {
+        key: 'weeklySummary',
+        label: 'Weekly Summary',
+        description: 'Monday morning performance summary',
+        icon: <BarChart3 size={15} />,
+      },
+      {
+        key: 'statsChanges',
+        label: 'Stats Changes',
+        description: 'Grade improvement or decline alerts',
+        icon: <TrendingUp size={15} />,
+      },
+      {
+        key: 'streakMilestones',
+        label: 'Streak Milestones',
+        description: 'Celebrate activity streaks at 3, 7, 14, 30+ days',
+        icon: <Flame size={15} />,
+      },
+      {
+        key: 'habitStreakRisk',
+        label: 'Habit Streak Risk',
+        description: 'Alert if daily habits might break your streak',
+        icon: <ShieldAlert size={15} />,
+      },
+      {
+        key: 'burnoutWarning',
+        label: 'Burnout Warning',
+        description: 'Alert when overwork pattern is detected',
+        icon: <ShieldCheck size={15} />,
+      },
+    ],
+  },
+];
 
 export const NotificationPreferencesSection: React.FC = () => {
   const preferences = useNotificationStore((s) => s.preferences);
@@ -82,6 +208,10 @@ export const NotificationPreferencesSection: React.FC = () => {
     setTimeout(() => setTestSent(false), 3000);
   };
 
+  const handleTogglePreference = (key: keyof NotificationPreferences, value: boolean) => {
+    updatePreferences({ [key]: value });
+  };
+
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
       {/* Section Header */}
@@ -116,7 +246,7 @@ export const NotificationPreferencesSection: React.FC = () => {
       </div>
 
       <div className="p-5 space-y-4">
-        {/* Single Permission Switch */}
+        {/* Master Permission Switch */}
         <div
           className={cn(
             'flex items-center justify-between gap-4 p-4 rounded-xl border transition-all duration-200',
@@ -230,8 +360,94 @@ export const NotificationPreferencesSection: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* Granular Notification Toggles */}
+        <AnimatePresence>
+          {isEnabled && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="space-y-4 overflow-hidden"
+            >
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                  Customize What You Receive
+                </p>
+                <p className="text-[10px] text-muted-foreground/70 mb-4 leading-relaxed">
+                  Toggle individual notification types on or off. Your preferences sync across all your devices.
+                </p>
+              </div>
+
+              {TOGGLE_GROUPS.map((group) => (
+                <div key={group.title} className="space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pl-1 mb-2">
+                    {group.title}
+                  </p>
+                  {group.items.map((item) => {
+                    const currentValue = preferences[item.key];
+                    const isOn = currentValue !== false && currentValue !== undefined
+                      ? currentValue === true
+                      : !item.defaultOff;
+
+                    return (
+                      <div
+                        key={item.key}
+                        className={cn(
+                          'flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border transition-all duration-200',
+                          isOn
+                            ? 'bg-card border-border/60 hover:border-border'
+                            : 'bg-muted/20 border-border/30 opacity-60 hover:opacity-80'
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className={cn(
+                              'flex-shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center transition-colors',
+                              isOn
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                : 'bg-muted/50 border-border/40 text-muted-foreground/50'
+                            )}
+                          >
+                            {item.icon}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground tracking-wide leading-tight">
+                              {item.label}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-relaxed">
+                              {item.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleTogglePreference(item.key, !isOn)}
+                          aria-label={`Toggle ${item.label}`}
+                          className={cn(
+                            'relative flex-shrink-0 w-11 h-6 rounded-full transition-all duration-300 outline-none border border-border/40 cursor-pointer',
+                            isOn ? 'bg-emerald-500/90 shadow-sm shadow-emerald-500/10' : 'bg-muted/80'
+                          )}
+                        >
+                          <motion.div
+                            animate={{ x: isOn ? 22 : 2 }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                            className={cn(
+                              'absolute top-[2px] w-4.5 h-4.5 rounded-full shadow-sm',
+                              isOn ? 'bg-white' : 'bg-muted-foreground/60'
+                            )}
+                          />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 };
-

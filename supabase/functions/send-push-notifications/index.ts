@@ -425,7 +425,7 @@ interface CustomTask {
   isReminder?: boolean;
 }
 
-const MAX_NOTIFICATIONS_PER_HOUR = 3;
+const MAX_NOTIFICATIONS_PER_HOUR = 5;
 const TASK_REMINDER_MINUTES = 15;
 const DEADLINE_DAYS = [7, 3, 1];
 
@@ -831,7 +831,7 @@ Deno.serve(async (req: Request) => {
           const tag = `task-start-${task.id}-${datePart}`;
 
           // 1. Push notification
-          if (prefs.taskReminders !== false && !userSentTags.has(tag)) {
+          if ((prefs.upcomingTasks ?? prefs.taskReminders) !== false && !userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
               title: `📋 ${task.name} starts in ${diffMinutes} min`,
@@ -863,8 +863,8 @@ Deno.serve(async (req: Request) => {
         if (isOverdue) {
           // Double check cap before sending overdue alert
           const currentCountOverdue = sentInLastHour.get(userId) || 0;
-          if (currentCountOverdue >= 3) {
-            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping overdue alert.`);
+          if (currentCountOverdue >= MAX_NOTIFICATIONS_PER_HOUR) {
+            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping overdue alert.`);
             continue;
           }
 
@@ -872,7 +872,7 @@ Deno.serve(async (req: Request) => {
           const tag = `task-overdue-${task.id}-${datePart}`;
 
           // 1. Push notification
-          if (prefs.taskReminders !== false && !userSentTags.has(tag)) {
+          if ((prefs.overdueTasks ?? prefs.taskReminders) !== false && !userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
               title: `⚠️ ${task.name} isn't completed`,
@@ -903,7 +903,7 @@ Deno.serve(async (req: Request) => {
       const wakeUpMinutes = getWakeUpMinutes(sleepStart, sleepDuration);
 
       const wakeUpDiff = userCurrentMinutes - wakeUpMinutes;
-      if (wakeUpDiff >= 0 && wakeUpDiff < 2) {
+      if (wakeUpDiff >= 0 && wakeUpDiff < 5) {
         const datePart = userLocalTime.toISOString().slice(0, 10);
         const tag = `daily-briefing-${datePart}`;
 
@@ -925,8 +925,8 @@ Deno.serve(async (req: Request) => {
 
           // Enforce push cap check
           const currentCountBriefing = sentInLastHour.get(userId) || 0;
-          if (currentCountBriefing >= 3) {
-            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping daily briefing.`);
+          if (currentCountBriefing >= MAX_NOTIFICATIONS_PER_HOUR) {
+            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping daily briefing.`);
           } else {
             let pushSent = false;
             for (const sub of subs) {
@@ -979,8 +979,8 @@ Deno.serve(async (req: Request) => {
 
               // Enforce push cap check
               const currentCountDeadlines = sentInLastHour.get(userId) || 0;
-              if (currentCountDeadlines >= 3) {
-                logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping goal deadline.`);
+              if (currentCountDeadlines >= MAX_NOTIFICATIONS_PER_HOUR) {
+                logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping goal deadline.`);
               } else {
                 let pushSent = false;
                 for (const sub of subs) {
@@ -1014,8 +1014,8 @@ Deno.serve(async (req: Request) => {
 
             // Enforce push cap check
             const currentCountCompletion = sentInLastHour.get(userId) || 0;
-            if (currentCountCompletion >= 3) {
-              logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping goal completion.`);
+            if (currentCountCompletion >= MAX_NOTIFICATIONS_PER_HOUR) {
+              logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping goal completion.`);
             } else {
               let pushSent = false;
               for (const sub of subs) {
@@ -1038,7 +1038,7 @@ Deno.serve(async (req: Request) => {
       const sleepStartParts = (profile.sleep_start || "22:00").split(":").map(Number);
       const sleepStartMinutes = sleepStartParts[0] * 60 + sleepStartParts[1];
       const sleepDiff = userCurrentMinutes - sleepStartMinutes;
-      if (sleepDiff >= 0 && sleepDiff < 2 && prefs.daySummary !== false) {
+      if (sleepDiff >= 0 && sleepDiff < 5 && prefs.daySummary !== false) {
         const datePart = userLocalTime.toISOString().slice(0, 10);
         const tag = `day-summary-${datePart}`;
 
@@ -1068,8 +1068,8 @@ Deno.serve(async (req: Request) => {
 
           // Enforce push cap check
           const currentCountSummary = sentInLastHour.get(userId) || 0;
-          if (currentCountSummary >= 3) {
-            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping day summary.`);
+          if (currentCountSummary >= MAX_NOTIFICATIONS_PER_HOUR) {
+            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping day summary.`);
           } else {
             let pushSent = false;
             for (const sub of subs) {
@@ -1091,7 +1091,7 @@ Deno.serve(async (req: Request) => {
       const dayOfWeekForSummary = userLocalTime.getUTCDay();
       if (dayOfWeekForSummary === 1) { // Monday
         const wakeUpDiffWeekly = userCurrentMinutes - wakeUpMinutes;
-        if (wakeUpDiffWeekly >= 0 && wakeUpDiffWeekly < 2 && prefs.weeklySummary !== false) {
+        if (wakeUpDiffWeekly >= 0 && wakeUpDiffWeekly < 5 && prefs.weeklySummary !== false) {
           const tag = `weekly-summary-${userWeek}`;
 
           if (!userSentTags.has(tag)) {
@@ -1105,8 +1105,8 @@ Deno.serve(async (req: Request) => {
 
             // Enforce push cap check
             const currentCountWeekly = sentInLastHour.get(userId) || 0;
-            if (currentCountWeekly >= 3) {
-              logDebug(`[DEBUG] User ${userId} hit hourly notification cap (3/hour). Skipping weekly summary.`);
+            if (currentCountWeekly >= MAX_NOTIFICATIONS_PER_HOUR) {
+              logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping weekly summary.`);
             } else {
               let pushSent = false;
               for (const sub of subs) {
@@ -1128,7 +1128,7 @@ Deno.serve(async (req: Request) => {
       // ── F. Sleep Start & End Notifications ──
       if (prefs.sleepNotifications !== false) {
         // Sleep Start
-        if (sleepDiff >= 0 && sleepDiff < 2) {
+        if (sleepDiff >= 0 && sleepDiff < 5) {
           const datePart = userLocalTime.toISOString().slice(0, 10);
           const tag = `sleep-start-${datePart}`;
           if (!userSentTags.has(tag)) {
@@ -1155,7 +1155,7 @@ Deno.serve(async (req: Request) => {
 
         // Sleep End (Wake-up)
         const sleepEndDiff = userCurrentMinutes - wakeUpMinutes;
-        if (sleepEndDiff >= 0 && sleepEndDiff < 2) {
+        if (sleepEndDiff >= 0 && sleepEndDiff < 5) {
           const datePart = userLocalTime.toISOString().slice(0, 10);
           const tag = `sleep-end-${datePart}`;
           if (!userSentTags.has(tag)) {
@@ -1191,7 +1191,7 @@ Deno.serve(async (req: Request) => {
           const planMinutes = planH * 60 + planM;
           const planDiff = userCurrentMinutes - planMinutes;
 
-          if (planDiff >= 0 && planDiff < 2) {
+          if (planDiff >= 0 && planDiff < 5) {
             const datePart = userLocalTime.toISOString().slice(0, 10);
             const tag = `weekly-planning-${datePart}`;
             if (!userSentTags.has(tag)) {
@@ -1212,6 +1212,91 @@ Deno.serve(async (req: Request) => {
                 await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
                 totalPushSent++;
                 sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+              }
+            }
+          }
+        }
+      }
+
+      // ── H. Midday Check-In (12:00-14:00, opt-in) ──
+      if (prefs.middayCheckin !== false) {
+        const isMidday = userCurrentMinutes >= 720 && userCurrentMinutes < 840; // 12:00-14:00
+        if (isMidday) {
+          const datePart = userLocalTime.toISOString().slice(0, 10);
+          const tag = `midday-checkin-${datePart}`;
+
+          if (!userSentTags.has(tag)) {
+            const totalTaskCount = allTasks.length;
+            const completedCount = completedIds.length;
+            const remaining = totalTaskCount - completedCount;
+
+            // Only send if there are tasks and not all completed
+            if (totalTaskCount > 0 && remaining > 0) {
+              const currentCountMidday = sentInLastHour.get(userId) || 0;
+              if (currentCountMidday < MAX_NOTIFICATIONS_PER_HOUR) {
+                const subs = userSubs.get(userId) || [];
+                const pushPayload = {
+                  title: `Midday Check-In`,
+                  body: `You've completed ${completedCount}/${totalTaskCount} tasks so far. ${remaining} remaining -- keep the momentum going!`,
+                  url: "/today",
+                  tag,
+                };
+
+                let pushSent = false;
+                for (const sub of subs) {
+                  const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                  if (res.gone) staleSubscriptions.push(sub.id);
+                  else if (res.success) pushSent = true;
+                }
+
+                if (pushSent) {
+                  await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                  totalPushSent++;
+                  sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // ── I. Habit Streak Risk (at ~18:00, if habits exist but none completed) ──
+      if (prefs.habitStreakRisk !== false) {
+        const isEvening = userCurrentMinutes >= 1080 && userCurrentMinutes < 1085; // 18:00-18:05
+        if (isEvening) {
+          const datePart = userLocalTime.toISOString().slice(0, 10);
+          const tag = `habit-streak-risk-${datePart}`;
+
+          if (!userSentTags.has(tag)) {
+            const userHabitCount = (habitsByUser.get(userId) || []).length;
+            const habitCompletedToday = completedIds.filter(id =>
+              (habitsByUser.get(userId) || []).some(h => h.id === id)
+            ).length;
+
+            // Only send if user has habits but none completed today
+            if (userHabitCount > 0 && habitCompletedToday === 0) {
+              const currentCountStreak = sentInLastHour.get(userId) || 0;
+              if (currentCountStreak < MAX_NOTIFICATIONS_PER_HOUR) {
+                const subs = userSubs.get(userId) || [];
+                const pushPayload = {
+                  title: `Habit Streak at Risk`,
+                  body: `Your streak might break today -- you still have ${userHabitCount} habit${userHabitCount !== 1 ? 's' : ''} to complete.`,
+                  url: "/today",
+                  tag,
+                };
+
+                let pushSent = false;
+                for (const sub of subs) {
+                  const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                  if (res.gone) staleSubscriptions.push(sub.id);
+                  else if (res.success) pushSent = true;
+                }
+
+                if (pushSent) {
+                  await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+                  totalPushSent++;
+                  sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+                }
               }
             }
           }

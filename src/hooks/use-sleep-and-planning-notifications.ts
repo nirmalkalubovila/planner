@@ -8,6 +8,11 @@ const STORAGE_KEY_SLEEP_START = 'llb-last-sleep-start-date';
 const STORAGE_KEY_SLEEP_END = 'llb-last-sleep-end-date';
 const STORAGE_KEY_WEEKLY_PLANNING = 'llb-last-weekly-planning-date';
 
+// Helper to scope localStorage keys per-user
+function userKey(baseKey: string, userId: string): string {
+  return `${baseKey}-${userId}`;
+}
+
 function getWakeUpTime(sleepStart: string, sleepDuration: string): string {
   const [h, m] = sleepStart.split(':').map(Number);
   const dur = parseInt(sleepDuration, 10) || 8;
@@ -32,12 +37,13 @@ function getDayNumber(dayName: string): number {
 
 export function useSleepAndPlanningNotifications() {
   const { user } = useAuth();
+  const userId = user?.id;
   const { profile } = useUserProfile(user);
   const preferences = useNotificationStore((s) => s.preferences);
   const addNotification = useNotificationStore((s) => s.addNotification);
 
   useEffect(() => {
-    if (!preferences.enabled || !profile) return;
+    if (!userId || !preferences.enabled || !profile) return;
 
     const checkTimeAndNotify = () => {
       const now = new Date();
@@ -52,10 +58,10 @@ export function useSleepAndPlanningNotifications() {
         
         // Match exact or recent minutes (within 5 minutes window, but only fire once per day)
         const isSleepTime = currentH === sleepH && currentM >= sleepM && currentM < sleepM + 5;
-        const lastSleepStartDate = localStorage.getItem(STORAGE_KEY_SLEEP_START);
+        const lastSleepStartDate = localStorage.getItem(userKey(STORAGE_KEY_SLEEP_START, userId));
 
         if (isSleepTime && lastSleepStartDate !== today) {
-          localStorage.setItem(STORAGE_KEY_SLEEP_START, today);
+          localStorage.setItem(userKey(STORAGE_KEY_SLEEP_START, userId), today);
 
           const title = '🌙 Bedtime Reminder';
           const body = "It's time to sleep. Wind down and get some rest!";
@@ -88,10 +94,10 @@ export function useSleepAndPlanningNotifications() {
         const [wakeH, wakeM] = wakeUpTime.split(':').map(Number);
 
         const isWakeTime = currentH === wakeH && currentM >= wakeM && currentM < wakeM + 5;
-        const lastSleepEndDate = localStorage.getItem(STORAGE_KEY_SLEEP_END);
+        const lastSleepEndDate = localStorage.getItem(userKey(STORAGE_KEY_SLEEP_END, userId));
 
         if (isWakeTime && lastSleepEndDate !== today) {
-          localStorage.setItem(STORAGE_KEY_SLEEP_END, today);
+          localStorage.setItem(userKey(STORAGE_KEY_SLEEP_END, userId), today);
 
           const title = '☀️ Good Morning!';
           const body = 'Wake up time! Time to start a brand new day of building your legacy.';
@@ -125,10 +131,10 @@ export function useSleepAndPlanningNotifications() {
         const currentDayNum = now.getDay();
         const isPlanDay = currentDayNum === planDayNum;
         const isPlanTime = currentH === planH && currentM >= planM && currentM < planM + 5;
-        const lastPlanDate = localStorage.getItem(STORAGE_KEY_WEEKLY_PLANNING);
+        const lastPlanDate = localStorage.getItem(userKey(STORAGE_KEY_WEEKLY_PLANNING, userId));
 
         if (isPlanDay && isPlanTime && lastPlanDate !== today) {
-          localStorage.setItem(STORAGE_KEY_WEEKLY_PLANNING, today);
+          localStorage.setItem(userKey(STORAGE_KEY_WEEKLY_PLANNING, userId), today);
 
           const title = '📅 Weekly Planning';
           const body = `It's time for your weekly planning session (${planTime}). Set your goals and build your legacy!`;
@@ -159,5 +165,5 @@ export function useSleepAndPlanningNotifications() {
     const interval = setInterval(checkTimeAndNotify, 30_000);
 
     return () => clearInterval(interval);
-  }, [profile, preferences, addNotification]);
+  }, [userId, profile, preferences, addNotification]);
 }

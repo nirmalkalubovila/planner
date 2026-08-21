@@ -11,6 +11,7 @@ import {
   cancelScheduledNotification,
 } from '@/lib/notification-service';
 import { TASK_REMINDER_MINUTES } from '@/types/notification-types';
+import { useAuth } from '@/contexts/auth-context';
 
 const NOTIFIED_TASKS_KEY_PREFIX = 'llb-notified-tasks-';
 const NOTIFIED_BATCH_KEY_PREFIX = 'llb-notified-batch-';
@@ -22,29 +23,29 @@ function timeToTodayDate(timeStr: string): Date {
   return d;
 }
 
-const getNotifiedTasks = (dayStr: string): Set<string> => {
+const getNotifiedTasks = (userId: string, dayStr: string): Set<string> => {
   try {
-    const val = localStorage.getItem(`${NOTIFIED_TASKS_KEY_PREFIX}${dayStr}`);
+    const val = localStorage.getItem(`${NOTIFIED_TASKS_KEY_PREFIX}${userId}-${dayStr}`);
     return val ? new Set(JSON.parse(val)) : new Set();
   } catch {
     return new Set();
   }
 };
 
-const saveNotifiedTasks = (dayStr: string, set: Set<string>) => {
+const saveNotifiedTasks = (userId: string, dayStr: string, set: Set<string>) => {
   try {
-    localStorage.setItem(`${NOTIFIED_TASKS_KEY_PREFIX}${dayStr}`, JSON.stringify(Array.from(set)));
+    localStorage.setItem(`${NOTIFIED_TASKS_KEY_PREFIX}${userId}-${dayStr}`, JSON.stringify(Array.from(set)));
   } catch (err) {
     console.error(err);
   }
 };
 
-const getNotifiedBatch = (dayStr: string): boolean => {
-  return localStorage.getItem(`${NOTIFIED_BATCH_KEY_PREFIX}${dayStr}`) === 'true';
+const getNotifiedBatch = (userId: string, dayStr: string): boolean => {
+  return localStorage.getItem(`${NOTIFIED_BATCH_KEY_PREFIX}${userId}-${dayStr}`) === 'true';
 };
 
-const saveNotifiedBatch = (dayStr: string, val: boolean) => {
-  localStorage.setItem(`${NOTIFIED_BATCH_KEY_PREFIX}${dayStr}`, val ? 'true' : 'false');
+const saveNotifiedBatch = (userId: string, dayStr: string, val: boolean) => {
+  localStorage.setItem(`${NOTIFIED_BATCH_KEY_PREFIX}${userId}-${dayStr}`, val ? 'true' : 'false');
 };
 
 const cleanOldTaskNotifKeys = (currentDay: string) => {
@@ -69,6 +70,8 @@ const recentOverdueNotifTimestamps: number[] = [];
  * 2. Fires a notification when a task is overdue (end time passed, not completed)
  */
 export function useTaskNotifications() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const currentWeek = WeekUtils.getCurrentWeek();
   const currentDayStr = WeekUtils.getCurrentDay();
   const dayIdx = parseInt(currentDayStr.split('-')[2]) - 1;
@@ -86,7 +89,7 @@ export function useTaskNotifications() {
 
   // Schedule "task starting" notifications
   useEffect(() => {
-    if (!preferences.enabled) return;
+    if (!userId || !preferences.enabled) return;
 
     const { shownKeys, deletedKeys } = useNotificationStore.getState();
     const newScheduled = new Set<string>();
@@ -149,11 +152,11 @@ export function useTaskNotifications() {
       newScheduled.forEach((id) => cancelScheduledNotification(id));
       inAppTimers.forEach((timer) => clearTimeout(timer));
     };
-  }, [tasks, preferences, addNotification, currentDayStr]);
+  }, [userId, tasks, preferences, addNotification, currentDayStr]);
 
   // Check for overdue tasks every 60 seconds
   useEffect(() => {
-    if (!preferences.enabled) return;
+    if (!userId || !preferences.enabled) return;
 
     const checkOverdue = () => {
       const now = new Date();
@@ -182,8 +185,8 @@ export function useTaskNotifications() {
 
       cleanOldTaskNotifKeys(currentDayStr);
 
-      const notifiedTasks = getNotifiedTasks(currentDayStr);
-      const notifiedBatch = getNotifiedBatch(currentDayStr);
+      const notifiedTasks = getNotifiedTasks(userId, currentDayStr);
+      const notifiedBatch = getNotifiedBatch(userId, currentDayStr);
 
       if (overdueTasks.length > 2) {
         // If there are more than 2 overdue tasks, show a single batch notification
@@ -191,8 +194,8 @@ export function useTaskNotifications() {
         if (!notifiedBatch && !shownKeys.includes(batchDedupKey) && !deletedKeys.includes(batchDedupKey)) {
           // Mark all these overdue tasks as notified
           overdueTasks.forEach((t) => notifiedTasks.add(t.id));
-          saveNotifiedTasks(currentDayStr, notifiedTasks);
-          saveNotifiedBatch(currentDayStr, true);
+          saveNotifiedTasks(userId, currentDayStr, notifiedTasks);
+          saveNotifiedBatch(userId, currentDayStr, true);
 
           sendNotification(
             `⚠️ Uncompleted Tasks`,
@@ -263,7 +266,7 @@ export function useTaskNotifications() {
         });
 
         if (updated) {
-          saveNotifiedTasks(currentDayStr, notifiedTasks);
+          saveNotifiedTasks(userId, currentDayStr, notifiedTasks);
         }
       }
     };
@@ -275,5 +278,5 @@ export function useTaskNotifications() {
     return () => {
       clearInterval(interval);
     };
-  }, [tasks, completedTasks, preferences, addNotification, currentDayStr]);
+  }, [userId, tasks, completedTasks, preferences, addNotification, currentDayStr]);
 }
