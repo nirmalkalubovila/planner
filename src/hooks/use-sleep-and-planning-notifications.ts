@@ -63,7 +63,7 @@ export function useSleepAndPlanningNotifications() {
         if (isSleepTime && lastSleepStartDate !== today) {
           localStorage.setItem(userKey(STORAGE_KEY_SLEEP_START, userId), today);
 
-          const title = '🌙 Bedtime Reminder';
+          const title = 'Bedtime Reminder';
           const body = "It's time to sleep. Wind down and get some rest!";
           const dedupKey = `sleep-start-${today}`;
 
@@ -79,7 +79,6 @@ export function useSleepAndPlanningNotifications() {
             type: 'sleep_start',
             title,
             body,
-            icon: '🌙',
             actionUrl: '/today',
             dedupKey,
           });
@@ -99,7 +98,7 @@ export function useSleepAndPlanningNotifications() {
         if (isWakeTime && lastSleepEndDate !== today) {
           localStorage.setItem(userKey(STORAGE_KEY_SLEEP_END, userId), today);
 
-          const title = '☀️ Good Morning!';
+          const title = 'Good Morning!';
           const body = 'Wake up time! Time to start a brand new day of building your legacy.';
           const dedupKey = `sleep-end-${today}`;
 
@@ -115,7 +114,6 @@ export function useSleepAndPlanningNotifications() {
             type: 'sleep_end',
             title,
             body,
-            icon: '☀️',
             actionUrl: '/today',
             dedupKey,
           });
@@ -136,7 +134,7 @@ export function useSleepAndPlanningNotifications() {
         if (isPlanDay && isPlanTime && lastPlanDate !== today) {
           localStorage.setItem(userKey(STORAGE_KEY_WEEKLY_PLANNING, userId), today);
 
-          const title = '📅 Weekly Planning';
+          const title = 'Weekly Planning';
           const body = `It's time for your weekly planning session (${planTime}). Set your goals and build your legacy!`;
           const dedupKey = `weekly-planning-${today}`;
 
@@ -152,7 +150,6 @@ export function useSleepAndPlanningNotifications() {
             type: 'weekly_planning',
             title,
             body,
-            icon: '📅',
             actionUrl: '/planner',
             dedupKey,
           });

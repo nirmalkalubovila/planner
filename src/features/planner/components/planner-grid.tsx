@@ -140,8 +140,6 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                         {Array.from({ length: SLOTS_PER_DAY }).map((_, slotIdx) => {
                             const hour = Math.floor(slotIdx / 2);
                             const min = (slotIdx % 2) * 30;
-                            const nextHour = Math.floor((slotIdx + 1) / 2);
-                            const nextMin = ((slotIdx + 1) % 2) * 30;
 
                             const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
                             const isHourStart = min === 0;
@@ -178,6 +176,8 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                         e.dataTransfer.setData('sourceNewTask', JSON.stringify({
                                                             type: content.type === 'preview-free' ? 'custom' : 'goal',
                                                             name: content.name,
+                                                            goalId: content.goalId,
+                                                            bucket: content.bucket,
                                                         }));
                                                     } else if (isInteractive) {
                                                         e.dataTransfer.setData('sourceKey', `${dayIdx}-${slotIdx}`);
@@ -236,7 +236,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                                                     <div className="absolute inset-y-0 left-0 w-[2px] bg-primary/20 pointer-events-none" />
                                                 )}
                                                 {cellReminders.map(reminder => {
-                                                    const [h, m] = reminder.time.split(':').map(Number);
+                                                    const [, m] = reminder.time.split(':').map(Number);
                                                     const slotMins = m % 30;
                                                     const percent = slotMins / 30;
                                                     return (

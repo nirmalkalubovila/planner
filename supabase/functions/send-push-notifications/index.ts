@@ -834,7 +834,7 @@ Deno.serve(async (req: Request) => {
           if ((prefs.upcomingTasks ?? prefs.taskReminders) !== false && !userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
-              title: `📋 ${task.name} starts in ${diffMinutes} min`,
+              title: `${task.name} starts in ${diffMinutes} min`,
               body: `Scheduled for ${task.startTime} - ${task.endTime}`,
               url: "/today",
               tag,
@@ -875,7 +875,7 @@ Deno.serve(async (req: Request) => {
           if ((prefs.overdueTasks ?? prefs.taskReminders) !== false && !userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
-              title: `⚠️ ${task.name} isn't completed`,
+              title: `${task.name} isn't completed`,
               body: `Was scheduled for ${task.startTime} - ${task.endTime}. Tap to mark it done.`,
               url: "/today",
               tag,
@@ -915,7 +915,7 @@ Deno.serve(async (req: Request) => {
           const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
           const pushPayload = {
-            title: `☀️ ${greeting}!`,
+            title: `${greeting}!`,
             body: taskCount > 0
               ? `You have ${taskCount} task${taskCount !== 1 ? "s" : ""} scheduled today. Let's build your legacy!`
               : "No tasks scheduled for today. Use the planner to add some!",
@@ -969,7 +969,7 @@ Deno.serve(async (req: Request) => {
               const dayWord = diffDays === 1 ? "day" : "days";
 
               const pushPayload = {
-                title: `🎯 "${displayGoalName}" deadline in ${diffDays} ${dayWord}`,
+                title: `"${displayGoalName}" deadline in ${diffDays} ${dayWord}`,
                 body: progress > 0
                   ? `You're at ${progress}% progress. ${diffDays <= 1 ? "Final push!" : "Keep working on it!"}`
                   : "Deadline approaching. Start making progress on your milestones!",
@@ -1006,7 +1006,7 @@ Deno.serve(async (req: Request) => {
           if (prefs.goalCompletion !== false && !userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
-              title: `🏆 Goal "${displayGoalName}" completed!`,
+              title: `Goal "${displayGoalName}" completed!`,
               body: `Congratulations! You've finished all ${milestones.length} milestones. Time to set a new goal!`,
               url: "/goals",
               tag,
@@ -1046,20 +1046,20 @@ Deno.serve(async (req: Request) => {
           const totalTaskCount = allTasks.length;
           const completedCount = completedIds.length;
 
-          let title = "🌙 Reflect & Recharge";
+          let title = "Reflect & Recharge";
           let body = "";
 
           if (totalTaskCount === 0) {
-            title = "🌙 Peaceful Evening";
+            title = "Peaceful Evening";
             body = "No tasks scheduled today. A restful day is just as essential for your long-term legacy. Sleep well!";
           } else if (completedCount === totalTaskCount) {
-            title = "🏆 A Masterclass Day!";
+            title = "A Masterclass Day!";
             body = `Incredible work! You completed all ${completedCount}/${totalTaskCount} tasks today. Your discipline is inspiring. Rest deeply!`;
           } else if (completedCount >= totalTaskCount / 2) {
-            title = "📈 Proud of Your Progress";
+            title = "Proud of Your Progress";
             body = `You checked off ${completedCount}/${totalTaskCount} tasks today. Every effort adds brick by brick to your legacy. Sleep well and recharge.`;
           } else {
-            title = "✨ Tomorrow is a New Canvas";
+            title = "Tomorrow is a New Canvas";
             body = `You completed ${completedCount}/${totalTaskCount} tasks today. Remember, productivity has seasons, and resting is part of the work. Sleep peacefully.`;
           }
 
@@ -1097,7 +1097,7 @@ Deno.serve(async (req: Request) => {
           if (!userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
-              title: "📊 Weekly Performance Summary",
+              title: "Weekly Performance Summary",
               body: "Start of a new week! Check your statistics to see last week's performance and set new targets.",
               url: "/statistics",
               tag,
@@ -1134,7 +1134,7 @@ Deno.serve(async (req: Request) => {
           if (!userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
-              title: "🌙 Bedtime Reminder",
+              title: "Bedtime Reminder",
               body: "It's time to sleep. Wind down and get some rest!",
               url: "/today",
               tag,
@@ -1161,7 +1161,7 @@ Deno.serve(async (req: Request) => {
           if (!userSentTags.has(tag)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
-              title: "☀️ Good Morning!",
+              title: "Good Morning!",
               body: "Wake up time! Time to start a brand new day of building your legacy.",
               url: "/today",
               tag,
@@ -1197,7 +1197,7 @@ Deno.serve(async (req: Request) => {
             if (!userSentTags.has(tag)) {
               const subs = userSubs.get(userId) || [];
               const pushPayload = {
-                title: "📅 Time to Plan Your Week",
+                title: "Time to Plan Your Week",
                 body: `It's time for your weekly planning session (${planTime}). Set your goals and build your legacy!`,
                 url: "/planner",
                 tag,

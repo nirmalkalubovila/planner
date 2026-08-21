@@ -3,49 +3,59 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCheck, Trash2, Bell, BellOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '@/lib/notification-store';
-import { NOTIFICATION_ICONS } from '@/types/notification-types';
 import type { AppNotification } from '@/types/notification-types';
 import { cn } from '@/lib/utils';
 
-interface NotificationPanelProps {
+export interface NotificationPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 function formatRelativeTime(timestamp: number): string {
-  const diff = Date.now() - timestamp;
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  return new Date(timestamp).toLocaleDateString();
+  const diffSec = Math.floor((Date.now() - timestamp) / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
 }
 
-function groupNotifications(notifications: AppNotification[]) {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const yesterdayStart = todayStart - 86400000;
-  const weekStart = todayStart - 7 * 86400000;
+interface NotificationGroup {
+  label: string;
+  items: AppNotification[];
+}
 
-  const groups: { label: string; items: AppNotification[] }[] = [
-    { label: 'Today', items: [] },
-    { label: 'Yesterday', items: [] },
-    { label: 'This Week', items: [] },
-    { label: 'Earlier', items: [] },
-  ];
+function groupNotifications(notifications: AppNotification[]): NotificationGroup[] {
+  const now = Date.now();
+  const oneHour = 60 * 60 * 1000;
+
+  const recent: AppNotification[] = [];
+  const earlier: AppNotification[] = [];
 
   notifications.forEach((n) => {
-    if (n.timestamp >= todayStart) groups[0].items.push(n);
-    else if (n.timestamp >= yesterdayStart) groups[1].items.push(n);
-    else if (n.timestamp >= weekStart) groups[2].items.push(n);
-    else groups[3].items.push(n);
+    if (now - n.timestamp < oneHour) {
+      recent.push(n);
+    } else {
+      earlier.push(n);
+    }
   });
 
-  return groups.filter((g) => g.items.length > 0);
+  const result: NotificationGroup[] = [];
+  if (recent.length > 0) {
+    result.push({ label: 'Recent', items: recent });
+  }
+  if (earlier.length > 0) {
+    result.push({ label: 'Earlier Today', items: earlier });
+  }
+  return result;
+}
+
+/** Strip emoji symbols from notification strings to enforce No Emojis rule */
+function stripEmojis(text: string): string {
+  if (!text) return '';
+  return text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]/gu, '').trim();
 }
 
 const NotificationCard: React.FC<{
@@ -53,7 +63,8 @@ const NotificationCard: React.FC<{
   onClickAction: () => void;
   onMarkAsRead: () => void;
 }> = ({ notification, onClickAction, onMarkAsRead }) => {
-  const icon = NOTIFICATION_ICONS[notification.type] || '🔔';
+  const cleanTitle = stripEmojis(notification.title) || notification.title;
+  const cleanBody = stripEmojis(notification.body) || notification.body;
 
   return (
     <motion.div
@@ -64,16 +75,15 @@ const NotificationCard: React.FC<{
       transition={{ duration: 0.2 }}
       onClick={onClickAction}
       className={cn(
-        'group relative flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-colors duration-150',
+        'group relative flex items-start gap-2.5 p-3 rounded-xl cursor-pointer transition-colors duration-150',
         notification.read
           ? 'bg-transparent hover:bg-accent/50'
           : 'bg-primary/5 hover:bg-primary/10 border border-primary/10'
       )}
     >
-      {/* Icon */}
-      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center text-sm">
-        {icon}
-      </div>
+      {!notification.read && (
+        <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+      )}
 
       {/* Content */}
       <div className="flex-1 min-w-0">
@@ -82,11 +92,11 @@ const NotificationCard: React.FC<{
             'text-xs leading-tight break-words pr-2',
             notification.read ? 'font-medium text-muted-foreground' : 'font-bold text-foreground'
           )}>
-            {notification.title}
+            {cleanTitle}
           </p>
         </div>
         <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed break-words whitespace-pre-wrap">
-          {notification.body}
+          {cleanBody}
         </p>
         <span className="text-[10px] text-muted-foreground/60 font-medium mt-1 block">
           {formatRelativeTime(notification.timestamp)}

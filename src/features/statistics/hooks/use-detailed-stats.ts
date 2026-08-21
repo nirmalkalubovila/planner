@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import type { Goal, Habit, CustomTask } from '@/types/global-types';
 import type { GridState } from '@/types/planner';
-import type { LifeBucket } from '@/types/time';
+import { LIFE_BUCKETS, type LifeBucket } from '@/types/time';
 import { WeekUtils } from '@/utils/week';
 import {
   analyzeAllGoals,
@@ -103,19 +103,12 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
       Object.values(wp.state).forEach((val: any) => {
         if (val && typeof val === 'object' && val.name) {
           const trimmed = val.name.trim().toLowerCase();
-          let b = val.bucket;
-          if (!b && val.color) {
-            const c = String(val.color).toLowerCase();
-            if (c.includes('f59e0b') || c.includes('amber') || c.includes('eab308') || c.includes('d97706')) b = 'relational';
-            else if (c.includes('8b5cf6') || c.includes('purple') || c.includes('a855f7')) b = 'asset';
-            else if (c.includes('10b981') || c.includes('emerald') || c.includes('06b6d4')) b = 'income';
-            else if (c.includes('f43f5e') || c.includes('rose') || c.includes('3b82f6')) b = 'recovery';
-          }
-          if (b) {
+          const explicitBucket = val.bucket;
+          if (explicitBucket && LIFE_BUCKETS.includes(explicitBucket as LifeBucket)) {
             gridCustomTasksMap.set(trimmed, {
               id: val.name,
               name: val.name,
-              bucket: b,
+              bucket: explicitBucket as LifeBucket,
               type: 'custom',
             } as any);
           }
@@ -142,7 +135,13 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
   });
 
   const currentWeek = WeekUtils.getCurrentWeek();
-  const currentWeekPlan = weekPlans.find(wp => wp.week === currentWeek || wp.week === WeekUtils.formatWeekDisplay(currentWeek));
+  const currentWeekNorm = WeekUtils.normalizeWeek(currentWeek);
+  const currentWeekPlan = weekPlans.find(
+    (wp) =>
+      wp.week === currentWeek ||
+      wp.week === WeekUtils.formatWeekDisplay(currentWeek) ||
+      WeekUtils.normalizeWeek(wp.week) === currentWeekNorm
+  );
 
   const { analyses: goalAnalyses, average: goalAverage, best: bestGoal } = analyzeAllGoals(
     goals,
@@ -234,6 +233,6 @@ export const useDetailedAnalytics = (enabled: boolean) =>
     queryKey: ['detailed_analytics'],
     queryFn: fetchDetailedAnalytics,
     enabled,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 1000,
   });
 

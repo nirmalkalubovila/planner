@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Bell, BellOff, CheckCircle2, AlertCircle, ShieldAlert, Send,
-  ClipboardList, AlertTriangle, Sun, Moon, Target, Trophy,
-  BarChart3, Flame, Calendar, TrendingUp, Clock, ShieldCheck,
-} from 'lucide-react';
+import { Bell, BellOff, CheckCircle2, AlertCircle, ShieldAlert, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotificationStore } from '@/lib/notification-store';
 import {
@@ -22,7 +18,6 @@ interface ToggleItem {
   key: keyof NotificationPreferences;
   label: string;
   description: string;
-  icon: React.ReactNode;
   defaultOff?: boolean;
 }
 
@@ -34,13 +29,11 @@ const TOGGLE_GROUPS: { title: string; items: ToggleItem[] }[] = [
         key: 'upcomingTasks',
         label: 'Upcoming Tasks',
         description: 'Get notified 15 minutes before a task starts',
-        icon: <ClipboardList size={15} />,
       },
       {
         key: 'overdueTasks',
         label: 'Overdue Tasks',
         description: 'Alert when a task passes its end time uncompleted',
-        icon: <AlertTriangle size={15} />,
       },
     ],
   },
@@ -51,19 +44,16 @@ const TOGGLE_GROUPS: { title: string; items: ToggleItem[] }[] = [
         key: 'dailyBriefing',
         label: 'Daily Briefing',
         description: 'Morning summary of your scheduled tasks',
-        icon: <Sun size={15} />,
       },
       {
         key: 'daySummary',
         label: 'Day Summary',
         description: 'Evening reflection on completed vs missed tasks',
-        icon: <Moon size={15} />,
       },
       {
         key: 'middayCheckin',
         label: 'Midday Check-In',
         description: 'Afternoon progress update with task stats',
-        icon: <Clock size={15} />,
         defaultOff: true,
       },
     ],
@@ -75,13 +65,11 @@ const TOGGLE_GROUPS: { title: string; items: ToggleItem[] }[] = [
         key: 'goalDeadlines',
         label: 'Goal Deadlines',
         description: 'Alerts at 7, 3, and 1 day before deadlines',
-        icon: <Target size={15} />,
       },
       {
         key: 'goalCompletion',
         label: 'Goal Completion',
         description: 'Celebration when all milestones are completed',
-        icon: <Trophy size={15} />,
       },
     ],
   },
@@ -92,13 +80,11 @@ const TOGGLE_GROUPS: { title: string; items: ToggleItem[] }[] = [
         key: 'sleepNotifications',
         label: 'Sleep Reminders',
         description: 'Bedtime and wake-up notifications',
-        icon: <Moon size={15} />,
       },
       {
         key: 'weeklyPlanning',
         label: 'Weekly Planning',
         description: 'Reminder for your scheduled planning session',
-        icon: <Calendar size={15} />,
       },
     ],
   },
@@ -109,31 +95,26 @@ const TOGGLE_GROUPS: { title: string; items: ToggleItem[] }[] = [
         key: 'weeklySummary',
         label: 'Weekly Summary',
         description: 'Monday morning performance summary',
-        icon: <BarChart3 size={15} />,
       },
       {
         key: 'statsChanges',
         label: 'Stats Changes',
         description: 'Grade improvement or decline alerts',
-        icon: <TrendingUp size={15} />,
       },
       {
         key: 'streakMilestones',
         label: 'Streak Milestones',
         description: 'Celebrate activity streaks at 3, 7, 14, 30+ days',
-        icon: <Flame size={15} />,
       },
       {
         key: 'habitStreakRisk',
         label: 'Habit Streak Risk',
         description: 'Alert if daily habits might break your streak',
-        icon: <ShieldAlert size={15} />,
       },
       {
         key: 'burnoutWarning',
         label: 'Burnout Warning',
         description: 'Alert when overwork pattern is detected',
-        icon: <ShieldCheck size={15} />,
       },
     ],
   },
@@ -387,8 +368,8 @@ export const NotificationPreferencesSection: React.FC = () => {
                   </p>
                   {group.items.map((item) => {
                     const currentValue = preferences[item.key];
-                    const isOn = currentValue !== false && currentValue !== undefined
-                      ? currentValue === true
+                    const isOn = typeof currentValue === 'boolean'
+                      ? currentValue
                       : !item.defaultOff;
 
                     return (
@@ -401,25 +382,13 @@ export const NotificationPreferencesSection: React.FC = () => {
                             : 'bg-muted/20 border-border/30 opacity-60 hover:opacity-80'
                         )}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className={cn(
-                              'flex-shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center transition-colors',
-                              isOn
-                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                : 'bg-muted/50 border-border/40 text-muted-foreground/50'
-                            )}
-                          >
-                            {item.icon}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-foreground tracking-wide leading-tight">
-                              {item.label}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-relaxed">
-                              {item.description}
-                            </p>
-                          </div>
+                        <div className="min-w-0 pr-2">
+                          <p className="text-xs font-semibold text-foreground tracking-wide leading-tight">
+                            {item.label}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-relaxed">
+                            {item.description}
+                          </p>
                         </div>
 
                         <button
