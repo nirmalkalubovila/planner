@@ -6,7 +6,6 @@ import { useGetCompletedTasks } from '@/api/services/today-service';
 import { WeekUtils } from '@/utils/week-utils';
 import { useTodayTasks } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@/lib/notification-store';
-import { sendNotification } from '@/lib/notification-service';
 
 const STORAGE_KEY_MIDDAY = 'llb-midday-checkin';
 const STORAGE_KEY_STREAK_RISK = 'llb-habit-streak-risk';
@@ -55,20 +54,12 @@ export function useEngagementNotifications() {
           ).length;
           const remaining = totalTaskCount - completedCount;
 
-          // Only send if there are tasks and not all completed
           if (totalTaskCount > 0 && remaining > 0) {
             localStorage.setItem(`${STORAGE_KEY_MIDDAY}-${userId}`, today);
 
             const title = 'Midday Check-In';
             const body = `You've completed ${completedCount}/${totalTaskCount} tasks so far. ${remaining} remaining -- keep the momentum going!`;
             const dedupKey = `midday-checkin-${today}`;
-
-            sendNotification(title, {
-              body,
-              url: '/today',
-              tag: 'midday-checkin',
-              notificationType: 'midday_checkin',
-            }, preferences);
 
             addNotification({
               type: 'midday_checkin',
@@ -93,20 +84,12 @@ export function useEngagementNotifications() {
             (completedTasks || []).includes(t.id)
           ).length;
 
-          // Only send if user has habits but none completed today
           if (habitTasks.length > 0 && habitCompletedCount === 0) {
             localStorage.setItem(`${STORAGE_KEY_STREAK_RISK}-${userId}`, today);
 
             const title = 'Habit Streak at Risk';
             const body = `Your streak might break today -- you still have ${habitTasks.length} habit${habitTasks.length !== 1 ? 's' : ''} to complete.`;
             const dedupKey = `habit-streak-risk-${today}`;
-
-            sendNotification(title, {
-              body,
-              url: '/today',
-              tag: 'habit-streak-risk',
-              notificationType: 'habit_streak_risk',
-            }, preferences);
 
             addNotification({
               type: 'habit_streak_risk',

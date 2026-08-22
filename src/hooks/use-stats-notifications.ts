@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useUserStats } from '@/features/statistics/hooks/use-user-stats';
 import { useNotificationStore } from '@/lib/notification-store';
-import { sendNotification } from '@/lib/notification-service';
 import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_GRADE = 'llb-last-consistency-grade';
@@ -46,26 +45,18 @@ export function useStatsNotifications() {
       const improved = currIdx > prevIdx;
 
       const title = improved
-        ? `📈 Consistency grade improved to ${currentGrade}!`
-        : `📉 Consistency grade changed to ${currentGrade}`;
+        ? `Consistency grade improved to ${currentGrade}!`
+        : `Consistency grade changed to ${currentGrade}`;
       const body = improved
         ? `Great work! You moved from ${previousGrade} to ${currentGrade}. Keep the momentum!`
         : `Your grade went from ${previousGrade} to ${currentGrade}. Time to get back on track!`;
 
       const dedupKey = `stats-grade-change-${currentGrade}-${today}-${user.id}`;
 
-      sendNotification(title, {
-        body,
-        url: '/statistics',
-        tag: 'stats-grade-change',
-        notificationType: 'stats_changed',
-      }, preferences);
-
       addNotification({
         type: 'stats_changed',
-        title: improved ? `Consistency grade improved to ${currentGrade}!` : `Consistency grade changed to ${currentGrade}`,
+        title,
         body,
-        icon: improved ? '📈' : '📉',
         actionUrl: '/statistics',
         dedupKey,
       });
@@ -88,18 +79,10 @@ export function useStatsNotifications() {
 
     const dedupKey = `burnout-warning-${today}-${user.id}`;
 
-    sendNotification('🔥 Burnout Alert', {
-      body: stats.predictive_burnout_warning,
-      url: '/statistics',
-      tag: 'burnout-warning',
-      notificationType: 'burnout_warning',
-    }, preferences);
-
     addNotification({
       type: 'burnout_warning',
       title: 'Burnout Alert',
       body: stats.predictive_burnout_warning,
-      icon: '🔥',
       actionUrl: '/statistics',
       dedupKey,
     });
@@ -125,7 +108,7 @@ export function useStatsNotifications() {
     if (milestone) {
       localStorage.setItem(getStorageKey(STORAGE_KEY_STREAK), String(milestone));
 
-      const title = `🔥 ${milestone}-day streak!`;
+      const title = `${milestone}-day streak!`;
       const body = milestone >= 30
         ? `Incredible! You've been active for ${milestone} days straight. You're building a legacy!`
         : milestone >= 7
@@ -134,18 +117,10 @@ export function useStatsNotifications() {
 
       const dedupKey = `streak-milestone-${milestone}-${user.id}`;
 
-      sendNotification(title, {
-        body,
-        url: '/statistics',
-        tag: `streak-${milestone}`,
-        notificationType: 'streak_milestone',
-      }, preferences);
-
       addNotification({
         type: 'streak_milestone',
-        title: `${milestone}-day streak!`,
+        title,
         body,
-        icon: '🔥',
         actionUrl: '/statistics',
         dedupKey,
       });

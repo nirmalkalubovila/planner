@@ -377,25 +377,7 @@ interface UserProfile {
 interface WeekPlan {
   user_id: string;
   week: string;
-  state: {
-    days?: Array<{
-      tasks?: Array<{
-        id: string;
-        name: string;
-        startTime: string;
-        endTime: string;
-      }>;
-    }>;
-    reminders?: Array<{
-      id: string;
-      name: string;
-      time: string;
-      dayIdx: number;
-      color?: string;
-      description?: string;
-      isReminder?: boolean;
-    }>;
-  };
+  state: Record<string, any>;
 }
 
 interface Goal {
@@ -412,7 +394,10 @@ interface Habit {
   name: string;
   startTime: string;
   endTime: string;
-  daysOfWeek?: number[];
+  description?: string;
+  daysOfWeek?: string[];
+  startDate?: string;
+  endDate?: string;
 }
 
 interface CustomTask {
@@ -447,66 +432,206 @@ function isQuietHours(prefs: UserProfile["notification_prefs"], currentMinutes: 
   }
 }
 
-/**
- * Get current week formatted display string (e.g. "Jun 22 - Jun 28, 2026").
- */
-function getCurrentWeekFormatted(d: Date): string {
-  const day = d.getUTCDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  
-  const monday = new Date(d.getTime() + diff * 24 * 60 * 60 * 1000);
-  const sunday = new Date(monday.getTime() + 6 * 24 * 60 * 60 * 1000);
-
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  
-  const mMon = months[monday.getUTCMonth()];
-  const dMon = monday.getUTCDate();
-  const yMon = monday.getUTCFullYear();
-  
-  const mSun = months[sunday.getUTCMonth()];
-  const dSun = sunday.getUTCDate();
-  const ySun = sunday.getUTCFullYear();
-
-  if (yMon !== ySun) {
-    return `${mMon} ${dMon}, ${yMon} - ${mSun} ${dSun}, ${ySun}`;
-  }
-  return `${mMon} ${dMon} - ${mSun} ${dSun}, ${ySun}`;
+function parseWeek(weekStr: string) {
+  const [year, week] = weekStr.split("-").map(Number);
+  return { year, week };
 }
 
-/**
- * Get current week number string (YYYY-WXX) for dayStr construction.
- */
-function getCurrentWeekNumberStr(d: Date): string {
-  const day = d.getUTCDay();
-  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d.getTime());
-  monday.setUTCDate(diff);
-
-  const year = monday.getUTCFullYear();
+function getWeekFromDate(d: Date): string {
+  const year = d.getUTCFullYear();
   const startOfYear = new Date(Date.UTC(year, 0, 1));
-  const dayOfYear = Math.floor(
-    (monday.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const weekNum = Math.ceil((dayOfYear + startOfYear.getUTCDay() + 1) / 7);
-
-  return `${year}-${String(weekNum).padStart(2, "0")}`;
+  const days = Math.floor((d.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+  const startDay = startOfYear.getUTCDay() || 7;
+  const week = Math.ceil((days + startDay) / 7);
+  return `${year}-${String(week).padStart(2, "0")}`;
 }
 
-/**
- * Get today's day string (YYYY-WXX-D).
- */
+function getDaysForWeek(weekStr: string): Date[] {
+  const { year, week } = parseWeek(weekStr);
+  const startOfYear = new Date(Date.UTC(year, 0, 1));
+  const startDay = startOfYear.getUTCDay() || 7;
+  const daysToStartOfWeek = (week - 1) * 7 - (startDay - 1);
+  const startOfWeek = new Date(Date.UTC(year, 0, 1 + daysToStartOfWeek));
+
+  const dates: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(startOfWeek.getTime() + i * 24 * 60 * 60 * 1000);
+    dates.push(d);
+  }
+  return dates;
+}
+
+function formatWeekDisplay(weekStr: string): string {
+  const dates = getDaysForWeek(weekStr);
+  const start = dates[0];
+  const end = dates[6];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const m1 = months[start.getUTCMonth()];
+  const d1 = start.getUTCDate();
+  const y1 = start.getUTCFullYear();
+  const m2 = months[end.getUTCMonth()];
+  const d2 = end.getUTCDate();
+  const y2 = end.getUTCFullYear();
+
+  if (y1 !== y2) {
+    return `${m1} ${d1}, ${y1} - ${m2} ${d2}, ${y2}`;
+  }
+  return `${m1} ${d1} - ${m2} ${d2}, ${y2}`;
+}
+
 function getCurrentDayStr(d: Date): string {
+  const week = getWeekFromDate(d);
   const dayOfWeek = d.getUTCDay();
   const dayIdx = dayOfWeek === 0 ? 7 : dayOfWeek;
-  return `${getCurrentWeekNumberStr(d)}-${dayIdx}`;
+  return `${week}-${dayIdx}`;
 }
 
-/**
- * Get today's 0-indexed day within the week plan (0=Mon, 6=Sun).
- */
 function getTodayDayIndex(d: Date): number {
   const dayOfWeek = d.getUTCDay();
   return dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+}
+
+function slotToTime(slotIdx: number): string {
+  const hour = Math.floor(slotIdx / 2);
+  const min = (slotIdx % 2) * 30;
+  return `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+}
+
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const SHORT_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+interface ExtractedTask {
+  id: string;
+  name: string;
+  type: string;
+  startTime: string;
+  endTime: string;
+  isReminder?: boolean;
+}
+
+function extractTodayTasks(
+  weekPlanState: Record<string, any> | undefined,
+  habits: Habit[],
+  customTasks: CustomTask[],
+  dayIdx: number,
+  userLocalDate: Date
+): ExtractedTask[] {
+  const result: ExtractedTask[] = [];
+  let currentTask: { id: string; name: string; type: string; startTime: string; endTime: string; startSlot: number; endSlot: number; isReminder?: boolean } | null = null;
+  
+  const currentDayName = DAYS_OF_WEEK[dayIdx];
+  const currentShortDay = SHORT_DAYS[dayIdx];
+  const year = userLocalDate.getUTCFullYear();
+  const month = String(userLocalDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(userLocalDate.getUTCDate()).padStart(2, "0");
+  const todayDateStr = `${year}-${month}-${day}`;
+
+  const getCellContent = (slotIdx: number) => {
+    const habit = (habits || []).find((h) => {
+      if (!h.startTime || !h.endTime) return false;
+      const [hStartH, hStartM] = h.startTime.split(":").map(Number);
+      const [hEndH, hEndM] = h.endTime.split(":").map(Number);
+      const startSlot = hStartH * 2 + (hStartM >= 30 ? 1 : 0);
+      const endSlot = hEndH * 2 + (hEndM >= 30 ? 1 : 0);
+
+      const days = h.daysOfWeek || [];
+      const isDayMatched = days.length === 0 ||
+        days.includes(currentDayName) ||
+        days.includes(currentShortDay) ||
+        days.includes(dayIdx as any) ||
+        days.includes(String(dayIdx));
+
+      const hasStarted = h.startDate ? h.startDate <= todayDateStr : true;
+      const hasNotEnded = h.endDate ? h.endDate >= todayDateStr : true;
+
+      return isDayMatched && hasStarted && hasNotEnded && slotIdx >= startSlot && slotIdx < endSlot;
+    });
+
+    if (habit) {
+      const key = `${dayIdx}-${slotIdx}`;
+      const customState = weekPlanState?.[key];
+      const desc = customState?.description || habit.description;
+      return { type: "habit", name: habit.name, description: desc };
+    }
+
+    if (weekPlanState) {
+      const key = `${dayIdx}-${slotIdx}`;
+      return weekPlanState[key];
+    }
+    return undefined;
+  };
+
+  for (let i = 0; i < 48; i++) {
+    const content = getCellContent(i);
+    if (content && content.name) {
+      if (currentTask && currentTask.name === content.name && currentTask.type === content.type) {
+        currentTask.endSlot = i + 1;
+        currentTask.endTime = slotToTime(i + 1);
+      } else {
+        if (currentTask) result.push(currentTask);
+        currentTask = {
+          id: `${content.type || 'task'}-${content.name}-${i}`,
+          name: content.name,
+          type: content.type || "task",
+          startSlot: i,
+          endSlot: i + 1,
+          startTime: slotToTime(i),
+          endTime: slotToTime(i + 1),
+        };
+      }
+    } else {
+      if (currentTask) {
+        result.push(currentTask);
+        currentTask = null;
+      }
+    }
+  }
+  if (currentTask) result.push(currentTask);
+
+  // Reminders from week plan
+  const reminders = (weekPlanState?.reminders || []) as Array<{ id: string; name: string; time: string; dayIdx: number }>;
+  const dayReminders = reminders.filter((r) => r.dayIdx === dayIdx && r.time);
+  const reminderTasks = dayReminders.map((r) => {
+    return {
+      id: r.id || `reminder-${r.name}-${r.time}`,
+      name: r.name,
+      type: "reminder",
+      startTime: r.time,
+      endTime: r.time,
+      isReminder: true,
+    };
+  });
+
+  // Custom Tasks scheduled for today
+  const customTaskItems = (customTasks || [])
+    .filter((ct) => {
+      if (!ct.daysOfWeek || !Array.isArray(ct.daysOfWeek)) return false;
+      return ct.daysOfWeek.includes(currentDayName) || ct.daysOfWeek.includes(currentShortDay);
+    })
+    .map((ct) => {
+      let endTime = ct.endTime;
+      if (endTime === 'reminder' && ct.startTime) {
+        const [h, m] = ct.startTime.split(':').map(Number);
+        const endMin = h * 60 + m + 30;
+        const eH = Math.floor(endMin / 60) % 24;
+        const eM = endMin % 60;
+        endTime = `${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}`;
+      }
+      return {
+        id: ct.id || `custom-${ct.name}-${ct.startTime}`,
+        name: ct.name,
+        type: "custom",
+        startTime: ct.startTime,
+        endTime: endTime || ct.startTime,
+      };
+    });
+
+  const timeToMin = (t: string) => {
+    const [h, m] = (t || "00:00").split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+
+  return [...result, ...reminderTasks, ...customTaskItems].sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 }
 
 /**
@@ -578,7 +703,6 @@ Deno.serve(async (req: Request) => {
     const userDayStrs = new Map<string, string>();
     const userTodayDayIndexes = new Map<string, number>();
 
-    const uniqueWeeks = new Set<string>();
     const uniqueDayStrs = new Set<string>();
 
     for (const profile of allProfiles) {
@@ -586,7 +710,7 @@ Deno.serve(async (req: Request) => {
       const offsetMinutes = prefs?.timezoneOffset !== undefined ? Number(prefs.timezoneOffset) : 0;
       const userLocalTime = new Date(now.getTime() - (offsetMinutes * 60 * 1000));
       
-      const week = getCurrentWeekFormatted(userLocalTime);
+      const week = getWeekFromDate(userLocalTime);
       const dayStr = getCurrentDayStr(userLocalTime);
       const dayIdx = getTodayDayIndex(userLocalTime);
 
@@ -595,7 +719,6 @@ Deno.serve(async (req: Request) => {
       userDayStrs.set(profile.user_id, dayStr);
       userTodayDayIndexes.set(profile.user_id, dayIdx);
 
-      uniqueWeeks.add(week);
       uniqueDayStrs.add(dayStr);
     }
 
@@ -603,7 +726,7 @@ Deno.serve(async (req: Request) => {
     const [subscriptionsRes, weekPlansRes, completedRes, goalsRes, habitsRes, customTasksRes, sentLogRes, smtpSettingsRes, templatesRes, authUsersRes] =
       await Promise.all([
         supabase.from("push_subscriptions").select("*").in("user_id", userIds),
-        supabase.from("week_plans").select("*").in("week", Array.from(uniqueWeeks)).in("user_id", userIds),
+        supabase.from("week_plans").select("*").in("user_id", userIds),
         supabase
           .from("completed_tasks")
           .select("*")
@@ -741,7 +864,7 @@ Deno.serve(async (req: Request) => {
 
       const userLocalTime = userLocalTimes.get(userId) || now;
       const userCurrentMinutes = userLocalTime.getUTCHours() * 60 + userLocalTime.getUTCMinutes();
-      const userWeek = userWeeks.get(userId) || getCurrentWeekFormatted(userLocalTime);
+      const userWeek = userWeeks.get(userId) || getWeekFromDate(userLocalTime);
       const userDayStr = userDayStrs.get(userId) || getCurrentDayStr(userLocalTime);
       const userDayIdx = userTodayDayIndexes.get(userId) ?? getTodayDayIndex(userLocalTime);
 
@@ -755,69 +878,24 @@ Deno.serve(async (req: Request) => {
       const userEmail = userEmails.get(userId);
       const userName = profile.full_name || userEmail?.split("@")[0] || "User";
 
-      // ── A. Task Reminders (5 min before start) + Overdue ──
-      const wp = weekPlans.get(`${userId}-${userWeek}`);
-      logDebug(`[DEBUG] User: ${userId} (${userName}), userWeek: ${userWeek}, wp exists: ${!!wp}`);
-      if (wp) {
-        logDebug(`[DEBUG] wp reminders: ${JSON.stringify(wp.state?.reminders || [])}`);
-      }
-      const dayPlan = wp?.state?.days?.[userDayIdx];
-      const tasks = dayPlan?.tasks || [];
-      const completedIds = completed.get(`${userId}-${userDayStr}`) || [];
-
-      // Include habits
+      // ── A. Task Reminders (15 min before start) + Overdue ──
+      const normalizedWeek = getWeekFromDate(userLocalTime);
+      const formattedWeek = formatWeekDisplay(normalizedWeek);
+      const wp = weekPlans.get(`${userId}-${formattedWeek}`) || weekPlans.get(`${userId}-${normalizedWeek}`);
+      
       const userHabits = habitsByUser.get(userId) || [];
-      const todayDayNum = userLocalTime.getUTCDay();
-      const habitTasks = userHabits
-        .filter((h) => {
-          if (!h.daysOfWeek || !Array.isArray(h.daysOfWeek)) return true;
-          return h.daysOfWeek.includes(todayDayNum);
-        })
-        .map((h) => ({
-          id: h.id,
-          name: h.name,
-          startTime: h.startTime,
-          endTime: h.endTime,
-        }));
-
-      // Include custom tasks scheduled for today
       const userCustomTasks = customTasksByUser.get(userId) || [];
-      const todayDayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][todayDayNum];
-      const customTaskItems = userCustomTasks
-        .filter((ct) => {
-          if (!ct.daysOfWeek || !Array.isArray(ct.daysOfWeek)) return false;
-          return ct.daysOfWeek.includes(todayDayName);
-        })
-        .map((ct) => {
-          // If endTime is 'reminder', calculate 30min after start
-          let endTime = ct.endTime;
-          if (endTime === 'reminder' && ct.startTime) {
-            const [h, m] = ct.startTime.split(':').map(Number);
-            const endMin = h * 60 + m + 30;
-            const eH = Math.floor(endMin / 60) % 24;
-            const eM = endMin % 60;
-            endTime = `${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}`;
-          }
-          return {
-            id: ct.id,
-            name: ct.name,
-            startTime: ct.startTime,
-            endTime,
-          };
-        });
 
-      // Include week plan reminders for today
-      const weekReminders = (wp?.state?.reminders || [])
-        .filter((r: any) => r.dayIdx === userDayIdx)
-        .map((r: any) => ({
-          id: r.id,
-          name: r.name || "Reminder",
-          startTime: r.time,
-          endTime: r.time,
-        }));
+      const allTasks = extractTodayTasks(
+        wp?.state,
+        userHabits,
+        userCustomTasks,
+        userDayIdx,
+        userLocalTime
+      );
 
-      const allTasks = [...tasks, ...habitTasks, ...customTaskItems, ...weekReminders];
-      logDebug(`[DEBUG] User ${userId} allTasks count: ${allTasks.length} ${JSON.stringify(allTasks.map(t => ({ id: t.id, name: t.name, start: t.startTime })))}`);
+      const completedIds = completed.get(`${userId}-${userDayStr}`) || [];
+      logDebug(`[DEBUG] User ${userId} (${userName}) allTasks count: ${allTasks.length} ${JSON.stringify(allTasks.map(t => ({ id: t.id, name: t.name, start: t.startTime })))}`);
 
       for (const task of allTasks) {
         const [startH, startM] = task.startTime.split(":").map(Number);
@@ -1312,7 +1390,7 @@ Deno.serve(async (req: Request) => {
     // 6. Cleanup old sent log entries (older than 24h)
     await supabase.rpc("clean_old_notification_logs");
 
-     return new Response(
+    return new Response(
       JSON.stringify({
         success: true,
         pushSent: totalPushSent,

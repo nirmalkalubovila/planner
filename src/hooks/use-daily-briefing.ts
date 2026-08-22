@@ -5,7 +5,6 @@ import { useGetCompletedTasks } from '@/api/services/today-service';
 import { WeekUtils } from '@/utils/week-utils';
 import { useTodayTasks } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@/lib/notification-store';
-import { sendNotification } from '@/lib/notification-service';
 import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_BRIEFING = 'llb-last-briefing-date';
@@ -72,16 +71,9 @@ export function useDailyBriefing() {
 
     // Small delay so the app has time to render first
     setTimeout(() => {
-      sendNotification(title, {
-        body,
-        url: '/today',
-        tag: 'daily-briefing',
-        notificationType: 'daily_briefing',
-      }, preferences);
-
       addNotification({
         type: 'daily_briefing',
-        title: `${greeting}!`,
+        title,
         body,
         actionUrl: '/today',
         dedupKey,
@@ -133,13 +125,6 @@ export function useDailyBriefing() {
     const dedupKey = `weekly-summary-${currentWeek}`;
 
     setTimeout(() => {
-      sendNotification('Weekly Performance Summary', {
-        body: summaryBody,
-        url: '/statistics',
-        tag: 'weekly-summary',
-        notificationType: 'weekly_summary',
-      }, preferences);
-
       addNotification({
         type: 'weekly_summary',
         title: 'Weekly Performance Summary',

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useGetGoals } from '@/api/services/goal-service';
 import { useNotificationStore } from '@/lib/notification-store';
-import { sendNotification } from '@/lib/notification-service';
 import type { Goal, Milestone } from '@/types/global-types';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -69,18 +68,10 @@ export function useGoalNotifications() {
 
           const dedupKey = `goal-deadline-${goalId}-${threshold}`;
 
-          sendNotification(title, {
-            body,
-            url: '/goals',
-            tag: `goal-deadline-${goalId}-${threshold}`,
-            notificationType: 'goal_deadline',
-          }, preferences);
-
           addNotification({
             type: 'goal_deadline',
-            title: `"${displayGoalName}" deadline in ${diffDays} ${dayWord}`,
+            title,
             body,
-            icon: '🎯',
             actionUrl: '/goals',
             dedupKey,
           });
@@ -101,23 +92,15 @@ export function useGoalNotifications() {
       ) {
         notifiedCompleted.push(goalId);
 
-        const title = `🏆 Goal "${displayGoalName}" completed!`;
+        const title = `Goal "${displayGoalName}" completed!`;
         const body = `Congratulations! You've finished all ${milestones.length} milestones. Time to set a new goal!`;
 
         const dedupKey = `goal-completed-${goalId}`;
 
-        sendNotification(title, {
-          body,
-          url: '/goals',
-          tag: `goal-completed-${goalId}`,
-          notificationType: 'goal_completed',
-        }, preferences);
-
         addNotification({
           type: 'goal_completed',
-          title: `Goal "${displayGoalName}" completed!`,
+          title,
           body,
-          icon: '🏆',
           actionUrl: '/goals',
           dedupKey,
         });

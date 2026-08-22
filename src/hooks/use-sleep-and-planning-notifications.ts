@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
 import { useNotificationStore } from '@/lib/notification-store';
-import { sendNotification } from '@/lib/notification-service';
 
 const STORAGE_KEY_SLEEP_START = 'llb-last-sleep-start-date';
 const STORAGE_KEY_SLEEP_END = 'llb-last-sleep-end-date';
@@ -67,14 +66,6 @@ export function useSleepAndPlanningNotifications() {
           const body = "It's time to sleep. Wind down and get some rest!";
           const dedupKey = `sleep-start-${today}`;
 
-          sendNotification(title, {
-            body,
-            url: '/today',
-            tag: 'sleep-start',
-            notificationType: 'sleep_start',
-            bypassRateLimit: true,
-          }, preferences);
-
           addNotification({
             type: 'sleep_start',
             title,
@@ -101,14 +92,6 @@ export function useSleepAndPlanningNotifications() {
           const title = 'Good Morning!';
           const body = 'Wake up time! Time to start a brand new day of building your legacy.';
           const dedupKey = `sleep-end-${today}`;
-
-          sendNotification(title, {
-            body,
-            url: '/today',
-            tag: 'sleep-end',
-            notificationType: 'sleep_end',
-            bypassRateLimit: true,
-          }, preferences);
 
           addNotification({
             type: 'sleep_end',
@@ -137,14 +120,6 @@ export function useSleepAndPlanningNotifications() {
           const title = 'Weekly Planning';
           const body = `It's time for your weekly planning session (${planTime}). Set your goals and build your legacy!`;
           const dedupKey = `weekly-planning-${today}`;
-
-          sendNotification(title, {
-            body,
-            url: '/planner',
-            tag: 'weekly-planning',
-            notificationType: 'weekly_planning',
-            bypassRateLimit: true,
-          }, preferences);
 
           addNotification({
             type: 'weekly_planning',
