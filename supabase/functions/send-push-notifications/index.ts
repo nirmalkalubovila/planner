@@ -527,6 +527,18 @@ function extractTodayTasks(
   const todayDateStr = `${year}-${month}-${day}`;
 
   const getCellContent = (slotIdx: number) => {
+    const key = `${dayIdx}-${slotIdx}`;
+    const customState = weekPlanState?.[key];
+
+    // 1. If explicit grid state exists for this slot (task, cleared, etc.), use it!
+    if (customState) {
+      if (customState.type === "cleared") {
+        return undefined;
+      }
+      return customState;
+    }
+
+    // 2. Otherwise, check if an active Habit fills this empty slot
     const habit = (habits || []).find((h) => {
       if (!h.startTime || !h.endTime) return false;
       const [hStartH, hStartM] = h.startTime.split(":").map(Number);
@@ -548,16 +560,9 @@ function extractTodayTasks(
     });
 
     if (habit) {
-      const key = `${dayIdx}-${slotIdx}`;
-      const customState = weekPlanState?.[key];
-      const desc = customState?.description || habit.description;
-      return { type: "habit", name: habit.name, description: desc };
+      return { type: "habit", name: habit.name, description: habit.description };
     }
 
-    if (weekPlanState) {
-      const key = `${dayIdx}-${slotIdx}`;
-      return weekPlanState[key];
-    }
     return undefined;
   };
 
@@ -602,9 +607,12 @@ function extractTodayTasks(
     };
   });
 
-  // Custom Tasks scheduled for today
+  // Custom Tasks scheduled for today -- ONLY include standalone reminders (isReminder === true or endTime === 'reminder').
+  // Non-reminder custom task templates in custom_tasks are templates for the week plan grid and must NOT auto-fire notifications on their own.
   const customTaskItems = (customTasks || [])
     .filter((ct) => {
+      const isStandaloneReminder = (ct as any).isReminder === true || ct.endTime === "reminder";
+      if (!isStandaloneReminder) return false;
       if (!ct.daysOfWeek || !Array.isArray(ct.daysOfWeek)) return false;
       return ct.daysOfWeek.includes(currentDayName) || ct.daysOfWeek.includes(currentShortDay);
     })
@@ -623,6 +631,7 @@ function extractTodayTasks(
         type: "custom",
         startTime: ct.startTime,
         endTime: endTime || ct.startTime,
+        isReminder: true,
       };
     });
 

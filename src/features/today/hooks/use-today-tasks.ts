@@ -35,6 +35,18 @@ export function useTodayTasks(
         let currentTask: TaskItem | null = null;
 
         const getCellContent = (slotIdx: number) => {
+            const key = `${dayIdx}-${slotIdx}`;
+            const customState = (weekPlan || {})[key];
+
+            // 1. If explicit grid state exists for this slot (task, cleared, etc.), use it!
+            if (customState) {
+                if (customState.type === 'cleared') {
+                    return undefined;
+                }
+                return customState;
+            }
+
+            // 2. Otherwise, check if an active Habit fills this empty slot
             const habit = (habits || []).find((h: Habit) => {
                 const [hStartH, hStartM] = h.startTime.split(':').map(Number);
                 const [hEndH, hEndM] = h.endTime.split(':').map(Number);
@@ -49,15 +61,11 @@ export function useTodayTasks(
 
                 return isDayMatched && hasStarted && hasNotEnded && slotIdx >= startSlot && slotIdx < endSlot;
             });
+
             if (habit) {
-                const key = `${dayIdx}-${slotIdx}`;
-                const customState = weekPlan?.[key];
-                const description = (customState && (customState.type === 'habit' || !customState.type)) 
-                    ? customState.description 
-                    : habit.description;
-                return { type: 'habit', name: habit.name, description };
+                return { type: 'habit', name: habit.name, description: habit.description };
             }
-            return (weekPlan || {})[`${dayIdx}-${slotIdx}`];
+            return undefined;
         };
 
         for (let i = 0; i < SLOTS_PER_DAY; i++) {

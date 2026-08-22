@@ -100,20 +100,14 @@ export function usePlannerGrid(currentWeek: string, localGridState: GridState) {
                     map.set(key, { type: 'sleep', name: 'Sleep' });
                 } else if (planSlotKeys.has(key)) {
                     map.set(key, { type: 'plan', name: 'Weekly Planning' });
+                } else if (localGridState[key]) {
+                    const stateVal = localGridState[key];
+                    if (stateVal.type !== 'cleared') {
+                        map.set(key, stateVal);
+                    }
                 } else if (habitSlotMap.has(key)) {
                     const habitName = habitSlotMap.get(key);
-                    const stateVal = localGridState[key];
-                    if (stateVal) {
-                        map.set(key, {
-                            ...stateVal,
-                            type: 'habit',
-                            name: stateVal.name || habitName,
-                        });
-                    } else {
-                        map.set(key, { type: 'habit', name: habitName });
-                    }
-                } else if (localGridState[key]) {
-                    map.set(key, localGridState[key]);
+                    map.set(key, { type: 'habit', name: habitName });
                 }
             }
         }
