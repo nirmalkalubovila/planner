@@ -5,7 +5,6 @@ import { useGetCompletedTasks } from '@/api/services/today-service';
 import { WeekUtils } from '@/utils/week-utils';
 import { useTodayTasks } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@/lib/notification-store';
-import { sendNotification } from '@/lib/notification-service';
 import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_DAY_SUMMARY = 'llb-last-day-summary-date';
@@ -75,13 +74,6 @@ export function useDaySummary() {
         }
 
         const dedupKey = `day-summary-${today}`;
-
-        sendNotification(title, {
-          body,
-          url: '/statistics',
-          tag: 'day-summary',
-          notificationType: 'day_summary',
-        }, preferences);
 
         addNotification({
           type: 'day_summary',

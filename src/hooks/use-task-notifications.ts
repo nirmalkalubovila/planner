@@ -6,7 +6,6 @@ import { WeekUtils } from '@/utils/week-utils';
 import { useTodayTasks, type TaskItem } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@/lib/notification-store';
 import {
-  sendNotification,
   scheduleNotification,
   cancelScheduledNotification,
 } from '@/lib/notification-service';
@@ -110,7 +109,7 @@ export function useTaskNotifications() {
       if (reminderTime.getTime() > Date.now()) {
         scheduleNotification(
           notifId,
-          `📋 ${task.name} starts in ${TASK_REMINDER_MINUTES} min`,
+          `${task.name} starts in ${TASK_REMINDER_MINUTES} min`,
           {
             body: `Scheduled for ${task.startTime} - ${task.endTime}`,
             url: '/today',
@@ -129,7 +128,6 @@ export function useTaskNotifications() {
             type: 'task_starting',
             title: `${task.name} starts in ${TASK_REMINDER_MINUTES} min`,
             body: `Scheduled for ${task.startTime} - ${task.endTime}`,
-            icon: '📋',
             actionUrl: '/today',
             dedupKey,
           });
@@ -197,22 +195,10 @@ export function useTaskNotifications() {
           saveNotifiedTasks(userId, currentDayStr, notifiedTasks);
           saveNotifiedBatch(userId, currentDayStr, true);
 
-          sendNotification(
-            `⚠️ Uncompleted Tasks`,
-            {
-              body: `You have ${overdueTasks.length} uncompleted tasks today. Tap to complete them.`,
-              url: '/today',
-              tag: 'task-overdue-batch',
-              notificationType: 'task_overdue',
-            },
-            preferences,
-          );
-
           addNotification({
             type: 'task_overdue',
             title: `Uncompleted Tasks`,
             body: `You have ${overdueTasks.length} uncompleted tasks today.`,
-            icon: '⚠️',
             actionUrl: '/today',
             dedupKey: batchDedupKey,
           });
@@ -241,22 +227,10 @@ export function useTaskNotifications() {
             notifiedTasks.add(taskId);
             updated = true;
 
-            sendNotification(
-              `⚠️ ${task.name} isn't completed`,
-              {
-                body: `Was scheduled for ${task.startTime} - ${task.endTime}. Tap to mark it done.`,
-                url: '/today',
-                tag: `task-overdue-${taskId}`,
-                notificationType: 'task_overdue',
-              },
-              preferences,
-            );
-
             addNotification({
               type: 'task_overdue',
               title: `${task.name} isn't completed`,
               body: `Was scheduled for ${task.startTime} - ${task.endTime}`,
-              icon: '⚠️',
               actionUrl: '/today',
               dedupKey: taskDedupKey,
             });
