@@ -713,6 +713,8 @@ Deno.serve(async (req: Request) => {
     const userTodayDayIndexes = new Map<string, number>();
 
     const uniqueDayStrs = new Set<string>();
+    const userFormattedWeeks = new Map<string, string>();
+    const uniqueWeekKeys = new Set<string>();
 
     for (const profile of allProfiles) {
       const prefs = profile.notification_prefs;
@@ -722,20 +724,25 @@ Deno.serve(async (req: Request) => {
       const week = getWeekFromDate(userLocalTime);
       const dayStr = getCurrentDayStr(userLocalTime);
       const dayIdx = getTodayDayIndex(userLocalTime);
+      const formattedWeek = formatWeekDisplay(week);
 
       userLocalTimes.set(profile.user_id, userLocalTime);
       userWeeks.set(profile.user_id, week);
       userDayStrs.set(profile.user_id, dayStr);
       userTodayDayIndexes.set(profile.user_id, dayIdx);
+      userFormattedWeeks.set(profile.user_id, formattedWeek);
 
       uniqueDayStrs.add(dayStr);
+      // Include both display format and code format to match however the DB stores the week key
+      uniqueWeekKeys.add(formattedWeek);
+      uniqueWeekKeys.add(week);
     }
 
     // 2. Fetch push subscriptions, week plans, completed tasks, goals, habits, custom tasks, logs, SMTP settings, templates & auth emails
     const [subscriptionsRes, weekPlansRes, completedRes, goalsRes, habitsRes, customTasksRes, sentLogRes, smtpSettingsRes, templatesRes, authUsersRes] =
       await Promise.all([
         supabase.from("push_subscriptions").select("*").in("user_id", userIds),
-        supabase.from("week_plans").select("*").in("user_id", userIds),
+        supabase.from("week_plans").select("*").in("user_id", userIds).in("week", Array.from(uniqueWeekKeys)),
         supabase
           .from("completed_tasks")
           .select("*")
@@ -744,7 +751,7 @@ Deno.serve(async (req: Request) => {
         supabase.from("goals").select("*").in("user_id", userIds),
         supabase.from("habits").select("*").in("user_id", userIds),
         supabase.from("custom_tasks").select("*").in("user_id", userIds),
-        supabase.from("notification_sent_log").select("*").in("user_id", userIds),
+        supabase.from("notification_sent_log").select("*").in("user_id", userIds).gte("sent_at", new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString()),
         supabase.from("global_smtp_settings").select("*").eq("id", 1).maybeSingle(),
         supabase.from("global_email_templates").select("*"),
         supabase.auth.admin.listUsers(),
@@ -889,7 +896,7 @@ Deno.serve(async (req: Request) => {
 
       // ── A. Task Reminders (15 min before start) + Overdue ──
       const normalizedWeek = getWeekFromDate(userLocalTime);
-      const formattedWeek = formatWeekDisplay(normalizedWeek);
+      const formattedWeek = userFormattedWeeks.get(userId) || formatWeekDisplay(normalizedWeek);
       const wp = weekPlans.get(`${userId}-${formattedWeek}`) || weekPlans.get(`${userId}-${normalizedWeek}`);
       
       const userHabits = habitsByUser.get(userId) || [];
