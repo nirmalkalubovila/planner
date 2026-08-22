@@ -12,7 +12,7 @@ export interface ReminderItem {
 }
 
 export interface PlanSlot {
-    type: 'goal' | 'custom' | 'habit' | 'sleep' | 'plan';
+    type: 'goal' | 'custom' | 'habit' | 'sleep' | 'plan' | 'cleared';
     name: string;
     goalId?: string;
     color?: string;
