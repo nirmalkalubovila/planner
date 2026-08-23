@@ -76,7 +76,7 @@ export const SimpleTimePicker: React.FC<SimpleTimePickerProps> = ({ value, onCha
             >
                 <div className="flex bg-transparent overflow-hidden">
                     {/* Hours */}
-                    <div ref={hourContainerRef} className="flex flex-col h-[190px] overflow-y-auto custom-scrollbar w-[60px] relative">
+                    <div ref={hourContainerRef} className="flex flex-col h-[190px] overflow-y-auto w-[60px] relative">
                         <div className="text-[10px] font-bold text-muted-foreground/60 text-center py-2 uppercase tracking-widest bg-popover/80 border-b border-border/20 sticky top-0 z-20 backdrop-blur-md">Hr</div>
                         <div className="flex flex-col p-1 gap-0.5">
                             {hours.map((h) => (
@@ -98,7 +98,7 @@ export const SimpleTimePicker: React.FC<SimpleTimePickerProps> = ({ value, onCha
                         </div>
                     </div>
                     {/* Minutes */}
-                    <div ref={minuteContainerRef} className="flex flex-col h-[190px] overflow-y-auto custom-scrollbar w-[60px] border-l border-border/20 relative">
+                    <div ref={minuteContainerRef} className="flex flex-col h-[190px] overflow-y-auto w-[60px] border-l border-border/20 relative">
                         <div className="text-[10px] font-bold text-muted-foreground/60 text-center py-2 uppercase tracking-widest bg-popover/80 border-b border-border/20 sticky top-0 z-20 backdrop-blur-md">Min</div>
                         <div className="flex flex-col p-1 gap-0.5">
                             {minutes.map((m) => (

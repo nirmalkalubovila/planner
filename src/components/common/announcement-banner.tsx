@@ -195,7 +195,7 @@ export const AnnouncementBanner: React.FC = () => {
                             </div>
 
                             {/* Scrollable Container (Notes + Feedback Collector) */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-4 min-h-0 relative z-10 py-1">
+                            <div className="flex-1 overflow-y-auto pr-1 space-y-4 min-h-0 relative z-10 py-1">
                                 {/* Point-wise Release Notes */}
                                 {bulletPoints.length > 0 ? (
                                     <div className="space-y-2">

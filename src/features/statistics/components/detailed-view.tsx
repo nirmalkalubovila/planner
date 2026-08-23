@@ -547,7 +547,7 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
               <StatBox label="Weeks Tracked" value={`${data.weeks.length}`} />
             </div>
 
-            <div className="space-y-1.5 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
+            <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
               {data.weeks
                 .slice()
                 .sort((a, b) => WeekUtils.compareWeeks(getWeekKeyFromDisplay(b.weekKey), getWeekKeyFromDisplay(a.weekKey)))
@@ -637,7 +637,7 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
           {data.bucketHistory && data.bucketHistory.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-border/50">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block">8-Week Bucket Allocation Trend</span>
-              <div className="space-y-1.5 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+              <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
                 {[...data.bucketHistory]
                   .reverse()
                   .map((historyItem, i) => {

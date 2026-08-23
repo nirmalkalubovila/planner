@@ -48,7 +48,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                     </div>
                     <span className="bg-background/80 px-1.5 py-0.5 rounded text-[9px] opacity-80">{displayTasks.length}</span>
                 </div>
-                <div className="flex flex-wrap gap-1.5 w-full max-h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pb-2 pt-1 transition-all">
+                <div className="flex flex-wrap gap-1.5 w-full max-h-[250px] overflow-y-auto overflow-x-hidden pb-2 pt-1 transition-all">
                     {displayTasks.length === 0 ? (
                         <span className="text-[10px] text-muted-foreground italic px-2">No tasks available</span>
                     ) : (
@@ -121,7 +121,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                 </div>
 
                 {/* Scrollable middle section: Tools and Libraries */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                <div className="flex-1 overflow-y-auto p-0">
                     <div className={cn(
                         "flex flex-col flex-1 transition-opacity duration-300",
                         isCollapsed ? "opacity-100 items-center py-4 px-2" : "opacity-100 p-4"
@@ -368,7 +368,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                         isCollapsed ? "opacity-0 translate-y-20 pointer-events-none" : "opacity-100 translate-y-0"
                     )}
                 >
-                    <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar flex-1 mr-2 pb-0.5 min-w-0 pr-2">
+                    <div className="flex items-center gap-1 overflow-x-auto flex-1 mr-2 pb-0.5 min-w-0 pr-2">
                         <Button
                             variant={selectedTool === 'drag' ? 'secondary' : 'ghost'}
                             size="icon"
@@ -505,7 +505,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                 <span>Saved Templates</span>
                                 <span className="ml-auto bg-emerald-500/20 px-2 py-0.5 rounded-md text-[10px]">{libraryTasks.length}</span>
                             </div>
-                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                                 {libraryTasks.length === 0 ? (
                                     <p className="text-xs text-muted-foreground italic p-2 text-center">No saved tasks available</p>
                                 ) : (
@@ -553,7 +553,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                 <span>Backlog Tasks</span>
                                 <span className="ml-auto bg-orange-500/20 px-2 py-0.5 rounded-md text-[10px]">{missedTasks.length}</span>
                             </div>
-                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                                 {missedTasks.length === 0 ? (
                                     <p className="text-xs text-muted-foreground italic p-2 text-center">No backlog items</p>
                                 ) : (

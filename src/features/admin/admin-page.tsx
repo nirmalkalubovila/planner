@@ -491,7 +491,7 @@ const ProductIntelligenceTab: React.FC = () => {
                                 Recent ratings and reflections submitted by users.
                             </p>
 
-                            <div className="space-y-2.5 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
+                            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
                                 {stats.recentPositiveFeedback?.length > 0 ? (
                                     stats.recentPositiveFeedback.map((f, idx) => (
                                         <div key={idx} className="p-3 rounded-xl bg-muted/40 border border-border space-y-1.5">
@@ -637,7 +637,7 @@ const ProductIntelligenceTab: React.FC = () => {
                                 Feature Requests ({stats.openFeatureRequestsList?.length || 0})
                             </h4>
                         </div>
-                        <div className="space-y-2.5 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                        <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
                             {stats.openFeatureRequestsList?.length > 0 ? (
                                 stats.openFeatureRequestsList.map((f) => (
                                     <div key={f.id} className="p-3 rounded-xl bg-muted/40 border border-border space-y-2">
@@ -663,7 +663,7 @@ const ProductIntelligenceTab: React.FC = () => {
                                 Reported Issues ({stats.openBugList?.length || 0})
                             </h4>
                         </div>
-                        <div className="space-y-2.5 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                        <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
                             {stats.openBugList?.length > 0 ? (
                                 stats.openBugList.map((f) => (
                                     <div key={f.id} className="p-3 rounded-xl bg-muted/40 border border-border space-y-2">

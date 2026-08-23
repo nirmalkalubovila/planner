@@ -87,7 +87,7 @@ export const PlannerGrid: React.FC<PlannerGridProps> = ({
                 </div>
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-auto custom-scrollbar">
+            <div ref={scrollRef} className="flex-1 overflow-auto">
 
                 {/* FIX 1: Removed 'h-full' so this container grows with the massive time grid */}
                 <div className="min-w-[700px]">
