@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, AlertTriangle } from 'lucide-react';
-import { useNotificationStore } from '@/lib/notification-store';
+import { useNotificationStore } from '@llb/notifications';
 import { requestNotificationPermission, isNotificationSupported, getPermissionStatus } from '@/lib/notification-service';
 
 const DISMISS_KEY = 'llb-notif-banner-dismissed';

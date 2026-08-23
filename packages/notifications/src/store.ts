@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import type { AppNotification, NotificationPreferences } from '@llb/core';
-import { DEFAULT_PREFERENCES } from '@llb/core';
+import { DEFAULT_PREFERENCES, kv } from '@llb/core';
+
+/** Mirrors the Web Notification API's permission strings — spelled out here
+ * rather than referencing the DOM-only `NotificationPermission` type, since
+ * this package has no DOM lib (a future native permission state maps onto
+ * the same three values). */
+export type PermissionStatus = 'default' | 'denied' | 'granted' | 'unsupported';
 
 // ─── Storage Key Helpers ─────────────────────────────────
 const STORAGE_KEY_PREFIX = 'llb-notifications-';
@@ -18,7 +24,7 @@ interface PersistedData {
 
 function loadUserData(userId: string): PersistedData | null {
   try {
-    const raw = localStorage.getItem(getUserStorageKey(userId));
+    const raw = kv.persistent.getItem(getUserStorageKey(userId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     const s = parsed.state || parsed;
@@ -35,7 +41,7 @@ function loadUserData(userId: string): PersistedData | null {
 
 function saveUserData(userId: string, data: PersistedData): void {
   try {
-    localStorage.setItem(getUserStorageKey(userId), JSON.stringify({ state: data }));
+    kv.persistent.setItem(getUserStorageKey(userId), JSON.stringify({ state: data }));
   } catch {}
 }
 
@@ -44,7 +50,7 @@ function saveUserData(userId: string, data: PersistedData): void {
 interface NotificationState {
   notifications: AppNotification[];
   preferences: NotificationPreferences;
-  permissionStatus: NotificationPermission | 'unsupported' | 'default';
+  permissionStatus: PermissionStatus;
   deletedKeys: string[];
   shownKeys: string[];
   currentUserId: string | null;
@@ -55,7 +61,7 @@ interface NotificationState {
   markAllAsRead: () => void;
   removeNotification: (id: string) => void;
   clearAll: () => void;
-  setPermissionStatus: (status: NotificationPermission | 'unsupported') => void;
+  setPermissionStatus: (status: PermissionStatus) => void;
   updatePreferences: (prefs: Partial<NotificationPreferences>) => void;
   syncFromCloud: (prefs?: Partial<NotificationPreferences>, list?: AppNotification[]) => void;
   clearStore: () => void;
@@ -292,5 +298,5 @@ useNotificationStore.subscribe((state) => {
 // Remove the old global 'llb-notifications' key that could leak data.
 // This runs once on module load.
 try {
-  localStorage.removeItem('llb-notifications');
+  kv.persistent.removeItem('llb-notifications');
 } catch {}

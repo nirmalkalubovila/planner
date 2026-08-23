@@ -4,7 +4,7 @@ import { useGetHabits } from '@llb/api';
 import { useGetCompletedTasks } from '@llb/api';
 import { WeekUtils } from '@llb/core';
 import { useTodayTasks, type TaskItem } from '@/features/today/hooks/use-today-tasks';
-import { useNotificationStore } from '@/lib/notification-store';
+import { useNotificationStore } from '@llb/notifications';
 import {
   scheduleNotification,
   cancelScheduledNotification,

@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCheck, Trash2, Bell, BellOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useNotificationStore } from '@/lib/notification-store';
+import { useNotificationStore } from '@llb/notifications';
 import type { AppNotification } from '@llb/core';
 import { cn } from '@/lib/utils';
 

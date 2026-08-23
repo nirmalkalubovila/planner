@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNotificationStore } from '@/lib/notification-store';
+import { useNotificationStore } from '@llb/notifications';
 import { NotificationPanel } from '@/components/common/notification-panel';
 
 export const NotificationBell: React.FC = () => {

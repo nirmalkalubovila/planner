@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useGetGoals } from '@llb/api';
-import { useNotificationStore } from '@/lib/notification-store';
+import { useNotificationStore } from '@llb/notifications';
 import type { Goal, Milestone } from '@llb/core';
 import { useAuth } from '@/contexts/auth-context';
 

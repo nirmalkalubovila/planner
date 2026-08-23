@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useUserStats } from '@/features/statistics/hooks/use-user-stats';
-import { useNotificationStore } from '@/lib/notification-store';
+import { useNotificationStore } from '@llb/notifications';
 import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_GRADE = 'llb-last-consistency-grade';

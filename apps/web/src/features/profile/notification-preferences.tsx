@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Bell, BellOff, CheckCircle2, AlertCircle, ShieldAlert, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNotificationStore } from '@/lib/notification-store';
+import { useNotificationStore } from '@llb/notifications';
 import {
   getPermissionStatus,
   requestNotificationPermission,

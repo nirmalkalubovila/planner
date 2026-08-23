@@ -1,44 +1,6 @@
 import type { NotificationPreferences, NotificationType } from '@llb/core';
-import { MAX_NOTIFICATIONS_PER_HOUR } from '@llb/core';
+import { canDeliverNotification } from '@llb/notifications';
 import { supabase } from '@/lib/supabaseClient';
-
-// ─── Rate Limiter ────────────────────────────────────────
-const recentTimestamps: number[] = [];
-
-function isRateLimited(): boolean {
-  const now = Date.now();
-  const oneHourAgo = now - 60 * 60 * 1000;
-  // Prune old timestamps
-  while (recentTimestamps.length > 0 && recentTimestamps[0] < oneHourAgo) {
-    recentTimestamps.shift();
-  }
-  return recentTimestamps.length >= MAX_NOTIFICATIONS_PER_HOUR;
-}
-
-function recordNotification(): void {
-  recentTimestamps.push(Date.now());
-}
-
-// ─── Quiet Hours Check ───────────────────────────────────
-function isQuietHours(prefs: NotificationPreferences): boolean {
-  if (!prefs.quietHoursEnabled) return false;
-
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-  const [startH, startM] = prefs.quietHoursStart.split(':').map(Number);
-  const [endH, endM] = prefs.quietHoursEnd.split(':').map(Number);
-  const startMinutes = startH * 60 + startM;
-  const endMinutes = endH * 60 + endM;
-
-  if (startMinutes <= endMinutes) {
-    // Same-day range (e.g., 08:00 - 18:00)
-    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
-  } else {
-    // Overnight range (e.g., 22:00 - 06:00)
-    return currentMinutes >= startMinutes || currentMinutes < endMinutes;
-  }
-}
 
 // ─── Permission ──────────────────────────────────────────
 export function isNotificationSupported(): boolean {
@@ -123,74 +85,23 @@ export interface NotificationOptions {
 }
 
 /**
- * Check if a notification of this type is enabled in user preferences.
- */
-function isTypeEnabled(type: NotificationType | undefined, prefs: NotificationPreferences): boolean {
-  if (!prefs.enabled) return false;
-  if (!type) return true;
-
-  switch (type) {
-    case 'task_starting':
-      // Use upcomingTasks if defined, fall back to taskReminders for backward compat
-      return (prefs.upcomingTasks ?? prefs.taskReminders) !== false;
-    case 'task_overdue':
-      // Use overdueTasks if defined, fall back to taskReminders for backward compat
-      return (prefs.overdueTasks ?? prefs.taskReminders) !== false;
-    case 'daily_briefing':
-      return prefs.dailyBriefing;
-    case 'goal_deadline':
-      return prefs.goalDeadlines;
-    case 'goal_completed':
-      return prefs.goalCompletion;
-    case 'day_summary':
-      return prefs.daySummary;
-    case 'weekly_summary':
-      return prefs.weeklySummary;
-    case 'stats_changed':
-      return prefs.statsChanges;
-    case 'streak_milestone':
-      return prefs.streakMilestones;
-    case 'burnout_warning':
-      return prefs.burnoutWarning;
-    case 'sleep_start':
-    case 'sleep_end':
-      return prefs.sleepNotifications !== false;
-    case 'weekly_planning':
-      return prefs.weeklyPlanning !== false;
-    case 'midday_checkin':
-      return prefs.middayCheckin !== false;
-    case 'habit_streak_risk':
-      return prefs.habitStreakRisk !== false;
-    default:
-      return true;
-  }
-}
-
-/**
  * Send a notification through the Service Worker.
- * Respects rate limits, quiet hours, and user preferences.
+ * Respects rate limits, quiet hours, and user preferences (via the shared
+ * @llb/notifications delivery gate).
  */
 export async function sendNotification(
   title: string,
   options: NotificationOptions,
   preferences: NotificationPreferences,
 ): Promise<boolean> {
-  // Check if notifications are enabled
-  if (!options.bypassChecks && !preferences.enabled) return false;
-
-  // Check type preference
-  if (!options.bypassChecks && !isTypeEnabled(options.notificationType, preferences)) return false;
-
-  // Check permission
-  if (getPermissionStatus() !== 'granted') return false;
-
-  // Check quiet hours
-  if (!options.bypassChecks && isQuietHours(preferences)) return false;
-
-  // Check rate limit
-  if (!options.bypassChecks && !options.bypassRateLimit && isRateLimited()) return false;
-
-  recordNotification();
+  const canDeliver = canDeliverNotification({
+    preferences,
+    notificationType: options.notificationType,
+    permissionGranted: getPermissionStatus() === 'granted',
+    bypassChecks: options.bypassChecks,
+    bypassRateLimit: options.bypassRateLimit,
+  });
+  if (!canDeliver) return false;
 
   // Try Service Worker first (works in background for PWA)
   const reg = swRegistration || await navigator.serviceWorker?.ready;
