@@ -1,0 +1,344 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`generateMonthlyInsights > matches the golden snapshot for a representative month 1`] = `
+[
+  {
+    "highlightText": "A deeper dive into your growth, consistency, and wisdom captured this month.",
+    "icon": "🏆",
+    "subtitle": "Year 2026",
+    "title": "August Review",
+    "type": "intro",
+  },
+  {
+    "icon": "📈",
+    "metrics": [
+      {
+        "label": "Active Days",
+        "value": "2/31",
+      },
+      {
+        "label": "Total Crushed",
+        "value": 2,
+      },
+      {
+        "label": "Avg Daily Tasks",
+        "value": "0.1",
+      },
+    ],
+    "subtitle": "Aggregate focus metrics",
+    "title": "Month in Numbers",
+    "type": "stats",
+  },
+  {
+    "icon": "🎯",
+    "radarData": [
+      {
+        "label": "Habits",
+        "value": 8,
+      },
+      {
+        "label": "Goals",
+        "value": 64,
+      },
+      {
+        "label": "Tasks",
+        "value": 6,
+      },
+    ],
+    "subtitle": "Execution rates across your system focus areas",
+    "title": "Execution Radar",
+    "type": "radar",
+  },
+  {
+    "icon": "🔥",
+    "listItems": [
+      {
+        "label": "1. Morning Run",
+        "sublabel": "Streak: 1d | Active days: 1",
+        "value": "8%",
+      },
+    ],
+    "subtitle": "Your top building blocks this month",
+    "title": "Habit Power Rankings",
+    "type": "ranking",
+  },
+  {
+    "highlightText": "You added 1 insights to your vault this month. Your self-awareness compounds daily.",
+    "icon": "🧠",
+    "metrics": [
+      {
+        "label": "Ideas Captured",
+        "value": 1,
+      },
+      {
+        "label": "Problems Solved",
+        "value": 0,
+      },
+      {
+        "label": "Books/Resources",
+        "value": 0,
+      },
+    ],
+    "subtitle": "Wisdom & ideas logged in your Vault",
+    "title": "Intellectual Growth",
+    "type": "vaultStats",
+  },
+  {
+    "icon": "💬",
+    "quote": {
+      "author": "Legacy",
+      "text": "Self-awareness is power. Rate your goals, reset your system, and take it one percent at a time.",
+    },
+    "subtitle": "Build your library of insights",
+    "title": "Wisdom from the Vault",
+    "type": "quote",
+  },
+  {
+    "grade": "D",
+    "highlightText": "Your overall Legacy Life Score for August is 6/100. A quiet month. Perfect time to reset your routines and restart.",
+    "icon": "⚡",
+    "progressValue": 6,
+    "subtitle": "August System Rating",
+    "title": "Legacy Life Score",
+    "type": "grade",
+  },
+  {
+    "highlightText": "Total hours allocated across Life Buckets during August.",
+    "icon": "⚖️",
+    "metrics": [
+      {
+        "label": "Income-Producing",
+        "value": "1h",
+      },
+      {
+        "label": "Asset-Building",
+        "value": "3.5h",
+      },
+      {
+        "label": "Recovery",
+        "value": "59h",
+      },
+      {
+        "label": "Relational",
+        "value": "0h",
+      },
+    ],
+    "subtitle": "Monthly time distribution (August)",
+    "title": "Monthly Life Bucket Balance",
+    "type": "bucketBalance",
+  },
+  {
+    "highlightText": "You ranked in top 70% of all Legacy builders this month! Compounding wisdom.",
+    "icon": "🌟",
+    "metrics": [
+      {
+        "label": "Completed Tasks",
+        "value": 2,
+      },
+      {
+        "label": "Habits Tracked",
+        "value": 1,
+      },
+      {
+        "label": "Monthly Grade",
+        "value": "D",
+      },
+      {
+        "label": "Insights Logged",
+        "value": 1,
+      },
+    ],
+    "quote": {
+      "author": "Monthly Reflection",
+      "text": "Self-awareness compounds daily.",
+    },
+    "subtitle": "Your month in numbers",
+    "summaryData": {
+      "completedTasks": 2,
+      "consistencyGrade": "D",
+      "dailyActive": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+      ],
+      "globalRankPct": 70,
+      "habitsDone": 1,
+      "hoursFocused": 3,
+      "insightsLogged": 1,
+      "legacyScore": 6,
+    },
+    "title": "Monthly Impact Summary",
+    "type": "summary",
+  },
+]
+`;
+
+exports[`generateMonthlyWins > matches the golden snapshot for a representative month 1`] = `[]`;
+
+exports[`generateWeeklyInsights > matches the golden snapshot for a representative week 1`] = `
+[
+  {
+    "highlightText": "Let's look back at your focus and progress over the past 7 days.",
+    "icon": "✨",
+    "subtitle": "Aug 17 - Aug 23, 2026",
+    "title": "Your Week, Wrapped",
+    "type": "intro",
+  },
+  {
+    "icon": "📊",
+    "metrics": [
+      {
+        "label": "Completed Tasks",
+        "value": 2,
+      },
+      {
+        "label": "Tasks Planned",
+        "value": 2,
+      },
+      {
+        "change": 2,
+        "changeType": "up",
+        "label": "Execution Rate",
+        "value": "100%",
+      },
+    ],
+    "subtitle": "Your overall output and planning efficiency",
+    "title": "Week at a Glance",
+    "type": "stats",
+  },
+  {
+    "highlightText": "On Monday, you were in absolute flow, crushing 1 items!",
+    "icon": "🔥",
+    "metrics": [
+      {
+        "label": "Flow Day Count",
+        "value": 1,
+      },
+    ],
+    "subtitle": "Peak day: Monday",
+    "title": "Your Momentum Flow",
+    "type": "heatmap",
+  },
+  {
+    "icon": "🏆",
+    "listItems": [
+      {
+        "label": "Habit: Morning Run",
+        "sublabel": "Streak: 1d | 1/12 days",
+        "value": "8%",
+      },
+      {
+        "label": "Goal: Launch v2",
+        "sublabel": "Milestones: 2/3",
+        "value": "64%",
+      },
+    ],
+    "subtitle": "Where you focused your energy this week",
+    "title": "Top Consistency Wins",
+    "type": "ranking",
+  },
+  {
+    "grade": "D",
+    "highlightText": "Time to plan next week and start fresh.",
+    "icon": "⚡",
+    "progressValue": 29,
+    "subtitle": "Based on active task execution days",
+    "title": "Consistency Grade",
+    "type": "grade",
+  },
+  {
+    "highlightText": "You ranked in top 60% of all Legacy builders this week! Keep executing daily.",
+    "icon": "🌟",
+    "metrics": [
+      {
+        "label": "Completed Tasks",
+        "value": 2,
+      },
+      {
+        "label": "Habits Tracked",
+        "value": 1,
+      },
+      {
+        "label": "Weekly Grade",
+        "value": "D",
+      },
+      {
+        "label": "Insights Logged",
+        "value": 1,
+      },
+    ],
+    "quote": {
+      "author": "Weekly Reflection",
+      "text": "Take it one percent at a time.",
+    },
+    "subtitle": "Your week in numbers",
+    "summaryData": {
+      "completedTasks": 2,
+      "consistencyGrade": "D",
+      "dailyActive": [
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+      ],
+      "globalRankPct": 60,
+      "habitsDone": 1,
+      "hoursFocused": 3,
+      "insightsLogged": 1,
+      "legacyScore": 29,
+    },
+    "title": "Weekly Impact Summary",
+    "type": "summary",
+  },
+  {
+    "highlightText": "Focus on building consistency for "Morning Run" next week.",
+    "icon": "🎯",
+    "subtitle": "Designed for your growth",
+    "title": "Next Week's Vision",
+    "type": "outro",
+  },
+]
+`;
+
+exports[`generateWeeklyWins > matches the golden snapshot for a representative week 1`] = `
+[
+  {
+    "badge": "Execution",
+    "description": "Executed a high-efficiency week completing 100% of your planned blocks!",
+    "id": "execution-2026-34-win",
+    "title": "Schedule Mastery",
+    "type": "execution",
+  },
+]
+`;

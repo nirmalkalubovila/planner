@@ -10,6 +10,7 @@
     "dev": "npm run dev -w @llb/web",
     "build": "npm run build -w @llb/web",
     "lint": "npm run lint -w @llb/web",
-    "preview": "npm run preview -w @llb/web"
+    "preview": "npm run preview -w @llb/web",
+    "test": "npm run test -w @llb/web"
   }
 }
