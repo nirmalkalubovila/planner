@@ -15,11 +15,6 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({ milestones, pr
 
     const totalMilestones = milestones.length;
 
-    const activeIdx = milestones.findIndex((_, idx) => {
-        const position = ((idx + 1) / totalMilestones) * 100;
-        return progressPercentage < position;
-    });
-
     const completedCount = milestones.filter((m, idx) =>
         m.completed || progressPercentage >= ((idx + 1) / totalMilestones) * 100
     ).length;
@@ -60,7 +55,6 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({ milestones, pr
                     {milestones.map((m, idx) => {
                         const milestonePos = ((idx + 1) / totalMilestones) * 100;
                         const isCompleted = m.completed || progressPercentage >= milestonePos;
-                        const isCurrent = idx === (activeIdx === -1 ? totalMilestones - 1 : activeIdx);
 
                         return (
                             <React.Fragment key={m.id}>

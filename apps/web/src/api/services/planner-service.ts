@@ -27,7 +27,7 @@ const getPlan = async (week: string): Promise<GridState> => {
         throw new Error(error.message);
     }
 
-    return data?.state || {};
+    return (data?.state as unknown as GridState) || {};
 };
 
 export function useGetWeekPlan(week: string) {
@@ -84,7 +84,7 @@ export function useSaveWeekPlan() {
             const { error } = await supabase
                 .from(TABLE_NAME)
                 .upsert(
-                    { user_id: userId, week: dbWeekKey, state },
+                    { user_id: userId, week: dbWeekKey, state: state as any },
                     { onConflict: 'user_id,week' }
                 );
 
@@ -154,7 +154,7 @@ export function useGetWeekBucketActions(week: string) {
                 .eq("user_id", userId)
                 .maybeSingle();
 
-            return data?.bucket_actions || {};
+            return (data?.bucket_actions as WeeklyBucketActions) || {};
         },
         staleTime: 5 * 60 * 1000,
     });
@@ -185,7 +185,7 @@ export function useSaveBucketActions() {
             const { error } = await supabase
                 .from(TABLE_NAME)
                 .upsert(
-                    { user_id: userId, week: dbWeekKey, state: currentState, bucket_actions: bucketActions },
+                    { user_id: userId, week: dbWeekKey, state: currentState as any, bucket_actions: bucketActions as any },
                     { onConflict: 'user_id,week' }
                 );
 

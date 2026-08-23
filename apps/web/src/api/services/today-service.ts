@@ -20,7 +20,7 @@ const getCompletedTasks = async (dayStr: string): Promise<string[]> => {
         throw new Error(error.message);
     }
 
-    return data?.taskIds || [];
+    return (data?.taskIds as string[]) || [];
 };
 
 export const getWeekCompletedTasks = async (dayStrs: string[]): Promise<Record<string, string[]>> => {

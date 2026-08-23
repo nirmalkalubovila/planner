@@ -168,7 +168,7 @@ export function useUpdateReminder() {
 
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .update(payload)
+        .update(payload as any)
         .eq('id', id)
         .eq('user_id', userId)
         .select()

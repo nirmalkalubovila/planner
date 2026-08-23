@@ -59,7 +59,10 @@ export function useCreateCustomTask() {
 
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .insert({ ...cleanTask, user_id: userId })
+                // cleanTask is built via Object.fromEntries, which erases the
+                // per-key shape Supabase's generated Insert type needs — the
+                // required fields are present at runtime, just not provable here.
+                .insert({ ...cleanTask, user_id: userId } as any)
                 .select()
                 .single();
 

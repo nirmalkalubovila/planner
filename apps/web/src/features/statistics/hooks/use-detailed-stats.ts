@@ -66,16 +66,16 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
     supabase.from('custom_tasks').select('*').eq('user_id', userId),
     supabase.from('completed_tasks').select('dayStr, taskIds').eq('user_id', userId),
     supabase.from('week_plans').select('week, state').eq('user_id', userId),
-    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    supabase.from('user_profiles').select('*').eq('user_id', userId).maybeSingle(),
   ]);
 
   const profile = profileRes.data;
-  const userSleepStart = profile?.sleep_start || profile?.sleepStart || session?.user?.user_metadata?.sleepStart || "22:00";
-  const userSleepDuration = Number(profile?.sleep_duration || profile?.sleepDuration || session?.user?.user_metadata?.sleepDuration) || 8;
-  const userPlanDay = profile?.plan_day || profile?.planDay || "Sunday";
+  const userSleepStart = profile?.sleep_start || session?.user?.user_metadata?.sleepStart || "22:00";
+  const userSleepDuration = Number(profile?.sleep_duration || session?.user?.user_metadata?.sleepDuration) || 8;
+  const userPlanDay = profile?.plan_day || "Sunday";
   let userPlanHours = 1;
-  const startTime = profile?.plan_start_time || profile?.planStartTime;
-  const endTime = profile?.plan_end_time || profile?.planEndTime;
+  const startTime = profile?.plan_start_time;
+  const endTime = profile?.plan_end_time;
   if (startTime && endTime) {
     const [psH, psM] = String(startTime).split(':').map(Number);
     const [peH, peM] = String(endTime).split(':').map(Number);
@@ -84,13 +84,13 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
     }
   }
 
-  const goals: Goal[] = goalsRes.data ?? [];
-  const habits: Habit[] = habitsRes.data ?? [];
-  const customTasks: CustomTask[] = customTasksRes.data ?? [];
+  const goals: Goal[] = (goalsRes.data ?? []) as unknown as Goal[];
+  const habits: Habit[] = (habitsRes.data ?? []) as Habit[];
+  const customTasks: CustomTask[] = (customTasksRes.data ?? []) as CustomTask[];
 
   const completedMap: Record<string, string[]> = {};
   for (const row of (completedRes.data ?? [])) {
-    completedMap[row.dayStr] = row.taskIds ?? [];
+    completedMap[row.dayStr] = (row.taskIds as string[]) ?? [];
   }
 
   const weekPlans: { week: string; state: GridState }[] =

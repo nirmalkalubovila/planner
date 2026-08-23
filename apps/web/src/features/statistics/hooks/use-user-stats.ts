@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { WeekUtils } from '@llb/core';
-import { calculateGoalProgress } from '@llb/core';
+import { calculateGoalProgress, type Goal } from '@llb/core';
 
 export interface UserStatsCache {
   predictive_burnout_warning: string | null;
@@ -85,8 +85,9 @@ const fetchUserStatsCache = async (): Promise<UserStatsCache> => {
   const completedMap: Record<string, number> = {};
   const completedTasksMap: Record<string, string[]> = {};
   for (const row of (completedRes.data ?? [])) {
-    completedMap[row.dayStr] = row.taskIds?.length || 0;
-    completedTasksMap[row.dayStr] = row.taskIds ?? [];
+    const taskIds = (row.taskIds as string[] | null) ?? [];
+    completedMap[row.dayStr] = taskIds.length;
+    completedTasksMap[row.dayStr] = taskIds;
   }
 
   const habit_heatmap = last30Days.map(day => ({
@@ -115,13 +116,13 @@ const fetchUserStatsCache = async (): Promise<UserStatsCache> => {
   }
 
   let top_goal = { name: 'No active goals', progress: 0, projected_completion: '-' };
-  const goalsData = goalsRes.data ?? [];
+  const goalsData = (goalsRes.data ?? []) as unknown as Goal[];
   if (goalsData.length > 0) {
-    const goal = goalsData.find((g: any) => g.milestones?.length > 0) || goalsData[0];
+    const goal = goalsData.find((g) => g.milestones?.length) || goalsData[0];
     const progress = calculateGoalProgress(
       goal,
       currentWeek,
-      weekPlanRes.data?.state,
+      weekPlanRes.data?.state as any,
       completedTasksMap
     );
     top_goal = {

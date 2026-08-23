@@ -17,7 +17,10 @@ const getGoals = async (): Promise<Goal[]> => {
         .order("createdAt", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data || [];
+    // The DB's `title` column is a nullable legacy leftover (the app really
+    // uses `name`); Goal.title is typed required, matching how the rest of
+    // the app already treats it.
+    return (data || []) as unknown as Goal[];
 };
 
 export function useGetGoals() {
@@ -36,11 +39,13 @@ export function useCreateGoal() {
             const userId = await getCurrentUserId();
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .insert([{ ...newGoal, user_id: userId }])
+                // milestones (Milestone[]) isn't statically assignable to the
+                // generated jsonb `Json` column type; the runtime shape is fine.
+                .insert([{ ...newGoal, user_id: userId }] as any)
                 .select()
                 .single();
             if (error) throw new Error(error.message);
-            return data;
+            return data as unknown as Goal;
         },
         onError: (err) => { toast.error("Failed to create goal: " + err.message); },
         onSuccess: () => { queryClient.invalidateQueries({ queryKey: [TABLE_NAME] }); },
@@ -54,15 +59,16 @@ export function useUpdateGoal() {
         mutationFn: async (updatedGoal: Goal) => {
             const userId = await getCurrentUserId();
             const { id, ...updates } = updatedGoal;
+            if (!id) throw new Error("Cannot update a goal with no id");
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .update({ ...updates, updatedAt: new Date().toISOString() })
+                .update({ ...updates, updatedAt: new Date().toISOString() } as any)
                 .eq("id", id)
                 .eq("user_id", userId)
                 .select()
                 .single();
             if (error) throw new Error(error.message);
-            return data;
+            return data as unknown as Goal;
         },
         onError: (err) => { toast.error("Failed to update goal: " + err.message); },
         onSuccess: () => { queryClient.invalidateQueries({ queryKey: [TABLE_NAME] }); },

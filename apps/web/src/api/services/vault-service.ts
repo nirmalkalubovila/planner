@@ -27,11 +27,11 @@ async function getNotes(): Promise<VaultNote[]> {
   return (data ?? []).map((row) => ({
     ...row,
     title: row.title || '',
-    category: row.category || 'ideas',
+    category: (row.category || 'ideas') as VaultCategory,
     is_draft: false,
     source_page: row.source_page || null,
     tags: Array.isArray(row.tags) ? row.tags : (row.tags ? JSON.parse(row.tags as unknown as string) : []),
-  }));
+  })) as VaultNote[];
 }
 
 export function useNotes() {
@@ -114,7 +114,9 @@ export function useTogglePinNote() {
         .select()
         .single();
       if (error) throw new Error(error.message);
-      return data as VaultNote;
+      // vault_notes has no is_draft column — drafts are a client-only
+      // concept (see note-form.tsx), so every persisted row is non-draft.
+      return { ...data, is_draft: false } as VaultNote;
     },
     onMutate: async ({ id, is_pinned }) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
@@ -159,13 +161,16 @@ export function useUpdateNote() {
 
       const { data, error } = await supabase
         .from(TABLE_NAME)
-        .update(updatePayload)
+        .update(updatePayload as any)
         .eq('id', id)
         .eq('user_id', userId)
         .select()
         .single();
       if (error) throw new Error(error.message);
-      return { ...data, tags: updatePayload.tags ?? data.tags } as VaultNote;
+      // vault_notes has no is_draft column — drafts are a client-only
+      // concept (see note-form.tsx), so every persisted row is non-draft.
+      const tags = (updatePayload.tags as string[] | undefined) ?? (data.tags as string[] | null) ?? [];
+      return { ...data, is_draft: false, tags } as unknown as VaultNote;
     },
     onMutate: async ({ id, title, content, category, source_page }) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });

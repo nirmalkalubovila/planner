@@ -78,7 +78,7 @@ export function useGlobalSmtpSettings() {
         p_port: settings.port,
         p_min_interval: settings.minInterval,
         p_username: settings.username,
-        p_password: password || null,
+        p_password: password || '', // SQL side treats '' the same as NULL: keep the current password
         p_encryption_key: encryptionKey,
       });
 

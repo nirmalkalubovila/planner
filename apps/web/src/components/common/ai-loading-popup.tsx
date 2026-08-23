@@ -47,7 +47,7 @@ export const AILoadingPopup: React.FC<AILoadingPopupProps> = ({
     onClose
 }) => {
     const [msgIdx, setMsgIdx] = useState(0);
-    const [elapsed, setElapsed] = useState(0);
+    const [, setElapsed] = useState(0);
     const [slow, setSlow] = useState(false);
     const startRef = useRef(0);
     const avgTime = useRef<number | null>(null);

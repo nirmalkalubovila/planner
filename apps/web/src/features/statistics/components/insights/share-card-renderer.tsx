@@ -976,7 +976,7 @@ function renderMilestoneShareCard(
     // -------------------------------------------------------------
     // POST (1:1) & STATUS (16:9) FORMATS — COMPACT LUXURY
     // -------------------------------------------------------------
-    const isWide = isStatus;
+    const isWide = format === 'status';
     const centerY = isWide ? 330 : 280;
 
     // Left or Center Emblem

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import type { Goal, Habit } from '@llb/core';
+import type { Goal, Habit, CustomTask } from '@llb/core';
 import type { VaultNote } from '@llb/core';
 import type { GridState } from '@llb/core';
 import {
@@ -48,13 +48,13 @@ const fetchInsights = async (): Promise<InsightsResult> => {
     supabase.from('vault_notes').select('*').eq('user_id', userId),
   ]);
 
-  const goals: Goal[] = goalsRes.data ?? [];
-  const habits: Habit[] = habitsRes.data ?? [];
-  const customTasks = customTasksRes.data ?? [];
+  const goals: Goal[] = (goalsRes.data ?? []) as unknown as Goal[];
+  const habits: Habit[] = (habitsRes.data ?? []) as Habit[];
+  const customTasks: CustomTask[] = (customTasksRes.data ?? []) as CustomTask[];
 
   const completedMap: Record<string, string[]> = {};
   for (const row of (completedRes.data ?? [])) {
-    completedMap[row.dayStr] = row.taskIds ?? [];
+    completedMap[row.dayStr] = (row.taskIds as string[]) ?? [];
   }
 
   const weekPlans: { week: string; state: GridState }[] =

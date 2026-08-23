@@ -17,7 +17,7 @@ const getMissedTasks = async (): Promise<CustomTask[]> => {
         .order("createdAt", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data || [];
+    return (data || []) as CustomTask[];
 };
 
 export function useGetMissedTasks() {
@@ -41,7 +41,7 @@ export function useCreateMissedTask() {
 
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .insert({ ...cleanTask, user_id: userId })
+                .insert({ ...cleanTask, user_id: userId } as any)
                 .select()
                 .single();
 

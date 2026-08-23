@@ -17,7 +17,7 @@ const getHabits = async (): Promise<Habit[]> => {
         .order("createdAt", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data || [];
+    return (data || []) as Habit[];
 };
 
 export function useGetHabits() {

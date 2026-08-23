@@ -185,13 +185,13 @@ export function useUserProfile(user: User | null) {
             if (existing) {
                 const { error: err } = await supabase
                     .from(TABLE_NAME)
-                    .update(row)
+                    .update(row as any)
                     .eq("user_id", userId);
                 error = err;
             } else {
                 const { error: err } = await supabase
                     .from(TABLE_NAME)
-                    .insert(row);
+                    .insert(row as any);
                 error = err;
             }
 
