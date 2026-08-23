@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { CATEGORY_META, VaultCategory } from '@llb/core';
+import { CATEGORY_CLASSES } from '@/theme/category-classes';
 import { Bell } from 'lucide-react';
 
 interface VaultFiltersProps {
@@ -27,6 +28,7 @@ export const VaultFilters: React.FC<VaultFiltersProps> = ({ tags, activeTag, onS
       </button>
       {tags.map(({ tag, count }) => {
         const meta = CATEGORY_META[tag as VaultCategory];
+        const classes = CATEGORY_CLASSES[tag as VaultCategory];
         if (!meta) return null;
         return (
           <button
@@ -36,7 +38,7 @@ export const VaultFilters: React.FC<VaultFiltersProps> = ({ tags, activeTag, onS
             className={cn(
               'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border',
               activeTag === tag
-                ? `${meta.bgClass} ${meta.color}`
+                ? `${classes.bgClass} ${classes.color}`
                 : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-accent border-transparent'
             )}
           >

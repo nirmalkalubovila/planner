@@ -7,6 +7,7 @@ import type { DetailedAnalytics } from '../hooks/use-detailed-stats';
 import { LIFE_BUCKETS, BUCKET_META, LifeBucket } from '@llb/core';
 import { WeekUtils } from '@llb/core';
 import { getWeekKeyFromDisplay } from '@llb/core';
+import { BUCKET_CLASSES } from '@/theme/bucket-classes';
 
 interface ActionStep {
   title: string;
@@ -328,6 +329,7 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
             const raw = rawHabitsMap.get(habit.id);
             const bucket: LifeBucket | undefined = raw?.bucket;
             const bucketMeta = bucket ? BUCKET_META[bucket] : null;
+            const bucketClasses = bucket ? BUCKET_CLASSES[bucket] : null;
             const c = getColor(habit.consistency);
             const isExpanded = expandedItemId === habit.id;
 
@@ -354,8 +356,8 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-xs sm:text-sm font-medium text-foreground truncate">{habit.name}</p>
-                      {bucketMeta && (
-                        <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", bucketMeta.badgeClass)}>
+                      {bucketMeta && bucketClasses && (
+                        <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", bucketClasses.badgeClass)}>
                           {bucketMeta.label}
                         </span>
                       )}
@@ -389,7 +391,7 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
                       </div>
                       <div className="bg-background/50 p-2 rounded-lg border border-border/50 col-span-2 sm:col-span-1">
                         <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Life Bucket</span>
-                        <span className={cn("font-bold", bucketMeta ? bucketMeta.color : "text-muted-foreground")}>
+                        <span className={cn("font-bold", bucketClasses ? bucketClasses.color : "text-muted-foreground")}>
                           {bucketMeta ? bucketMeta.label : 'Unassigned'}
                         </span>
                       </div>
@@ -411,6 +413,7 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
             const raw = rawGoalsMap.get(goal.id);
             const bucket: LifeBucket | undefined = raw?.bucket;
             const bucketMeta = bucket ? BUCKET_META[bucket] : null;
+            const bucketClasses = bucket ? BUCKET_CLASSES[bucket] : null;
             const isCompleted = goal.progress >= 100;
             const isExpanded = expandedItemId === goal.id;
 
@@ -471,8 +474,8 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
                       <p className={cn("text-xs sm:text-sm font-medium truncate", isCompleted ? progressColor : "text-foreground")}>
                         {goal.name}
                       </p>
-                      {bucketMeta && (
-                        <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", bucketMeta.badgeClass)}>
+                      {bucketMeta && bucketClasses && (
+                        <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", bucketClasses.badgeClass)}>
                           {bucketMeta.label}
                         </span>
                       )}
@@ -522,7 +525,7 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
                       </div>
                       <div className="bg-background/50 p-2 rounded-lg border border-border/50">
                         <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Bucket</span>
-                        <span className={cn("font-bold", bucketMeta ? bucketMeta.color : "text-muted-foreground")}>
+                        <span className={cn("font-bold", bucketClasses ? bucketClasses.color : "text-muted-foreground")}>
                           {bucketMeta ? bucketMeta.label : 'Unassigned'}
                         </span>
                       </div>
@@ -603,15 +606,16 @@ export const DetailedView: React.FC<DetailedViewProps> = ({ data }) => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
             {LIFE_BUCKETS.map((bucketKey) => {
               const meta = BUCKET_META[bucketKey];
+              const classes = BUCKET_CLASSES[bucketKey];
               const avgHours = overallBucketStats.avgHoursByBucket[bucketKey] || 0;
               const avgPct = Math.min(100, Math.round((avgHours / 168) * 100));
 
               return (
                 <div
                   key={bucketKey}
-                  className={cn("p-3 rounded-2xl border flex flex-col justify-between space-y-2 bg-glass", meta.borderClass)}
+                  className={cn("p-3 rounded-2xl border flex flex-col justify-between space-y-2 bg-glass", classes.borderClass)}
                 >
-                  <span className={cn("text-[9px] sm:text-[10px] font-bold uppercase tracking-wider truncate", meta.color)}>
+                  <span className={cn("text-[9px] sm:text-[10px] font-bold uppercase tracking-wider truncate", classes.color)}>
                     {meta.label}
                   </span>
                   <div className="flex items-baseline justify-between gap-1">

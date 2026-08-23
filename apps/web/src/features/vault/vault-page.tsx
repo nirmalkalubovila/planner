@@ -9,6 +9,7 @@ import { NoteViewDialog } from './components/note-view-dialog';
 import { NoteForm, NoteFormValues, clearNoteDraft, loadDraft, hasDraft } from './forms/note-form';
 import { ReminderFormDialog } from './forms/reminder-form';
 import { VaultNote, VaultCategory, VAULT_CATEGORIES, CATEGORY_META } from '@llb/core';
+import { CATEGORY_CLASSES } from '@/theme/category-classes';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { PageLoader } from '@/components/common/page-loader';
@@ -266,11 +267,12 @@ export const VaultPage: React.FC = () => {
         <div className="space-y-8">
           {grouped.map(({ category, notes: groupNotes }) => {
             const meta = CATEGORY_META[category];
+            const classes = CATEGORY_CLASSES[category];
             return (
               <section key={category}>
                 {(!activeTag || activeTag === 'all' || activeTag === 'reminders') && (
                   <div className="flex items-center gap-2 mb-4">
-                    <span className={`text-xs font-black uppercase tracking-widest ${meta.color}`}>
+                    <span className={`text-xs font-black uppercase tracking-widest ${classes.color}`}>
                       {meta.label}
                     </span>
                     <div className="flex-1 h-px bg-border" />

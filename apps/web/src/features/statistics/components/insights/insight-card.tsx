@@ -5,6 +5,7 @@ import type { InsightCardData } from '@llb/core';
 import type { InsightTheme } from './insight-themes';
 import { Target, Sparkles, TrendingUp, TrendingDown, BookOpen, AlertCircle, Trophy } from 'lucide-react';
 import { LIFE_BUCKETS, BUCKET_META } from '@llb/core';
+import { BUCKET_CLASSES } from '@/theme/bucket-classes';
 
 interface InsightCardProps {
   data: InsightCardData;
@@ -538,11 +539,12 @@ const RenderCardContent: React.FC<{
           <div className="grid grid-cols-2 gap-3">
             {LIFE_BUCKETS.map((bucketKey) => {
               const meta = BUCKET_META[bucketKey];
+              const classes = BUCKET_CLASSES[bucketKey];
               const metric = data.metrics?.find(m => m.label.toLowerCase().includes(bucketKey) || m.label === meta.label);
               const val = metric ? metric.value : '0h';
               return (
                 <div key={bucketKey} className={cn("p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between space-y-1.5")}>
-                  <span className={cn("text-[9px] font-black uppercase tracking-widest", meta.color)}>
+                  <span className={cn("text-[9px] font-black uppercase tracking-widest", classes.color)}>
                     {meta.label}
                   </span>
                   <span className="text-xl font-black text-white">{val}</span>

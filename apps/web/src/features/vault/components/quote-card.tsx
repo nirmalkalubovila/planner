@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Pin, Trash2, Edit2, Quote, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VaultNote, CATEGORY_META } from '@llb/core';
+import { CATEGORY_CLASSES } from '@/theme/category-classes';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { VaultReminder } from '@/api/services/reminder-service';
@@ -28,6 +29,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
 }) => {
   const date = new Date(note.createdAt);
   const meta = CATEGORY_META.quotes;
+  const classes = CATEGORY_CLASSES.quotes;
 
   return (
     <motion.article
@@ -53,7 +55,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             {note.is_pinned && (
               <Pin size={12} className="text-amber-400 shrink-0" fill="currentColor" />
             )}
-            <span className={cn('text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border', meta.bgClass, meta.color)}>
+            <span className={cn('text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border', classes.bgClass, classes.color)}>
               {meta.label}
             </span>
           </div>

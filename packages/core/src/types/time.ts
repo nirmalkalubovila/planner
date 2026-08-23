@@ -3,46 +3,44 @@ export type LifeBucket = typeof LIFE_BUCKETS[number];
 
 export interface BucketMeta {
   label: string;
-  color: string;
-  bgClass: string;
-  borderClass: string;
-  badgeClass: string;
   description: string;
 }
 
+// Presentational fields (color/bgClass/borderClass/badgeClass Tailwind
+// strings) moved to apps/web/src/theme/bucket-classes.ts — shared code
+// must not embed web-only class strings. See also BUCKET_TONE below for
+// the raw color each bucket maps to, for non-Tailwind consumers (canvas
+// renderers, native gradients).
 export const BUCKET_META: Record<LifeBucket, BucketMeta> = {
   income: {
     label: 'Income-Producing',
-    color: 'text-emerald-400',
-    bgClass: 'bg-emerald-500/10',
-    borderClass: 'border-emerald-500/20',
-    badgeClass: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
     description: 'Your job, paid work, client projects',
   },
   asset: {
     label: 'Asset-Building',
-    color: 'text-violet-400',
-    bgClass: 'bg-violet-500/10',
-    borderClass: 'border-violet-500/20',
-    badgeClass: 'bg-violet-500/10 border-violet-500/20 text-violet-400',
     description: 'Skills, content, learning, side projects',
   },
   recovery: {
     label: 'Recovery',
-    color: 'text-sky-400',
-    bgClass: 'bg-sky-500/10',
-    borderClass: 'border-sky-500/20',
-    badgeClass: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
     description: 'Sleep, rest, exercise, health',
   },
   relational: {
     label: 'Relational',
-    color: 'text-amber-400',
-    bgClass: 'bg-amber-500/10',
-    borderClass: 'border-amber-500/20',
-    badgeClass: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
     description: 'Family, friends, real human connection',
   },
+};
+
+export interface BucketTone {
+  name: string;
+  hex: string;
+}
+
+/** Raw color per bucket, independent of any styling system. */
+export const BUCKET_TONE: Record<LifeBucket, BucketTone> = {
+  income: { name: 'emerald', hex: '#34d399' },
+  asset: { name: 'violet', hex: '#a78bfa' },
+  recovery: { name: 'sky', hex: '#38bdf8' },
+  relational: { name: 'amber', hex: '#fbbf24' },
 };
 
 export interface WeeklyPriorityItem {

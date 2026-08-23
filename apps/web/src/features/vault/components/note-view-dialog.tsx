@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Pin, Trash2, Edit2, Copy, Check, Bell, Quote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VaultNote, CATEGORY_META } from '@llb/core';
+import { CATEGORY_CLASSES } from '@/theme/category-classes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { VaultReminder } from '@/api/services/reminder-service';
@@ -50,6 +51,7 @@ export const NoteViewDialog: React.FC<NoteViewDialogProps> = ({
 
   const date = new Date(note.createdAt);
   const meta = CATEGORY_META[note.category] || CATEGORY_META.ideas;
+  const classes = CATEGORY_CLASSES[note.category] || CATEGORY_CLASSES.ideas;
 
   const handleCopy = async () => {
     try {
@@ -87,11 +89,11 @@ export const NoteViewDialog: React.FC<NoteViewDialogProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Category accent bar */}
-            <div className={cn('h-1.5 w-full shrink-0', meta.bgClass.replace('/10', '/60'))} />
+            <div className={cn('h-1.5 w-full shrink-0', classes.bgClass.replace('/10', '/60'))} />
 
             {/* Actions & Category Header */}
             <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-border/40 bg-muted/5">
-              <span className={cn('shrink-0 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border', meta.bgClass, meta.color)}>
+              <span className={cn('shrink-0 text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border', classes.bgClass, classes.color)}>
                 {meta.label}
               </span>
               

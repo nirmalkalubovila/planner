@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { VAULT_CATEGORIES, CATEGORY_META } from '@llb/core';
+import { CATEGORY_CLASSES } from '@/theme/category-classes';
 
 const DRAFT_KEY = 'vault_note_draft';
 
@@ -111,6 +112,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
         <div className="flex flex-wrap gap-2">
           {VAULT_CATEGORIES.map((cat) => {
             const meta = CATEGORY_META[cat];
+            const classes = CATEGORY_CLASSES[cat];
             const isSelected = form.watch('category') === cat;
             return (
               <label
@@ -119,7 +121,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
                   'cursor-pointer px-3 py-1.5 rounded-full text-xs font-bold transition-all border select-none',
                   'focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
                   isSelected
-                    ? `${meta.bgClass} ${meta.color} border shadow-md`
+                    ? `${classes.bgClass} ${classes.color} border shadow-md`
                     : 'bg-card text-muted-foreground border-border hover:bg-accent hover:text-accent-foreground'
                 )}
               >

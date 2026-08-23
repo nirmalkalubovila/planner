@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Pin, Trash2, Edit2, Bell, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { VaultNote, CATEGORY_META } from '@llb/core';
+import { CATEGORY_CLASSES } from '@/theme/category-classes';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { VaultReminder } from '@/api/services/reminder-service';
@@ -44,6 +45,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
 
   const date = new Date(note.createdAt);
   const meta = CATEGORY_META[note.category] || CATEGORY_META.ideas;
+  const classes = CATEGORY_CLASSES[note.category] || CATEGORY_CLASSES.ideas;
 
   return (
     <motion.article
@@ -55,7 +57,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
       className="group relative rounded-2xl border overflow-hidden flex flex-col bg-card border-border hover:border-primary/40 transition-[border-color,box-shadow] duration-150 cursor-pointer shadow-sm hover:shadow-md"
     >
       {/* Category accent bar */}
-      <div className={cn('h-1 w-full', meta.bgClass.replace('/10', '/40'))} />
+      <div className={cn('h-1 w-full', classes.bgClass.replace('/10', '/40'))} />
 
       <div className="p-4 flex flex-col gap-2 flex-1">
         {/* Title + category badge */}
@@ -74,7 +76,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
                 <Bell size={10} className="animate-pulse" />
               </span>
             )}
-            <span className={cn('text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border', meta.bgClass, meta.color)}>
+            <span className={cn('text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border', classes.bgClass, classes.color)}>
               {meta.label}
             </span>
           </div>

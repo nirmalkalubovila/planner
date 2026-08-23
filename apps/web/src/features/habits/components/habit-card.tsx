@@ -5,6 +5,7 @@ import { Habit } from '@llb/core';
 import { cn } from '@/lib/utils';
 
 import { BUCKET_META } from '@llb/core';
+import { BUCKET_CLASSES } from '@/theme/bucket-classes';
 
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_MAP: Record<string, string> = {
@@ -70,7 +71,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit, onDelete })
                         </span>
                     )}
                     {habit.bucket && BUCKET_META[habit.bucket] && (
-                        <span className={cn("shrink-0 mt-0.5 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", BUCKET_META[habit.bucket].badgeClass)}>
+                        <span className={cn("shrink-0 mt-0.5 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", BUCKET_CLASSES[habit.bucket].badgeClass)}>
                             {BUCKET_META[habit.bucket].label}
                         </span>
                     )}

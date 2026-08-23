@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "npm run dev -w @llb/web",
     "build": "npm run build -w @llb/web",
-    "lint": "npm run lint -w @llb/web",
+    "lint": "npm run lint -w @llb/core && npm run lint -w @llb/web",
     "preview": "npm run preview -w @llb/web",
     "test": "npm run test -w @llb/core && npm run test -w @llb/web",
     "typecheck": "npm run typecheck -w @llb/core && npm run typecheck -w @llb/web"

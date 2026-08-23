@@ -1,5 +1,6 @@
 import React from 'react';
 import { LIFE_BUCKETS, BUCKET_META, LifeBucket } from '@llb/core';
+import { BUCKET_CLASSES } from '@/theme/bucket-classes';
 import { Briefcase, Sparkles, HeartPulse, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +42,7 @@ export const BucketSelector: React.FC<BucketSelectorProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {LIFE_BUCKETS.map((bucketKey) => {
           const meta = BUCKET_META[bucketKey];
+          const classes = BUCKET_CLASSES[bucketKey];
           const isSelected = value === bucketKey;
           return (
             <button
@@ -51,13 +53,13 @@ export const BucketSelector: React.FC<BucketSelectorProps> = ({
               className={cn(
                 "flex items-start gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 text-left cursor-pointer",
                 isSelected
-                  ? cn("bg-accent border-foreground/30 shadow-sm", meta.color)
+                  ? cn("bg-accent border-foreground/30 shadow-sm", classes.color)
                   : "bg-card/60 border-border text-muted-foreground hover:text-foreground hover:bg-accent/40"
               )}
             >
               <div className={cn(
                 "p-1 rounded-lg shrink-0 border mt-0.5",
-                isSelected ? meta.badgeClass : "bg-muted border-border text-muted-foreground"
+                isSelected ? classes.badgeClass : "bg-muted border-border text-muted-foreground"
               )}>
                 {BUCKET_ICONS[bucketKey]}
               </div>

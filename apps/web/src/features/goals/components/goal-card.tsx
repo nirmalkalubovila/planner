@@ -10,6 +10,7 @@ import { calculateGoalProgress } from '@llb/core';
 import { motion } from 'framer-motion';
 
 import { BUCKET_META } from '@llb/core';
+import { BUCKET_CLASSES } from '@/theme/bucket-classes';
 
 const GoldenSparkles = () => {
     const sparkles = Array.from({ length: 6 });
@@ -235,7 +236,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                             {goal.goalType}
                         </span>
                         {goal.bucket && BUCKET_META[goal.bucket] && (
-                            <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", BUCKET_META[goal.bucket].badgeClass)}>
+                            <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", BUCKET_CLASSES[goal.bucket].badgeClass)}>
                                 {BUCKET_META[goal.bucket].label}
                             </span>
                         )}
