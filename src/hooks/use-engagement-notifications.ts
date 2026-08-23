@@ -59,7 +59,7 @@ export function useEngagementNotifications() {
 
             const title = 'Midday Check-In';
             const body = `You've completed ${completedCount}/${totalTaskCount} tasks so far. ${remaining} remaining -- keep the momentum going!`;
-            const dedupKey = `midday-checkin-${today}`;
+            const dedupKey = `midday-checkin-${userId}-${today}`;
 
             addNotification({
               type: 'midday_checkin',
@@ -89,7 +89,7 @@ export function useEngagementNotifications() {
 
             const title = 'Habit Streak at Risk';
             const body = `Your streak might break today -- you still have ${habitTasks.length} habit${habitTasks.length !== 1 ? 's' : ''} to complete.`;
-            const dedupKey = `habit-streak-risk-${today}`;
+            const dedupKey = `habit-streak-risk-${userId}-${today}`;
 
             addNotification({
               type: 'habit_streak_risk',

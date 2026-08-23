@@ -61,7 +61,7 @@ export function useGoalNotifications() {
             : 0;
 
           const dayWord = diffDays === 1 ? 'day' : 'days';
-          const title = `🎯 "${displayGoalName}" deadline in ${diffDays} ${dayWord}`;
+          const title = `"${displayGoalName}" deadline in ${diffDays} ${dayWord}`;
           const body = progress > 0
             ? `You're at ${progress}% progress. ${diffDays <= 1 ? 'Final push!' : 'Keep working on it!'}`
             : `Deadline approaching. Start making progress on your milestones!`;

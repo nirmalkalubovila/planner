@@ -64,7 +64,7 @@ export function useSleepAndPlanningNotifications() {
 
           const title = 'Bedtime Reminder';
           const body = "It's time to sleep. Wind down and get some rest!";
-          const dedupKey = `sleep-start-${today}`;
+          const dedupKey = `sleep-start-${userId}-${today}`;
 
           addNotification({
             type: 'sleep_start',
@@ -91,7 +91,7 @@ export function useSleepAndPlanningNotifications() {
 
           const title = 'Good Morning!';
           const body = 'Wake up time! Time to start a brand new day of building your legacy.';
-          const dedupKey = `sleep-end-${today}`;
+          const dedupKey = `sleep-end-${userId}-${today}`;
 
           addNotification({
             type: 'sleep_end',
@@ -119,7 +119,7 @@ export function useSleepAndPlanningNotifications() {
 
           const title = 'Weekly Planning';
           const body = `It's time for your weekly planning session (${planTime}). Set your goals and build your legacy!`;
-          const dedupKey = `weekly-planning-${today}`;
+          const dedupKey = `weekly-planning-${userId}-${today}`;
 
           addNotification({
             type: 'weekly_planning',
