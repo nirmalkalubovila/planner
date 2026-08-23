@@ -7,7 +7,7 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./tailwind-preset.js": "./tailwind-preset.js",
+    "./tailwind-preset.cjs": "./tailwind-preset.cjs",
     "./tokens.css": "./tokens.css"
   },
   "scripts": {

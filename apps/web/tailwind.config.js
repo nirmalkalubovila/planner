@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 import tailwindAnimate from "tailwindcss-animate";
-import { themeExtend } from "@llb/tokens/tailwind-preset.js";
+import { themeExtend } from "@llb/tokens/tailwind-preset.cjs";
 
 export default {
     darkMode: ["class"],

@@ -7,7 +7,7 @@
  *
  * @type {import('tailwindcss').Config['theme']}
  */
-export const themeExtend = {
+const themeExtend = {
   colors: {
     border: "hsl(var(--border))",
     input: "hsl(var(--input))",
@@ -72,4 +72,4 @@ export const themeExtend = {
   },
 };
 
-export default { theme: { extend: themeExtend } };
+module.exports = { themeExtend, default: { theme: { extend: themeExtend } } };

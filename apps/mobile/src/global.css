@@ -1,0 +1,9 @@
+/* Shared HSL-variable theme (:root/.dark/.light) — same source web uses.
+   Must come before every other rule (CSS requires @import to precede all
+   non-@import rules, including @tailwind, or it's silently dropped — see
+   apps/web/src/index.css for the same lesson learned the hard way). */
+@import "../../../packages/tokens/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

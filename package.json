@@ -12,9 +12,14 @@
     "lint": "npm run lint -w @llb/core && npm run lint -w @llb/api && npm run lint -w @llb/notifications && npm run lint -w @llb/tokens && npm run lint -w @llb/web",
     "preview": "npm run preview -w @llb/web",
     "test": "npm run test -w @llb/core && npm run test -w @llb/web",
-    "typecheck": "npm run typecheck -w @llb/core && npm run typecheck -w @llb/api && npm run typecheck -w @llb/notifications && npm run typecheck -w @llb/tokens && npm run typecheck -w @llb/web"
+    "typecheck": "npm run typecheck -w @llb/core && npm run typecheck -w @llb/api && npm run typecheck -w @llb/notifications && npm run typecheck -w @llb/tokens && npm run typecheck -w @llb/web && npm run typecheck -w @llb/mobile"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "nativewind": {
+      "tailwindcss": "^3.4.17"
+    }
   }
 }
