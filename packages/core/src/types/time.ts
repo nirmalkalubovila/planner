@@ -8,9 +8,8 @@ export interface BucketMeta {
 
 // Presentational fields (color/bgClass/borderClass/badgeClass Tailwind
 // strings) moved to apps/web/src/theme/bucket-classes.ts — shared code
-// must not embed web-only class strings. See also BUCKET_TONE below for
-// the raw color each bucket maps to, for non-Tailwind consumers (canvas
-// renderers, native gradients).
+// must not embed web-only class strings. Raw color per bucket (for
+// non-Tailwind consumers) lives in @llb/tokens' BUCKET_TONE.
 export const BUCKET_META: Record<LifeBucket, BucketMeta> = {
   income: {
     label: 'Income-Producing',
@@ -28,19 +27,6 @@ export const BUCKET_META: Record<LifeBucket, BucketMeta> = {
     label: 'Relational',
     description: 'Family, friends, real human connection',
   },
-};
-
-export interface BucketTone {
-  name: string;
-  hex: string;
-}
-
-/** Raw color per bucket, independent of any styling system. */
-export const BUCKET_TONE: Record<LifeBucket, BucketTone> = {
-  income: { name: 'emerald', hex: '#34d399' },
-  asset: { name: 'violet', hex: '#a78bfa' },
-  recovery: { name: 'sky', hex: '#38bdf8' },
-  relational: { name: 'amber', hex: '#fbbf24' },
 };
 
 export interface WeeklyPriorityItem {

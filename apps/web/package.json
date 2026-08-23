@@ -15,6 +15,7 @@
     "@llb/api": "*",
     "@llb/core": "*",
     "@llb/notifications": "*",
+    "@llb/tokens": "*",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
     "@supabase/supabase-js": "^2.97.0",

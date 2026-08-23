@@ -18,7 +18,8 @@ export type VaultFilter = 'all' | VaultCategory | 'reminders';
 
 // Presentational fields (color/bgClass Tailwind strings) moved to
 // apps/web/src/theme/category-classes.ts — shared code must not embed
-// web-only class strings. See CATEGORY_TONE below for the raw color.
+// web-only class strings. Raw color per category (for non-Tailwind
+// consumers) lives in @llb/tokens' CATEGORY_TONE.
 export const CATEGORY_META: Record<VaultCategory, { label: string }> = {
   ideas: { label: 'Ideas' },
   problems: { label: 'Problems' },
@@ -27,20 +28,4 @@ export const CATEGORY_META: Record<VaultCategory, { label: string }> = {
   quotes: { label: 'Quotes' },
   reading: { label: 'Reading' },
   resources: { label: 'Resources' },
-};
-
-export interface CategoryTone {
-  name: string;
-  hex: string;
-}
-
-/** Raw color per category, independent of any styling system. */
-export const CATEGORY_TONE: Record<VaultCategory, CategoryTone> = {
-  ideas: { name: 'cyan', hex: '#22d3ee' },
-  problems: { name: 'rose', hex: '#fb7185' },
-  future: { name: 'violet', hex: '#a78bfa' },
-  nextweek: { name: 'amber', hex: '#fbbf24' },
-  quotes: { name: 'emerald', hex: '#34d399' },
-  reading: { name: 'teal', hex: '#2dd4bf' },
-  resources: { name: 'indigo', hex: '#818cf8' },
 };
