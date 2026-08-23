@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useGetGoals } from '@/api/services/goal-service';
+import { useGetGoals } from '@llb/api';
 import { useNotificationStore } from '@/lib/notification-store';
 import type { Goal, Milestone } from '@llb/core';
 import { useAuth } from '@/contexts/auth-context';

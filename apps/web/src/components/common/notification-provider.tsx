@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { useNotificationStore } from '@/lib/notification-store';
 import { getPermissionStatus, subscribeToPush } from '@/lib/notification-service';
 import { useTaskNotifications } from '@/hooks/use-task-notifications';

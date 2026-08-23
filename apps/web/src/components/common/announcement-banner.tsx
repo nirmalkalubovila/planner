@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Sparkles, X, Check, ExternalLink, Star, Send, MessageSquareCheck } from 'lucide-react';
 import { useLatestUpdate } from '@/hooks/use-latest-update';
-import { useLandingSettings, useSubmitFeedback } from '@/api/services/feedback-service';
+import { useLandingSettings } from '@/api/services/feedback-service';
+import { useSubmitFeedback } from '@llb/api';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@llb/core';
 

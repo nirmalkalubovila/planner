@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from '@llb/core';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { ProfileInfo } from './components/profile-info';
 import { ProfilePreferences } from './components/profile-preferences';
 import { ProfileSecurity } from './components/profile-security';

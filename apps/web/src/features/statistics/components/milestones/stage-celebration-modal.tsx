@@ -18,9 +18,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useSubmitFeedback } from '@/api/services/feedback-service';
+import { useSubmitFeedback } from '@llb/api';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import type { MilestoneStage } from '@/utils/milestone-engine';
 import { markMilestoneAsCelebrated } from '@/utils/milestone-engine';
 

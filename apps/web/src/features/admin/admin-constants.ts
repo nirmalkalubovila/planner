@@ -6,17 +6,9 @@ export const ADMIN_EMAILS = [
 export const isAdminEmail = (email: string | undefined): boolean =>
   !!email && ADMIN_EMAILS.includes(email as typeof ADMIN_EMAILS[number]);
 
-export const FEEDBACK_CATEGORIES = [
-  'Bug Report',
-  'Feature Request',
-  'About Legacy Life Builder',
-  'Other',
-] as const;
-
-export type FeedbackCategory = typeof FEEDBACK_CATEGORIES[number];
-
-export const FEEDBACK_STATUSES = ['open', 'reviewed', 'resolved'] as const;
-export type FeedbackStatus = typeof FEEDBACK_STATUSES[number];
+// Moved to @llb/core (shared with the plain feedback-submit form).
+export { FEEDBACK_CATEGORIES, type FeedbackCategory, FEEDBACK_STATUSES, type FeedbackStatus } from '@llb/core';
+import type { FeedbackStatus } from '@llb/core';
 
 export const STATUS_COLORS: Record<FeedbackStatus, string> = {
   open: 'bg-amber-500/15 text-amber-400 border-amber-500/20',

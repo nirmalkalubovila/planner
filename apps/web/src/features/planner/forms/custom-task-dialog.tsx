@@ -3,7 +3,7 @@ import { Clock, Calendar, Check, Library, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useCreateCustomTask } from '@/api/services/custom-task-service';
+import { useCreateCustomTask } from '@llb/api';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { CUSTOM_TASK_COLORS } from '@llb/core';
 import { StandardDialog } from '@/components/common/standard-dialog';

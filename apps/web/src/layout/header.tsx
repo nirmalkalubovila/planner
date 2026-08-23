@@ -5,7 +5,7 @@ import { Settings, LogOut, Sparkles } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { NotificationBell } from '@/components/common/notification-bell';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { useTimeLived } from '@/hooks/use-time-lived';
 import {
     Popover,

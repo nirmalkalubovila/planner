@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabaseClient";
-import { getCurrentUserId } from "@/api/helpers/auth-helpers";
+import { supabase } from '../supabase-client';
+import { getCurrentUserId } from '../helpers/auth-helpers';
 import type { User } from "@supabase/supabase-js";
 import { handleFriendlyError } from '@llb/core';
 

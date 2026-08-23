@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '../supabase-client';
 
 export async function getCurrentUserId(): Promise<string> {
     const { data: { session } } = await supabase.auth.getSession();

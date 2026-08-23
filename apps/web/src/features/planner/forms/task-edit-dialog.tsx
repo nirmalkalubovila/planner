@@ -3,7 +3,7 @@ import { Check, Trash2, Tag, Target, FileText, Clock, Repeat } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useGetGoals } from '@/api/services/goal-service';
+import { useGetGoals } from '@llb/api';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { BucketSelector } from '@/components/common/bucket-selector';

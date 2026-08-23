@@ -6,7 +6,7 @@ import { VaultNote, CATEGORY_META } from '@llb/core';
 import { CATEGORY_CLASSES } from '@/theme/category-classes';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { VaultReminder } from '@/api/services/reminder-service';
+import { VaultReminder } from '@llb/api';
 import { QuoteCard } from './quote-card';
 
 interface NoteCardProps {

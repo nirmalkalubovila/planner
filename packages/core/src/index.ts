@@ -12,6 +12,7 @@ export * from './types/planner';
 export * from './types/time';
 export * from './types/vault';
 export * from './types/notification-types';
+export * from './types/feedback';
 
 export * from './constants/scheduling';
 

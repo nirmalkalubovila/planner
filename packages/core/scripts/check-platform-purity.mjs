@@ -7,15 +7,20 @@
 // not a type error) and Tailwind class strings (valid, well-typed string
 // literals that just don't belong here).
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 
-const SRC = join(import.meta.dirname, '..', 'src');
+// Reusable across packages: run from the target package's directory (as an
+// npm script always does) and it checks that package's own `src/`, or pass
+// an explicit path as the first argument.
+const SRC = resolve(process.cwd(), process.argv[2] ?? 'src');
 
 // A conservative match for Tailwind utility tokens: a known prefix followed
-// by a dash and a value. Deliberately narrow to avoid false positives on
-// ordinary prose/identifiers.
+// by a dash and a value. The value must START with an alphanumeric or `[`
+// (never `]`, `.`, `(`, `-`) so this doesn't false-positive on things like
+// a `[\w-]` regex character class. Deliberately narrow to avoid false
+// positives on ordinary prose/identifiers.
 const TAILWIND_PATTERN =
-  /\b(?:bg|text|border|from|to|via|ring|shadow|rounded|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|w|h|gap|flex|grid|z|opacity|backdrop)-[a-z0-9/\[\]().%#-]+/;
+  /\b(?:bg|text|border|from|to|via|ring|shadow|rounded|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|w|h|gap|flex|grid|z|opacity|backdrop)-[a-z0-9[][a-z0-9/[\]().%#-]*/;
 
 const IMPORT_META_PATTERN = /\bimport\.meta\b/;
 

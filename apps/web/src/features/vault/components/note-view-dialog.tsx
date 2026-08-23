@@ -7,7 +7,7 @@ import { VaultNote, CATEGORY_META } from '@llb/core';
 import { CATEGORY_CLASSES } from '@/theme/category-classes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { VaultReminder } from '@/api/services/reminder-service';
+import { VaultReminder } from '@llb/api';
 
 interface NoteViewDialogProps {
   isOpen: boolean;

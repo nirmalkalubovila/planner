@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { useNotificationStore } from '@/lib/notification-store';
 
 const STORAGE_KEY_SLEEP_START = 'llb-last-sleep-start-date';

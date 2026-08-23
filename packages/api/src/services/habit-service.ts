@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Habit } from '@llb/core';
-import { supabase } from "@/lib/supabaseClient";
-import { getCurrentUserId, getOptionalUserId } from "@/api/helpers/auth-helpers";
+import { supabase } from '../supabase-client';
+import { getCurrentUserId, getOptionalUserId } from '../helpers/auth-helpers';
 import { toast } from '@llb/core';
 
 const TABLE_NAME = "habits";

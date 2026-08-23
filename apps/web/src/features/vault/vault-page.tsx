@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Plus, Vault, Lightbulb, FileText, X } from 'lucide-react';
-import { useNotes, useAddNote, useUpdateNote, useTogglePinNote, useDeleteNote } from '@/api/services/vault-service';
-import { useReminders } from '@/api/services/reminder-service';
+import { useNotes, useAddNote, useUpdateNote, useTogglePinNote, useDeleteNote } from '@llb/api';
+import { useReminders } from '@llb/api';
 import { VaultFilters } from '@/features/vault/components/vault-filters';
 import { NoteCard } from './components/note-card';
 import { NoteViewDialog } from './components/note-view-dialog';

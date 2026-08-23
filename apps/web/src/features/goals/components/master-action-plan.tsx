@@ -8,7 +8,7 @@ import { Check, Save, X, Edit3, ChevronRight, ChevronDown, BrainCircuit, UserCog
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { toast } from '@llb/core';
 
 interface MasterActionPlanProps {

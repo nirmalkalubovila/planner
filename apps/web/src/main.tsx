@@ -4,6 +4,7 @@ import { ThemeProvider } from 'next-themes'
 import App from './App'
 import './index.css'
 import './lib/platform-adapters'
+import './lib/supabaseClient'
 import { registerServiceWorker } from './lib/notification-service'
 
 // Register Service Worker for push notifications & PWA

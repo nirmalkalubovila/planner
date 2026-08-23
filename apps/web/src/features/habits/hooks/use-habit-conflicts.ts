@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { Habit } from '@llb/core';
 import { timeToMinutes, minutesToTime, isTimeOverlapping, isSleepOverlapping } from '@llb/core';
 

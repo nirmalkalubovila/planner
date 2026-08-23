@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
-import { useGetHabits } from '@/api/services/habit-service';
+import { useUserProfile } from '@llb/api';
+import { useGetHabits } from '@llb/api';
 import { WeekUtils } from '@llb/core';
 import { GridState, Habit } from '@llb/core';
 import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@llb/core';

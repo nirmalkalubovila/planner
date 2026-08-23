@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Bell, Clock, Calendar } from 'lucide-react';
-import { useAddReminder, useUpdateReminder, useDeleteReminder, VaultReminder } from '@/api/services/reminder-service';
+import { useAddReminder, useUpdateReminder, useDeleteReminder, VaultReminder } from '@llb/api';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

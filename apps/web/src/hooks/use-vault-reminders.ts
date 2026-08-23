@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useReminders, useUpdateReminder, calculateNextFire } from '@/api/services/reminder-service';
+import { useReminders, useUpdateReminder, calculateNextFire } from '@llb/api';
 import { useNotificationStore } from '@/lib/notification-store';
 import { sendNotification } from '@/lib/notification-service';
 export function useVaultReminders() {

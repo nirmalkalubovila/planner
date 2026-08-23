@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGetWeekPlan, useGetWeekBucketActions } from '@/api/services/planner-service';
-import { useGetHabits } from '@/api/services/habit-service';
-import { useGetCompletedTasks, useToggleCompletedTask } from '@/api/services/today-service';
+import { useGetWeekPlan, useGetWeekBucketActions } from '@llb/api';
+import { useGetHabits } from '@llb/api';
+import { useGetCompletedTasks, useToggleCompletedTask } from '@llb/api';
 import { WeekUtils } from '@llb/core';
 import { Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';

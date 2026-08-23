@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { GridState } from '@llb/core';
 import { WeeklyBucketActions } from '@llb/core';
 import { WeekUtils } from '@llb/core';
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from '../supabase-client';
 import { toast } from '@llb/core';
 import { handleFriendlyError } from '@llb/core';
 

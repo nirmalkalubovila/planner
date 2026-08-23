@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { AuthError } from '@/components/ui/auth-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

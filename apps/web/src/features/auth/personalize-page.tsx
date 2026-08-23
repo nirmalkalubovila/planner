@@ -1,7 +1,7 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { PersonalizeForm } from './forms/personalize-form';
 import { StandardDialog } from '@/components/common/standard-dialog';
 

@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { toast } from '@llb/core';
 import { Goal, AIGeneratedPlanSlot } from '@llb/core';
 import { recordGenTime } from '@/components/common/ai-loading-popup';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { supabase } from '@/lib/supabaseClient';
 
 export function cleanJsonResponse(text: string): string {

@@ -1,22 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CustomTask } from '@llb/core';
-import { supabase } from "@/lib/supabaseClient";
-import { getCurrentUserId, getOptionalUserId } from "@/api/helpers/auth-helpers";
+import { supabase } from '../supabase-client';
+import { getCurrentUserId, getOptionalUserId } from '../helpers/auth-helpers';
 import { toast } from '@llb/core';
 
-const TABLE_NAME = "custom_tasks";
+const TABLE_NAME = "missed_tasks";
 
-const getEndTimeOfReminder = (timeStr: string): string => {
-    if (!timeStr || !timeStr.includes(':')) return '10:00';
-    const [h, m] = timeStr.split(':').map(Number);
-    const startMinutes = h * 60 + m;
-    const endMinutes = startMinutes + 30;
-    const endH = Math.floor(endMinutes / 60) % 24;
-    const endM = endMinutes % 60;
-    return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-};
-
-const getCustomTasks = async (): Promise<CustomTask[]> => {
+const getMissedTasks = async (): Promise<CustomTask[]> => {
     const userId = await getOptionalUserId();
     if (!userId) return [];
 
@@ -27,23 +17,18 @@ const getCustomTasks = async (): Promise<CustomTask[]> => {
         .order("createdAt", { ascending: false });
 
     if (error) throw new Error(error.message);
-    const tasks = data || [];
-    return tasks.map((task: any) => ({
-        ...task,
-        isReminder: task.endTime === 'reminder',
-        endTime: task.endTime === 'reminder' ? getEndTimeOfReminder(task.startTime) : task.endTime
-    }));
+    return (data || []) as CustomTask[];
 };
 
-export function useGetCustomTasks() {
+export function useGetMissedTasks() {
     return useQuery({
         queryKey: [TABLE_NAME],
-        queryFn: getCustomTasks,
+        queryFn: getMissedTasks,
         staleTime: 5 * 60 * 1000, // 5 min -- prevents unnecessary re-fetches on mount
     });
 }
 
-export function useCreateCustomTask() {
+export function useCreateMissedTask() {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -51,17 +36,11 @@ export function useCreateCustomTask() {
             const userId = await getCurrentUserId();
 
             const cleanTask = Object.fromEntries(
-                Object.entries(task).filter(([k, v]) => v !== undefined && k !== 'color' && k !== 'isReminder')
+                Object.entries(task).filter(([k, v]) => v !== undefined && k !== 'color' && k !== 'id')
             );
-            if (task.isReminder) {
-                cleanTask.endTime = 'reminder';
-            }
 
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                // cleanTask is built via Object.fromEntries, which erases the
-                // per-key shape Supabase's generated Insert type needs — the
-                // required fields are present at runtime, just not provable here.
                 .insert({ ...cleanTask, user_id: userId } as any)
                 .select()
                 .single();
@@ -71,15 +50,15 @@ export function useCreateCustomTask() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
-            toast.success("Task added to library!");
+            toast.success("Task added to Missed Library!");
         },
         onError: (error: any) => {
-            toast.error("Failed to add to library: " + error.message);
+            toast.error("Failed to add to Missed Library: " + error.message);
         }
     });
 }
 
-export function useDeleteCustomTask() {
+export function useDeleteMissedTask() {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -96,7 +75,7 @@ export function useDeleteCustomTask() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
-            toast.success("Task removed from library.");
+            toast.success("Task removed from Missed Library.");
         }
     });
 }

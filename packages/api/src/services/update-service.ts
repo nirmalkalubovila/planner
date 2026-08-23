@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from '../supabase-client';
 
 export interface AppUpdate {
     id: string;

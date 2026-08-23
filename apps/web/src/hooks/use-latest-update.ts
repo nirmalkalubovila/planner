@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { AppUpdateService } from '@/api/services/update-service';
+import { AppUpdateService } from '@llb/api';
 
 export const useLatestUpdate = () => {
     return useQuery({

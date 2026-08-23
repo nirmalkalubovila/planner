@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquarePlus, Send, Bug, Lightbulb, MessageCircle, HelpCircle, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useSubmitFeedback } from '@/api/services/feedback-service';
-import { FEEDBACK_CATEGORIES, type FeedbackCategory } from '@/features/admin/admin-constants';
+import { useSubmitFeedback } from '@llb/api';
+import { FEEDBACK_CATEGORIES, type FeedbackCategory } from '@llb/core';
 import { useAuth } from '@/contexts/auth-context';
 import { useNavigate } from 'react-router-dom';
-import { useUserProfile } from '@/api/services/profile-service';
+import { useUserProfile } from '@llb/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CATEGORY_ICONS: Record<FeedbackCategory, React.ReactNode> = {
