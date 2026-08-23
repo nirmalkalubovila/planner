@@ -6,11 +6,11 @@ import {
   generateWeeklyWins,
   generateMonthlyWins,
   generateMilestoneInsightCard,
-} from '@/utils/insights-engine';
-import { MILESTONE_STAGES } from '@/utils/milestone-engine';
-import type { Goal, Habit, CustomTask } from '@/types/global-types';
-import type { GridState, PlanSlot } from '@/types/planner';
-import type { VaultNote } from '@/types/vault';
+} from '../insights-engine';
+import { MILESTONE_STAGES } from '../milestone-engine';
+import type { Goal, Habit, CustomTask } from '../../types/domain';
+import type { GridState, PlanSlot } from '../../types/planner';
+import type { VaultNote } from '../../types/vault';
 
 // Golden-value tests for the insights engine. The two "generate*" families
 // (Weekly/Monthly Insights, Weekly/Monthly Wins) are large orchestration
@@ -74,10 +74,14 @@ describe('extractCustomTasksFromPlans', () => {
     // Note: a slot only contributes if it has `bucket` set directly on it —
     // a goal slot that only carries a goalId (bucket lives on the Goal
     // record, resolved elsewhere) is NOT picked up here.
-    const planWithReminder: GridState = {
+    // GridState's `Record<string, PlanSlot> & { reminders?: ReminderItem[] }`
+    // shape means a literal with both a slot and `reminders` can't satisfy
+    // the index signature structurally — the source code itself works
+    // around this the same way (see insights-engine.ts's `(wp.state as any)`).
+    const planWithReminder = {
       '5-5': { type: 'custom', name: 'Deep Work', bucket: 'income' } as PlanSlot,
-      reminders: [{ name: 'Call the bank', bucket: 'income' }],
-    } as GridState;
+      reminders: [{ id: 'r1', name: 'Call the bank', time: '09:00', dayIdx: 5, bucket: 'income' }],
+    } as unknown as GridState;
 
     const result = extractCustomTasksFromPlans(
       [{ week: '2026-34', state: planWithReminder }],

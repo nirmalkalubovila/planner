@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { WeekUtils } from '@/utils/week';
+import { WeekUtils } from '../week';
 
 // Golden-value tests: capture today's WeekUtils behavior for fixed inputs so a
 // later refactor (moving this into @llb/core, de-DOM-ing, etc.) can be

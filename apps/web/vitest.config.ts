@@ -14,5 +14,9 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['src/**/*.test.ts'],
+    // No web-specific tests yet — the business-logic tests moved to
+    // @llb/core alongside the code they cover. Don't fail CI on an
+    // empty suite; remove once apps/web grows its own tests.
+    passWithNoTests: true,
   },
 });

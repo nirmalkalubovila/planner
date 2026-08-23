@@ -6,9 +6,9 @@ import {
   calculateBucketBalanceScores,
   TOTAL_WEEK_HOURS,
   type WeeklyBucketHistory,
-} from '@/utils/bucket-engine';
-import type { Goal, Habit, CustomTask } from '@/types/global-types';
-import type { GridState, PlanSlot } from '@/types/planner';
+} from '../bucket-engine';
+import type { Goal, Habit, CustomTask } from '../../types/domain';
+import type { GridState, PlanSlot } from '../../types/planner';
 
 // Golden-value tests for the bucket engine — capture today's behavior for
 // fixed inputs so the move to @llb/core can be verified lossless.

@@ -1,2 +1,3 @@
-// Re-export for backward compatibility. New code should import from '@/utils/week'.
-export { WeekUtils } from './week';
+// Re-export for backward compatibility. New code should import from
+// '@llb/core' (week) directly.
+export { WeekUtils } from '@llb/core';

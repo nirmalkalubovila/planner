@@ -1,26 +1,7 @@
-import { LifeBucket } from './time';
-
-export interface ReminderItem {
-    id: string;
-    name: string;
-    time: string; // e.g. "14:15"
-    dayIdx: number; // 0-6
-    description?: string;
-    color?: string;
-    isReminder?: boolean;
-    bucket?: LifeBucket;
-}
-
-export interface PlanSlot {
-    type: 'goal' | 'custom' | 'habit' | 'sleep' | 'plan' | 'cleared';
-    name: string;
-    goalId?: string;
-    color?: string;
-    isReminder?: boolean;
-    description?: string;
-    bucket?: LifeBucket;
-}
-
-export type GridState = Record<string, PlanSlot> & {
-    reminders?: ReminderItem[];
-};
+// Moved to @llb/core (platform-agnostic). Re-exported here so existing
+// `@/types/planner` imports keep working unchanged.
+export {
+  type ReminderItem,
+  type PlanSlot,
+  type GridState,
+} from '@llb/core';

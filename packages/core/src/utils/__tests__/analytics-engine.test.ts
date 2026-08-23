@@ -9,9 +9,9 @@ import {
   analyzeWeekExecution,
   analyzeAllWeeks,
   computeLifeTrajectory,
-} from '@/utils/analytics-engine';
-import type { Goal, Habit } from '@/types/global-types';
-import type { GridState, PlanSlot } from '@/types/planner';
+} from '../analytics-engine';
+import type { Goal, Habit } from '../../types/domain';
+import type { GridState, PlanSlot } from '../../types/planner';
 
 // Golden-value tests for the analytics engine. Several functions here read
 // the system clock internally (progress-over-time, velocity, habit streak
