@@ -73,7 +73,7 @@ export function useDaySummary() {
           body = `You completed ${completedCount}/${totalTasks} tasks today. Remember, productivity has seasons, and resting is part of the work. Forgive the unfinished list and sleep peacefully.`;
         }
 
-        const dedupKey = `day-summary-${today}`;
+        const dedupKey = `day-summary-${userId}-${today}`;
 
         addNotification({
           type: 'day_summary',

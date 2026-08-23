@@ -188,7 +188,7 @@ export function useTaskNotifications() {
 
       if (overdueTasks.length > 2) {
         // If there are more than 2 overdue tasks, show a single batch notification
-        const batchDedupKey = `task-overdue-batch-${currentDayStr}`;
+        const batchDedupKey = `task-overdue-batch-${userId}-${currentDayStr}`;
         if (!notifiedBatch && !shownKeys.includes(batchDedupKey) && !deletedKeys.includes(batchDedupKey)) {
           // Mark all these overdue tasks as notified
           overdueTasks.forEach((t) => notifiedTasks.add(t.id));

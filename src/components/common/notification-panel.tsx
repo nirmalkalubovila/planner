@@ -250,7 +250,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, on
                     <div className="w-14 h-14 rounded-2xl bg-muted border border-border flex items-center justify-center mb-4">
                       <BellOff size={24} className="text-muted-foreground/30" />
                     </div>
-                    <p className="text-sm font-bold text-muted-foreground">All caught up! 🎉</p>
+                    <p className="text-sm font-bold text-muted-foreground">All caught up!</p>
                     <p className="text-xs text-muted-foreground/60 mt-1">No new notifications</p>
                   </div>
                 ) : (

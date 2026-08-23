@@ -67,7 +67,7 @@ export function useDailyBriefing() {
       ? `You have ${taskCount} task${taskCount !== 1 ? 's' : ''} scheduled today.${yesterdayText} Let's build your legacy!`
       : `No tasks scheduled for today.${yesterdayText} Use the planner to add some!`;
 
-    const dedupKey = `daily-briefing-${today}`;
+    const dedupKey = `daily-briefing-${userId}-${today}`;
 
     // Small delay so the app has time to render first
     setTimeout(() => {
@@ -122,7 +122,7 @@ export function useDailyBriefing() {
       }
     }
 
-    const dedupKey = `weekly-summary-${currentWeek}`;
+    const dedupKey = `weekly-summary-${userId}-${currentWeek}`;
 
     setTimeout(() => {
       addNotification({
