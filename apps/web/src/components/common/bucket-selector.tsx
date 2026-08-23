@@ -1,5 +1,5 @@
 import React from 'react';
-import { LIFE_BUCKETS, BUCKET_META, LifeBucket } from '@/types/time';
+import { LIFE_BUCKETS, BUCKET_META, LifeBucket } from '@llb/core';
 import { Briefcase, Sparkles, HeartPulse, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

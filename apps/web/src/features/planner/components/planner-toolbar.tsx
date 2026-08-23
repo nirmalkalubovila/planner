@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand, FolderHeart, Compass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { CustomTask } from '@/types/global-types';
+import { CustomTask } from '@llb/core';
 import { cn } from '@/lib/utils';
 import { StandardDialog } from '@/components/common/standard-dialog';
 

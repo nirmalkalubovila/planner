@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useGetWeekPlan } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetCompletedTasks } from '@/api/services/today-service';
-import { WeekUtils } from '@/utils/week-utils';
+import { WeekUtils } from '@llb/core';
 import { useTodayTasks } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@/lib/notification-store';
 import { useAuth } from '@/contexts/auth-context';

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import type { InsightCardData } from '@/utils/insights-engine';
+import type { InsightCardData } from '@llb/core';
 import type { InsightTheme } from './insight-themes';
 import { Target, Sparkles, TrendingUp, TrendingDown, BookOpen, AlertCircle, Trophy } from 'lucide-react';
-import { LIFE_BUCKETS, BUCKET_META } from '@/types/time';
+import { LIFE_BUCKETS, BUCKET_META } from '@llb/core';
 
 interface InsightCardProps {
   data: InsightCardData;

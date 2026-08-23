@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
+import { Goal, AIGeneratedPlanSlot } from '@llb/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar, ArrowRight } from 'lucide-react';

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import { WeekUtils } from '@/utils/week';
-import { calculateGoalProgress } from '@/utils/analytics-engine';
+import { WeekUtils } from '@llb/core';
+import { calculateGoalProgress } from '@llb/core';
 
 export interface UserStatsCache {
   predictive_burnout_warning: string | null;

@@ -5,11 +5,11 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useCreateCustomTask } from '@/api/services/custom-task-service';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
-import { CUSTOM_TASK_COLORS } from '@/utils/color-utils';
+import { CUSTOM_TASK_COLORS } from '@llb/core';
 import { StandardDialog } from '@/components/common/standard-dialog';
 
 import { BucketSelector } from '@/components/common/bucket-selector';
-import { LifeBucket } from '@/types/time';
+import { LifeBucket } from '@llb/core';
 
 interface CustomTaskDialogProps {
     isOpen: boolean;

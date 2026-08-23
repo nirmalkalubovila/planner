@@ -6,7 +6,7 @@ import {
   type MilestoneStage 
 } from '@/utils/milestone-engine';
 import { StageCelebrationModal } from '@/features/statistics/components/milestones/stage-celebration-modal';
-import { generateMilestoneInsightCard } from '@/utils/insights-engine';
+import { generateMilestoneInsightCard } from '@llb/core';
 import { INSIGHT_THEMES } from '@/features/statistics/components/insights/insight-themes';
 import { renderShareCardToCanvas } from '@/features/statistics/components/insights/share-card-renderer';
 import { shareToSocial, downloadShareImage, copyToClipboard } from '@/utils/share-utils';

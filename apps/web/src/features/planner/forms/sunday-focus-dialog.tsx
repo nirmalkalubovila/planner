@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link2, X, ChevronRight, ChevronLeft, Calendar } from 'lucide-react';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { Button } from '@/components/ui/button';
-import { LifeBucket, WeeklyBucketActions, WeeklyPriorityItem, DailyOutcomeItem } from '@/types/time';
-import { Goal, Habit, CustomTask } from '@/types/global-types';
+import { LifeBucket, WeeklyBucketActions, WeeklyPriorityItem, DailyOutcomeItem } from '@llb/core';
+import { Goal, Habit, CustomTask } from '@llb/core';
 import { useSaveBucketActions } from '@/api/services/planner-service';
-import { WeekUtils } from '@/utils/week-utils';
+import { WeekUtils } from '@llb/core';
 import { cn } from '@/lib/utils';
 
 interface SundayFocusDialogProps {

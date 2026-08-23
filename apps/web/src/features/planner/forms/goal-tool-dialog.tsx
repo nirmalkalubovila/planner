@@ -1,7 +1,7 @@
 import React from 'react';
 import { Target, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
+import { Goal, AIGeneratedPlanSlot } from '@llb/core';
 import { Input } from '@/components/ui/input';
 import { StandardDialog } from '@/components/common/standard-dialog';
 

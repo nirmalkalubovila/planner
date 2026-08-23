@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
-import { Habit } from '@/types/global-types';
-import { timeToMinutes, minutesToTime, isTimeOverlapping, isSleepOverlapping } from '@/utils/time';
+import { Habit } from '@llb/core';
+import { timeToMinutes, minutesToTime, isTimeOverlapping, isSleepOverlapping } from '@llb/core';
 
 interface ConflictCheckParams {
     startTime: string;

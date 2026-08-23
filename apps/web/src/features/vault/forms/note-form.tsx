@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { VAULT_CATEGORIES, CATEGORY_META } from '@/types/vault';
+import { VAULT_CATEGORIES, CATEGORY_META } from '@llb/core';
 
 const DRAFT_KEY = 'vault_note_draft';
 

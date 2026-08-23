@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import type { Goal, Habit } from '@/types/global-types';
-import type { VaultNote } from '@/types/vault';
-import type { GridState } from '@/types/planner';
+import type { Goal, Habit } from '@llb/core';
+import type { VaultNote } from '@llb/core';
+import type { GridState } from '@llb/core';
 import {
   generateWeeklyInsights,
   generateMonthlyInsights,
@@ -11,7 +11,7 @@ import {
   generateMilestoneInsightCard,
   type InsightCardData,
   type SystemWin
-} from '@/utils/insights-engine';
+} from '@llb/core';
 import { computeMilestoneProgress } from '@/utils/milestone-engine';
 
 export interface InsightsResult {

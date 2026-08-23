@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGetWeekPlan, useGetWeekBucketActions } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetCompletedTasks, useToggleCompletedTask } from '@/api/services/today-service';
-import { WeekUtils } from '@/utils/week-utils';
+import { WeekUtils } from '@llb/core';
 import { Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';

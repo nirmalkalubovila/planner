@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useGetGoals } from '@/api/services/goal-service';
 import { useNotificationStore } from '@/lib/notification-store';
-import type { Goal, Milestone } from '@/types/global-types';
+import type { Goal, Milestone } from '@llb/core';
 import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_DEADLINES = 'llb-notified-deadlines';

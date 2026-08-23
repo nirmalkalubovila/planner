@@ -1,6 +1,6 @@
 import React from 'react';
 import { Target, Link2 } from 'lucide-react';
-import { WeeklyBucketActions, WeeklyPriorityItem } from '@/types/time';
+import { WeeklyBucketActions, WeeklyPriorityItem } from '@llb/core';
 import { cn } from '@/lib/utils';
 
 interface BucketTargetsBarProps {

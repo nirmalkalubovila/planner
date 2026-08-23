@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import type { Goal, Habit, CustomTask } from '@/types/global-types';
-import type { GridState } from '@/types/planner';
-import { LIFE_BUCKETS, type LifeBucket } from '@/types/time';
-import { WeekUtils } from '@/utils/week';
+import type { Goal, Habit, CustomTask } from '@llb/core';
+import type { GridState } from '@llb/core';
+import { LIFE_BUCKETS, type LifeBucket } from '@llb/core';
+import { WeekUtils } from '@llb/core';
 import {
   analyzeAllGoals,
   analyzeAllHabits,
@@ -13,14 +13,14 @@ import {
   type HabitAnalysis,
   type WeekExecution,
   type LifeTrajectoryScore,
-} from '@/utils/analytics-engine';
+} from '@llb/core';
 import {
   calculateWeekBucketHours,
   detectEmptyBucketStreaks,
   calculateBucketBalanceScores,
   type BucketStats,
   type WeeklyBucketHistory,
-} from '@/utils/bucket-engine';
+} from '@llb/core';
 import {
   computeMilestoneProgress,
   type MilestoneProgress,

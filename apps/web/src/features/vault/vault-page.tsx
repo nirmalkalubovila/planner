@@ -8,7 +8,7 @@ import { NoteCard } from './components/note-card';
 import { NoteViewDialog } from './components/note-view-dialog';
 import { NoteForm, NoteFormValues, clearNoteDraft, loadDraft, hasDraft } from './forms/note-form';
 import { ReminderFormDialog } from './forms/reminder-form';
-import { VaultNote, VaultCategory, VAULT_CATEGORIES, CATEGORY_META } from '@/types/vault';
+import { VaultNote, VaultCategory, VAULT_CATEGORIES, CATEGORY_META } from '@llb/core';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { PageLoader } from '@/components/common/page-loader';

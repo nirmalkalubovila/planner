@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCheck, Trash2, Bell, BellOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '@/lib/notification-store';
-import type { AppNotification } from '@/types/notification-types';
+import type { AppNotification } from '@llb/core';
 import { cn } from '@/lib/utils';
 
 export interface NotificationPanelProps {

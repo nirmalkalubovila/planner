@@ -1,5 +1,5 @@
 import React from 'react';
-import { Milestone } from '@/types/global-types';
+import { Milestone } from '@llb/core';
 import { cn } from '@/lib/utils';
 import { Target, Check, Play } from 'lucide-react';
 import { format, parseISO } from 'date-fns';

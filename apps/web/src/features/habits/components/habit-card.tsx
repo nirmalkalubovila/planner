@@ -1,10 +1,10 @@
 import React from 'react';
 import { Edit2, Trash2, Clock, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Habit } from '@/types/global-types';
+import { Habit } from '@llb/core';
 import { cn } from '@/lib/utils';
 
-import { BUCKET_META } from '@/types/time';
+import { BUCKET_META } from '@llb/core';
 
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAY_MAP: Record<string, string> = {

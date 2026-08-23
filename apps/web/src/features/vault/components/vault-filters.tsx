@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { CATEGORY_META, VaultCategory } from '@/types/vault';
+import { CATEGORY_META, VaultCategory } from '@llb/core';
 import { Bell } from 'lucide-react';
 
 interface VaultFiltersProps {

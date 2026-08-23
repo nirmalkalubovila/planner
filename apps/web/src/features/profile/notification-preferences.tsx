@@ -12,7 +12,7 @@ import {
 } from '@/lib/notification-service';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
-import type { NotificationPreferences } from '@/types/notification-types';
+import type { NotificationPreferences } from '@llb/core';
 
 interface ToggleItem {
   key: keyof NotificationPreferences;

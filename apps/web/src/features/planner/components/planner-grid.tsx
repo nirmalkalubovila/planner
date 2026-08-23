@@ -1,12 +1,12 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import 'drag-drop-touch';
 import { cn } from '@/lib/utils';
-import { WeekUtils } from '@/utils/week-utils';
-import { GridState } from '@/types/global-types';
-import { getGoalColor } from '@/utils/color-utils';
+import { WeekUtils } from '@llb/core';
+import { GridState } from '@llb/core';
+import { getGoalColor } from '@llb/core';
 import { ChevronLeft, ChevronRight, Eye, EyeOff, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ReminderItem } from '@/types/global-types';
+import { ReminderItem } from '@llb/core';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SLOTS_PER_DAY = 48;

@@ -2,14 +2,14 @@ import { useEffect, useRef } from 'react';
 import { useGetWeekPlan } from '@/api/services/planner-service';
 import { useGetHabits } from '@/api/services/habit-service';
 import { useGetCompletedTasks } from '@/api/services/today-service';
-import { WeekUtils } from '@/utils/week-utils';
+import { WeekUtils } from '@llb/core';
 import { useTodayTasks, type TaskItem } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@/lib/notification-store';
 import {
   scheduleNotification,
   cancelScheduledNotification,
 } from '@/lib/notification-service';
-import { TASK_REMINDER_MINUTES } from '@/types/notification-types';
+import { TASK_REMINDER_MINUTES } from '@llb/core';
 import { useAuth } from '@/contexts/auth-context';
 
 const NOTIFIED_TASKS_KEY_PREFIX = 'llb-notified-tasks-';

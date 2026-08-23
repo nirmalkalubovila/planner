@@ -1,4 +1,4 @@
-import type { InsightCardData } from '@/utils/insights-engine';
+import type { InsightCardData } from '@llb/core';
 import type { InsightTheme } from './insight-themes';
 
 export type ShareFormat = 'story' | 'post' | 'status';

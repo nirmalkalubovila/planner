@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { GridState } from "@/types/global-types";
-import { WeeklyBucketActions } from "@/types/time";
-import { WeekUtils } from "@/utils/week-utils";
+import { GridState } from '@llb/core';
+import { WeeklyBucketActions } from '@llb/core';
+import { WeekUtils } from '@llb/core';
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { handleFriendlyError } from "@/utils/error-handler";

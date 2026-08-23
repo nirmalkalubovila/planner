@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Pin, Trash2, Edit2, Copy, Check, Bell, Quote } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { VaultNote, CATEGORY_META } from '@/types/vault';
+import { VaultNote, CATEGORY_META } from '@llb/core';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { VaultReminder } from '@/api/services/reminder-service';

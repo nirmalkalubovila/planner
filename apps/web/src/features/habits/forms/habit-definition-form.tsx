@@ -11,7 +11,7 @@ import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { cn } from '@/lib/utils';
 
 import { BucketSelector } from '@/components/common/bucket-selector';
-import { LifeBucket } from '@/types/time';
+import { LifeBucket } from '@llb/core';
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 

@@ -4,9 +4,9 @@ import { ChevronDown, Check, Sparkles, ArrowRight, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CircularProgress } from '@/components/ui/circular-progress';
 import type { DetailedAnalytics } from '../hooks/use-detailed-stats';
-import { LIFE_BUCKETS, BUCKET_META, LifeBucket } from '@/types/time';
-import { WeekUtils } from '@/utils/week';
-import { getWeekKeyFromDisplay } from '@/utils/analytics-engine';
+import { LIFE_BUCKETS, BUCKET_META, LifeBucket } from '@llb/core';
+import { WeekUtils } from '@llb/core';
+import { getWeekKeyFromDisplay } from '@llb/core';
 
 interface ActionStep {
   title: string;

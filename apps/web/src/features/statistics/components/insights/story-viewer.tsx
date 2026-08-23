@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { InsightCardData } from '@/utils/insights-engine';
+import type { InsightCardData } from '@llb/core';
 import { getInsightTheme } from './insight-themes';
 import { InsightCard } from './insight-card';
 import { ShareButton } from './share-button'; // Core sharing widget

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Habit } from "@/types/global-types";
+import { Habit } from '@llb/core';
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId, getOptionalUserId } from "@/api/helpers/auth-helpers";
 import { toast } from "sonner";

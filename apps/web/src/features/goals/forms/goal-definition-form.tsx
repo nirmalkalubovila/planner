@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 
 import { BucketSelector } from '@/components/common/bucket-selector';
-import { LifeBucket } from '@/types/time';
+import { LifeBucket } from '@llb/core';
 
 function parseLegacyName(text: string): { currentState: string; ultimateGoal: string } {
     if (!text) return { currentState: '', ultimateGoal: '' };

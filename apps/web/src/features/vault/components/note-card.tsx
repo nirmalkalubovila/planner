@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Pin, Trash2, Edit2, Bell, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { VaultNote, CATEGORY_META } from '@/types/vault';
+import { VaultNote, CATEGORY_META } from '@llb/core';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { VaultReminder } from '@/api/services/reminder-service';

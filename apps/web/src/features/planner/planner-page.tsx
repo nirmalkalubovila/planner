@@ -3,12 +3,12 @@ import { cn } from '@/lib/utils';
 import { useGetWeekPlan, usePrefetchAdjacentWeeks, useGetWeekBucketActions } from '@/api/services/planner-service';
 import { useGetGoals } from '@/api/services/goal-service';
 import { useGetHabits } from '@/api/services/habit-service';
-import { WeekUtils } from '@/utils/week-utils';
-import { Goal, Habit, CustomTask, ReminderItem, PlanSlot } from '@/types/global-types';
+import { WeekUtils } from '@llb/core';
+import { Goal, Habit, CustomTask, ReminderItem, PlanSlot } from '@llb/core';
 import { useGetCustomTasks, useDeleteCustomTask } from '@/api/services/custom-task-service';
 import { useGetMissedTasks, useDeleteMissedTask } from '@/api/services/missed-task-service';
 import { useNotes, useDeleteNote } from '@/api/services/vault-service';
-import { LIFE_BUCKETS, type LifeBucket } from '@/types/time';
+import { LIFE_BUCKETS, type LifeBucket } from '@llb/core';
 
 import { PlannerToolbar } from './components/planner-toolbar';
 import { PlannerGrid } from './components/planner-grid';

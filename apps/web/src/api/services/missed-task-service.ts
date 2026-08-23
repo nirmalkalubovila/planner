@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CustomTask } from "@/types/global-types";
+import { CustomTask } from '@llb/core';
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId, getOptionalUserId } from "@/api/helpers/auth-helpers";
 import { toast } from "sonner";

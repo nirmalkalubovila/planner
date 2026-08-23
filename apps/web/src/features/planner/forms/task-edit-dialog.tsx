@@ -7,7 +7,7 @@ import { useGetGoals } from '@/api/services/goal-service';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { BucketSelector } from '@/components/common/bucket-selector';
-import { LifeBucket } from '@/types/time';
+import { LifeBucket } from '@llb/core';
 
 interface TaskEditDialogProps {
     isOpen: boolean;

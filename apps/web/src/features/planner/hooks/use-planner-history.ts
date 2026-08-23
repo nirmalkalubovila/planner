@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { GridState } from '@/types/global-types';
+import { GridState } from '@llb/core';
 import { useSaveWeekPlan } from '@/api/services/planner-service';
 
 const MAX_HISTORY = 50;

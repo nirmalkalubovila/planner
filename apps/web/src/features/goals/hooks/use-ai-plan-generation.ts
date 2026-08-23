@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
+import { Goal, AIGeneratedPlanSlot } from '@llb/core';
 import { recordGenTime } from '@/components/common/ai-loading-popup';
 import { useUserProfile } from '@/api/services/profile-service';
 import { supabase } from '@/lib/supabaseClient';

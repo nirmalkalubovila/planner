@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
-import { GridState, Goal } from '@/types/global-types';
-import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@/constants/scheduling';
+import { GridState, Goal } from '@llb/core';
+import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@llb/core';
 
 interface HandlerDeps {
     localGridState: GridState;

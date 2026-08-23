@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Pencil, Plus } from 'lucide-react';
-import { WeeklyBucketActions, WeeklyPriorityItem, DailyOutcomeItem } from '@/types/time';
+import { WeeklyBucketActions, WeeklyPriorityItem, DailyOutcomeItem } from '@llb/core';
 import { cn } from '@/lib/utils';
 
 interface WeeklyTargetsBannerProps {

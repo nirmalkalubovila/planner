@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { AppNotification, NotificationPreferences } from '@/types/notification-types';
-import { DEFAULT_PREFERENCES } from '@/types/notification-types';
+import type { AppNotification, NotificationPreferences } from '@llb/core';
+import { DEFAULT_PREFERENCES } from '@llb/core';
 
 // ─── Storage Key Helpers ─────────────────────────────────
 const STORAGE_KEY_PREFIX = 'llb-notifications-';

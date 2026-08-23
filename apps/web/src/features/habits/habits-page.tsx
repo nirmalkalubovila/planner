@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Target, Repeat } from 'lucide-react';
 import { useGetHabits, useCreateHabit, useDeleteHabit, useUpdateHabit } from '@/api/services/habit-service';
 import { Button } from '@/components/ui/button';
-import { Habit } from '@/types/global-types';
+import { Habit } from '@llb/core';
 import { toast } from 'sonner';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { StandardDialog } from '@/components/common/standard-dialog';

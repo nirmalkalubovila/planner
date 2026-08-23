@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { Habit, ReminderItem } from '@/types/global-types';
-import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@/constants/scheduling';
-import { slotToTime } from '@/utils/time';
+import { Habit, ReminderItem } from '@llb/core';
+import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@llb/core';
+import { slotToTime } from '@llb/core';
 
 export interface TaskItem {
     id: string;

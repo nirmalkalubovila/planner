@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, X, RotateCw, Calendar, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AIGeneratedPlanSlot } from '@/types/global-types';
+import { AIGeneratedPlanSlot } from '@llb/core';
 import { cn } from '@/lib/utils';
 
 interface AIGenerationStepProps {

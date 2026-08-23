@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { AILoadingPopup, recordGenTime } from '@/components/common/ai-loading-popup';
-import { Goal, AIGeneratedPlanSlot } from '@/types/global-types';
+import { Goal, AIGeneratedPlanSlot } from '@llb/core';
 import { format, parseISO, addDays, addMonths, differenceInCalendarDays, min as minDate, parse as dateParse } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Check, Save, X, Edit3, ChevronRight, ChevronDown, BrainCircuit, UserCog, Trash2, Clock, Play, CalendarDays } from 'lucide-react';

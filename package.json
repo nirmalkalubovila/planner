@@ -12,7 +12,7 @@
     "lint": "npm run lint -w @llb/web",
     "preview": "npm run preview -w @llb/web",
     "test": "npm run test -w @llb/core && npm run test -w @llb/web",
-    "typecheck": "npm run typecheck -w @llb/core"
+    "typecheck": "npm run typecheck -w @llb/core && npm run typecheck -w @llb/web"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

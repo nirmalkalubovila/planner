@@ -1,5 +1,5 @@
-import type { NotificationPreferences, NotificationType } from '@/types/notification-types';
-import { MAX_NOTIFICATIONS_PER_HOUR } from '@/types/notification-types';
+import type { NotificationPreferences, NotificationType } from '@llb/core';
+import { MAX_NOTIFICATIONS_PER_HOUR } from '@llb/core';
 import { supabase } from '@/lib/supabaseClient';
 
 // ─── Rate Limiter ────────────────────────────────────────

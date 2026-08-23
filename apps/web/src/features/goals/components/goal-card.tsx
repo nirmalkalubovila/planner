@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react';
-import { Goal, GridState } from '@/types/global-types';
+import { Goal, GridState } from '@llb/core';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Check, Edit2, Trash2, ChevronDown, Clock, Sparkles, Trophy } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { GoalProgressBar } from './goal-progress-bar';
 import { MasterActionPlan } from './master-action-plan';
 import { cn } from '@/lib/utils';
-import { calculateGoalProgress } from '@/utils/analytics-engine';
+import { calculateGoalProgress } from '@llb/core';
 import { motion } from 'framer-motion';
 
-import { BUCKET_META } from '@/types/time';
+import { BUCKET_META } from '@llb/core';
 
 const GoldenSparkles = () => {
     const sparkles = Array.from({ length: 6 });

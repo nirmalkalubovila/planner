@@ -2,10 +2,10 @@ import { useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
 import { useGetHabits } from '@/api/services/habit-service';
-import { WeekUtils } from '@/utils/week-utils';
-import { GridState, Habit } from '@/types/global-types';
-import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@/constants/scheduling';
-import { timeToMinutes, minutesToTime } from '@/utils/time';
+import { WeekUtils } from '@llb/core';
+import { GridState, Habit } from '@llb/core';
+import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@llb/core';
+import { timeToMinutes, minutesToTime } from '@llb/core';
 
 function resolvePlanEndTime(profile: { planEndTime?: string; planStartTime?: string } | null, meta: any): string {
     if (profile?.planEndTime) return profile.planEndTime;
