@@ -3,7 +3,7 @@ import { KeyRound, Mail, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/lib/supabaseClient';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 
 interface ProfileSecurityProps {
     user: any;

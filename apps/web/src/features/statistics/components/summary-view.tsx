@@ -12,7 +12,7 @@ import { generateMilestoneInsightCard } from '@llb/core';
 import { INSIGHT_THEMES } from './insights/insight-themes';
 import { renderShareCardToCanvas } from './insights/share-card-renderer';
 import { shareToSocial, downloadShareImage, copyToClipboard } from '@/utils/share-utils';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import type { MilestoneStage } from '@/utils/milestone-engine';
 
 const BUCKET_VESSEL_CONFIG: Record<LifeBucket, {

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 
 interface MasterActionPlanProps {
     goal: Goal;

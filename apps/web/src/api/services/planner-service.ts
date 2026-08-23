@@ -4,8 +4,8 @@ import { GridState } from '@llb/core';
 import { WeeklyBucketActions } from '@llb/core';
 import { WeekUtils } from '@llb/core';
 import { supabase } from "@/lib/supabaseClient";
-import { toast } from "sonner";
-import { handleFriendlyError } from "@/utils/error-handler";
+import { toast } from '@llb/core';
+import { handleFriendlyError } from '@llb/core';
 
 const TABLE_NAME = "week_plans";
 

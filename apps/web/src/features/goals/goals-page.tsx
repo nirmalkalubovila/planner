@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, Plus, Trophy } from 'lucide-react';
 import { calculateGoalProgress } from '@llb/core';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import { useGetGoals, useCreateGoal, useDeleteGoal, useUpdateGoal } from '@/api/services/goal-service';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';

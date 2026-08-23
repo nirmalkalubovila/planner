@@ -6,7 +6,7 @@ import { useLandingSettings, useSubmitFeedback } from '@/api/services/feedback-s
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/api/services/profile-service';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 
 const RATING_LABELS: Record<number, string> = {
     1: 'Needs Work',

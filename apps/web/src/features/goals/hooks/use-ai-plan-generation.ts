@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import { Goal, AIGeneratedPlanSlot } from '@llb/core';
 import { recordGenTime } from '@/components/common/ai-loading-popup';
 import { useUserProfile } from '@/api/services/profile-service';

@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId } from "@/api/helpers/auth-helpers";
-import { toast } from "sonner";
-import { handleFriendlyError } from "@/utils/error-handler";
+import { toast } from '@llb/core';
+import { handleFriendlyError } from '@llb/core';
 import type { FeedbackCategory, FeedbackStatus } from "@/features/admin/admin-constants";
 
 const TABLE_NAME = "feedbacks";

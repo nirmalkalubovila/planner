@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { getCurrentUserId, getOptionalUserId } from '@/api/helpers/auth-helpers';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import { VaultNote, VaultCategory } from '@llb/core';
 
 const TABLE_NAME = 'vault_notes';

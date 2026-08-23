@@ -1,4 +1,5 @@
-import { toast } from 'sonner';
+import { toast } from '../platform/notifier';
+import { net } from '../platform/net';
 
 /**
  * Handles error display by converting developer-biased errors (e.g. network/fetch failures)
@@ -6,10 +7,10 @@ import { toast } from 'sonner';
  */
 export const handleFriendlyError = (err: any, fallbackMessage: string) => {
   const errMsg = err?.message || String(err || '');
-  const isOffline = !navigator.onLine || 
-                    errMsg.includes('Failed to fetch') || 
-                    errMsg.includes('NetworkError') || 
-                    errMsg.includes('network') || 
+  const isOffline = !net.isOnline() ||
+                    errMsg.includes('Failed to fetch') ||
+                    errMsg.includes('NetworkError') ||
+                    errMsg.includes('network') ||
                     errMsg.includes('fetch');
 
   if (isOffline) {

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { toast } from "sonner";
-import { handleFriendlyError } from "@/utils/error-handler";
+import { toast } from '@llb/core';
+import { handleFriendlyError } from '@llb/core';
 
 export interface GlobalSmtpSettings {
   enabled: boolean;

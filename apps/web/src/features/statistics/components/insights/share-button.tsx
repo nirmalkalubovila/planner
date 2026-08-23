@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Share2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import type { InsightCardData } from '@llb/core';
 import type { InsightTheme } from './insight-themes';
 import { renderShareCardToCanvas } from './share-card-renderer';

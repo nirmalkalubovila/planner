@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { ThemeProvider } from 'next-themes'
 import App from './App'
 import './index.css'
+import './lib/platform-adapters'
 import { registerServiceWorker } from './lib/notification-service'
 
 // Register Service Worker for push notifications & PWA

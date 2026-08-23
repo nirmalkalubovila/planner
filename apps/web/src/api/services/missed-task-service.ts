@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CustomTask } from '@llb/core';
 import { supabase } from "@/lib/supabaseClient";
 import { getCurrentUserId, getOptionalUserId } from "@/api/helpers/auth-helpers";
-import { toast } from "sonner";
+import { toast } from '@llb/core';
 
 const TABLE_NAME = "missed_tasks";
 

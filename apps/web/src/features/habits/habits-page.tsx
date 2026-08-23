@@ -4,7 +4,7 @@ import { Plus, Target, Repeat } from 'lucide-react';
 import { useGetHabits, useCreateHabit, useDeleteHabit, useUpdateHabit } from '@/api/services/habit-service';
 import { Button } from '@/components/ui/button';
 import { Habit } from '@llb/core';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { PageLoader } from '@/components/common/page-loader';

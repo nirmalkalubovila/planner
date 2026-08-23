@@ -1,4 +1,4 @@
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import { GridState, Goal } from '@llb/core';
 import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '@llb/core';
 

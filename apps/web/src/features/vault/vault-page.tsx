@@ -13,7 +13,7 @@ import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { PageLoader } from '@/components/common/page-loader';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 
 function filterNotes(notes: VaultNote[], activeTag: string | null, reminders: any[]): VaultNote[] {
   if (!activeTag || activeTag === 'all') return notes;

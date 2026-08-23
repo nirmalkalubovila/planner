@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 import { supabase } from '@/lib/supabaseClient';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { getCroppedImg } from '@/utils/image-crop';
 

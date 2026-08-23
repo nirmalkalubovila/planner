@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/auth-context';
 import { supabase } from '@/lib/supabaseClient';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import { Send, CreditCard, RefreshCw, MessageSquare } from 'lucide-react';
 
 type InquiryType = 'Refund Request' | 'Subscription Cancellation' | 'Billing Question' | 'Other';

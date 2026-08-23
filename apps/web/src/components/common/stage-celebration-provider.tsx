@@ -10,7 +10,7 @@ import { generateMilestoneInsightCard } from '@llb/core';
 import { INSIGHT_THEMES } from '@/features/statistics/components/insights/insight-themes';
 import { renderShareCardToCanvas } from '@/features/statistics/components/insights/share-card-renderer';
 import { shareToSocial, downloadShareImage, copyToClipboard } from '@/utils/share-utils';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 
 export const StageCelebrationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();

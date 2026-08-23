@@ -22,3 +22,8 @@ export * from './utils/bucket-engine';
 export * from './utils/analytics-engine';
 export * from './utils/milestone-engine';
 export * from './utils/insights-engine';
+export * from './utils/error-handler';
+
+export * from './platform/notifier';
+export * from './platform/kv';
+export * from './platform/net';

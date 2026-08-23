@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 
 interface ReminderFormDialogProps {
   isOpen: boolean;

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
+import { toast } from '@llb/core';
 import { AppUpdateService, type AppUpdate } from '@/api/services/update-service';
 import { 
     useAdminFeedbacks, useAdminStats, useAdminUpdateFeedbackStatus,
