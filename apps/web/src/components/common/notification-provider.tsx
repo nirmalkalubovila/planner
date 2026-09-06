@@ -1,0 +1,255 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@llb/api';
+import { useNotificationStore } from '@llb/notifications';
+import { getPermissionStatus, subscribeToPush } from '@/lib/notification-service';
+import { useTaskNotifications } from '@/hooks/use-task-notifications';
+import { useStatsNotifications } from '@/hooks/use-stats-notifications';
+import { useGoalNotifications } from '@/hooks/use-goal-notifications';
+import { useDailyBriefing } from '@/hooks/use-daily-briefing';
+import { useDaySummary } from '@/hooks/use-day-summary';
+import { useSleepAndPlanningNotifications } from '@/hooks/use-sleep-and-planning-notifications';
+import { useVaultReminders } from '@/hooks/use-vault-reminders';
+import { useEngagementNotifications } from '@/hooks/use-engagement-notifications';
+import { NotificationPermissionBanner } from './notification-permission-banner';
+import { InstallPWAPrompt } from './install-pwa-prompt';
+
+/**
+ * NotificationProvider initializes all notification hooks and renders
+ * the permission banner + PWA install prompt.
+ * Must be rendered inside AuthProvider and QueryClientProvider.
+ */
+export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const { profile, saveProfile } = useUserProfile(user);
+  const updatePreferences = useNotificationStore((s) => s.updatePreferences);
+  const setPermissionStatus = useNotificationStore((s) => s.setPermissionStatus);
+  const notifications = useNotificationStore((s) => s.notifications);
+  const preferences = useNotificationStore((s) => s.preferences);
+  const syncFromCloud = useNotificationStore((s) => s.syncFromCloud);
+  const setUserId = useNotificationStore((s) => s.setUserId);
+  const queryClient = useQueryClient();
+  const hasSynced = useRef(false);
+  const lastUser = useRef<string | null>(null);
+
+  // Invalidate queries and check for SW updates when tab becomes visible (PWA open/focus) or periodically
+  useEffect(() => {
+    const checkUpdate = async () => {
+      try {
+        const reg = await navigator.serviceWorker?.getRegistration();
+        if (reg) {
+          await reg.update();
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to check for Service Worker update:', err);
+      }
+    };
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        // Targeted invalidation: only refresh critical user-facing data first
+        // to avoid overwhelming Supabase with 15+ simultaneous requests
+        queryClient.invalidateQueries({ queryKey: ['planner'] });
+        queryClient.invalidateQueries({ queryKey: ['completed'] });
+        queryClient.invalidateQueries({ queryKey: ['habits'] });
+
+        // Stagger less-critical data refreshes to avoid connection pool exhaustion
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['vault_notes'] });
+          queryClient.invalidateQueries({ queryKey: ['goals'] });
+          queryClient.invalidateQueries({ queryKey: ['user_stats_cache'] });
+        }, 2000);
+
+        await checkUpdate();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Initial check on mount if visible
+    if (document.visibilityState === 'visible') {
+      checkUpdate();
+    }
+
+    // Periodically check for updates every 5 minutes (300000ms)
+    const updateInterval = setInterval(checkUpdate, 5 * 60 * 1000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(updateInterval);
+    };
+  }, [queryClient]);
+
+  // Reload page when new service worker takes control
+  useEffect(() => {
+    const handleControllerChange = () => {
+      window.location.reload();
+    };
+    navigator.serviceWorker?.addEventListener('controllerchange', handleControllerChange);
+    return () => {
+      navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange);
+    };
+  }, []);
+
+  // 1. Handle login state, logout state, and cloud hydration
+  useEffect(() => {
+    if (!user) {
+      if (lastUser.current !== null) {
+        setUserId(null);
+        hasSynced.current = false;
+        lastUser.current = null;
+      }
+      return;
+    }
+
+    // User changed — switch to new user's store
+    if (lastUser.current !== user.id) {
+      setUserId(user.id);
+      hasSynced.current = false;
+    }
+    lastUser.current = user.id;
+
+    if (!profile || hasSynced.current) return;
+
+    const cloudPrefs = profile.notificationPrefs;
+    const cloudNotifs = profile.notifications;
+
+    // Load cloud state into local store (only if they exist in DB)
+    if (
+      (cloudPrefs && Object.keys(cloudPrefs).length > 0) ||
+      (cloudNotifs && cloudNotifs.length > 0)
+    ) {
+      syncFromCloud(cloudPrefs, cloudNotifs);
+    }
+    hasSynced.current = true;
+  }, [user, profile, syncFromCloud, setUserId]);
+
+  // Extract stable strings for deep comparisons
+  const dbPrefsStr = JSON.stringify(profile?.notificationPrefs || {});
+  const dbNotifsStr = JSON.stringify(profile?.notifications || []);
+
+  // 2. Debounced save to Supabase cloud database
+  useEffect(() => {
+    if (!user || !profile || !hasSynced.current) return;
+
+    const timer = setTimeout(() => {
+      const dbPrefs = JSON.parse(dbPrefsStr);
+      const dbNotifs = JSON.parse(dbNotifsStr);
+
+      const storeState = useNotificationStore.getState();
+      const currentPrefsWithKeys = {
+        ...preferences,
+        deletedKeys: storeState.deletedKeys,
+        shownKeys: storeState.shownKeys,
+      };
+
+      const diffPrefs = JSON.stringify(dbPrefs) !== JSON.stringify(currentPrefsWithKeys);
+      const diffNotifs = JSON.stringify(dbNotifs) !== JSON.stringify(notifications);
+
+      if (diffPrefs || diffNotifs) {
+        saveProfile({
+          notificationPrefs: currentPrefsWithKeys,
+          notifications: notifications,
+        }).catch((err) => console.error('Failed to sync notifications to cloud:', err));
+      }
+    }, 1000); // 1-second debounce
+
+    return () => clearTimeout(timer);
+  }, [notifications, preferences, user, dbPrefsStr, dbNotifsStr, saveProfile]);
+
+  const sleepStart = profile?.sleepStart || '22:00';
+  const sleepDuration = profile?.sleepDuration || '8';
+
+  // 3. Sync quiet hours with user's sleep schedule and timezone offset
+  useEffect(() => {
+    if (!user || !profile) return;
+
+    const sleepDurationNum = parseInt(sleepDuration, 10);
+
+    // Calculate sleep end time
+    const [startH, startM] = sleepStart.split(':').map(Number);
+    const totalMinutes = startH * 60 + startM + sleepDurationNum * 60;
+    const endH = Math.floor((totalMinutes % 1440) / 60);
+    const endM = totalMinutes % 60;
+    const sleepEnd = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+    const localTimezoneOffset = new Date().getTimezoneOffset();
+
+    if (
+      preferences.quietHoursStart !== sleepStart ||
+      preferences.quietHoursEnd !== sleepEnd ||
+      preferences.timezoneOffset !== localTimezoneOffset
+    ) {
+      updatePreferences({
+        quietHoursStart: sleepStart,
+        quietHoursEnd: sleepEnd,
+        timezoneOffset: localTimezoneOffset,
+      });
+    }
+  }, [user, sleepStart, sleepDuration, preferences.quietHoursStart, preferences.quietHoursEnd, preferences.timezoneOffset, updatePreferences]);
+
+  // 4. Sync permission status
+  useEffect(() => {
+    const status = getPermissionStatus();
+    if (status !== 'unsupported') {
+      setPermissionStatus(status);
+    }
+  }, [setPermissionStatus]);
+
+  // 5. Auto-subscribe to Web Push when permission is granted
+  const pushSubscribed = useRef(false);
+  useEffect(() => {
+    if (!user || pushSubscribed.current) return;
+    if (!preferences.enabled) return;
+
+    const status = getPermissionStatus();
+    if (status !== 'granted') return;
+
+    pushSubscribed.current = true;
+    subscribeToPush(user.id).then((ok) => {
+      if (ok) console.log('Web Push subscription active');
+    });
+  }, [user, preferences.enabled]);
+
+  const [shouldLoadHooks, setShouldLoadHooks] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const timer = setTimeout(() => {
+        setShouldLoadHooks(true);
+      }, 4000); // 4-second delay to prioritize the active page's initial queries
+      return () => clearTimeout(timer);
+    } else {
+      setShouldLoadHooks(false);
+    }
+  }, [user]);
+
+  return (
+    <>
+      {user && shouldLoadHooks && <NotificationHooks />}
+      <NotificationPermissionBanner />
+      <InstallPWAPrompt />
+      {children}
+    </>
+  );
+};
+
+/**
+ * Separate component to activate hooks only when user is authenticated.
+ * Hooks can't be called conditionally, so this wrapper is needed.
+ */
+const NotificationHooks: React.FC = () => {
+  useTaskNotifications();
+  useStatsNotifications();
+  useGoalNotifications();
+  useDailyBriefing();
+  useDaySummary();
+  useSleepAndPlanningNotifications();
+  useVaultReminders();
+  useEngagementNotifications();
+  return null;
+};

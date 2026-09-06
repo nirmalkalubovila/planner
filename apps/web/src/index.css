@@ -1,0 +1,71 @@
+@import "tailwindcss";
+/* Theme contract: CSS variables for Light/Dark (scalable for future Pro
+   themes). Values live in @llb/tokens so the same tokens can back a future
+   NativeWind preset. A relative path is used deliberately, not the
+   "@llb/tokens/tokens.css" package specifier: CSS-level @import resolution
+   doesn't walk up to the workspace root node_modules the way JS module
+   resolution does, and npm hoists a workspace package with only one
+   consumer straight to the root — it's never duplicated into
+   apps/web/node_modules for a CSS resolver to find. Must stay directly
+   after the other @import (CSS requires all @import rules to precede
+   every other rule, including @config, or they're silently dropped). */
+@import "../../../packages/tokens/tokens.css";
+@config "../tailwind.config.js";
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Global thin scrollbar — barely visible, never distracting */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.08);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.18);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.08) transparent;
+}
+
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(50%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Native date picker icons: invert in dark, normal in light */
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

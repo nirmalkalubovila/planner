@@ -1,0 +1,289 @@
+import React, { useState } from 'react';
+import { Clock, Calendar, Check, Library, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { useCreateCustomTask } from '@llb/api';
+import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
+import { CUSTOM_TASK_COLORS } from '@llb/core';
+import { StandardDialog } from '@/components/common/standard-dialog';
+
+import { BucketSelector } from '@/components/common/bucket-selector';
+import { LifeBucket } from '@llb/core';
+
+interface CustomTaskDialogProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: (data: {
+        name: string;
+        description: string;
+        startTime: string;
+        endTime: string;
+        daysOfWeek: string[];
+        color?: string;
+        saveToLibrary: boolean;
+        isReminder?: boolean;
+        bucket?: LifeBucket;
+    }) => void;
+    onDelete?: (id: string) => void;
+    initialData?: {
+        id?: string;
+        name: string;
+        description?: string;
+        startTime: string;
+        endTime: string;
+        daysOfWeek: string[];
+        color?: string;
+        isReminder?: boolean;
+        bucket?: LifeBucket;
+    } | null;
+}
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const SHORT_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onClose, onConfirm, onDelete, initialData }) => {
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    const [startTime, setStartTime] = useState('09:00');
+    const [endTime, setEndTime] = useState('10:00');
+    const [selectedDays, setSelectedDays] = useState<string[]>([]);
+    const [color, setColor] = useState(CUSTOM_TASK_COLORS[0]);
+    const [saveToLibrary, setSaveToLibrary] = useState(false);
+    const [isReminder, setIsReminder] = useState(false);
+    const [bucket, setBucket] = useState<LifeBucket | null>(null);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                setName(initialData.name || '');
+                setDescription(initialData.description || '');
+                setStartTime(initialData.startTime || '09:00');
+                setEndTime(initialData.endTime || '10:00');
+                setSelectedDays(initialData.daysOfWeek || []);
+                setColor(initialData.color || CUSTOM_TASK_COLORS[0]);
+                setSaveToLibrary(false);
+                setIsReminder(!!initialData.isReminder);
+                setBucket(initialData.bucket || null);
+            } else {
+                setName('');
+                setDescription('');
+                setStartTime('09:00');
+                setEndTime('10:00');
+                setSelectedDays([]);
+                setColor(CUSTOM_TASK_COLORS[0]);
+                setSaveToLibrary(false);
+                setIsReminder(false);
+                setBucket(null);
+            }
+        }
+    }, [isOpen, initialData]);
+
+    const createLibraryTask = useCreateCustomTask();
+
+    const toggleDay = (day: string) => {
+        setSelectedDays(prev =>
+            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+        );
+    };
+
+    const getEndTimeOfReminder = (timeStr: string): string => {
+        const [h, m] = timeStr.split(':').map(Number);
+        const startMinutes = h * 60 + m;
+        const endMinutes = startMinutes + 30;
+        const endH = Math.floor(endMinutes / 60) % 24;
+        const endM = endMinutes % 60;
+        return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+    };
+
+    const handleConfirm = () => {
+        if (!name) return;
+
+        const resolvedEndTime = isReminder ? getEndTimeOfReminder(startTime) : endTime;
+
+        onConfirm({
+            name,
+            description,
+            startTime,
+            endTime: resolvedEndTime,
+            daysOfWeek: selectedDays,
+            color,
+            saveToLibrary,
+            isReminder,
+            bucket: bucket || undefined
+        });
+
+        if (saveToLibrary) {
+            createLibraryTask.mutate({
+                name,
+                description,
+                startTime,
+                endTime: resolvedEndTime,
+                daysOfWeek: selectedDays,
+                color,
+                isReminder,
+                bucket: bucket || undefined
+            } as any);
+        }
+
+        setName('');
+        setDescription('');
+        setSelectedDays([]);
+        setSaveToLibrary(false);
+        setIsReminder(false);
+        setBucket(null);
+        onClose();
+    };
+
+    return (
+        <StandardDialog
+            isOpen={isOpen}
+            onClose={onClose}
+            title={initialData?.id ? (isReminder ? "Edit Reminder" : "Edit Custom Task") : (isReminder ? "Create Reminder" : "Create Custom Task")}
+            icon={Library}
+            maxWidth="xl"
+            footer={
+                <div className="flex items-center justify-between gap-3">
+                    {initialData?.id && onDelete ? (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-11 w-11 rounded-xl text-destructive hover:bg-destructive/10 shrink-0"
+                            onClick={() => { if (initialData.id) { onDelete(initialData.id); onClose(); } }}
+                            title="Remove from Library"
+                        >
+                            <Trash2 size={20} />
+                        </Button>
+                    ) : (
+                        <Button variant="ghost" onClick={onClose} className="flex-1 rounded-xl h-11">Cancel</Button>
+                    )}
+                    <div className="flex gap-3 flex-1">
+                        {initialData?.id && onDelete && (
+                            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl h-11">Cancel</Button>
+                        )}
+                        <Button disabled={!name} onClick={handleConfirm} className="flex-1 rounded-xl h-11 shadow-lg shadow-primary/20">
+                            Add to Planner
+                        </Button>
+                    </div>
+                </div>
+            }
+        >
+            <div className="p-6 space-y-5">
+                <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Task Name</label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Deep Work Session" className="text-base h-11" autoFocus />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Description (Optional)</label>
+                    <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief details..." className="h-10" />
+                </div>
+
+                <BucketSelector value={bucket} onChange={setBucket} />
+
+                <div
+                    className="flex items-center gap-3 p-3 bg-rose-500/5 rounded-xl cursor-pointer select-none group border border-transparent hover:border-rose-500/20 transition-all mb-1"
+                    onClick={() => setIsReminder(!isReminder)}
+                >
+                    <div className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center transition-all",
+                        isReminder ? "bg-rose-500 text-white" : "bg-card border border-border group-hover:border-rose-500/50"
+                    )}>
+                        {isReminder && <Check size={14} strokeWidth={3} />}
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-semibold">Is Specific Time Reminder</span>
+                        <span className="text-[10px] text-muted-foreground leading-none">Schedule at a specific moment without a time range</span>
+                    </div>
+                </div>
+
+                {isReminder ? (
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
+                            <Clock size={12} /> Reminder Time
+                        </label>
+                        <SimpleTimePicker value={startTime} onChange={setStartTime} className="h-10" allowAllMinutes />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
+                                <Clock size={12} /> Start Time
+                            </label>
+                            <SimpleTimePicker value={startTime} onChange={setStartTime} className="h-10" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
+                                <Clock size={12} /> End Time
+                            </label>
+                            <SimpleTimePicker value={endTime} onChange={setEndTime} className="h-10" />
+                        </div>
+                    </div>
+                )}
+
+                <div className="space-y-3">
+                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1 flex items-center gap-1">
+                        <Calendar size={12} /> Target Days
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        {SHORT_DAYS.map((day, idx) => {
+                            const fullDayName = DAYS[idx];
+                            const isSelected = selectedDays.includes(fullDayName);
+                            return (
+                                <button
+                                    key={day}
+                                    type="button"
+                                    onClick={() => toggleDay(fullDayName)}
+                                    className={cn(
+                                        "h-9 px-3 rounded-md text-xs font-bold transition-all border",
+                                        isSelected
+                                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                            : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                                    )}
+                                >
+                                    {day}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {!isReminder && (
+                    <div className="space-y-3">
+                        <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Task Color</label>
+                        <div className="flex gap-2.5">
+                            {CUSTOM_TASK_COLORS.map(c => (
+                                <button
+                                    key={c}
+                                    type="button"
+                                    onClick={() => setColor(c)}
+                                    className={cn(
+                                        "w-8 h-8 rounded-full shadow-sm border-2 transition-transform hover:scale-110",
+                                        color === c ? "border-foreground scale-110" : "border-transparent"
+                                    )}
+                                    style={{ backgroundColor: c }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div
+                    className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl cursor-pointer select-none group border border-transparent hover:border-primary/20 transition-all"
+                    onClick={() => setSaveToLibrary(!saveToLibrary)}
+                >
+                    <div className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center transition-all",
+                        saveToLibrary ? "bg-primary text-primary-foreground" : "bg-card border border-border group-hover:border-primary/50"
+                    )}>
+                        {saveToLibrary && <Check size={14} strokeWidth={3} />}
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-semibold">Save to Library</span>
+                        <span className="text-[10px] text-muted-foreground leading-none">Keep this task template for future quick scheduling</span>
+                    </div>
+                </div>
+            </div>
+        </StandardDialog>
+    );
+};
