@@ -26,33 +26,51 @@ export const ClaudeConnectorSection: React.FC = () => {
 
     // Held in memory only, and only right after minting — the raw secret is
     // never stored anywhere we could read it back from.
-    const [freshUrl, setFreshUrl] = useState<string | null>(null);
-    const [copied, setCopied] = useState(false);
+    const [freshToken, setFreshToken] = useState<string | null>(null);
+    const [copied, setCopied] = useState<string | null>(null);
     const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
     const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
     const isConnected = !!status?.hasToken;
 
+    const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp`;
+    const HEADER_NAME = 'X-Connector-Token';
+
     const handleGenerate = () => {
         createToken.mutate(undefined, {
             onSuccess: (rawToken) => {
-                const base = import.meta.env.VITE_SUPABASE_URL;
-                setFreshUrl(`${base}/functions/v1/mcp/${rawToken}`);
-                setCopied(false);
+                setFreshToken(rawToken);
+                setCopied(null);
             },
         });
     };
 
-    const handleCopy = async () => {
-        if (!freshUrl) return;
+    const handleCopy = async (field: string, value: string) => {
         try {
-            await navigator.clipboard.writeText(freshUrl);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            await navigator.clipboard.writeText(value);
+            setCopied(field);
+            setTimeout(() => setCopied(null), 2000);
         } catch {
-            // Clipboard can be blocked; the field is selectable as a fallback.
+            // Clipboard can be blocked; every field is selectable as a fallback.
         }
     };
+
+    const CopyField: React.FC<{ id: string; label: string; value: string; mono?: boolean }> = ({ id, label, value }) => (
+        <div className="space-y-1.5">
+            <label className={labelClass}>{label}</label>
+            <div className="flex gap-2">
+                <Input
+                    readOnly
+                    value={value}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="h-10 rounded-xl bg-muted border-border font-mono text-xs"
+                />
+                <Button onClick={() => handleCopy(id, value)} className="h-10 rounded-xl font-bold shrink-0 px-4">
+                    {copied === id ? <Check size={14} strokeWidth={3} /> : <Copy size={14} />}
+                </Button>
+            </div>
+        </div>
+    );
 
     return (
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-4 sm:p-6 space-y-5">
@@ -75,7 +93,7 @@ export const ClaudeConnectorSection: React.FC = () => {
                 no API key, nothing extra to pay for.
             </p>
 
-            {!isLoading && !freshUrl && (
+            {!isLoading && !freshToken && (
                 <div className="space-y-4 animate-in fade-in duration-300">
                     {isConnected ? (
                         <>
@@ -125,7 +143,7 @@ export const ClaudeConnectorSection: React.FC = () => {
                 </div>
             )}
 
-            {freshUrl && (
+            {freshToken && (
                 <div className="space-y-4 animate-in fade-in duration-300">
                     <div className="p-3 rounded-xl border border-amber-500/25 bg-amber-500/5 space-y-1.5">
                         <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-500">
@@ -133,39 +151,28 @@ export const ClaudeConnectorSection: React.FC = () => {
                             Copy this now — it won't be shown again
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-snug">
-                            Only the hash is stored on the server, so nobody — including us — can recover this link later.
+                            Only a hash is stored on the server, so nobody — including us — can recover this later.
                             Treat it like a password: anyone holding it can read and change your planner.
                         </p>
                     </div>
 
-                    <div className="space-y-1.5">
-                        <label className={labelClass}>Your connector URL</label>
-                        <div className="flex gap-2">
-                            <Input
-                                readOnly
-                                value={freshUrl}
-                                onFocus={(e) => e.currentTarget.select()}
-                                className="h-10 rounded-xl bg-muted border-border font-mono text-xs"
-                            />
-                            <Button onClick={handleCopy} className="h-10 rounded-xl font-bold shrink-0 px-4">
-                                {copied ? <Check size={14} strokeWidth={3} /> : <Copy size={14} />}
-                            </Button>
+                    <div className="p-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5 space-y-3">
+                        <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                            <ShieldCheck size={14} strokeWidth={2.5} /> Recommended — keeps the secret out of the URL
                         </div>
-                    </div>
-
-                    <div className="p-3 rounded-xl border border-border bg-muted/20 space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                            Add it to Claude
-                        </p>
-                        <ol className="space-y-1.5 text-[11px] text-muted-foreground leading-snug list-none">
+                        <CopyField id="url" label="Server URL" value={baseUrl} />
+                        <CopyField id="hname" label="Header name" value={HEADER_NAME} />
+                        <CopyField id="hvalue" label="Header value" value={freshToken} />
+                        <ol className="space-y-1.5 text-[11px] text-muted-foreground leading-snug list-none pt-1">
                             {[
-                                'Open Claude → Settings → Connectors.',
-                                'Click "Add custom connector".',
-                                'Name it anything (e.g. "My Planner") and paste the URL above.',
-                                'Click Add, then start a chat and ask it to plan your week.',
+                                'In Claude: Settings → Connectors → "Add custom connector".',
+                                'Name it (e.g. "Legacy Life Builder") and paste the Server URL. Continue.',
+                                'On step 2, leave Authentication set to "None".',
+                                'Under "Request headers", add the header name and value above.',
+                                'Click Add, then just ask Claude to plan your week.',
                             ].map((step, i) => (
                                 <li key={step} className="flex items-start gap-2">
-                                    <span className="font-mono text-[10px] font-bold text-primary shrink-0 mt-px">
+                                    <span className="font-mono text-[10px] font-bold text-emerald-500 shrink-0 mt-px">
                                         {String(i + 1).padStart(2, '0')}
                                     </span>
                                     {step}
@@ -174,8 +181,17 @@ export const ClaudeConnectorSection: React.FC = () => {
                         </ol>
                     </div>
 
-                    <Button variant="ghost" onClick={() => setFreshUrl(null)} className="w-full h-9 rounded-xl text-xs font-bold">
-                        Done — hide this link
+                    <details className="group">
+                        <summary className="cursor-pointer text-[11px] font-bold text-muted-foreground hover:text-foreground select-none">
+                            Or use a single link instead (simpler, but the secret sits in the URL)
+                        </summary>
+                        <div className="pt-3">
+                            <CopyField id="fullurl" label="All-in-one URL — paste as the Server URL, add no headers" value={`${baseUrl}/${freshToken}`} />
+                        </div>
+                    </details>
+
+                    <Button variant="ghost" onClick={() => setFreshToken(null)} className="w-full h-9 rounded-xl text-xs font-bold">
+                        Done — hide these
                     </Button>
                 </div>
             )}
@@ -205,7 +221,7 @@ export const ClaudeConnectorSection: React.FC = () => {
                 onClose={() => setShowRevokeConfirm(false)}
                 onConfirm={() => {
                     revokeToken.mutate();
-                    setFreshUrl(null);
+                    setFreshToken(null);
                     setShowRevokeConfirm(false);
                 }}
                 title="Revoke connector access?"

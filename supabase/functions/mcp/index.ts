@@ -3,9 +3,16 @@
 // connector, so a normal chat in the Claude app can read and change the
 // user's real goals, habits and weekly grid.
 //
-// AUTH: the connector URL carries a per-user secret in its path:
+// AUTH: a per-user secret, presented either as a request header
+//   X-Connector-Token: <token>        (preferred -- never lands in a URL)
+// or, as a fallback, in the URL path:
 //   https://<ref>.supabase.co/functions/v1/mcp/<token>
-// Only the SHA-256 hash of that token is stored (see the
+//
+// The header form is better precisely because the URL isn't a secret: URLs
+// get screenshotted, pasted and written to request logs, headers much less
+// so. Both are accepted so an already-pasted link keeps working.
+//
+// Only the SHA-256 hash of the token is stored (see the
 // mcp_connector_tokens migration), so the database never holds anything
 // that can be replayed as a working link. The token resolves to exactly
 // one user_id, and every query below is filtered by it -- there is no code
@@ -26,7 +33,7 @@ declare const Deno: {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, mcp-protocol-version, mcp-session-id",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, mcp-protocol-version, mcp-session-id, x-connector-token",
   "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
 };
 
@@ -780,11 +787,17 @@ Deno.serve(async (req: Request) => {
   const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
   try {
-    // The connector secret is the last path segment.
-    const pathname = new URL(req.url).pathname;
-    const token = pathname.split("/").filter(Boolean).pop() || "";
-    if (!token || token === "mcp") {
-      return new Response(JSON.stringify({ error: "Missing connector token in URL." }), { status: 401, headers: jsonHeaders });
+    // Prefer the header; fall back to the last path segment so links issued
+    // before header support keep working.
+    const headerToken = req.headers.get("x-connector-token")
+      || (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+    const pathTail = new URL(req.url).pathname.split("/").filter(Boolean).pop() || "";
+    const token = headerToken.trim() || (pathTail === "mcp" ? "" : pathTail);
+
+    if (!token) {
+      return new Response(JSON.stringify({
+        error: "Missing connector token. Send it as an X-Connector-Token header, or use the full link that includes it.",
+      }), { status: 401, headers: jsonHeaders });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
