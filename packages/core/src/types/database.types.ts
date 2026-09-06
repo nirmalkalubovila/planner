@@ -803,6 +803,19 @@ export type Database = {
           username: string
         }[]
       }
+      get_mcp_connector_status: {
+        Args: never
+        Returns: {
+          has_token: boolean
+          created_at: string
+          last_used_at: string
+        }[]
+      }
+      resolve_mcp_connector_token: {
+        Args: { p_token_hash: string }
+        Returns: string
+      }
+      revoke_mcp_connector_token: { Args: never; Returns: undefined }
       save_global_smtp_settings: {
         Args: {
           p_enabled: boolean
@@ -815,6 +828,10 @@ export type Database = {
           p_sender_name: string
           p_username: string
         }
+        Returns: undefined
+      }
+      save_mcp_connector_token: {
+        Args: { p_token_hash: string }
         Returns: undefined
       }
     }

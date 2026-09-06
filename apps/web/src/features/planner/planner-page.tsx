@@ -3,9 +3,8 @@ import { cn } from '@/lib/utils';
 import { useGetWeekPlan, usePrefetchAdjacentWeeks, useGetWeekBucketActions } from '@llb/api';
 import { useGetGoals } from '@llb/api';
 import { useGetHabits } from '@llb/api';
-import { usePlanWeekWithAi, type AiPlanBlock } from '@llb/api';
-import { WeekUtils, toast } from '@llb/core';
-import { Goal, Habit, CustomTask, ReminderItem, PlanSlot, GridState } from '@llb/core';
+import { WeekUtils } from '@llb/core';
+import { Goal, Habit, CustomTask, ReminderItem, PlanSlot } from '@llb/core';
 import { useGetCustomTasks, useDeleteCustomTask } from '@llb/api';
 import { useGetMissedTasks, useDeleteMissedTask } from '@llb/api';
 import { useNotes, useDeleteNote } from '@llb/api';
@@ -77,70 +76,6 @@ export const PlannerPage: React.FC = () => {
     } = usePlannerHistory(currentWeek);
 
     const { isSleepSlot, isHabitSlot, isPlanSlot, getCellContent } = usePlannerGrid(currentWeek, localGridState);
-
-    // AI weekly planning -- see ai-plan-week Edge Function. The AI only
-    // proposes blocks; applying them goes through the exact same
-    // updateGridState() path as any manual edit, so it autosaves and is
-    // one Undo away from being reverted, same as everything else here.
-    const planWeekWithAi = usePlanWeekWithAi();
-    const [aiPlacedBlocks, setAiPlacedBlocks] = useState<AiPlanBlock[] | null>(null);
-
-    const handlePlanWithAi = async () => {
-        try {
-            const result = await planWeekWithAi.mutateAsync(currentWeek);
-
-            const weekDates = WeekUtils.getDaysForWeek(currentWeek);
-            const dateToDayIdx = new Map<string, number>();
-            weekDates.forEach((d, idx) => {
-                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                dateToDayIdx.set(key, idx);
-            });
-
-            const newState: GridState = { ...localGridState };
-            const placed: AiPlanBlock[] = [];
-
-            for (const block of result.blocks) {
-                const dayIdx = dateToDayIdx.get(block.date);
-                if (dayIdx === undefined) continue;
-
-                const [startH, startM] = block.startTime.split(':').map(Number);
-                const [endH, endM] = block.endTime.split(':').map(Number);
-                if (![startH, startM, endH, endM].every(Number.isFinite)) continue;
-                const startSlot = Math.floor((startH * 60 + startM) / 30);
-                const endSlot = Math.max(startSlot + 1, Math.ceil((endH * 60 + endM) / 30));
-
-                // Never overwrite a slot that's already occupied -- the
-                // prompt asks the AI to avoid this too, but this is the
-                // guarantee that actually holds regardless of what it returns.
-                let hasRoom = true;
-                for (let s = startSlot; s < endSlot && s < 48; s++) {
-                    if (newState[`${dayIdx}-${s}`]) { hasRoom = false; break; }
-                }
-                if (!hasRoom) continue;
-
-                for (let s = startSlot; s < endSlot && s < 48; s++) {
-                    newState[`${dayIdx}-${s}`] = {
-                        type: block.type,
-                        name: block.name,
-                        description: block.description,
-                        goalId: block.goalId,
-                    };
-                }
-                placed.push(block);
-            }
-
-            if (placed.length === 0) {
-                toast.info("No free time was left to place an AI plan into this week.");
-                return;
-            }
-
-            updateGridState(newState);
-            setAiPlacedBlocks(placed);
-            toast.success(`AI planned ${placed.length} block${placed.length === 1 ? '' : 's'} into your free time this week.`);
-        } catch {
-            // Failure toast already shown by usePlanWeekWithAi's onError.
-        }
-    };
 
     const activeGoalsForWeek = useMemo(() => {
         return (goals || []).filter((g: Goal) => {
@@ -323,17 +258,12 @@ export const PlannerPage: React.FC = () => {
                     }}
                     libraryTasks={libraryTasks || []}
                     missedTasks={combinedBacklog}
-                    previewPlan={aiPlacedBlocks}
-                    onCancelPreview={() => {
-                        handleUndo();
-                        setAiPlacedBlocks(null);
-                    }}
-                    commitPreviewPlan={() => setAiPlacedBlocks(null)}
+                    previewPlan={null}
+                    onCancelPreview={() => { }}
+                    commitPreviewPlan={() => { }}
                     onGoalToolClick={() => setIsGoalToolDialogOpen(true)}
                     onOpenSundayFocus={() => setIsSundayFocusDialogOpen(true)}
                     sundayFocusCount={sundayFocusCount}
-                    onPlanWithAi={handlePlanWithAi}
-                    isPlanningWithAi={planWeekWithAi.isPending}
                 />
             </div>
 

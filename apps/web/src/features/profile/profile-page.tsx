@@ -7,7 +7,7 @@ import { ProfileInfo } from './components/profile-info';
 import { ProfilePreferences } from './components/profile-preferences';
 import { ProfileSecurity } from './components/profile-security';
 import { NotificationPreferencesSection } from './notification-preferences';
-import { AiIntegrationSection } from './ai-integration-section';
+import { ClaudeConnectorSection } from './claude-connector-section';
 import { FeedbackSection } from './feedback-section';
 import { AppUpdaterSimulator } from './components/app-updater-simulator';
 import { cn } from '@/lib/utils';
@@ -211,7 +211,7 @@ export const ProfilePage: React.FC = () => {
 
                 {activeTab === 'ai' && (
                     <div className="w-full animate-in fade-in duration-200">
-                        <AiIntegrationSection />
+                        <ClaudeConnectorSection />
                     </div>
                 )}
 

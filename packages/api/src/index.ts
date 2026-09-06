@@ -5,7 +5,7 @@
 export * from './supabase-client';
 export * from './helpers/auth-helpers';
 
-export * from './services/ai-service';
+export * from './services/mcp-service';
 export * from './services/custom-task-service';
 export * from './services/goal-service';
 export * from './services/habit-service';
