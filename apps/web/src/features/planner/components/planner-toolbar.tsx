@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand, FolderHeart, Compass, Sparkles } from 'lucide-react';
+import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand, FolderHeart, Compass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomTask } from '@llb/core';
 import { cn } from '@/lib/utils';
@@ -24,8 +24,6 @@ interface PlannerToolbarProps {
     onGoalToolClick: () => void;
     onOpenSundayFocus?: () => void;
     sundayFocusCount?: number;
-    onPlanWithAi?: () => void;
-    isPlanningWithAi?: boolean;
 }
 
 export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
@@ -34,8 +32,7 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
     onCreateCustomTask,
     libraryTasks, missedTasks,
     previewPlan, onCancelPreview, commitPreviewPlan,
-    onGoalToolClick, onOpenSundayFocus, sundayFocusCount,
-    onPlanWithAi, isPlanningWithAi
+    onGoalToolClick, onOpenSundayFocus, sundayFocusCount
 }) => {
     // Shrinked by default for a cleaner landing
     const [isCollapsed, setIsCollapsed] = useState(true);
@@ -235,18 +232,6 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                         </Button>
                                     )}
 
-                                    {onPlanWithAi && (
-                                        <Button
-                                            onClick={onPlanWithAi}
-                                            disabled={isPlanningWithAi}
-                                            variant="ghost"
-                                            size="icon"
-                                            className={cn("rounded-xl transition-all h-9 w-9 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300", isCollapsed && "mx-auto")}
-                                            title="Plan This Week With AI"
-                                        >
-                                            {isPlanningWithAi ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                                        </Button>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -266,18 +251,16 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             </div>
                         )}
 
-                        {/* AI Preview -- shown right after "Plan With AI" fills in free
-                            slots. The plan is already applied (and autosaving) the same
-                            way any manual edit is, so Revert just undoes that one step. */}
+                        {/* AI Preview */}
                         {previewPlan && !isCollapsed && (
-                            <div className="flex flex-col gap-2 p-3 mb-6 bg-amber-500/10 rounded-xl border border-amber-500/20 animate-in slide-in-from-right-4 duration-500">
-                                <span className="text-[10px] font-black tracking-widest text-amber-400 uppercase px-1">AI Planned {previewPlan.length} Block{previewPlan.length === 1 ? '' : 's'}</span>
+                            <div className="flex flex-col gap-2 p-3 mb-6 bg-primary/10 rounded-xl border border-primary/20 animate-in slide-in-from-right-4 duration-500">
+                                <span className="text-[10px] font-black tracking-widest text-primary/80 uppercase px-1">AI Preview</span>
                                 <div className="flex items-center gap-2">
                                     <Button size="sm" variant="ghost" className="h-8 flex-1 text-[11px] font-bold text-destructive hover:bg-destructive/10 rounded-lg" onClick={onCancelPreview}>
-                                        <RotateCcw size={14} className="mr-1.5" /> Undo
+                                        <RotateCcw size={14} className="mr-1.5" /> Revert
                                     </Button>
-                                    <Button size="sm" className="h-8 flex-1 text-[11px] font-black bg-amber-500 text-white shadow-lg shadow-amber-500/20 rounded-lg hover:bg-amber-600" onClick={commitPreviewPlan}>
-                                        <Check size={14} className="mr-1.5" strokeWidth={3} /> Keep It
+                                    <Button size="sm" className="h-8 flex-1 text-[11px] font-black bg-primary text-primary-foreground shadow-lg shadow-primary/20 rounded-lg" onClick={commitPreviewPlan}>
+                                        <Check size={14} className="mr-1.5" strokeWidth={3} /> Commit
                                     </Button>
                                 </div>
                             </div>
@@ -447,18 +430,6 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                 title={`Weekly Outcomes (${sundayFocusCount ?? 0}/3 Set)`}
                             >
                                 <Compass size={18} />
-                            </Button>
-                        )}
-                        {onPlanWithAi && (
-                            <Button
-                                onClick={onPlanWithAi}
-                                disabled={isPlanningWithAi}
-                                variant="ghost"
-                                size="icon"
-                                className="shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                                title="Plan This Week With AI"
-                            >
-                                {isPlanningWithAi ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
                             </Button>
                         )}
                     </div>
