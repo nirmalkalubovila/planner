@@ -7,6 +7,7 @@ import { ProfileInfo } from './components/profile-info';
 import { ProfilePreferences } from './components/profile-preferences';
 import { ProfileSecurity } from './components/profile-security';
 import { NotificationPreferencesSection } from './notification-preferences';
+import { AiIntegrationSection } from './ai-integration-section';
 import { FeedbackSection } from './feedback-section';
 import { AppUpdaterSimulator } from './components/app-updater-simulator';
 import { cn } from '@/lib/utils';
@@ -101,7 +102,7 @@ export const ProfilePage: React.FC = () => {
 
     const [searchParams] = useSearchParams();
     const tabParam = searchParams.get('tab');
-    const validTabs = ['profile', 'preferences', 'notifications', 'contact', 'updater'] as const;
+    const validTabs = ['profile', 'preferences', 'notifications', 'ai', 'contact', 'updater'] as const;
     type TabId = typeof validTabs[number];
     const initialTab: TabId = tabParam && validTabs.includes(tabParam as TabId) ? (tabParam as TabId) : 'profile';
     const [activeTab, setActiveTab] = useState<TabId>(initialTab);
@@ -128,6 +129,7 @@ export const ProfilePage: React.FC = () => {
         { id: 'profile', label: 'Profile & Security' },
         { id: 'preferences', label: 'Planner Preferences' },
         { id: 'notifications', label: 'Notifications' },
+        { id: 'ai', label: 'AI Assistant' },
         { id: 'updater', label: 'Info' },
         { id: 'contact', label: 'Contact Us' },
     ];
@@ -204,6 +206,12 @@ export const ProfilePage: React.FC = () => {
                 {activeTab === 'notifications' && (
                     <div className="w-full animate-in fade-in duration-200">
                         <NotificationPreferencesSection />
+                    </div>
+                )}
+
+                {activeTab === 'ai' && (
+                    <div className="w-full animate-in fade-in duration-200">
+                        <AiIntegrationSection />
                     </div>
                 )}
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand, FolderHeart, Compass } from 'lucide-react';
+import { Eraser, Target, RotateCcw, Plus, Check, Undo2, Redo2, Copy, BookmarkPlus, Layers, PanelRightClose, PanelRightOpen, Cloud, Loader2, ChevronDown, Hand, FolderHeart, Compass, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomTask } from '@llb/core';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,8 @@ interface PlannerToolbarProps {
     onGoalToolClick: () => void;
     onOpenSundayFocus?: () => void;
     sundayFocusCount?: number;
+    onPlanWithAi?: () => void;
+    isPlanningWithAi?: boolean;
 }
 
 export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
@@ -32,7 +34,8 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
     onCreateCustomTask,
     libraryTasks, missedTasks,
     previewPlan, onCancelPreview, commitPreviewPlan,
-    onGoalToolClick, onOpenSundayFocus, sundayFocusCount
+    onGoalToolClick, onOpenSundayFocus, sundayFocusCount,
+    onPlanWithAi, isPlanningWithAi
 }) => {
     // Shrinked by default for a cleaner landing
     const [isCollapsed, setIsCollapsed] = useState(true);
@@ -220,25 +223,28 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                             variant="ghost"
                                             size="icon"
                                             className={cn(
-                                                "rounded-xl transition-all h-9 w-9 relative",
+                                                "rounded-xl transition-all h-9 w-9",
                                                 isCollapsed && "mx-auto",
-                                                sundayFocusCount === 4
+                                                sundayFocusCount === 3
                                                     ? "text-emerald-400 hover:bg-emerald-500/10"
                                                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                             )}
-                                            title={`This Week Main Priorities (${sundayFocusCount ?? 0}/4 Priorities Set)`}
+                                            title={`Weekly Outcomes (${sundayFocusCount ?? 0}/3 Set)`}
                                         >
                                             <Compass size={16} />
-                                            {sundayFocusCount !== undefined && (
-                                                <span className={cn(
-                                                    "absolute -top-1 -right-1 min-w-[15px] h-[15px] flex items-center justify-center text-[9px] font-bold font-mono rounded-full border shadow-sm px-1",
-                                                    sundayFocusCount === 4
-                                                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                                        : "bg-muted text-muted-foreground border-border"
-                                                )}>
-                                                    {sundayFocusCount}
-                                                </span>
-                                            )}
+                                        </Button>
+                                    )}
+
+                                    {onPlanWithAi && (
+                                        <Button
+                                            onClick={onPlanWithAi}
+                                            disabled={isPlanningWithAi}
+                                            variant="ghost"
+                                            size="icon"
+                                            className={cn("rounded-xl transition-all h-9 w-9 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300", isCollapsed && "mx-auto")}
+                                            title="Plan This Week With AI"
+                                        >
+                                            {isPlanningWithAi ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                                         </Button>
                                     )}
                                 </div>
@@ -260,16 +266,18 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                             </div>
                         )}
 
-                        {/* AI Preview */}
+                        {/* AI Preview -- shown right after "Plan With AI" fills in free
+                            slots. The plan is already applied (and autosaving) the same
+                            way any manual edit is, so Revert just undoes that one step. */}
                         {previewPlan && !isCollapsed && (
-                            <div className="flex flex-col gap-2 p-3 mb-6 bg-primary/10 rounded-xl border border-primary/20 animate-in slide-in-from-right-4 duration-500">
-                                <span className="text-[10px] font-black tracking-widest text-primary/80 uppercase px-1">AI Preview</span>
+                            <div className="flex flex-col gap-2 p-3 mb-6 bg-amber-500/10 rounded-xl border border-amber-500/20 animate-in slide-in-from-right-4 duration-500">
+                                <span className="text-[10px] font-black tracking-widest text-amber-400 uppercase px-1">AI Planned {previewPlan.length} Block{previewPlan.length === 1 ? '' : 's'}</span>
                                 <div className="flex items-center gap-2">
                                     <Button size="sm" variant="ghost" className="h-8 flex-1 text-[11px] font-bold text-destructive hover:bg-destructive/10 rounded-lg" onClick={onCancelPreview}>
-                                        <RotateCcw size={14} className="mr-1.5" /> Revert
+                                        <RotateCcw size={14} className="mr-1.5" /> Undo
                                     </Button>
-                                    <Button size="sm" className="h-8 flex-1 text-[11px] font-black bg-primary text-primary-foreground shadow-lg shadow-primary/20 rounded-lg" onClick={commitPreviewPlan}>
-                                        <Check size={14} className="mr-1.5" strokeWidth={3} /> Commit
+                                    <Button size="sm" className="h-8 flex-1 text-[11px] font-black bg-amber-500 text-white shadow-lg shadow-amber-500/20 rounded-lg hover:bg-amber-600" onClick={commitPreviewPlan}>
+                                        <Check size={14} className="mr-1.5" strokeWidth={3} /> Keep It
                                     </Button>
                                 </div>
                             </div>
@@ -431,24 +439,26 @@ export const PlannerToolbar: React.FC<PlannerToolbarProps> = ({
                                 variant="ghost"
                                 size="icon"
                                 className={cn(
-                                    "shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11 relative",
-                                    sundayFocusCount === 4
+                                    "shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11",
+                                    sundayFocusCount === 3
                                         ? "text-emerald-400 hover:bg-emerald-500/10"
                                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                                 )}
-                                title={`This Week Main Priorities (${sundayFocusCount ?? 0}/4 Priorities Set)`}
+                                title={`Weekly Outcomes (${sundayFocusCount ?? 0}/3 Set)`}
                             >
                                 <Compass size={18} />
-                                {sundayFocusCount !== undefined && (
-                                    <span className={cn(
-                                        "absolute -top-1 -right-1 min-w-[15px] h-[15px] flex items-center justify-center text-[9px] font-bold font-mono rounded-full border shadow-sm px-1",
-                                        sundayFocusCount === 4
-                                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                            : "bg-muted text-muted-foreground border-border"
-                                    )}>
-                                        {sundayFocusCount}
-                                    </span>
-                                )}
+                            </Button>
+                        )}
+                        {onPlanWithAi && (
+                            <Button
+                                onClick={onPlanWithAi}
+                                disabled={isPlanningWithAi}
+                                variant="ghost"
+                                size="icon"
+                                className="shrink-0 rounded-xl transition-all h-10 w-10 sm:h-11 sm:w-11 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                                title="Plan This Week With AI"
+                            >
+                                {isPlanningWithAi ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
                             </Button>
                         )}
                     </div>

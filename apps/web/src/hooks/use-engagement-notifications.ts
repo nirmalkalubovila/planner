@@ -3,18 +3,19 @@ import { useAuth } from '@/contexts/auth-context';
 import { useGetWeekPlan } from '@llb/api';
 import { useGetHabits } from '@llb/api';
 import { useGetCompletedTasks } from '@llb/api';
-import { WeekUtils } from '@llb/core';
+import { WeekUtils, dayKey, notificationKey } from '@llb/core';
 import { useTodayTasks } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@llb/notifications';
 
-const STORAGE_KEY_MIDDAY = 'llb-midday-checkin';
-const STORAGE_KEY_STREAK_RISK = 'llb-habit-streak-risk';
-
 /**
  * Client-side engagement notifications for when the app is open.
- * - Midday Check-In: Between 12:00-14:00 (once/day, userId-scoped)
- * - Habit Streak Risk: At 18:00 (once/day, userId-scoped)
- * All localStorage keys are scoped per-user.
+ * - Midday Check-In: Between 12:00-14:00 (opt-in, off by default)
+ * - Habit Streak Risk: At 18:00
+ *
+ * Both are Tier 2 and sit near the bottom of the priority order, so on a
+ * busy day they yield their slot to a goal deadline or a digest rather
+ * than crowding it out. Dedupe reads the store's shownKeys through the
+ * canonical key builder instead of this hook's own localStorage scheme.
  */
 export function useEngagementNotifications() {
   const { user } = useAuth();
@@ -38,16 +39,20 @@ export function useEngagementNotifications() {
 
     const checkEngagement = () => {
       const now = new Date();
-      const today = now.toDateString();
+      const today = dayKey(now);
       const currentH = now.getHours();
       const currentM = now.getMinutes();
+      const { shownKeys, deletedKeys } = useNotificationStore.getState();
 
-      // --- 1. Midday Check-In (12:00-14:00) ---
-      if (preferences.middayCheckin !== false) {
+      const alreadyHandled = (key: string) =>
+        shownKeys.includes(key) || deletedKeys.includes(key);
+
+      // --- 1. Midday Check-In (12:00-14:00, opt-in) ---
+      if (preferences.middayCheckin === true) {
         const isMidday = currentH >= 12 && currentH < 14;
-        const lastMidday = localStorage.getItem(`${STORAGE_KEY_MIDDAY}-${userId}`);
+        const dedupKey = notificationKey('midday_checkin', today);
 
-        if (isMidday && lastMidday !== today) {
+        if (isMidday && !alreadyHandled(dedupKey)) {
           const totalTaskCount = tasks.length;
           const completedCount = (completedTasks || []).filter(id =>
             tasks.some(t => t.id === id)
@@ -55,16 +60,10 @@ export function useEngagementNotifications() {
           const remaining = totalTaskCount - completedCount;
 
           if (totalTaskCount > 0 && remaining > 0) {
-            localStorage.setItem(`${STORAGE_KEY_MIDDAY}-${userId}`, today);
-
-            const title = 'Midday Check-In';
-            const body = `You've completed ${completedCount}/${totalTaskCount} tasks so far. ${remaining} remaining -- keep the momentum going!`;
-            const dedupKey = `midday-checkin-${userId}-${today}`;
-
             addNotification({
               type: 'midday_checkin',
-              title,
-              body,
+              title: 'Midday Check-In',
+              body: `${completedCount}/${totalTaskCount} done, ${remaining} to go. Keep the momentum.`,
               actionUrl: '/today',
               dedupKey,
             });
@@ -75,26 +74,19 @@ export function useEngagementNotifications() {
       // --- 2. Habit Streak Risk (18:00-18:05) ---
       if (preferences.habitStreakRisk !== false) {
         const isEvening = currentH === 18 && currentM >= 0 && currentM < 5;
-        const lastStreakRisk = localStorage.getItem(`${STORAGE_KEY_STREAK_RISK}-${userId}`);
+        const dedupKey = notificationKey('habit_streak_risk', today);
 
-        if (isEvening && lastStreakRisk !== today) {
-          // Count habit tasks scheduled for today
+        if (isEvening && !alreadyHandled(dedupKey)) {
           const habitTasks = tasks.filter(t => t.type === 'habit');
           const habitCompletedCount = habitTasks.filter(t =>
             (completedTasks || []).includes(t.id)
           ).length;
 
           if (habitTasks.length > 0 && habitCompletedCount === 0) {
-            localStorage.setItem(`${STORAGE_KEY_STREAK_RISK}-${userId}`, today);
-
-            const title = 'Habit Streak at Risk';
-            const body = `Your streak might break today -- you still have ${habitTasks.length} habit${habitTasks.length !== 1 ? 's' : ''} to complete.`;
-            const dedupKey = `habit-streak-risk-${userId}-${today}`;
-
             addNotification({
               type: 'habit_streak_risk',
-              title,
-              body,
+              title: 'Habit Streak at Risk',
+              body: `${habitTasks.length} habit${habitTasks.length !== 1 ? 's' : ''} still untouched today.`,
               actionUrl: '/today',
               dedupKey,
             });
@@ -103,9 +95,9 @@ export function useEngagementNotifications() {
       }
     };
 
-    // Check on load, then every 30 seconds
+    // Check on load, then every minute
     checkEngagement();
-    const interval = setInterval(checkEngagement, 30_000);
+    const interval = setInterval(checkEngagement, 60_000);
 
     return () => clearInterval(interval);
   }, [userId, tasks, completedTasks, habits, preferences, addNotification]);

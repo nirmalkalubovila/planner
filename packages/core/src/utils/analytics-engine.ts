@@ -294,6 +294,34 @@ export function analyzeAllHabits(
 // Execution / week plan helpers
 // ---------------------------------------------------------------------------
 
+const MONTH_INDEX: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+/**
+ * Parses the "MMM D, YYYY" tail that formatWeekDisplay() emits.
+ *
+ * This exists because `new Date("Aug 30, 2026")` is ENGINE-DEPENDENT: V8
+ * (browsers) accepts that non-ISO format, Hermes (React Native) returns
+ * Invalid Date for it. Relying on the engine meant web took the cheap path
+ * while native silently fell through to the brute-force scan below —
+ * hundreds of Intl-backed formatWeekDisplay() calls per lookup, which is
+ * what made the statistics screen take minutes on device. Parse it
+ * explicitly so both engines take the same fast, exact path.
+ */
+function parseDisplayDate(text: string): Date | null {
+  const match = text.trim().match(/^([A-Za-z]{3,})\s+(\d{1,2}),\s*(\d{4})$/);
+  if (!match) return null;
+  const month = MONTH_INDEX[match[1].slice(0, 3).toLowerCase()];
+  if (month === undefined) return null;
+  return new Date(Number(match[3]), month, Number(match[2]));
+}
+
+// Callers resolve the same handful of week strings repeatedly (once per
+// week plan, then again inside sort comparators), so memoize.
+const weekKeyCache = new Map<string, string>();
+
 // Helper to resolve weekKey (which might be a display string like "May 25 - May 31, 2026")
 // back to the standard week code format "2026-22".
 export function getWeekKeyFromDisplay(display: string): string {
@@ -302,10 +330,21 @@ export function getWeekKeyFromDisplay(display: string): string {
     return WeekUtils.normalizeWeek(display);
   }
 
+  const cached = weekKeyCache.get(display);
+  if (cached !== undefined) return cached;
+
+  const resolved = resolveWeekKey(display);
+  weekKeyCache.set(display, resolved);
+  return resolved;
+}
+
+function resolveWeekKey(display: string): string {
   try {
     const parts = display.split('-');
     const endDatePart = parts[parts.length - 1].trim();
-    const date = new Date(endDatePart);
+    // Explicit parse first (engine-independent), then the engine's own
+    // parser for any other shape it happens to understand.
+    const date = parseDisplayDate(endDatePart) ?? new Date(endDatePart);
     if (!isNaN(date.getTime())) {
       const weekKey = WeekUtils.getWeekFromDate(date);
       if (weekKey) return weekKey;
@@ -314,7 +353,9 @@ export function getWeekKeyFromDisplay(display: string): string {
     console.error('Error parsing week display:', e);
   }
 
-  // Robust search fallback using formatWeekDisplay matching
+  // Robust search fallback using formatWeekDisplay matching. With the
+  // explicit parse above this should now be unreachable for anything
+  // formatWeekDisplay() produced; kept for genuinely unrecognized input.
   const currentYear = new Date().getFullYear();
   for (let y = currentYear - 2; y <= currentYear + 2; y++) {
     for (let w = 1; w <= 53; w++) {
@@ -376,13 +417,15 @@ export function analyzeAllWeeks(
   average: number;
   best: WeekExecution | null;
 } {
+  // Resolve each sort key once up front rather than inside the comparator,
+  // which would re-resolve them O(n log n) times.
   const weeks = weekPlans
-    .map(wp => analyzeWeekExecution(wp.week, wp.state, completedMap))
-    .sort((a, b) => {
-      const kA = getWeekKeyFromDisplay(a.weekKey);
-      const kB = getWeekKeyFromDisplay(b.weekKey);
-      return WeekUtils.compareWeeks(kA, kB);
-    });
+    .map(wp => {
+      const execution = analyzeWeekExecution(wp.week, wp.state, completedMap);
+      return { execution, sortKey: getWeekKeyFromDisplay(execution.weekKey) };
+    })
+    .sort((a, b) => WeekUtils.compareWeeks(a.sortKey, b.sortKey))
+    .map(entry => entry.execution);
 
   const withPlanned = weeks.filter(w => w.planned > 0);
   const average =

@@ -39,6 +39,12 @@ function walk(dir) {
       content.split('\n').forEach((line, idx) => {
         const trimmed = line.trim();
         if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) return;
+        // Module specifiers are paths, not class strings. Without this,
+        // any file whose name starts with a Tailwind-looking prefix trips
+        // the check purely by being imported — `./sync/merge-grid-state`
+        // reads as the utility `grid-state` to the pattern below.
+        if (/^(?:import|export)\b[^'"]*from\s*['"][^'"]*['"]/.test(trimmed)) return;
+        if (/^(?:import|export)\s*['"][^'"]*['"]/.test(trimmed)) return;
         if (IMPORT_META_PATTERN.test(line)) {
           violations.push(`${relPath}:${idx + 1}: uses import.meta`);
         }

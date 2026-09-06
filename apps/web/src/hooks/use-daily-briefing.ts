@@ -2,22 +2,39 @@ import { useEffect } from 'react';
 import { useGetWeekPlan } from '@llb/api';
 import { useGetHabits } from '@llb/api';
 import { useGetCompletedTasks } from '@llb/api';
-import { WeekUtils } from '@llb/core';
+import { WeekUtils, dayKey, isStale, notificationKey } from '@llb/core';
 import { useTodayTasks } from '@/features/today/hooks/use-today-tasks';
 import { useNotificationStore } from '@llb/notifications';
 import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@llb/api';
 
-const STORAGE_KEY_BRIEFING = 'llb-last-briefing-date';
 const STORAGE_KEY_YESTERDAY = 'llb-yesterday-stats';
 
+function getWakeUpMinutes(sleepStart: string, sleepDuration: string): number {
+  const [h, m] = sleepStart.split(':').map(Number);
+  const dur = parseInt(sleepDuration, 10) || 8;
+  return (h * 60 + m + dur * 60) % 1440;
+}
+
 /**
- * Sends a daily morning briefing when the user first opens the app each day.
- * Includes: today's task count + yesterday's completion stats.
- * All localStorage keys are scoped per-user to prevent cross-user dedup leaks.
+ * The morning digest — one notification that greets the user and gives
+ * them the day's agenda.
+ *
+ * This absorbed the separate wake-up alert. Previously the greeting came
+ * from `use-sleep-and-planning-notifications` and the agenda from here,
+ * and both the cron function's block B and block F sent their own copy on
+ * the identical firing condition, so a user could see five variations of
+ * "good morning" within the same minute.
+ *
+ * It also no longer fires simply because the app was opened. It fires in
+ * a window around the user's actual wake-up time and is dropped once
+ * that window has passed, so opening the app at 9pm no longer produces a
+ * morning briefing.
  */
 export function useDailyBriefing() {
   const { user } = useAuth();
   const userId = user?.id;
+  const { profile } = useUserProfile(user);
   const currentWeek = WeekUtils.getCurrentWeek();
   const currentDayStr = WeekUtils.getCurrentDay();
   const dayIdx = parseInt(currentDayStr.split('-')[2]) - 1;
@@ -31,57 +48,55 @@ export function useDailyBriefing() {
   const preferences = useNotificationStore((s) => s.preferences);
   const addNotification = useNotificationStore((s) => s.addNotification);
 
-  // Send daily briefing
   useEffect(() => {
-    if (!userId || !preferences.enabled) return;
+    if (!userId || !preferences.enabled || !profile) return;
     if (!weekPlan || !habits) return; // Wait for data
 
-    const today = new Date().toDateString();
-    const lastBriefing = localStorage.getItem(`${STORAGE_KEY_BRIEFING}-${userId}`);
+    const now = new Date();
+    const today = dayKey(now);
+    const dedupKey = notificationKey('daily_briefing', today);
 
-    if (lastBriefing === today) return; // Already sent today
+    const { shownKeys, deletedKeys } = useNotificationStore.getState();
+    if (shownKeys.includes(dedupKey) || deletedKeys.includes(dedupKey)) return;
 
-    localStorage.setItem(`${STORAGE_KEY_BRIEFING}-${userId}`, today);
+    // Anchor on the user's wake-up time, and only deliver while the
+    // morning digest is still worth reading.
+    const wakeMinutes = getWakeUpMinutes(profile.sleepStart || '22:00', profile.sleepDuration || '8');
+    const intendedAt = new Date(now);
+    intendedAt.setHours(Math.floor(wakeMinutes / 60), wakeMinutes % 60, 0, 0);
 
-    // Get yesterday's stats
-    const yesterdayStats = localStorage.getItem(`${STORAGE_KEY_YESTERDAY}-${userId}`);
+    if (now.getTime() < intendedAt.getTime()) return; // not morning yet
+    if (isStale('daily_briefing', intendedAt, now)) return; // morning has passed
+
     let yesterdayText = '';
+    const yesterdayStats = localStorage.getItem(`${STORAGE_KEY_YESTERDAY}-${userId}`);
     if (yesterdayStats) {
       try {
         const { completed, total } = JSON.parse(yesterdayStats);
         if (total > 0) {
           const pct = Math.round((completed / total) * 100);
-          yesterdayText = ` Yesterday: ${completed}/${total} tasks (${pct}%).`;
+          yesterdayText = ` Yesterday: ${completed}/${total} (${pct}%).`;
         }
       } catch {
         // ignore
       }
     }
 
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const first = tasks[0];
+    const body = tasks.length > 0
+      ? `${tasks.length} task${tasks.length !== 1 ? 's' : ''} today${first ? ` — first up, ${first.name} at ${first.startTime}` : ''}.${yesterdayText}`
+      : `Nothing scheduled today.${yesterdayText} Open the planner to lay out your day.`;
 
-    const taskCount = tasks.length;
-    const title = `${greeting}!`;
-    const body = taskCount > 0
-      ? `You have ${taskCount} task${taskCount !== 1 ? 's' : ''} scheduled today.${yesterdayText} Let's build your legacy!`
-      : `No tasks scheduled for today.${yesterdayText} Use the planner to add some!`;
+    addNotification({
+      type: 'daily_briefing',
+      title: 'Good morning',
+      body,
+      actionUrl: '/today',
+      dedupKey,
+    });
+  }, [userId, profile, weekPlan, habits, tasks, preferences, addNotification]);
 
-    const dedupKey = `daily-briefing-${userId}-${today}`;
-
-    // Small delay so the app has time to render first
-    setTimeout(() => {
-      addNotification({
-        type: 'daily_briefing',
-        title,
-        body,
-        actionUrl: '/today',
-        dedupKey,
-      });
-    }, 2000);
-  }, [userId, weekPlan, habits, tasks.length, preferences, addNotification]);
-
-  // Store today's completion data for tomorrow's briefing
+  // Store today's completion data for tomorrow's digest
   useEffect(() => {
     if (!userId) return;
     if (tasks.length > 0) {
@@ -95,43 +110,37 @@ export function useDailyBriefing() {
     }
   }, [userId, completedTasks, tasks.length]);
 
-  // Weekly summary — fires on Mondays
+  // Weekly summary — Monday only
   useEffect(() => {
     if (!userId || !preferences.enabled || preferences.weeklySummary === false) return;
 
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon
-    if (dayOfWeek !== 1) return; // Only on Monday
+    if (now.getDay() !== 1) return;
 
-    const weeklyKey = `llb-weekly-summary-${currentWeek}-${userId}`;
-    if (localStorage.getItem(weeklyKey)) return;
-
-    localStorage.setItem(weeklyKey, 'sent');
+    const dedupKey = notificationKey('weekly_summary', currentWeek);
+    const { shownKeys, deletedKeys } = useNotificationStore.getState();
+    if (shownKeys.includes(dedupKey) || deletedKeys.includes(dedupKey)) return;
 
     const yesterdayStats = localStorage.getItem(`${STORAGE_KEY_YESTERDAY}-${userId}`);
-    let summaryBody = 'Start of a new week! Check your statistics to see last week\'s performance.';
+    let summaryBody = "A new week. Check Statistics to see how last week landed.";
 
     if (yesterdayStats) {
       try {
         const { completed, total } = JSON.parse(yesterdayStats);
         if (total > 0) {
-          summaryBody = `Last week you completed ${completed} tasks. Check your full performance breakdown in Statistics.`;
+          summaryBody = `Last week you completed ${completed} tasks. Full breakdown is in Statistics.`;
         }
       } catch {
         // ignore
       }
     }
 
-    const dedupKey = `weekly-summary-${userId}-${currentWeek}`;
-
-    setTimeout(() => {
-      addNotification({
-        type: 'weekly_summary',
-        title: 'Weekly Performance Summary',
-        body: summaryBody,
-        actionUrl: '/statistics',
-        dedupKey,
-      });
-    }, 5000);
+    addNotification({
+      type: 'weekly_summary',
+      title: 'Weekly Performance Summary',
+      body: summaryBody,
+      actionUrl: '/statistics',
+      dedupKey,
+    });
   }, [userId, currentWeek, preferences, addNotification]);
 }

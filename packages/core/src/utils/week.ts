@@ -1,3 +1,11 @@
+// formatWeekDisplay() is by far the most expensive helper here: each call
+// builds 9 Date objects and makes two Intl-backed toLocaleDateString()
+// calls. On Hermes/Android those go through a JSI bridge to the platform's
+// ICU, costing ~1000x what V8's cached Intl does — and callers hit it with
+// the same handful of week codes over and over (sorting, lookups, history
+// windows). It's a pure function of weekStr, so memoize it.
+const weekDisplayCache = new Map<string, string>();
+
 export const WeekUtils = {
     getWeekFromDate(dateStr: string | Date): string {
         const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
@@ -78,13 +86,18 @@ export const WeekUtils = {
     },
 
     formatWeekDisplay(weekStr: string): string {
+        const cached = weekDisplayCache.get(weekStr);
+        if (cached !== undefined) return cached;
+
         const dates = this.getDaysForWeek(weekStr);
         const start = dates[0];
         const end = dates[6];
         const formatOptions: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-        if (start.getFullYear() !== end.getFullYear()) {
-            return `${start.toLocaleDateString('en-US', { ...formatOptions, year: 'numeric' })} - ${end.toLocaleDateString('en-US', { ...formatOptions, year: 'numeric' })}`;
-        }
-        return `${start.toLocaleDateString('en-US', formatOptions)} - ${end.toLocaleDateString('en-US', { ...formatOptions, year: 'numeric' })}`;
+        const result = start.getFullYear() !== end.getFullYear()
+            ? `${start.toLocaleDateString('en-US', { ...formatOptions, year: 'numeric' })} - ${end.toLocaleDateString('en-US', { ...formatOptions, year: 'numeric' })}`
+            : `${start.toLocaleDateString('en-US', formatOptions)} - ${end.toLocaleDateString('en-US', { ...formatOptions, year: 'numeric' })}`;
+
+        weekDisplayCache.set(weekStr, result);
+        return result;
     },
 };

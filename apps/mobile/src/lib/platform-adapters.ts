@@ -1,29 +1,18 @@
-import { Alert, Platform, ToastAndroid } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { setNotifier, setNetStatus, setStores, type ToastOptions } from '@llb/core';
+import { useToastStore, type ToastType } from '@/stores/toast-store';
 import type { MmkvBundle } from './mmkv';
 
-/**
- * Minimal cross-platform toast: Android has a native one; iOS/other has no
- * OS-level equivalent, so this falls back to a lightweight Alert. Good
- * enough for the vertical slice — a real <ToastHost/> (matching web's
- * sonner styling) is a Phase 6 shared-component-library task, not
- * something to build ahead of need here.
- */
-function showToast(message: string, _options?: ToastOptions) {
-  if (Platform.OS === 'android') {
-    ToastAndroid.show(message, ToastAndroid.SHORT);
-  } else {
-    Alert.alert(message);
-  }
+function showToast(type: ToastType, message: string, options?: ToastOptions) {
+  useToastStore.getState().push({ type, message, description: options?.description });
 }
 
 export function setupPlatformAdapters(mmkv: MmkvBundle): void {
   setNotifier({
-    default: (message, options) => showToast(message, options),
-    success: (message, options) => showToast(message, options),
-    error: (message, options) => showToast(message, options),
-    info: (message, options) => showToast(message, options),
+    default: (message, options) => showToast('default', message, options),
+    success: (message, options) => showToast('success', message, options),
+    error: (message, options) => showToast('error', message, options),
+    info: (message, options) => showToast('info', message, options),
   });
 
   // net.isOnline() is read synchronously (by canDeliverNotification() and

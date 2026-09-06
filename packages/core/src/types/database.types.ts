@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -455,29 +455,44 @@ export type Database = {
       }
       push_subscriptions: {
         Row: {
-          auth: string
+          auth: string | null
           created_at: string
-          endpoint: string
+          device_id: string | null
+          endpoint: string | null
+          expo_push_token: string | null
           id: string
-          p256dh: string
+          last_seen_at: string
+          p256dh: string | null
+          platform: string
+          timezone: string | null
           user_agent: string | null
           user_id: string
         }
         Insert: {
-          auth: string
+          auth?: string | null
           created_at?: string
-          endpoint: string
+          device_id?: string | null
+          endpoint?: string | null
+          expo_push_token?: string | null
           id?: string
-          p256dh: string
+          last_seen_at?: string
+          p256dh?: string | null
+          platform?: string
+          timezone?: string | null
           user_agent?: string | null
           user_id: string
         }
         Update: {
-          auth?: string
+          auth?: string | null
           created_at?: string
-          endpoint?: string
+          device_id?: string | null
+          endpoint?: string | null
+          expo_push_token?: string | null
           id?: string
-          p256dh?: string
+          last_seen_at?: string
+          p256dh?: string | null
+          platform?: string
+          timezone?: string | null
           user_agent?: string | null
           user_id?: string
         }
@@ -725,6 +740,7 @@ export type Database = {
           createdAt: string
           id: string
           state: Json
+          updated_at: string
           user_id: string | null
           week: string
         }
@@ -733,6 +749,7 @@ export type Database = {
           createdAt?: string
           id?: string
           state: Json
+          updated_at?: string
           user_id?: string | null
           week: string
         }
@@ -741,6 +758,7 @@ export type Database = {
           createdAt?: string
           id?: string
           state?: Json
+          updated_at?: string
           user_id?: string | null
           week?: string
         }

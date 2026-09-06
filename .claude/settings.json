@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx eas *)",
+      "Bash(npx expo *)",
+      "Bash(rm -rf \"C:\\\\Users\\\\MSI GAMING\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--planner\\\\812939f4-6f46-4fe7-b6f7-8a57fb6da276\\\\scratchpad\\\\export-check2\")",
+      "Bash(npm install *)",
+      "Bash(rm -rf \"C:\\\\Users\\\\MSI GAMING\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--planner\\\\812939f4-6f46-4fe7-b6f7-8a57fb6da276\\\\scratchpad\\\\export-check3\")",
+      "Bash(rm -rf \"C:\\\\Users\\\\MSI GAMING\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--planner\\\\812939f4-6f46-4fe7-b6f7-8a57fb6da276\\\\scratchpad\\\\export-check4\")",
+      "Bash(rm -rf \"C:\\\\Users\\\\MSI GAMING\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--planner\\\\812939f4-6f46-4fe7-b6f7-8a57fb6da276\\\\scratchpad\\\\export-check5\")",
+      "Bash(rm -rf \"C:\\\\Users\\\\MSI GAMING\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--planner\\\\812939f4-6f46-4fe7-b6f7-8a57fb6da276\\\\scratchpad\\\\export-check7\")",
+      "Bash(rm -rf \"C:\\\\Users\\\\MSI GAMING\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--planner\\\\812939f4-6f46-4fe7-b6f7-8a57fb6da276\\\\scratchpad\\\\export-check8\")",
+      "Bash(rm -rf \"C:\\\\Users\\\\MSI GAMING\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--planner\\\\812939f4-6f46-4fe7-b6f7-8a57fb6da276\\\\scratchpad\\\\export-check9\")",
+      "WebFetch(domain:docs.expo.dev)",
+      "Bash(git stash *)",
+      "Bash(echo \"EXIT_CODE=$?\")"
+    ]
+  }
+}

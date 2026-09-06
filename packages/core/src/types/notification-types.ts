@@ -14,7 +14,10 @@ export type NotificationType =
   | 'sleep_end'
   | 'weekly_planning'
   | 'midday_checkin'
-  | 'habit_streak_risk';
+  | 'habit_streak_risk'
+  /** Vault note reminders. Previously these borrowed 'weekly_planning',
+   *  which made them impossible to police or prioritise separately. */
+  | 'vault_reminder';
 
 export interface AppNotification {
   id: string;
@@ -108,6 +111,7 @@ export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
   weekly_planning: 'calendar',
   midday_checkin: 'clock',
   habit_streak_risk: 'shield-alert',
+  vault_reminder: 'bell-ring',
 };
 
 /** Max notifications per hour to avoid spamming */

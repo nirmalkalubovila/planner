@@ -172,10 +172,14 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
   }
 
   const bucketHistory: WeeklyBucketHistory[] = trailingWeeksChronological.map((wCode) => {
+    // Hoisted out of the find() predicate below — inside it, this Intl-backed
+    // format call re-ran for every element scanned, on every one of the 8
+    // trailing weeks.
+    const wDisplay = WeekUtils.formatWeekDisplay(wCode);
     const wp = weekPlans.find(
       (p) =>
         p.week === wCode ||
-        p.week === WeekUtils.formatWeekDisplay(wCode) ||
+        p.week === wDisplay ||
         WeekUtils.getWeekFromDate(p.week) === wCode
     );
 

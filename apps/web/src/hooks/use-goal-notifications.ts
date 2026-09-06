@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useGetGoals } from '@llb/api';
 import { useNotificationStore } from '@llb/notifications';
 import type { Goal, Milestone } from '@llb/core';
+import { dayKey, notificationKey } from '@llb/core';
 import { useAuth } from '@/contexts/auth-context';
 
 const STORAGE_KEY_DEADLINES = 'llb-notified-deadlines';
@@ -66,7 +67,7 @@ export function useGoalNotifications() {
             ? `You're at ${progress}% progress. ${diffDays <= 1 ? 'Final push!' : 'Keep working on it!'}`
             : `Deadline approaching. Start making progress on your milestones!`;
 
-          const dedupKey = `goal-deadline-${goalId}-${threshold}`;
+          const dedupKey = notificationKey('goal_deadline', dayKey(now), `${goalId}-${threshold}`);
 
           addNotification({
             type: 'goal_deadline',
@@ -95,7 +96,8 @@ export function useGoalNotifications() {
         const title = `Goal "${displayGoalName}" completed!`;
         const body = `Congratulations! You've finished all ${milestones.length} milestones. Time to set a new goal!`;
 
-        const dedupKey = `goal-completed-${goalId}`;
+        // Deliberately not scoped by day — a goal completes once, ever.
+        const dedupKey = notificationKey('goal_completed', 'once', goalId);
 
         addNotification({
           type: 'goal_completed',

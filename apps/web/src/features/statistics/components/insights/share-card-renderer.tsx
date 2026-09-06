@@ -653,7 +653,7 @@ export async function renderShareCardToCanvas(
   ctx.font = 'bold 12px sans-serif';
   ctx.textAlign = 'center';
   ctx.letterSpacing = '1px';
-  ctx.fillText('CRUSH YOUR WEEK • LEGACY.LIFE', width / 2, height - 50);
+  ctx.fillText('CRUSH YOUR WEEK • LEGACYLIFEBUILDER.XYZ', width / 2, height - 50);
 
   const durationMs = Date.now() - start;
   console.log(`Share card drawn in ${durationMs}ms`);
@@ -969,7 +969,7 @@ function renderMilestoneShareCard(
     ctx.fillStyle = '#f59e0b';
     ctx.font = '900 12px sans-serif';
     ctx.letterSpacing = '4px';
-    ctx.fillText('WWW.LEGACY.LIFE', width / 2, 1220);
+    ctx.fillText('WWW.LEGACYLIFEBUILDER.XYZ', width / 2, 1220);
     ctx.letterSpacing = '0px';
 
   } else {
@@ -1144,7 +1144,7 @@ function renderMilestoneShareCard(
     ctx.font = '900 10px sans-serif';
     ctx.letterSpacing = '2px';
     ctx.textAlign = 'center';
-    ctx.fillText('VERIFIED ON LEGACY LIFE BUILDER • WWW.LEGACY.LIFE', width / 2, height - 30);
+    ctx.fillText('VERIFIED ON LEGACY LIFE BUILDER • WWW.LEGACYLIFEBUILDER.XYZ', width / 2, height - 30);
     ctx.letterSpacing = '0px';
   }
 }

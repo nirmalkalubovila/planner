@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@llb/api';
+import { getMmkvBundle } from '@/lib/mmkv';
+import { attachOfflinePersistence, detachOfflinePersistence } from '@/lib/offline';
 
 // Mirrors apps/web/src/contexts/auth-context.tsx exactly — same shape, same
 // getSession()-then-subscribe pattern, same cache-clear-on-signout.
@@ -47,6 +49,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => subscription.unsubscribe();
   }, [queryClient]);
+
+  // Re-keys the offline cache to whichever account is now signed in (or
+  // tears it down entirely when signed out), the same isolation
+  // @llb/notifications' store already applies to its own storage. Reacts
+  // to `user?.id` rather than living inline in signOut()/the auth listener
+  // above, so both paths — an explicit sign-out and an external session
+  // change (token expiry, sign-in on first launch) — are covered by one
+  // rule instead of two copies of it.
+  useEffect(() => {
+    if (user?.id) {
+      attachOfflinePersistence(user.id, getMmkvBundle().persistentKvStore);
+    } else {
+      detachOfflinePersistence();
+    }
+  }, [user?.id]);
 
   const signOut = async () => {
     setUser(null);

@@ -1,4 +1,5 @@
 import type { NotificationPreferences, NotificationType } from '@llb/core';
+import { isStale } from '@llb/core';
 import { canDeliverNotification } from '@llb/notifications';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -77,17 +78,18 @@ export interface NotificationOptions {
   tag?: string;
   renotify?: boolean;
   silent?: boolean;
-  /** Notification type for preference checking */
-  /** Option to bypass rate limits for time-critical user-scheduled notifications */
-  bypassRateLimit?: boolean;
+  /** Notification type — selects the tier, freshness window and preference key. */
   notificationType?: NotificationType;
+  /** Only for the settings screen's "send a test notification" button. */
   bypassChecks?: boolean;
 }
 
 /**
  * Send a notification through the Service Worker.
- * Respects rate limits, quiet hours, and user preferences (via the shared
- * @llb/notifications delivery gate).
+ * Respects quiet hours, user preferences and the Tier 2 daily budget (via
+ * the shared @llb/notifications delivery gate). Tier 1 commitments — a
+ * task's 15-minute warning, a vault reminder — are uncapped by policy, so
+ * no call site needs to ask for an exemption any more.
  */
 export async function sendNotification(
   title: string,
@@ -99,7 +101,6 @@ export async function sendNotification(
     notificationType: options.notificationType,
     permissionGranted: getPermissionStatus() === 'granted',
     bypassChecks: options.bypassChecks,
-    bypassRateLimit: options.bypassRateLimit,
   });
   if (!canDeliver) return false;
 
@@ -143,8 +144,12 @@ export function scheduleNotification(
   if (delay <= 0) return; // Already past
 
   const timer = setTimeout(() => {
-    sendNotification(title, options, preferences);
     scheduledTimers.delete(id);
+    // A background tab can throttle or defer this timer well past its
+    // moment. Delivering "starts in 15 minutes" an hour late is worse
+    // than staying silent, so drop it instead.
+    if (options.notificationType && isStale(options.notificationType, triggerTime)) return;
+    sendNotification(title, options, preferences);
   }, delay);
 
   scheduledTimers.set(id, timer);

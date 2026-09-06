@@ -16,6 +16,8 @@ export * from './types/feedback';
 
 export * from './constants/scheduling';
 
+export * from './notifications/policy';
+
 export * from './utils/week';
 export * from './utils/time';
 export * from './utils/color';
@@ -24,6 +26,11 @@ export * from './utils/analytics-engine';
 export * from './utils/milestone-engine';
 export * from './utils/insights-engine';
 export * from './utils/error-handler';
+export * from './utils/task-derivation';
+export * from './utils/widget-snapshot';
+export * from './types/widget';
+
+export * from './sync/merge-grid-state';
 
 export * from './platform/notifier';
 export * from './platform/kv';

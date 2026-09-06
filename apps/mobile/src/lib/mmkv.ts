@@ -41,6 +41,14 @@ export interface MmkvBundle {
 
 let bundle: MmkvBundle | null = null;
 
+/** For code that runs after bootstrap (anything mounted under
+ *  RootLayout's `ready` gate) and just needs the already-initialized
+ *  store — e.g. auth-context keying offline persistence per user. */
+export function getMmkvBundle(): MmkvBundle {
+  if (!bundle) throw new Error('getMmkvBundle() called before initMmkv() resolved');
+  return bundle;
+}
+
 /** Must be awaited once at app startup before any @llb/core KV read/write. */
 export async function initMmkv(): Promise<MmkvBundle> {
   if (bundle) return bundle;

@@ -1,6 +1,10 @@
 // supabase/functions/send-push-notifications/index.ts
 // Supabase Edge Function — Cron-triggered push & email notification sender
-// Sends Web Push & Email notifications for: task reminders, overdue tasks, daily briefing, goal deadlines
+// Sends Web Push, Expo (iOS/Android) push, & Email notifications for: task
+// reminders, overdue tasks, daily briefing, goal deadlines, and more.
+//
+// Native (ios/android) subscriptions skip a subset of types they schedule
+// for themselves as local OS triggers — see NATIVE_LOCAL_TYPES below.
 
 // @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -289,6 +293,164 @@ async function sendWebPush(
   };
 }
 
+/**
+ * Send a push notification to a single Expo push token via Expo's push
+ * service. One HTTP call per subscription, mirroring sendWebPush's
+ * per-subscription shape exactly (rather than Expo's supported ≤100-token
+ * batching) — this file's dispatch loops are structured one subscription
+ * at a time throughout, and restructuring all nine of them into a
+ * collect-then-batch shape is a materially bigger, riskier change than
+ * this phase's payoff justifies. Batching remains a reasonable follow-up.
+ */
+async function sendExpoPush(
+  expoPushToken: string,
+  title: string,
+  body: string,
+  data: Record<string, unknown>
+): Promise<{ success: boolean; statusCode: number; gone: boolean }> {
+  const response = await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Accept-Encoding": "gzip, deflate",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([
+      {
+        to: expoPushToken,
+        title,
+        body,
+        data,
+        priority: "high",
+      },
+    ]),
+  });
+
+  const statusCode = response.status;
+  let gone = false;
+  let success = statusCode >= 200 && statusCode < 300;
+
+  // A 2xx HTTP status only means Expo accepted the request — the actual
+  // per-token delivery receipt is inside the JSON body and is where a
+  // dead token (DeviceNotRegistered, e.g. the app was uninstalled) shows
+  // up, the equivalent of sendWebPush's 404/410 "gone" signal.
+  if (success) {
+    try {
+      const json = await response.json();
+      const ticket = json?.data?.[0];
+      if (ticket?.status === "error") {
+        success = false;
+        gone = ticket.details?.error === "DeviceNotRegistered";
+      }
+    } catch {
+      // Malformed/empty body on an otherwise-2xx response — treat the
+      // send as sent rather than fail a real delivery over a parse error.
+    }
+  }
+
+  return { success, statusCode, gone };
+}
+
+/**
+ * One push subscription, either shape, delivered through the right
+ * transport. `sub.platform` was added by the 20260826080000 migration and
+ * defaults to 'web' for every pre-existing row, so this is a pure
+ * superset of the old direct sendWebPush(sub, ...) call sites.
+ */
+async function deliverPush(
+  sub: { platform?: string; endpoint?: string | null; p256dh?: string | null; auth?: string | null; expo_push_token?: string | null },
+  payload: { title: string; body: string; url?: string; tag?: string; [key: string]: unknown },
+  vapidPublicKey: string,
+  vapidPrivateKey: string,
+  vapidSubject: string
+): Promise<{ success: boolean; statusCode: number; gone: boolean }> {
+  if (sub.platform === "ios" || sub.platform === "android") {
+    if (!sub.expo_push_token) return { success: false, statusCode: 0, gone: true };
+    return sendExpoPush(sub.expo_push_token, payload.title, payload.body, payload);
+  }
+  return sendWebPush(
+    sub as { endpoint: string; p256dh: string; auth: string },
+    payload,
+    vapidPublicKey,
+    vapidPrivateKey,
+    vapidSubject
+  );
+}
+
+/**
+ * Notification types that a native client schedules for itself as local,
+ * OS-level triggers (see apps/mobile/src/features/notifications/hooks) —
+ * clock-driven rules the device can compute without a network round trip.
+ * Skipping them here for ios/android subscriptions is what prevents a
+ * user with the app installed from getting the same "time to sleep" alert
+ * twice, once from the phone and once from this cron job. Every type NOT
+ * in this set (task_overdue, daily_briefing, day_summary, weekly_summary,
+ * habit_streak_risk) has no local equivalent and stays server-delivered
+ * to every platform, native included.
+ */
+const NATIVE_LOCAL_TYPES = new Set([
+  "sleep_start",
+  "weekly_planning",
+  "midday_checkin",
+  "task_starting",
+  "goal_deadline",
+  "goal_completed",
+]);
+
+function shouldSkipForNativeLocal(sub: { platform?: string }, notificationType: string): boolean {
+  return sub.platform !== "web" && sub.platform !== undefined && NATIVE_LOCAL_TYPES.has(notificationType);
+}
+
+// ─── Tier policy (mirrors packages/core/src/notifications/policy.ts) ──
+// Deno can't consume the npm workspace symlink, so the tier rules are
+// restated here. Keep the two in sync — core is the source of truth.
+
+/** Commitments the user scheduled themselves: uncapped, quiet-hours exempt. */
+const TIER1_TYPES = new Set(["task_starting", "vault_reminder"]);
+
+/** Tier 2 ceiling per user per day, across every type and both platforms. */
+const TIER2_DAILY_CAP = 4;
+
+/**
+ * Quiet hours exemptions. Tier 1 plus the bedtime alert — quiet hours
+ * begin at the exact minute that notification announces, so without the
+ * exemption the server skipped the whole user before it could ever send
+ * it. That is why the bedtime reminder has never fired.
+ */
+const QUIET_HOURS_EXEMPT = new Set(["task_starting", "vault_reminder", "sleep_start"]);
+
+function isTier1(notificationType: string): boolean {
+  return TIER1_TYPES.has(notificationType);
+}
+
+function isQuietHoursExempt(notificationType: string): boolean {
+  return QUIET_HOURS_EXEMPT.has(notificationType);
+}
+
+/**
+ * One place that decides whether a given notification may be delivered to
+ * a given user right now. Replaces the old pattern of each block
+ * independently checking `sentInLastHour >= MAX_NOTIFICATIONS_PER_HOUR`,
+ * which spent the budget in block order — a long task list could exhaust
+ * it before a goal deadline was even considered.
+ */
+function canSend(
+  notificationType: string,
+  userId: string,
+  prefs: UserProfile["notification_prefs"],
+  userCurrentMinutes: number,
+  tier2SpentToday: Map<string, number>
+): boolean {
+  if (!isQuietHoursExempt(notificationType) && isQuietHours(prefs, userCurrentMinutes)) return false;
+  if (isTier1(notificationType)) return true;
+  return (tier2SpentToday.get(userId) || 0) < TIER2_DAILY_CAP;
+}
+
+function recordSend(notificationType: string, userId: string, tier2SpentToday: Map<string, number>): void {
+  if (isTier1(notificationType)) return;
+  tier2SpentToday.set(userId, (tier2SpentToday.get(userId) || 0) + 1);
+}
+
 
 // ─── Email Format & Sending Helpers ───────────────────────────
 
@@ -410,6 +572,9 @@ interface CustomTask {
   isReminder?: boolean;
 }
 
+/** @deprecated Superseded by TIER2_DAILY_CAP — kept only so any stray
+ *  reference still compiles. The hourly window was replaced by a daily
+ *  ceiling that Tier 1 commitments are exempt from. */
 const MAX_NOTIFICATIONS_PER_HOUR = 5;
 const TASK_REMINDER_MINUTES = 15;
 const DEADLINE_DAYS = [7, 3, 1];
@@ -502,11 +667,25 @@ const SHORT_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface ExtractedTask {
   id: string;
+  /**
+   * What the user actually perceives: this name, at this time, on this
+   * day. Mirrors scheduledItemKey() in packages/core.
+   *
+   * A reminder saved to the task library AND placed on the planner grid
+   * reaches this function twice with two different `id`s, so it deduped
+   * against nothing and notified twice. Identity collapses those back to
+   * one entry regardless of which source produced it.
+   */
+  identity: string;
   name: string;
   type: string;
   startTime: string;
   endTime: string;
   isReminder?: boolean;
+}
+
+function taskIdentity(name: string, startTime: string, dayIdx: number): string {
+  return `${dayIdx}|${startTime}|${(name || "").trim().toLowerCase()}`;
 }
 
 function extractTodayTasks(
@@ -640,7 +819,22 @@ function extractTodayTasks(
     return (h || 0) * 60 + (m || 0);
   };
 
-  return [...result, ...reminderTasks, ...customTaskItems].sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+  // Stamp identity on every entry, then keep only the first occurrence of
+  // each — this is where a library reminder that is also on the grid stops
+  // being two notifications.
+  const merged = [...result, ...reminderTasks, ...customTaskItems].map((t) => ({
+    ...t,
+    identity: taskIdentity(t.name, t.startTime, dayIdx),
+  }));
+
+  const seen = new Set<string>();
+  const deduped = merged.filter((t) => {
+    if (seen.has(t.identity)) return false;
+    seen.add(t.identity);
+    return true;
+  });
+
+  return deduped.sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
 }
 
 /**
@@ -853,19 +1047,23 @@ Deno.serve(async (req: Request) => {
       sentTags.set(log.user_id, existing);
     }
 
-    // Count push notifications sent in the last hour for rate limiting
-    const sentInLastHour = new Map<string, number>();
-    for (const log of sentLogRes.data || []) {
-      const sentAt = new Date(log.sent_at).getTime();
-      if (now.getTime() - sentAt < 3600_000) {
-        sentInLastHour.set(log.user_id, (sentInLastHour.get(log.user_id) || 0) + 1);
-      }
-    }
-
     let totalPushSent = 0;
     let totalEmailsSent = 0;
     let totalSkipped = 0;
     const staleSubscriptions: string[] = [];
+
+    // How much of today's Tier 2 ceiling each user has already spent,
+    // reconstructed from the sent log so the cap survives across cron
+    // ticks rather than resetting every invocation.
+    const tier2SpentToday = new Map<string, number>();
+    for (const log of sentLogRes.data || []) {
+      const tag: string = log.notification_tag || "";
+      // Tier 1 tags never count against the ceiling.
+      if (tag.startsWith("task-start-") || tag.startsWith("vault-reminder-")) continue;
+      const sentAt = new Date(log.sent_at);
+      if (sentAt.toISOString().slice(0, 10) !== now.toISOString().slice(0, 10)) continue;
+      tier2SpentToday.set(log.user_id, (tier2SpentToday.get(log.user_id) || 0) + 1);
+    }
 
     // Process each user profile
     for (const profile of allProfiles) {
@@ -884,11 +1082,11 @@ Deno.serve(async (req: Request) => {
       const userDayStr = userDayStrs.get(userId) || getCurrentDayStr(userLocalTime);
       const userDayIdx = userTodayDayIndexes.get(userId) ?? getTodayDayIndex(userLocalTime);
 
-      // Skip if quiet hours
-      if (isQuietHours(prefs, userCurrentMinutes)) {
-        totalSkipped++;
-        continue;
-      }
+      // Quiet hours is NO LONGER a blanket skip of the whole user. It is
+      // applied per notification type inside canSend(), because some
+      // types are legitimately exempt — most importantly the bedtime
+      // reminder, which fires at the exact minute quiet hours begin and
+      // was therefore unreachable under the old blanket check.
 
       const userSentTags = sentTags.get(userId) || new Set();
       const userEmail = userEmails.get(userId);
@@ -913,19 +1111,33 @@ Deno.serve(async (req: Request) => {
       const completedIds = completed.get(`${userId}-${userDayStr}`) || [];
       logDebug(`[DEBUG] User ${userId} (${userName}) allTasks count: ${allTasks.length} ${JSON.stringify(allTasks.map(t => ({ id: t.id, name: t.name, start: t.startTime })))}`);
 
+      // Tier 1 — the 15-minute warning before every habit, goal task and
+      // custom block. Uncapped and quiet-hours exempt by policy: these are
+      // commitments the user made to themselves, and suppressing one for
+      // budget would be a bug rather than politeness.
+      //
+      // Per-task OVERDUE alerts used to live in this same loop, firing as
+      // each task's end time passed. They are gone — folded into the
+      // evening digest (block D), which reports the day once instead of
+      // interrupting through it.
       for (const task of allTasks) {
         const [startH, startM] = task.startTime.split(":").map(Number);
         const taskStartMinutes = startH * 60 + startM;
         const diffMinutes = taskStartMinutes - userCurrentMinutes;
 
-        // --- Task Starting Soon ---
         logDebug(`[DEBUG] Task ${task.id} (${task.name}) starting check: diffMinutes=${diffMinutes}, threshold=${TASK_REMINDER_MINUTES}`);
         if (diffMinutes > 0 && diffMinutes <= TASK_REMINDER_MINUTES) {
           const datePart = userLocalTime.toISOString().slice(0, 10);
-          const tag = `task-start-${task.id}-${datePart}`;
+          // `task.identity` collapses the same reminder arriving from both
+          // the planner grid and the saved task library, which previously
+          // produced two different ids and so notified twice.
+          const tag = `task-start-${task.identity}-${datePart}`;
 
-          // 1. Push notification
-          if ((prefs.upcomingTasks ?? prefs.taskReminders) !== false && !userSentTags.has(tag)) {
+          if (
+            (prefs.upcomingTasks ?? prefs.taskReminders) !== false &&
+            !userSentTags.has(tag) &&
+            canSend("task_starting", userId, prefs, userCurrentMinutes, tier2SpentToday)
+          ) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
               title: `${task.name} starts in ${diffMinutes} min`,
@@ -936,7 +1148,8 @@ Deno.serve(async (req: Request) => {
 
             let pushSent = false;
             for (const sub of subs) {
-              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (shouldSkipForNativeLocal(sub, "task_starting")) continue;
+              const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
               if (res.gone) staleSubscriptions.push(sub.id);
               else if (res.success) pushSent = true;
             }
@@ -944,54 +1157,25 @@ Deno.serve(async (req: Request) => {
             if (pushSent) {
               await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
               totalPushSent++;
-              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
-            }
-          }
-        }
-
-        // --- Task Overdue ---
-        const [endH, endM] = task.endTime.split(":").map(Number);
-        const taskEndMinutes = endH * 60 + endM;
-        const isOverdue = userCurrentMinutes > taskEndMinutes && !completedIds.includes(task.id);
-        logDebug(`[DEBUG] Task ${task.id} (${task.name}) overdue check: userCurrentMinutes=${userCurrentMinutes}, taskEndMinutes=${taskEndMinutes}, isCompleted=${completedIds.includes(task.id)}, isOverdue=${isOverdue}`);
-        if (isOverdue) {
-          // Double check cap before sending overdue alert
-          const currentCountOverdue = sentInLastHour.get(userId) || 0;
-          if (currentCountOverdue >= MAX_NOTIFICATIONS_PER_HOUR) {
-            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping overdue alert.`);
-            continue;
-          }
-
-          const datePart = userLocalTime.toISOString().slice(0, 10);
-          const tag = `task-overdue-${task.id}-${datePart}`;
-
-          // 1. Push notification
-          if ((prefs.overdueTasks ?? prefs.taskReminders) !== false && !userSentTags.has(tag)) {
-            const subs = userSubs.get(userId) || [];
-            const pushPayload = {
-              title: `${task.name} isn't completed`,
-              body: `Was scheduled for ${task.startTime} - ${task.endTime}. Tap to mark it done.`,
-              url: "/today",
-              tag,
-            };
-
-            let pushSent = false;
-            for (const sub of subs) {
-              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
-              if (res.gone) staleSubscriptions.push(sub.id);
-              else if (res.success) pushSent = true;
-            }
-
-            if (pushSent) {
-              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-              totalPushSent++;
-              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+              recordSend("task_starting", userId, tier2SpentToday);
             }
           }
         }
       }
 
-      // ── B. Daily Briefing (at wake-up time) ──
+      // Counted once here so the evening digest can report the day.
+      const overdueCount = allTasks.filter((t) => {
+        const [endH, endM] = t.endTime.split(":").map(Number);
+        return userCurrentMinutes > endH * 60 + endM && !completedIds.includes(t.id);
+      }).length;
+
+      // ── B. Morning Digest (at wake-up time) ──
+      // This ONE notification replaces what used to be two that fired on
+      // the identical condition: the daily briefing here, and a separate
+      // "Good Morning! Wake up time!" in block F. Both greeted the user in
+      // the same minute, and the mobile app added a third locally. The
+      // greeting and the agenda were always the same message, so they are
+      // now written as one.
       const sleepStart = profile.sleep_start || "22:00";
       const sleepDuration = profile.sleep_duration || "8";
       const wakeUpMinutes = getWakeUpMinutes(sleepStart, sleepDuration);
@@ -999,41 +1183,34 @@ Deno.serve(async (req: Request) => {
       const wakeUpDiff = userCurrentMinutes - wakeUpMinutes;
       if (wakeUpDiff >= 0 && wakeUpDiff < 5) {
         const datePart = userLocalTime.toISOString().slice(0, 10);
-        const tag = `daily-briefing-${datePart}`;
+        const tag = `daily_briefing:${datePart}`;
+        const wantsDigest = prefs.dailyBriefing !== false || prefs.sleepNotifications !== false;
 
-        // 1. Push notification
-        if (prefs.dailyBriefing !== false && !userSentTags.has(tag)) {
+        if (wantsDigest && !userSentTags.has(tag) && canSend("daily_briefing", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
           const subs = userSubs.get(userId) || [];
           const taskCount = allTasks.length;
-          const hour = userLocalTime.getUTCHours();
-          const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+          const first = allTasks[0];
 
           const pushPayload = {
-            title: `${greeting}!`,
+            title: "Good morning",
             body: taskCount > 0
-              ? `You have ${taskCount} task${taskCount !== 1 ? "s" : ""} scheduled today. Let's build your legacy!`
-              : "No tasks scheduled for today. Use the planner to add some!",
+              ? `${taskCount} task${taskCount !== 1 ? "s" : ""} today${first ? ` — first up, ${first.name} at ${first.startTime}` : ""}.`
+              : "Nothing scheduled today. Open the planner to lay out your day.",
             url: "/today",
             tag,
           };
 
-          // Enforce push cap check
-          const currentCountBriefing = sentInLastHour.get(userId) || 0;
-          if (currentCountBriefing >= MAX_NOTIFICATIONS_PER_HOUR) {
-            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping daily briefing.`);
-          } else {
-            let pushSent = false;
-            for (const sub of subs) {
-              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
-              if (res.gone) staleSubscriptions.push(sub.id);
-              else if (res.success) pushSent = true;
-            }
+          let pushSent = false;
+          for (const sub of subs) {
+            const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+            if (res.gone) staleSubscriptions.push(sub.id);
+            else if (res.success) pushSent = true;
+          }
 
-            if (pushSent) {
-              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-              totalPushSent++;
-              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
-            }
+          if (pushSent) {
+            await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
+            totalPushSent++;
+            recordSend("daily_briefing", userId, tier2SpentToday);
           }
         }
       }
@@ -1071,14 +1248,13 @@ Deno.serve(async (req: Request) => {
                 tag,
               };
 
-              // Enforce push cap check
-              const currentCountDeadlines = sentInLastHour.get(userId) || 0;
-              if (currentCountDeadlines >= MAX_NOTIFICATIONS_PER_HOUR) {
-                logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping goal deadline.`);
+              if (!canSend("goal_deadline", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
+                logDebug(`[DEBUG] User ${userId} out of Tier 2 budget. Skipping goal deadline.`);
               } else {
                 let pushSent = false;
                 for (const sub of subs) {
-                  const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                  if (shouldSkipForNativeLocal(sub, "goal_deadline")) continue;
+                  const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
                   if (res.gone) staleSubscriptions.push(sub.id);
                   else if (res.success) pushSent = true;
                 }
@@ -1086,7 +1262,7 @@ Deno.serve(async (req: Request) => {
                 if (pushSent) {
                   await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
                   totalPushSent++;
-                  sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+                  recordSend("goal_deadline", userId, tier2SpentToday);
                 }
               }
             }
@@ -1106,14 +1282,13 @@ Deno.serve(async (req: Request) => {
               tag,
             };
 
-            // Enforce push cap check
-            const currentCountCompletion = sentInLastHour.get(userId) || 0;
-            if (currentCountCompletion >= MAX_NOTIFICATIONS_PER_HOUR) {
-              logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping goal completion.`);
+            if (!canSend("goal_completed", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
+              logDebug(`[DEBUG] User ${userId} out of Tier 2 budget. Skipping goal completion.`);
             } else {
               let pushSent = false;
               for (const sub of subs) {
-                const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                if (shouldSkipForNativeLocal(sub, "goal_completed")) continue;
+                const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
                 if (res.gone) staleSubscriptions.push(sub.id);
                 else if (res.success) pushSent = true;
               }
@@ -1121,22 +1296,26 @@ Deno.serve(async (req: Request) => {
               if (pushSent) {
                 await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
                 totalPushSent++;
-                sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+                recordSend("goal_completed", userId, tier2SpentToday);
               }
             }
           }
         }
       }
 
-      // ── D. Day Summary (at sleep time) ──
+      // ── D. Evening Digest (at bedtime) ──
+      // Now also reports the day's uncompleted work, which used to arrive
+      // as a separate interruption per task as each one's end time passed.
       const sleepStartParts = (profile.sleep_start || "22:00").split(":").map(Number);
       const sleepStartMinutes = sleepStartParts[0] * 60 + sleepStartParts[1];
       const sleepDiff = userCurrentMinutes - sleepStartMinutes;
-      if (sleepDiff >= 0 && sleepDiff < 5 && prefs.daySummary !== false) {
+      const wantsEveningDigest =
+        prefs.daySummary !== false || (prefs.overdueTasks ?? prefs.taskReminders) !== false;
+      if (sleepDiff >= 0 && sleepDiff < 5 && wantsEveningDigest) {
         const datePart = userLocalTime.toISOString().slice(0, 10);
-        const tag = `day-summary-${datePart}`;
+        const tag = `day_summary:${datePart}`;
 
-        if (!userSentTags.has(tag)) {
+        if (!userSentTags.has(tag) && canSend("day_summary", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
           const totalTaskCount = allTasks.length;
           const completedCount = completedIds.length;
 
@@ -1145,29 +1324,25 @@ Deno.serve(async (req: Request) => {
 
           if (totalTaskCount === 0) {
             title = "Peaceful Evening";
-            body = "No tasks scheduled today. A restful day is just as essential for your long-term legacy. Sleep well!";
+            body = "Nothing was scheduled today. Rest is part of the work — sleep well.";
           } else if (completedCount === totalTaskCount) {
-            title = "A Masterclass Day!";
-            body = `Incredible work! You completed all ${completedCount}/${totalTaskCount} tasks today. Your discipline is inspiring. Rest deeply!`;
+            title = "A Masterclass Day";
+            body = `All ${completedCount}/${totalTaskCount} tasks done. Your discipline is compounding. Rest deeply.`;
           } else if (completedCount >= totalTaskCount / 2) {
             title = "Proud of Your Progress";
-            body = `You checked off ${completedCount}/${totalTaskCount} tasks today. Every effort adds brick by brick to your legacy. Sleep well and recharge.`;
+            body = `${completedCount}/${totalTaskCount} done, ${overdueCount} left unfinished. Brick by brick. Sleep well and recharge.`;
           } else {
             title = "Tomorrow is a New Canvas";
-            body = `You completed ${completedCount}/${totalTaskCount} tasks today. Remember, productivity has seasons, and resting is part of the work. Sleep peacefully.`;
+            body = `${completedCount}/${totalTaskCount} done, ${overdueCount} went uncompleted. Productivity has seasons — forgive the list and sleep peacefully.`;
           }
 
           const subs = userSubs.get(userId) || [];
           const pushPayload = { title, body, url: "/statistics", tag };
 
-          // Enforce push cap check
-          const currentCountSummary = sentInLastHour.get(userId) || 0;
-          if (currentCountSummary >= MAX_NOTIFICATIONS_PER_HOUR) {
-            logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping day summary.`);
-          } else {
+          {
             let pushSent = false;
             for (const sub of subs) {
-              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
               if (res.gone) staleSubscriptions.push(sub.id);
               else if (res.success) pushSent = true;
             }
@@ -1175,7 +1350,7 @@ Deno.serve(async (req: Request) => {
             if (pushSent) {
               await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
               totalPushSent++;
-              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+              recordSend("day_summary", userId, tier2SpentToday);
             }
           }
         }
@@ -1197,14 +1372,12 @@ Deno.serve(async (req: Request) => {
               tag,
             };
 
-            // Enforce push cap check
-            const currentCountWeekly = sentInLastHour.get(userId) || 0;
-            if (currentCountWeekly >= MAX_NOTIFICATIONS_PER_HOUR) {
-              logDebug(`[DEBUG] User ${userId} hit hourly notification cap (${MAX_NOTIFICATIONS_PER_HOUR}/hour). Skipping weekly summary.`);
+            if (!canSend("weekly_summary", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
+              logDebug(`[DEBUG] User ${userId} out of Tier 2 budget. Skipping weekly summary.`);
             } else {
               let pushSent = false;
               for (const sub of subs) {
-                const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
                 if (res.gone) staleSubscriptions.push(sub.id);
                 else if (res.success) pushSent = true;
               }
@@ -1212,20 +1385,25 @@ Deno.serve(async (req: Request) => {
               if (pushSent) {
                 await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
                 totalPushSent++;
-                sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+                recordSend("weekly_summary", userId, tier2SpentToday);
               }
             }
           }
         }
       }
 
-      // ── F. Sleep Start & End Notifications ──
+      // ── F. Bedtime Reminder ──
+      // The wake-up half of this block is gone; it duplicated the morning
+      // digest exactly (same firing condition, same greeting). What remains
+      // is bedtime — which, note, could NEVER fire before this rewrite:
+      // quiet hours begin at precisely this minute, and the old code
+      // skipped the entire user on quiet hours before reaching here. The
+      // per-type exemption in canSend() is what brings it back to life.
       if (prefs.sleepNotifications !== false) {
-        // Sleep Start
         if (sleepDiff >= 0 && sleepDiff < 5) {
           const datePart = userLocalTime.toISOString().slice(0, 10);
-          const tag = `sleep-start-${datePart}`;
-          if (!userSentTags.has(tag)) {
+          const tag = `sleep_start:${datePart}`;
+          if (!userSentTags.has(tag) && canSend("sleep_start", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
             const subs = userSubs.get(userId) || [];
             const pushPayload = {
               title: "Bedtime Reminder",
@@ -1235,41 +1413,15 @@ Deno.serve(async (req: Request) => {
             };
             let pushSent = false;
             for (const sub of subs) {
-              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+              if (shouldSkipForNativeLocal(sub, "sleep_start")) continue;
+              const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
               if (res.gone) staleSubscriptions.push(sub.id);
               else if (res.success) pushSent = true;
             }
             if (pushSent) {
               await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
               totalPushSent++;
-              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
-            }
-          }
-        }
-
-        // Sleep End (Wake-up)
-        const sleepEndDiff = userCurrentMinutes - wakeUpMinutes;
-        if (sleepEndDiff >= 0 && sleepEndDiff < 5) {
-          const datePart = userLocalTime.toISOString().slice(0, 10);
-          const tag = `sleep-end-${datePart}`;
-          if (!userSentTags.has(tag)) {
-            const subs = userSubs.get(userId) || [];
-            const pushPayload = {
-              title: "Good Morning!",
-              body: "Wake up time! Time to start a brand new day of building your legacy.",
-              url: "/today",
-              tag,
-            };
-            let pushSent = false;
-            for (const sub of subs) {
-              const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
-              if (res.gone) staleSubscriptions.push(sub.id);
-              else if (res.success) pushSent = true;
-            }
-            if (pushSent) {
-              await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
-              totalPushSent++;
-              sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+              recordSend("sleep_start", userId, tier2SpentToday);
             }
           }
         }
@@ -1298,14 +1450,15 @@ Deno.serve(async (req: Request) => {
               };
               let pushSent = false;
               for (const sub of subs) {
-                const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                if (shouldSkipForNativeLocal(sub, "weekly_planning")) continue;
+                const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
                 if (res.gone) staleSubscriptions.push(sub.id);
                 else if (res.success) pushSent = true;
               }
               if (pushSent) {
                 await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
                 totalPushSent++;
-                sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+                recordSend("weekly_planning", userId, tier2SpentToday);
               }
             }
           }
@@ -1326,8 +1479,7 @@ Deno.serve(async (req: Request) => {
 
             // Only send if there are tasks and not all completed
             if (totalTaskCount > 0 && remaining > 0) {
-              const currentCountMidday = sentInLastHour.get(userId) || 0;
-              if (currentCountMidday < MAX_NOTIFICATIONS_PER_HOUR) {
+              if (canSend("midday_checkin", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
                 const subs = userSubs.get(userId) || [];
                 const pushPayload = {
                   title: `Midday Check-In`,
@@ -1338,7 +1490,8 @@ Deno.serve(async (req: Request) => {
 
                 let pushSent = false;
                 for (const sub of subs) {
-                  const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                  if (shouldSkipForNativeLocal(sub, "midday_checkin")) continue;
+                  const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
                   if (res.gone) staleSubscriptions.push(sub.id);
                   else if (res.success) pushSent = true;
                 }
@@ -1346,7 +1499,7 @@ Deno.serve(async (req: Request) => {
                 if (pushSent) {
                   await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
                   totalPushSent++;
-                  sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+                  recordSend("midday_checkin", userId, tier2SpentToday);
                 }
               }
             }
@@ -1369,8 +1522,7 @@ Deno.serve(async (req: Request) => {
 
             // Only send if user has habits but none completed today
             if (userHabitCount > 0 && habitCompletedToday === 0) {
-              const currentCountStreak = sentInLastHour.get(userId) || 0;
-              if (currentCountStreak < MAX_NOTIFICATIONS_PER_HOUR) {
+              if (canSend("habit_streak_risk", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
                 const subs = userSubs.get(userId) || [];
                 const pushPayload = {
                   title: `Habit Streak at Risk`,
@@ -1381,7 +1533,7 @@ Deno.serve(async (req: Request) => {
 
                 let pushSent = false;
                 for (const sub of subs) {
-                  const res = await sendWebPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
+                  const res = await deliverPush(sub, pushPayload, vapidPublicKey, vapidPrivateKey, vapidSubject);
                   if (res.gone) staleSubscriptions.push(sub.id);
                   else if (res.success) pushSent = true;
                 }
@@ -1389,7 +1541,7 @@ Deno.serve(async (req: Request) => {
                 if (pushSent) {
                   await supabase.from("notification_sent_log").upsert({ user_id: userId, notification_tag: tag, sent_at: now.toISOString() }, { onConflict: "user_id,notification_tag" });
                   totalPushSent++;
-                  sentInLastHour.set(userId, (sentInLastHour.get(userId) || 0) + 1);
+                  recordSend("habit_streak_risk", userId, tier2SpentToday);
                 }
               }
             }

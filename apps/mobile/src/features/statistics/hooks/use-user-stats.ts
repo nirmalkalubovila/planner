@@ -1,0 +1,137 @@
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@llb/api';
+import { WeekUtils, calculateGoalProgress, type Goal } from '@llb/core';
+
+export interface UserStatsCache {
+  predictive_burnout_warning: string | null;
+  consistency_grade: string;
+  habit_heatmap: { date: string; count: number }[];
+  top_goal: {
+    name: string;
+    progress: number;
+    projected_completion: string;
+  };
+  bio_sync: {
+    sleep_duration: number;
+    completion_volume: number;
+    correlationText: string;
+  };
+}
+
+/** Port of apps/web/src/features/statistics/hooks/use-user-stats.ts — same
+ * pre-aggregated-cache-first, raw-tables-fallback logic, only the
+ * supabase import source changed (@llb/api's factory instead of web's
+ * local wrapper). */
+const fetchUserStatsCache = async (): Promise<UserStatsCache> => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error('Not authenticated');
+  const metadata = session?.user?.user_metadata;
+
+  const { data: cached, error: cacheError } = await supabase
+    .from('user_stats_cache')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!cacheError && cached) {
+    const row = cached as any;
+    return {
+      predictive_burnout_warning: row.predictive_burnout_warning ?? null,
+      consistency_grade: row.consistency_grade ?? 'F',
+      habit_heatmap: row.habit_heatmap ?? [],
+      top_goal: row.top_goal ?? { name: 'No active goals', progress: 0, projected_completion: '-' },
+      bio_sync: row.bio_sync ?? { sleep_duration: 7, completion_volume: 0, correlationText: '' },
+    };
+  }
+
+  const today = new Date();
+
+  const last30Days = Array.from({ length: 30 }).map((_, i) => {
+    const d = new Date(today.getTime() - (29 - i) * 86400000);
+    const isoDate = d.toISOString().split('T')[0];
+    const weekKey = WeekUtils.getWeekFromDate(d);
+    const dayNum = d.getDay() === 0 ? 7 : d.getDay();
+    const dayStr = `${weekKey}-${dayNum}`;
+    return { isoDate, dayStr };
+  });
+
+  const dayStrs = last30Days.map((d) => d.dayStr);
+  const currentWeek = WeekUtils.getCurrentWeek();
+  const dbWeekKey = WeekUtils.formatWeekDisplay(currentWeek);
+  const currentWeekDays = Array.from({ length: 7 }, (_, i) => `${currentWeek}-${i + 1}`);
+  const combinedDayStrs = Array.from(new Set([...dayStrs, ...currentWeekDays]));
+
+  const [completedRes, goalsRes, weekPlanRes] = await Promise.all([
+    supabase.from('completed_tasks').select('dayStr, taskIds').in('dayStr', combinedDayStrs).eq('user_id', userId),
+    supabase.from('goals').select('*').eq('user_id', userId).order('createdAt', { ascending: false }),
+    supabase.from('week_plans').select('week, state').eq('week', dbWeekKey).eq('user_id', userId).maybeSingle(),
+  ]);
+
+  const completedMap: Record<string, number> = {};
+  const completedTasksMap: Record<string, string[]> = {};
+  for (const row of completedRes.data ?? []) {
+    const taskIds = (row.taskIds as string[] | null) ?? [];
+    completedMap[row.dayStr] = taskIds.length;
+    completedTasksMap[row.dayStr] = taskIds;
+  }
+
+  const habit_heatmap = last30Days.map((day) => ({
+    date: day.isoDate,
+    count: completedMap[day.dayStr] || 0,
+  }));
+
+  const totalCompleted = habit_heatmap.reduce((s, d) => s + d.count, 0);
+  const avgCompleted = last30Days.length ? Math.round((totalCompleted / last30Days.length) * 10) / 10 : 0;
+
+  const activeDaysCount = habit_heatmap.filter((d) => d.count > 0).length;
+  let consistency_grade = 'F';
+  if (activeDaysCount > 25) consistency_grade = 'A+';
+  else if (activeDaysCount > 20) consistency_grade = 'A';
+  else if (activeDaysCount > 15) consistency_grade = 'B+';
+  else if (activeDaysCount > 10) consistency_grade = 'B';
+  else if (activeDaysCount > 5) consistency_grade = 'C';
+  else if (activeDaysCount > 0) consistency_grade = 'D';
+
+  const sleepDuration = Number(metadata?.sleepDuration) || 7;
+  let predictive_burnout_warning: string | null = null;
+  if (sleepDuration < 6 && avgCompleted >= 5) {
+    predictive_burnout_warning = 'Pacing required. High output vs. low sleep detected.';
+  }
+
+  let top_goal = { name: 'No active goals', progress: 0, projected_completion: '-' };
+  const goalsData = (goalsRes.data ?? []) as unknown as Goal[];
+  if (goalsData.length > 0) {
+    const goal = goalsData.find((g) => g.milestones?.length) || goalsData[0];
+    const progress = calculateGoalProgress(goal, currentWeek, weekPlanRes.data?.state as any, completedTasksMap);
+    top_goal = {
+      name: goal.name,
+      progress: Math.round(progress),
+      projected_completion: goal.endDate ? new Date(goal.endDate).toLocaleDateString() : 'TBD',
+    };
+  }
+
+  return {
+    predictive_burnout_warning,
+    consistency_grade,
+    habit_heatmap,
+    top_goal,
+    bio_sync: {
+      sleep_duration: sleepDuration,
+      completion_volume: avgCompleted,
+      correlationText:
+        sleepDuration >= 7 && avgCompleted > 2
+          ? 'Healthy sleep positively correlates with your task execution rate.'
+          : 'Warning: Sleep debt may naturally reduce optimal daily execution.',
+    },
+  };
+};
+
+export const useUserStats = () =>
+  useQuery({
+    queryKey: ['user_stats_cache'],
+    queryFn: fetchUserStatsCache,
+    staleTime: 5 * 60 * 1000,
+  });

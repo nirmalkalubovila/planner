@@ -1,0 +1,122 @@
+import { format } from 'date-fns';
+import { DAYS_OF_WEEK, SLOTS_PER_DAY } from '../constants/scheduling';
+import { slotToTime } from './time';
+import type { Habit } from '../types/domain';
+import type { ReminderItem } from '../types/planner';
+
+export interface TaskItem {
+  id: string;
+  name: string;
+  type: string;
+  startTime: string;
+  endTime: string;
+  startSlot: number;
+  endSlot: number;
+  isReminder?: boolean;
+  description?: string;
+}
+
+const BASE_BONUS = 15;
+const HOURLY_WEIGHT = 20;
+
+export function calculateTaskPoints(task: TaskItem): number {
+  const durationHours = task.isReminder ? 0.5 : (task.endSlot - task.startSlot) * 0.5;
+  return BASE_BONUS + durationHours * HOURLY_WEIGHT;
+}
+
+/** Pure, hook-free extraction of the grid-slot derivation loop that used to
+ * live only inside apps/{web,mobile}'s useTodayTasks hooks — moved here so
+ * non-React contexts (the widget snapshot builder, which native widget code
+ * calls without a React tree) can compute "what's due today" with the exact
+ * same rules the app screens use, instead of a second, possibly-drifting
+ * implementation. useTodayTasks now wraps this in useMemo. */
+export function deriveDayTasks(
+  weekPlan: Record<string, any> | undefined,
+  habits: Habit[] | undefined,
+  dayIdx: number
+): TaskItem[] {
+  const result: TaskItem[] = [];
+  let currentTask: TaskItem | null = null;
+
+  const getCellContent = (slotIdx: number) => {
+    const key = `${dayIdx}-${slotIdx}`;
+    const customState = (weekPlan || {})[key];
+
+    if (customState) {
+      if (customState.type === 'cleared') return undefined;
+      return customState;
+    }
+
+    const habit = (habits || []).find((h: Habit) => {
+      const [hStartH, hStartM] = h.startTime.split(':').map(Number);
+      const [hEndH, hEndM] = h.endTime.split(':').map(Number);
+      const startSlot = hStartH * 2 + (hStartM >= 30 ? 1 : 0);
+      const endSlot = hEndH * 2 + (hEndM >= 30 ? 1 : 0);
+      const currentDayName = DAYS_OF_WEEK[dayIdx];
+      const todayDate = format(new Date(), 'yyyy-MM-dd');
+
+      const isDayMatched = h.daysOfWeek?.includes(currentDayName) ?? true;
+      const hasStarted = h.startDate ? h.startDate <= todayDate : true;
+      const hasNotEnded = h.endDate ? h.endDate >= todayDate : true;
+
+      return isDayMatched && hasStarted && hasNotEnded && slotIdx >= startSlot && slotIdx < endSlot;
+    });
+
+    if (habit) {
+      return { type: 'habit', name: habit.name, description: habit.description };
+    }
+    return undefined;
+  };
+
+  for (let i = 0; i < SLOTS_PER_DAY; i++) {
+    const content = getCellContent(i);
+
+    if (content) {
+      if (currentTask && currentTask.name === content.name && currentTask.type === content.type) {
+        currentTask.endSlot = i + 1;
+        currentTask.endTime = slotToTime(i + 1);
+      } else {
+        if (currentTask) result.push(currentTask);
+        currentTask = {
+          id: `${content.type}-${content.name}-${i}`,
+          name: content.name,
+          type: content.type,
+          startSlot: i,
+          endSlot: i + 1,
+          startTime: slotToTime(i),
+          endTime: slotToTime(i + 1),
+          description: content.description,
+        };
+      }
+    } else if (currentTask) {
+      result.push(currentTask);
+      currentTask = null;
+    }
+  }
+  if (currentTask) result.push(currentTask);
+
+  const dayReminders = ((weekPlan?.reminders || []) as ReminderItem[]).filter((r) => r.dayIdx === dayIdx);
+
+  const reminderTasks: TaskItem[] = dayReminders.map((r) => {
+    const [h, m] = r.time.split(':').map(Number);
+    const slotIdx = h * 2 + (m >= 30 ? 1 : 0);
+    return {
+      id: r.id,
+      name: r.name,
+      type: 'reminder',
+      startTime: r.time,
+      endTime: r.time,
+      startSlot: slotIdx,
+      endSlot: slotIdx,
+      isReminder: true,
+      description: r.description,
+    };
+  });
+
+  const timeToMin = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  return [...result, ...reminderTasks].sort((a, b) => timeToMin(a.startTime) - timeToMin(b.startTime));
+}
