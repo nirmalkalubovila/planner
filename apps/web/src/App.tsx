@@ -154,6 +154,32 @@ const MaintenanceGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     };
   }, []); // Only fetch once on mount, not on every pathname change
 
+  // Keep the flag fresh for users already in the app, so toggling maintenance from the admin panel
+  // reaches them within a minute (and immediately when they return to the tab).
+  React.useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("landing_page_settings")
+          .select("maintenance_mode")
+          .eq("id", 1)
+          .maybeSingle();
+        if (!active || error || !data) return;
+        const mode = data.maintenance_mode ?? false;
+        sessionStorage.setItem('llb-maintenance-mode', String(mode));
+        setMaintenanceMode(mode);
+      } catch { /* non-blocking */ }
+    };
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+    };
+  }, []);
+
   const isAdmin = user?.email === 'legacylifebuilder.konik@email.com';
   const isAdminPath = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');
 

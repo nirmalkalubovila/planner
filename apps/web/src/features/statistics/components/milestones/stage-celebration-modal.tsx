@@ -1,26 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Trophy, 
-  Sparkles, 
-  Flame, 
-  Zap, 
-  Award, 
-  Crown, 
-  Shield, 
-  Star, 
-  Share2, 
-  X, 
-  Send, 
-  CheckCircle2,
-  Repeat
-} from 'lucide-react';
+import { Trophy, Sparkles, Flame, Zap, Award, Crown, Shield, Share2, X, CheckCircle2, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useSubmitFeedback } from '@llb/api';
+import { FeedbackForm } from '@/components/common/feedback-form';
 import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@llb/api';
 import type { MilestoneStage } from '@/utils/milestone-engine';
 import { markMilestoneAsCelebrated } from '@/utils/milestone-engine';
 
@@ -50,25 +35,9 @@ export const StageCelebrationModal: React.FC<StageCelebrationModalProps> = ({
   isReplay = false,
 }) => {
   const { user } = useAuth();
-  const { profile } = useUserProfile(user);
-  const submitFeedback = useSubmitFeedback();
-
-  const [rating, setRating] = useState<number>(5);
-  const [hoverRating, setHoverRating] = useState<number | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [authorName, setAuthorName] = useState('');
-  const [authorPosition, setAuthorPosition] = useState('');
-  const [consentToShow, setConsentToShow] = useState(true);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    if (profile) {
-      setAuthorName(profile.fullName || '');
-      setAuthorPosition(profile.currentProfession || '');
-    }
-  }, [profile?.fullName, profile?.currentProfession]);
 
   // Lock body scroll when modal is active
   useEffect(() => {
@@ -165,24 +134,6 @@ export const StageCelebrationModal: React.FC<StageCelebrationModalProps> = ({
 
   const StageIcon = ICON_MAP[stage.iconName] || Trophy;
 
-  const handleFeedbackSubmit = async () => {
-    if (!user) return;
-    try {
-      await submitFeedback.mutateAsync({
-        category: 'About Legacy Life Builder',
-        subject: `Stage ${stage.stageNumber} Customer Review: ${stage.title}`,
-        message: feedbackMessage.trim() || `User achieved ${stage.title} (${stage.days}-day consistent streak).`,
-        rating: rating,
-        author_name: consentToShow && authorName.trim() ? authorName.trim() : null,
-        author_position: consentToShow && authorPosition.trim() ? authorPosition.trim() : null,
-        consent_to_show: consentToShow,
-      });
-      setFeedbackSubmitted(true);
-    } catch {
-      // Handled by mutation error
-    }
-  };
-
   return createPortal(
     <AnimatePresence>
       <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
@@ -256,103 +207,20 @@ export const StageCelebrationModal: React.FC<StageCelebrationModalProps> = ({
             {stage.description}
           </p>
 
-          {/* Interactive 5-Star Rating & Customer Feedback Collection (Google Search / Evidence) */}
+          {/* Review collection: the same shared form used everywhere else in the app */}
           <div className="mt-6 pt-5 border-t border-white/10 text-left bg-white/[0.02] rounded-2xl p-4 sm:p-5 border border-white/10 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-                  Verified User Review
-                </p>
-                <p className="text-sm font-bold text-foreground">
-                  Rate your journey with Legacy Life Builder
-                </p>
-              </div>
-
-              {/* Star Selector */}
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((starValue) => {
-                  const isFilled = (hoverRating ?? rating) >= starValue;
-                  return (
-                    <button
-                      key={starValue}
-                      type="button"
-                      onClick={() => setRating(starValue)}
-                      onMouseEnter={() => setHoverRating(starValue)}
-                      onMouseLeave={() => setHoverRating(null)}
-                      className="p-1 rounded-lg hover:scale-110 transition-transform focus:outline-none"
-                    >
-                      <Star
-                        size={20}
-                        className={cn(
-                          'transition-colors',
-                          isFilled
-                            ? 'text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
-                            : 'text-muted-foreground/40'
-                        )}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Feedback message input & consent */}
+            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Rate your journey with Legacy Life Builder</p>
             {!feedbackSubmitted ? (
-              <div className="space-y-2.5">
-                <textarea
-                  value={feedbackMessage}
-                  onChange={(e) => setFeedbackMessage(e.target.value)}
-                  placeholder="Share your experience, results achieved, or feedback on your journey..."
-                  rows={2}
-                  className="w-full text-xs bg-background/50 border border-white/10 rounded-xl p-3 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors resize-none"
-                />
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="Your Name (Optional)"
-                    className="w-full text-xs bg-background/50 border border-white/10 rounded-xl px-3 py-2 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
-                  />
-                  <input
-                    type="text"
-                    value={authorPosition}
-                    onChange={(e) => setAuthorPosition(e.target.value)}
-                    placeholder="Job Role / Title (Optional)"
-                    className="w-full text-xs bg-background/50 border border-white/10 rounded-xl px-3 py-2 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary transition-colors"
-                  />
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] pt-1">
-                  <label className="flex items-center gap-2 text-muted-foreground cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={consentToShow}
-                      onChange={(e) => setConsentToShow(e.target.checked)}
-                      className="rounded border-white/20 bg-background/50 text-primary focus:ring-0 shrink-0"
-                    />
-                    <span>Allow my review, name, and job role to be displayed publicly</span>
-                  </label>
-
-                  <Button
-                    size="sm"
-                    onClick={handleFeedbackSubmit}
-                    disabled={submitFeedback.isPending}
-                    className="w-full sm:w-auto h-8 px-4 text-xs font-black uppercase tracking-wider rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
-                  >
-                    {submitFeedback.isPending ? 'Submitting...' : (
-                      <span className="flex items-center gap-1.5">
-                        <Send size={11} /> Submit Review
-                      </span>
-                    )}
-                  </Button>
-                </div>
-              </div>
+              <FeedbackForm
+                compact
+                defaultConsent
+                defaultSubject={`Stage ${stage.stageNumber} Review: ${stage.title}`}
+                onSubmitted={() => setFeedbackSubmitted(true)}
+              />
             ) : (
               <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
                 <CheckCircle2 size={15} />
-                <span>Thank you! Your verified review has been submitted.</span>
+                <span>Thank you! Your review has been submitted.</span>
               </div>
             )}
           </div>

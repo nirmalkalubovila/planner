@@ -114,6 +114,22 @@ export const ExecutionProfileSection: React.FC = () => {
                 )}
             </div>
 
+            <div className="pt-4 border-t border-border">
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        checked={!!profile?.marketingOptIn}
+                        disabled={isSaving}
+                        onChange={(e) => saveProfile({ marketingOptIn: e.target.checked })}
+                        className="mt-1 h-4 w-4 rounded accent-primary"
+                    />
+                    <span className="space-y-0.5">
+                        <span className="block text-sm font-bold">Product emails</span>
+                        <span className="block text-xs text-muted-foreground">Planning tips, product updates and offers. You can unsubscribe anytime.</span>
+                    </span>
+                </label>
+            </div>
+
             <ExecutionProfileDialog isOpen={dialogOpen} onClose={() => setDialogOpen(false)} />
         </div>
     );

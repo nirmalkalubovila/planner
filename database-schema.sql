@@ -202,7 +202,15 @@ CREATE TABLE feedbacks (
   subject text NOT NULL,
   message text NOT NULL,
   status text NOT NULL DEFAULT 'open',
-  created_at timestamptz DEFAULT now() NOT NULL
+  created_at timestamptz DEFAULT now() NOT NULL,
+  show_on_landing boolean DEFAULT false,
+  author_name text,
+  author_position text,
+  rating integer DEFAULT 5,
+  consent_to_show boolean DEFAULT false,
+  tag text,
+  avatar_url text,
+  is_verified boolean NOT NULL DEFAULT false
 );
 
 ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;

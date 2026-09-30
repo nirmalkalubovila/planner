@@ -1,37 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Sparkles, X, Check, ExternalLink, Star, Send, MessageSquareCheck } from 'lucide-react';
+import { AlertTriangle, Sparkles, X, Check, ExternalLink, MessageSquareCheck } from 'lucide-react';
 import { useLatestUpdate } from '@/hooks/use-latest-update';
 import { useLandingSettings } from '@/api/services/feedback-service';
-import { useSubmitFeedback } from '@llb/api';
-import { useAuth } from '@/contexts/auth-context';
-import { useUserProfile } from '@llb/api';
+import { FeedbackForm } from '@/components/common/feedback-form';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@llb/core';
-
-const RATING_LABELS: Record<number, string> = {
-    1: 'Needs Work',
-    2: 'Fair',
-    3: 'Good',
-    4: 'Great',
-    5: 'Exceptional',
-};
 
 export const AnnouncementBanner: React.FC = () => {
     const { data: latestUpdate } = useLatestUpdate();
     const { data: landingSettings } = useLandingSettings();
-    const { user } = useAuth();
-    const { profile } = useUserProfile(user);
-    const submitFeedbackMutation = useSubmitFeedback();
 
     const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const navigate = useNavigate();
 
-    // Feedback collector states
-    const [rating, setRating] = useState<number>(5);
-    const [hoverRating, setHoverRating] = useState<number | null>(null);
-    const [feedbackNote, setFeedbackNote] = useState('');
     const [isFeedbackSubmitted, setIsFeedbackSubmitted] = useState(false);
 
     useEffect(() => {
@@ -58,40 +40,6 @@ export const AnnouncementBanner: React.FC = () => {
         setModalOpen(false);
     };
 
-    const handleFeedbackSubmit = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        if (!latestUpdate) return;
-
-        if (!user) {
-            toast.error('Please log in to submit your rating.');
-            navigate('/login');
-            return;
-        }
-
-        try {
-            const noteText = feedbackNote.trim();
-            const message = noteText.length > 0
-                ? noteText
-                : `User rated Update ${latestUpdate.version} (${latestUpdate.title}) with ${rating} out of 5 stars.`;
-
-            await submitFeedbackMutation.mutateAsync({
-                category: 'About Legacy Life Builder',
-                subject: `Update ${latestUpdate.version} Feedback`,
-                message,
-                rating,
-                author_name: profile?.fullName || null,
-                author_position: profile?.currentProfession || null,
-                consent_to_show: false,
-            });
-
-            localStorage.setItem(`update_feedback_submitted_${latestUpdate.version}`, `${rating}`);
-            setIsFeedbackSubmitted(true);
-            setFeedbackNote('');
-        } catch (error) {
-            // Handled by mutation toast
-        }
-    };
-
     // Render Maintenance Mode Warning
     if (maintenanceMode) {
         return (
@@ -113,8 +61,6 @@ export const AnnouncementBanner: React.FC = () => {
     const bulletPoints = latestUpdate.description
         ? latestUpdate.description.split('\n').map(p => p.replace(/^[-\*\s\•]+/, '').trim()).filter(Boolean)
         : [];
-
-    const activeRating = hoverRating ?? rating;
 
     return (
         <>
@@ -247,78 +193,14 @@ export const AnnouncementBanner: React.FC = () => {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="space-y-3">
-                                            {/* Star Rating Controls */}
-                                            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-background/50 border border-border/50">
-                                                <div className="flex items-center gap-1">
-                                                    {[1, 2, 3, 4, 5].map((star) => (
-                                                        <button
-                                                            key={star}
-                                                            type="button"
-                                                            onClick={() => setRating(star)}
-                                                            onMouseEnter={() => setHoverRating(star)}
-                                                            onMouseLeave={() => setHoverRating(null)}
-                                                            className="p-1 rounded-lg hover:bg-muted/80 transition-transform active:scale-90 cursor-pointer"
-                                                            title={`${star} out of 5 - ${RATING_LABELS[star]}`}
-                                                        >
-                                                            <Star
-                                                                size={18}
-                                                                className={`transition-colors ${
-                                                                    star <= activeRating
-                                                                        ? 'fill-amber-400 text-amber-400'
-                                                                        : 'text-zinc-600 hover:text-zinc-400'
-                                                                }`}
-                                                            />
-                                                        </button>
-                                                    ))}
-                                                </div>
-
-                                                <div className="flex items-center gap-2 text-right">
-                                                    <span className="text-[11px] font-bold text-foreground">
-                                                        {RATING_LABELS[activeRating] || 'Great'}
-                                                    </span>
-                                                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/40">
-                                                        {activeRating} / 5
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Small Note Input */}
-                                            <div className="space-y-1.5">
-                                                <textarea
-                                                    value={feedbackNote}
-                                                    onChange={(e) => setFeedbackNote(e.target.value)}
-                                                    placeholder="Add a small note or impression (optional)..."
-                                                    maxLength={280}
-                                                    rows={2}
-                                                    className="w-full text-xs rounded-xl bg-background/60 border border-border/70 p-2.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50 resize-none transition-colors"
-                                                />
-                                                <div className="flex items-center justify-between text-[9px] text-muted-foreground px-1">
-                                                    <span>Keep it short and direct</span>
-                                                    <span>{feedbackNote.length}/280</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Quick Submit Rating Button */}
-                                            <button
-                                                type="button"
-                                                onClick={() => handleFeedbackSubmit()}
-                                                disabled={submitFeedbackMutation.isPending}
-                                                className="w-full py-2 px-3 rounded-xl bg-muted/80 hover:bg-muted text-foreground hover:text-white border border-border/80 hover:border-primary/30 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                                            >
-                                                {submitFeedbackMutation.isPending ? (
-                                                    <>
-                                                        <div className="h-3 w-3 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
-                                                        <span>Submitting...</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Send size={12} className="text-primary" />
-                                                        <span>Submit Update Rating ({rating}/5)</span>
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
+                                        <FeedbackForm
+                                            compact
+                                            defaultSubject={`Update ${latestUpdate.version} Feedback`}
+                                            onSubmitted={() => {
+                                                localStorage.setItem(`update_feedback_submitted_${latestUpdate.version}`, '1');
+                                                setIsFeedbackSubmitted(true);
+                                            }}
+                                        />
                                     )}
                                 </div>
                             </div>

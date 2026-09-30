@@ -63,6 +63,81 @@ export type Database = {
         }
         Relationships: []
       }
+      email_campaigns: {
+        Row: {
+          audience: string
+          body: string
+          created_at: string
+          created_by: string | null
+          failed: number
+          finished_at: string | null
+          id: string
+          sent: number
+          started_at: string | null
+          status: string
+          subject: string
+          total: number
+        }
+        Insert: {
+          audience?: string
+          body: string
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          sent?: number
+          started_at?: string | null
+          status?: string
+          subject: string
+          total?: number
+        }
+        Update: {
+          audience?: string
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          sent?: number
+          started_at?: string | null
+          status?: string
+          subject?: string
+          total?: number
+        }
+        Relationships: []
+      }
+      email_sends: {
+        Row: {
+          campaign_id: string
+          email: string
+          error: string | null
+          id: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          email: string
+          error?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          email?: string
+          error?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       billing_inquiries: {
         Row: {
           created_at: string
@@ -159,6 +234,9 @@ export type Database = {
       feedbacks: {
         Row: {
           author_name: string | null
+          avatar_url: string | null
+          is_verified: boolean
+          tag: string | null
           author_position: string | null
           category: string
           consent_to_show: boolean | null
@@ -173,6 +251,9 @@ export type Database = {
         }
         Insert: {
           author_name?: string | null
+          avatar_url?: string | null
+          is_verified?: boolean
+          tag?: string | null
           author_position?: string | null
           category?: string
           consent_to_show?: boolean | null
@@ -187,6 +268,9 @@ export type Database = {
         }
         Update: {
           author_name?: string | null
+          avatar_url?: string | null
+          is_verified?: boolean
+          tag?: string | null
           author_position?: string | null
           category?: string
           consent_to_show?: boolean | null
@@ -803,6 +887,11 @@ export type Database = {
           user_id: string
           week_plans_count: number
         }[]
+      }
+      get_admin_user_detail: { Args: { p_user_id: string }; Returns: Json }
+      get_marketing_recipients: {
+        Args: { p_audience?: string }
+        Returns: { user_id: string; email: string; full_name: string }[]
       }
       get_decrypted_smtp_password: {
         Args: { p_encryption_key: string }
