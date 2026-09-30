@@ -3,13 +3,41 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, ChevronRight, Copy, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 
 import { BucketSelector } from '@/components/common/bucket-selector';
-import { LifeBucket } from '@llb/core';
+import { LifeBucket, type GoalContext } from '@llb/core';
+
+const TEXTAREA_CLASS = "flex min-h-[70px] w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none";
+
+const hasText = (v?: string) => !!v && v.trim().length > 0;
+
+/** Drops empty answers so goals without context never write a goalContext value. */
+function cleanGoalContext(c: GoalContext): GoalContext | undefined {
+    const out: GoalContext = {};
+    if (hasText(c.why)) out.why = c.why!.trim();
+    if (hasText(c.successMeasure)) out.successMeasure = c.successMeasure!.trim();
+    if (c.deadlineFlex) out.deadlineFlex = c.deadlineFlex;
+    if (hasText(c.weeklyHours)) out.weeklyHours = c.weeklyHours!.trim();
+    const r = c.resources ?? {};
+    const resources = {
+        ...(r.budget ? { budget: r.budget } : {}),
+        ...(hasText(r.skills) ? { skills: r.skills!.trim() } : {}),
+        ...(hasText(r.tools) ? { tools: r.tools!.trim() } : {}),
+        ...(hasText(r.network) ? { network: r.network!.trim() } : {}),
+    };
+    if (Object.keys(resources).length) out.resources = resources;
+    if (c.priorAttempt?.attempted) {
+        out.priorAttempt = {
+            attempted: true,
+            ...(hasText(c.priorAttempt.whatTried) ? { whatTried: c.priorAttempt.whatTried!.trim() } : {}),
+            ...(hasText(c.priorAttempt.whyStopped) ? { whyStopped: c.priorAttempt.whyStopped!.trim() } : {}),
+        };
+    }
+    return Object.keys(out).length ? out : undefined;
+}
 
 function parseLegacyName(text: string): { currentState: string; ultimateGoal: string } {
     if (!text) return { currentState: '', ultimateGoal: '' };
@@ -69,6 +97,7 @@ export interface GoalFormValues {
     goalType: 'Week' | 'Month' | 'Year';
     durationValue?: number;
     bucket?: LifeBucket;
+    goalContext?: GoalContext;
 }
 
 interface GoalDefinitionFormProps {
@@ -78,18 +107,10 @@ interface GoalDefinitionFormProps {
 }
 
 export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialValues, onSubmit, isEditing }) => {
-    const [copied, setCopied] = useState(false);
     const [bucket, setBucket] = useState<LifeBucket | null>(initialValues?.bucket || null);
-    const templateText = `I am [your age] and currently [your situation, e.g., a student / working at / freelancing].
-I want to [your goal, e.g., build a clothing brand / start a YouTube channel / get fit].
-My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginner].`;
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(templateText);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
+    const [bucketError, setBucketError] = useState(false);
+    // The one extra question: why this goal matters. Other saved context values are preserved untouched.
+    const [why, setWhy] = useState(initialValues?.goalContext?.why ?? '');
     const parsedName = parseLegacyName(initialValues?.name || '');
     const parsedConstraints = parseLegacyPurpose(initialValues?.purpose || '');
 
@@ -108,9 +129,16 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
 
     const watchedGoalType = form.watch('goalType');
 
+    // Every goal belongs to one life bucket, so submit is blocked until one is chosen
+    const submitWith = (mode: 'save' | 'replan') => form.handleSubmit((v) => {
+        if (!bucket) { setBucketError(true); return; }
+        handleFormSubmit(v, mode);
+    });
+
     const handleFormSubmit = (formValues: FormValues, mode: 'save' | 'replan' = 'replan') => {
         const name = `Current State:\n${formValues.currentState}\n\nUltimate Goal:\n${formValues.ultimateGoal}`;
         const purpose = `Strict Constraints:\n${formValues.constraints}`;
+        const cleanedContext = cleanGoalContext({ ...initialValues?.goalContext, why });
         onSubmit({
             title: formValues.title,
             name,
@@ -119,24 +147,27 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
             goalType: formValues.goalType,
             durationValue: formValues.durationValue,
             bucket: bucket || undefined,
+            ...(cleanedContext ? { goalContext: cleanedContext } : {}),
         }, mode);
     };
 
     return (
-        <form onSubmit={form.handleSubmit((v) => handleFormSubmit(v, 'replan'))} className="space-y-5">
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
-                <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Quick Template</span>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={handleCopy}>
-                        {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                    </Button>
-                </div>
-                <pre className="text-[10px] sm:text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed bg-background/50 p-2.5 rounded-lg border border-border/50">
-                    {templateText}
-                </pre>
-            </div>
-
+        <form onSubmit={submitWith('replan')} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2 rounded-xl border border-primary/25 bg-primary/5 p-4">
+                    <label className="text-sm font-medium flex flex-col">
+                        <span>Why do you want this?</span>
+                        <span className="text-muted-foreground font-normal text-[11px]">We remind you of this when it gets boring or hard, so you keep pushing.</span>
+                    </label>
+                    <textarea
+                        value={why}
+                        onChange={(e) => setWhy(e.target.value)}
+                        maxLength={300}
+                        placeholder="e.g., I want to give my family a better life and never depend on a single paycheck."
+                        className={TEXTAREA_CLASS}
+                    />
+                </div>
+
                 <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-medium">Goal Title <span className="text-muted-foreground font-normal text-xs">(short name)</span></label>
                     <Input {...form.register('title')} placeholder="e.g., Build a clothing brand" className="bg-muted/50" maxLength={60} />
@@ -171,11 +202,11 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                    <BucketSelector value={bucket} onChange={setBucket} />
+                    <BucketSelector required value={bucket} onChange={(b) => { setBucket(b); if (b) setBucketError(false); }} error={bucketError ? 'Choose a life bucket for this goal.' : undefined} />
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2"><CalendarIcon size={14} /> Start Date</label>
+                    <label className="text-sm font-medium">Start Date</label>
                     <Controller
                         control={form.control}
                         name="startDate"
@@ -188,8 +219,8 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                         )}
                     />
                     {form.formState.errors.startDate && <p className="text-xs text-destructive">{form.formState.errors.startDate.message}</p>}
-                    <p className="text-[11px] text-rose-500 font-semibold mt-1">
-                        * Best to start on a Monday for clean weekly planning.
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                        Best to start on a Monday for clean weekly planning.
                     </p>
                 </div>
                 <div className="space-y-2">
@@ -220,7 +251,7 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                             type="button"
                             variant="outline"
                             className="w-full sm:w-auto font-bold h-9 text-xs"
-                            onClick={form.handleSubmit((v) => handleFormSubmit(v, 'save'))}
+                            onClick={submitWith('save')}
                         >
                             Save Goal
                         </Button>
@@ -228,14 +259,14 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                             type="button"
                             variant="default"
                             className="w-full sm:w-auto font-bold h-9 text-xs"
-                            onClick={form.handleSubmit((v) => handleFormSubmit(v, 'replan'))}
+                            onClick={submitWith('replan')}
                         >
-                            Re-plan Goal <ChevronRight className="ml-1.5 h-4 w-4" />
+                            Re-plan Goal
                         </Button>
                     </>
                 ) : (
                     <Button type="submit" className="w-full sm:w-auto font-bold h-9 text-xs">
-                        Save & Continue <ChevronRight className="ml-1.5 h-4 w-4" />
+                        Save & Continue
                     </Button>
                 )}
             </div>

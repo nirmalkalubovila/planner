@@ -25,7 +25,8 @@ CREATE TABLE goals (
   "durationValue" numeric,
   plans jsonb,
   milestones jsonb,
-  bucket text
+  bucket text,
+  "goalContext" jsonb
 );
 
 -- Create habits table
@@ -92,7 +93,12 @@ CREATE TABLE user_profiles (
   is_personalized boolean DEFAULT false,
   avatar_url text,
   notification_prefs jsonb DEFAULT '{}'::jsonb,
-  notifications jsonb DEFAULT '[]'::jsonb
+  notifications jsonb DEFAULT '[]'::jsonb,
+  email text,
+  marketing_opt_in boolean NOT NULL DEFAULT false,
+  biggest_challenge text,
+  daily_free_hours text,
+  execution_profile jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 
 -- Create vault_notes table (The Vault - lightning-fast notes)
@@ -196,7 +202,15 @@ CREATE TABLE feedbacks (
   subject text NOT NULL,
   message text NOT NULL,
   status text NOT NULL DEFAULT 'open',
-  created_at timestamptz DEFAULT now() NOT NULL
+  created_at timestamptz DEFAULT now() NOT NULL,
+  show_on_landing boolean DEFAULT false,
+  author_name text,
+  author_position text,
+  rating integer DEFAULT 5,
+  consent_to_show boolean DEFAULT false,
+  tag text,
+  avatar_url text,
+  is_verified boolean NOT NULL DEFAULT false
 );
 
 ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;

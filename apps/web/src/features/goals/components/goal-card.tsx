@@ -1,49 +1,14 @@
 import React, { useMemo } from 'react';
 import { Goal, GridState } from '@llb/core';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, Check, Edit2, Trash2, ChevronDown, Clock, Sparkles, Trophy } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, Edit2, Trash2, ChevronDown, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { GoalProgressBar } from './goal-progress-bar';
 import { MasterActionPlan } from './master-action-plan';
 import { cn } from '@/lib/utils';
 import { calculateGoalProgress } from '@llb/core';
-import { motion } from 'framer-motion';
 
 import { BUCKET_META } from '@llb/core';
-import { BUCKET_CLASSES } from '@/theme/bucket-classes';
-
-const GoldenSparkles = () => {
-    const sparkles = Array.from({ length: 6 });
-    return (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-            {sparkles.map((_, i) => (
-                <motion.div
-                    key={i}
-                    className="absolute text-yellow-500/30"
-                    initial={{
-                        x: Math.random() * 80 + 10 + '%',
-                        y: '100%',
-                        scale: Math.random() * 0.4 + 0.4,
-                        opacity: 0
-                    }}
-                    animate={{
-                        y: '-10%',
-                        opacity: [0, 0.7, 0.7, 0],
-                        rotate: Math.random() * 360
-                    }}
-                    transition={{
-                        duration: Math.random() * 4 + 3,
-                        repeat: Infinity,
-                        delay: Math.random() * 5,
-                        ease: "easeInOut"
-                    }}
-                >
-                    <Sparkles size={10 + Math.random() * 8} />
-                </motion.div>
-            ))}
-        </div>
-    );
-};
 
 interface GoalCardProps {
     goal: Goal;
@@ -154,29 +119,9 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
     const isCompleted = progressPercentage >= 100;
 
-    const cardBorderClass = isCompleted
-        ? goal.goalType === 'Week'
-            ? 'border-emerald-500/40 hover:border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.12)]'
-            : goal.goalType === 'Month'
-                ? 'border-violet-500/40 hover:border-violet-500/60 shadow-[0_0_24px_rgba(139,92,246,0.15)]'
-                : 'border-yellow-500/50 hover:border-yellow-500/70 shadow-[0_0_30px_rgba(234,179,8,0.2)]'
-        : 'border-border hover:border-primary/40';
-
-    const cardBgClass = isCompleted
-        ? goal.goalType === 'Week'
-            ? 'bg-gradient-to-r from-emerald-500/5 via-transparent to-transparent'
-            : goal.goalType === 'Month'
-                ? 'bg-gradient-to-br from-violet-500/10 via-transparent to-transparent'
-                : 'bg-gradient-to-br from-yellow-500/10 via-amber-500/5 to-transparent'
-        : 'bg-card';
-
-    const accentLineClass = isCompleted
-        ? goal.goalType === 'Week'
-            ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse'
-            : goal.goalType === 'Month'
-                ? 'bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)] animate-pulse'
-                : 'bg-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.5)] animate-pulse'
-        : 'bg-primary';
+    const cardBorderClass = 'border-border hover:border-primary/40';
+    const cardBgClass = 'bg-card';
+    const accentLineClass = 'bg-primary';
 
     const intensityOpacity = totalMilestones > 0
         ? Math.max(0.4, progressPercentage / 100)
@@ -191,12 +136,10 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     cardBorderClass,
                     cardBgClass,
                     'transition-[border-color,box-shadow] duration-150',
-                    !isCompleted && progressPercentage >= 40 && 'hover:shadow-[0_0_24px_rgba(var(--primary-rgb,99,102,241),0.12)]',
+                    progressPercentage >= 40 && 'hover:shadow-[0_0_24px_rgba(var(--primary-rgb,210,162,38),0.12)]',
                 )}
             >
-                {isCompleted && goal.goalType === 'Year' && <GoldenSparkles />}
-                
-                {/* Left accent bar */}
+                                {/* Left accent bar */}
                 <div
                     className={cn("absolute top-0 left-0 w-1 h-full rounded-l-2xl z-10", accentLineClass)}
                     style={{ opacity: intensityOpacity }}
@@ -230,61 +173,31 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 </div>
 
                 <div className="p-4 pl-5 flex flex-col gap-2.5 z-10 relative">
-                    {/* Row 1: Badges */}
+                    {/* Row 1: type + bucket only; progress facts live in the meta line below */}
                     <div className="flex flex-wrap items-center gap-1.5 pr-24">
-                        <span className="text-[8px] font-black uppercase tracking-widest bg-primary/15 text-primary border border-primary/20 px-1.5 py-0.5 rounded">
+                        <span className="text-[8px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/25 px-1.5 py-0.5 rounded">
                             {goal.goalType}
                         </span>
                         {goal.bucket && BUCKET_META[goal.bucket] && (
-                            <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border", BUCKET_CLASSES[goal.bucket].badgeClass)}>
+                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground border border-border px-1.5 py-0.5 rounded">
                                 {BUCKET_META[goal.bucket].label}
                             </span>
                         )}
                         {hasPlan && (
-                            <span className="text-[8px] font-black uppercase tracking-widest bg-intent-goal-muted text-intent-goal border border-intent-goal/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground border border-border px-1.5 py-0.5 rounded flex items-center gap-0.5">
                                 <Check size={8} /> Plan
-                            </span>
-                        )}
-                        {weeklyTasks.length > 0 && (
-                            <span className="text-[8px] font-black uppercase tracking-widest bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded">
-                                {completedWeeklyTasksCount}/{weeklyTasks.length} Done
-                            </span>
-                        )}
-                        {totalAllocatedHours > 0 && (
-                            <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">
-                                {totalAllocatedHours}h Allocated
-                            </span>
-                        )}
-                        {isCompleted && (
-                            <span className={cn(
-                                "text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex items-center gap-0.5 animate-pulse",
-                                goal.goalType === 'Week' && "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-                                goal.goalType === 'Month' && "bg-violet-500/20 text-violet-400 border border-violet-500/30",
-                                goal.goalType === 'Year' && "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                            )}>
-                                {goal.goalType === 'Week' && <Check size={8} />}
-                                {goal.goalType === 'Month' && <Sparkles size={8} />}
-                                {goal.goalType === 'Year' && <Trophy size={8} />}
-                                {goal.goalType === 'Week' && 'Week Objective Met'}
-                                {goal.goalType === 'Month' && 'Month Goal Achieved'}
-                                {goal.goalType === 'Year' && 'Yearly Legacy Built'}
                             </span>
                         )}
                     </div>
 
                     {/* Row 2: Title */}
-                    <h3 className={cn(
-                        "font-bold text-[15px] leading-snug tracking-tight transition-colors duration-150",
-                        isCompleted
-                            ? goal.goalType === 'Week'
-                                ? 'text-emerald-400'
-                                : goal.goalType === 'Month'
-                                    ? 'text-violet-400'
-                                    : 'text-yellow-400'
-                            : 'text-foreground'
-                    )}>
+                    <h3 className="font-bold text-[15px] leading-snug tracking-tight text-foreground">
                         {goal.title || goal.name}
                     </h3>
+
+                    {goal.goalContext?.why && (
+                        <p className="text-[11px] leading-relaxed text-primary/80 line-clamp-2">Why: {goal.goalContext.why}</p>
+                    )}
 
                     {/* Row 3: Description */}
                     <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
@@ -292,11 +205,13 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                     </p>
 
                     {/* Row 4: Date range */}
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground">
                         <CalendarIcon size={10} className="text-muted-foreground shrink-0" />
                         <span>{goal.startDate ? format(parseISO(goal.startDate), 'MMM d') : 'N/A'}</span>
                         <span className="text-muted-foreground/60">→</span>
                         <span>End: {goal.endDate ? format(parseISO(goal.endDate), 'MMM d') : 'N/A'}</span>
+                        {weeklyTasks.length > 0 && <span className="text-muted-foreground/60">· {completedWeeklyTasksCount}/{weeklyTasks.length} done this week</span>}
+                        {totalAllocatedHours > 0 && <span className="text-muted-foreground/60">· {totalAllocatedHours}h</span>}
                     </div>
 
                     {/* Row 5: Milestone timeline */}
@@ -322,7 +237,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                                     <div key={idx} className={cn(
                                         "flex flex-col gap-1 p-3 rounded-lg border transition-all duration-100",
                                         task.isCompleted
-                                            ? 'bg-emerald-500/10 border-emerald-500/20'
+                                            ? 'bg-primary/5 border-primary/20'
                                             : 'bg-card border-border'
                                     )}>
                                         <div className="flex items-center justify-between">
@@ -330,7 +245,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                                                 "text-xs font-semibold truncate flex-1",
                                                 task.isCompleted ? "text-muted-foreground line-through" : "text-foreground"
                                             )}>{task.name}</span>
-                                            {task.isCompleted && <Check size={12} className="text-intent-goal ml-2" />}
+                                            {task.isCompleted && <Check size={12} className="text-primary ml-2" />}
                                         </div>
                                         <span className="text-[9px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
                                             <CalendarIcon size={10} /> {task.dayName} <Clock size={10} className="ml-1" /> {task.time}

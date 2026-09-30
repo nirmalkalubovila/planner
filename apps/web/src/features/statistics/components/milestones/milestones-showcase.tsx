@@ -21,7 +21,8 @@ import { StageCelebrationModal } from './stage-celebration-modal';
 
 interface MilestonesShowcaseProps {
   progress: MilestoneProgress;
-  onShareMilestone?: (stage: MilestoneStage) => void;
+  onDownloadReport?: (stage: MilestoneStage) => void;
+  onShareImage?: (stage: MilestoneStage) => void;
 }
 
 const ICON_MAP = {
@@ -46,7 +47,8 @@ const SHORT_TITLES: Record<number, string> = {
 
 export const MilestonesShowcase: React.FC<MilestonesShowcaseProps> = ({
   progress,
-  onShareMilestone,
+  onDownloadReport,
+  onShareImage,
 }) => {
   const [selectedReplayStage, setSelectedReplayStage] = useState<MilestoneStage | null>(null);
 
@@ -168,7 +170,8 @@ export const MilestonesShowcase: React.FC<MilestonesShowcaseProps> = ({
           stage={selectedReplayStage}
           isOpen={true}
           onClose={() => setSelectedReplayStage(null)}
-          onShare={onShareMilestone}
+          onDownloadReport={onDownloadReport}
+          onShareImage={onShareImage}
           isReplay={true}
         />
       )}

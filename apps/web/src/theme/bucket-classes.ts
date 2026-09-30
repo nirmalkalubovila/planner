@@ -14,27 +14,27 @@ export interface BucketClasses {
 
 export const BUCKET_CLASSES: Record<LifeBucket, BucketClasses> = {
   income: {
-    color: 'text-emerald-400',
-    bgClass: 'bg-emerald-500/10',
-    borderClass: 'border-emerald-500/20',
-    badgeClass: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-  },
-  asset: {
-    color: 'text-violet-400',
-    bgClass: 'bg-violet-500/10',
-    borderClass: 'border-violet-500/20',
-    badgeClass: 'bg-violet-500/10 border-violet-500/20 text-violet-400',
-  },
-  recovery: {
     color: 'text-sky-400',
     bgClass: 'bg-sky-500/10',
     borderClass: 'border-sky-500/20',
     badgeClass: 'bg-sky-500/10 border-sky-500/20 text-sky-400',
   },
+  asset: {
+    color: 'text-fuchsia-400',
+    bgClass: 'bg-fuchsia-500/10',
+    borderClass: 'border-fuchsia-500/20',
+    badgeClass: 'bg-fuchsia-500/10 border-fuchsia-500/20 text-fuchsia-400',
+  },
+  recovery: {
+    color: 'text-teal-400',
+    bgClass: 'bg-teal-500/10',
+    borderClass: 'border-teal-500/20',
+    badgeClass: 'bg-teal-500/10 border-teal-500/20 text-teal-400',
+  },
   relational: {
-    color: 'text-amber-400',
-    bgClass: 'bg-amber-500/10',
-    borderClass: 'border-amber-500/20',
-    badgeClass: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+    color: 'text-rose-400',
+    bgClass: 'bg-rose-500/10',
+    borderClass: 'border-rose-500/20',
+    badgeClass: 'bg-rose-500/10 border-rose-500/20 text-rose-400',
   },
 };

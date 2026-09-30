@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { toast } from '@llb/core';
-import { Goal, AIGeneratedPlanSlot } from '@llb/core';
+import { Goal, AIGeneratedPlanSlot, buildPersonaPromptBlock, bucketPromptLine, getDailyHourBudget } from '@llb/core';
 import { recordGenTime } from '@/components/common/ai-loading-popup';
 import { useUserProfile } from '@llb/api';
 import { supabase } from '@/lib/supabaseClient';
@@ -48,6 +48,7 @@ export function useAiPlanGeneration(user: any) {
                 ? goal.milestones.map(m => `- ${m.title}: ${m.targetDate}`).join('\n')
                 : `End Date: ${goal.endDate}`;
 
+            const budget = getDailyHourBudget(profile);
             const prompt = `
 Generate a detailed milestone action plan for achieving a goal.
 Goal Title: ${goal.title || ''}
@@ -59,11 +60,8 @@ System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
 Target Milestone Dates:
 ${milestoneDatesStr}
 
-User Persona & Preferences:
-- Primary Life Focus: ${profile?.primaryLifeFocus || user?.user_metadata?.primaryLifeFocus || 'Not set'}
-- Current Profession: ${profile?.currentProfession || user?.user_metadata?.currentProfession || 'Not set'}
-- Peak Energy Time: ${profile?.energyPeakTime || user?.user_metadata?.energyPeakTime || 'Morning'}
-- Focus Ability: ${profile?.focusAbility || user?.user_metadata?.focusAbility || 'normal'}
+${bucketPromptLine(goal.bucket)}
+${buildPersonaPromptBlock(profile, goal.goalContext)}
 
 Based on this, break down the main goal into weighted sub-tasks/sub-goals that need to be accomplished by the end of each milestone period.
 Tailor the nature and pacing of the tasks to fit this specific person's profession, life focus, and energy capabilities.
@@ -83,10 +81,10 @@ If the Goal Title, Description/Mission, or Purpose contains a specific numeric t
 
 REALISTIC ESTIMATED HOURS:
 - The "estimatedHours" MUST be a highly realistic, non-generic estimation of the cumulative hours required to execute that specific milestone's tasks.
-- PRACTICAL HOURLY LIMITS: Do not estimate impractical hours. For any individual, the absolute maximum quality work hours they can spend is 5 hours a day (35 hours a week, 140 hours a month).
-- Unless user preferences explicitly specify a different time availability, assume a standard average budget of 3 hours a day, which means exactly 21 hours a week (84 hours a month).
-- DYNAMIC ALLOCATION (NEVER HARDCODE): Do NOT assign the exact same constant hours (like 84h or 16h) to every month or week. The estimated hours must dynamically expand or contract based on the complexity, scale, and specific tasks of that period (e.g., some lighter weeks might be 5h or 8h, while heavier action weeks might be 15h or 20h, as long as they stay strictly below the weekly budget cap of 21 hours).
-- Ensure all estimated hours at the Year, Month, or Week level are mathematically scaled to stay strictly within these bounds (e.g. a 4-week Month phase must not exceed 84 hours total; a Week phase must not exceed 21 hours total).
+- PRACTICAL HOURLY LIMITS: Do not estimate impractical hours. For this person, the absolute maximum quality work hours is ${budget.max} hours a day (${budget.max * 7} hours a week, ${budget.max * 30} hours a month).
+- Their standard budget is ${budget.target} hours a day, which means exactly ${budget.target * 7} hours a week (${budget.target * 30} hours a month).
+- DYNAMIC ALLOCATION (NEVER HARDCODE): Do NOT assign the exact same constant hours (like 84h or 16h) to every month or week. The estimated hours must dynamically expand or contract based on the complexity, scale, and specific tasks of that period (e.g., some lighter weeks might be 5h or 8h, while heavier action weeks might be 15h or 20h, as long as they stay strictly below the weekly budget cap of ${budget.target * 7} hours).
+- Ensure all estimated hours at the Year, Month, or Week level are mathematically scaled to stay strictly within these bounds (e.g. a 4-week Month phase must not exceed ${budget.target * 28} hours total; a Week phase must not exceed ${budget.target * 7} hours total).
 
 Return an action plan as a JSON array of objects.
 

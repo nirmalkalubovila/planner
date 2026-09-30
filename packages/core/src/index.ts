@@ -13,6 +13,7 @@ export * from './types/time';
 export * from './types/vault';
 export * from './types/notification-types';
 export * from './types/feedback';
+export * from './types/execution-profile';
 
 export * from './constants/scheduling';
 
@@ -27,6 +28,9 @@ export * from './utils/milestone-engine';
 export * from './utils/insights-engine';
 export * from './utils/error-handler';
 export * from './utils/task-derivation';
+export * from './utils/ai-profile-prompt';
+export * from './utils/plan-breakdown';
+export * from './utils/reset-engine';
 export * from './utils/widget-snapshot';
 export * from './types/widget';
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, Plus, Trophy } from 'lucide-react';
+import { Target, Plus } from 'lucide-react';
 import { calculateGoalProgress } from '@llb/core';
 import { toast } from '@llb/core';
 import { useGetGoals, useCreateGoal, useDeleteGoal, useUpdateGoal } from '@llb/api';
@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Goal, Milestone } from '@llb/core';
 import { format, parseISO, addWeeks, addMonths, addYears } from 'date-fns';
 import { GoalCard } from './components/goal-card';
+import { GoalArchive } from './components/goal-archive';
 import { GoalDefinitionForm, GoalFormValues } from './forms/goal-definition-form';
+import { takePendingGoal } from './pending-goal';
 import { AIGenerationStep } from './forms/ai-generation-step';
 import { WeekUtils } from '@llb/core';
 import { useGetWeekPlan } from '@llb/api';
@@ -21,6 +23,9 @@ import { MilestoneStrategyDialog } from './components/strategy-choice-dialog';
 import { ManualPlanStep } from './forms/manual-plan-step';
 import { AILoadingPopup } from '@/components/common/ai-loading-popup';
 import { useAiPlanGeneration } from './hooks/use-ai-plan-generation';
+import { useRollingBreakdown } from './hooks/use-rolling-breakdown';
+import { annotateTopLevel, ensureRollingBreakdown } from './lib/breakdown-ai';
+import { useUserProfile } from '@llb/api';
 
 export const GoalsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -32,8 +37,12 @@ export const GoalsPage: React.FC = () => {
     const [showStrategyDialog, setShowStrategyDialog] = useState(false);
     const [strategyPendingData, setStrategyPendingData] = useState<Goal | null>(null);
     const [showAiLoader, setShowAiLoader] = useState(false);
+    // A goal typed on the landing page before signup pre-fills the New Goal form once
+    const [prefillGoal, setPrefillGoal] = useState<string | null>(null);
 
     const { generating, tempPlan, generatePlan, clearTempPlan } = useAiPlanGeneration(user);
+    const { profile } = useUserProfile(user);
+    const [breakdownStep, setBreakdownStep] = useState<string | null>(null);
 
     useEffect(() => {
         if (generating && showAiLoader) setShowAiLoader(false);
@@ -56,6 +65,7 @@ export const GoalsPage: React.FC = () => {
     const { data: completedDays } = useGetWeekCompletedTasks(currentWeekDays);
 
     const closeDialog = () => {
+        setPrefillGoal(null);
         setIsFormOpen(false);
         setActiveGoal(null);
         setStep(1);
@@ -72,6 +82,16 @@ export const GoalsPage: React.FC = () => {
         clearTempPlan();
         setIsFormOpen(true);
     };
+
+    useEffect(() => {
+        if (isLoading) return;
+        const pending = takePendingGoal();
+        if (pending) {
+            setPrefillGoal(pending);
+            openNewGoal();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoading]);
 
     const handleEdit = (goal: Goal) => {
         setActiveGoal(goal);
@@ -211,18 +231,33 @@ export const GoalsPage: React.FC = () => {
         await generatePlan(goalToUse);
     };
 
-    const handleConfirmPlan = () => {
+    const handleConfirmPlan = async () => {
         if (!activeGoal || !tempPlan) return;
 
-        updateGoal.mutate({ ...activeGoal, plans: tempPlan }, {
-            onSuccess: () => {
-                closeDialog();
-                toast.success('Goal added to your planner', {
-                    description: 'AI action plan saved',
-                    action: { label: 'Open Planner', onClick: () => navigate('/planner') },
-                });
-            },
-            onError: (err: any) => { toast.error('DB Error: ' + err.message); }
+        // Save the top-level plan first so it is never lost, with exact period bounds and the bucket on every phase
+        const goalWithPlan: Goal = { ...activeGoal, plans: annotateTopLevel(activeGoal, tempPlan) };
+        try {
+            await updateGoal.mutateAsync(goalWithPlan);
+        } catch (err: any) {
+            toast.error('DB Error: ' + err.message);
+            return;
+        }
+
+        // Then break it down: every year into months, and the current month into weeks
+        try {
+            setBreakdownStep('Building your months and weeks');
+            const { plans, generated } = await ensureRollingBreakdown(goalWithPlan, profile, (msg) => setBreakdownStep(msg));
+            if (generated.length > 0) await updateGoal.mutateAsync({ ...goalWithPlan, plans });
+        } catch {
+            toast.info('Plan saved. The months and weeks will be filled in automatically the next time you open Goals.');
+        } finally {
+            setBreakdownStep(null);
+        }
+
+        closeDialog();
+        toast.success('Goal added to your planner', {
+            description: 'Broken down into years, months and weeks',
+            action: { label: 'Open Planner', onClick: () => navigate('/planner') },
         });
     };
 
@@ -233,6 +268,9 @@ export const GoalsPage: React.FC = () => {
     const dialogSubtitle = step === 1
         ? 'Set up your goal'
         : step === 2 ? 'Review your AI-generated roadmap' : 'Define milestones manually';
+
+    // Goals planned with the automatic breakdown get the weeks of each month filled in as that month arrives
+    useRollingBreakdown(goals, profile);
 
     const { activeGoals, completedGoals } = useMemo(() => {
         const active: Goal[] = [];
@@ -257,7 +295,7 @@ export const GoalsPage: React.FC = () => {
                     <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground leading-none">Goal Matrix</h2>
                     <div className="flex items-center gap-2">
                         <div className="h-1 w-12 bg-primary/40 rounded-full" />
-                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{goals.length} STRATEGIC OBJECTIVES</span>
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{activeGoals.length} ACTIVE OBJECTIVES</span>
                     </div>
                 </div>
                 <Button
@@ -302,32 +340,10 @@ export const GoalsPage: React.FC = () => {
                         />
                     ))}
 
-                    {completedGoals.length > 0 && (
-                        <>
-                            <div className="flex items-center gap-3 pt-4">
-                                <div className="h-px flex-1 bg-border" />
-                                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                    <Trophy size={12} className="text-emerald-500" />
-                                    <span>Completed ({completedGoals.length})</span>
-                                </div>
-                                <div className="h-px flex-1 bg-border" />
-                            </div>
-                            {completedGoals.map((goal: Goal) => (
-                                <GoalCard
-                                    key={goal.id}
-                                    goal={goal}
-                                    isExpanded={!!expandedGoals[goal.id!]}
-                                    onToggle={toggleGoal}
-                                    onEdit={handleEdit}
-                                    onDelete={(id) => { setGoalIdToDelete(id); setShowDeleteConfirm(true); }}
-                                    weekPlan={weekPlan || {}}
-                                    completedDays={completedDays || {}}
-                                    currentWeek={currentWeek}
-                                    onUpdateGoal={(updatedGoal) => updateGoal.mutate(updatedGoal)}
-                                />
-                            ))}
-                        </>
-                    )}
+                    <GoalArchive
+                        goals={completedGoals}
+                        onDelete={(id) => { setGoalIdToDelete(id); setShowDeleteConfirm(true); }}
+                    />
                 </div>
             )}
 
@@ -352,6 +368,10 @@ export const GoalsPage: React.FC = () => {
                                 startDate: activeGoal.startDate,
                                 durationValue: activeGoal.milestones?.length || 1,
                                 bucket: activeGoal.bucket,
+                                goalContext: activeGoal.goalContext ?? undefined,
+                            } : prefillGoal ? {
+                                title: prefillGoal.slice(0, 60),
+                                name: `Current State:\n\n\nUltimate Goal:\n${prefillGoal}`,
                             } : {}}
                             onSubmit={onDefinitionSubmit}
                         />
@@ -390,6 +410,7 @@ export const GoalsPage: React.FC = () => {
             />
 
             <AILoadingPopup isOpen={showAiLoader || generating} />
+            <AILoadingPopup isOpen={!!breakdownStep} title="Building your plan" subtitle="Years, months and weeks" message={breakdownStep ?? undefined} />
 
             <ConfirmationDialog
                 isOpen={showConfirm}

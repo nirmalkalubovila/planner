@@ -685,6 +685,15 @@ function renderMilestoneShareCard(
   const stageTitle = mData?.stageTitle ?? data.title.replace(/^Stage \d+:\s*/i, '');
   const stageSubtitle = mData?.stageSubtitle ?? `${streakDays}-Day Consistent Milestone`;
   const description = mData?.stageDescription ?? data.highlightText ?? 'Consistency is the silent architect of an unstoppable legacy.';
+  const cert = mData?.certificate;
+  const recipient = cert?.recipientName ?? 'A Legacy Builder';
+  const behavior = cert?.behavior ?? description;
+  const standards = cert?.standards ?? [
+    { label: 'Days of execution logged', value: `${totalExecuted}` },
+    { label: 'Completion rule', value: '1+ planned task done per day' },
+  ];
+  const issuedLine = cert ? `ISSUED ${cert.issuedOn.toUpperCase()}` : 'ISSUED BY LEGACY LIFE BUILDER';
+  const idLine = cert ? `ID ${cert.certificateId}` : '';
 
   // 1. Deep Midnight Obsidian & Gold Luxury Gradient
   const bgGrad = ctx.createLinearGradient(0, 0, width, height);
@@ -788,7 +797,7 @@ function renderMilestoneShareCard(
   ctx.fillStyle = '#f59e0b';
   ctx.font = '900 10px sans-serif';
   ctx.letterSpacing = '2px';
-  ctx.fillText(`PROOF OF CONSISTENCY • STAGE 0${stageNum}`, width / 2, pillY + 17);
+  ctx.fillText(`EXECUTION CERTIFICATE • STAGE 0${stageNum}`, width / 2, pillY + 17);
   ctx.letterSpacing = '0px';
 
   if (isStory) {
@@ -841,7 +850,7 @@ function renderMilestoneShareCard(
     ctx.font = '900 11px sans-serif';
     ctx.letterSpacing = '2px';
     ctx.textAlign = 'center';
-    ctx.fillText('CONSISTENCY STREAK', width / 2, centerY - 40);
+    ctx.fillText('EXECUTION', width / 2, centerY - 40);
     ctx.letterSpacing = '0px';
 
     // Giant Sculpted Digits
@@ -857,7 +866,7 @@ function renderMilestoneShareCard(
     ctx.fillStyle = '#f59e0b';
     ctx.font = '900 13px sans-serif';
     ctx.letterSpacing = '4px';
-    ctx.fillText('DAYS UNBROKEN', width / 2, centerY + 68);
+    ctx.fillText('DAYS EXECUTED', width / 2, centerY + 68);
     ctx.letterSpacing = '0px';
 
     // Stage Title & Subtitle Below Disc
@@ -872,84 +881,42 @@ function renderMilestoneShareCard(
     ctx.font = 'bold 14px sans-serif';
     ctx.fillText(stageSubtitle, width / 2, 590);
 
-    // 7. 2x2 Glass Achievement Grid
-    const gridY = 635;
-    const gridW = width * 0.88;
-    const startX = (width - gridW) / 2;
-    const capW = (gridW - 16) / 2;
-    const capH = 92;
-    const rowGap = 16;
+    // 7. Certificate body: who it is for, what it says about them, and the standards that were checked
+    const bodyW = width * 0.88;
+    const bodyX = (width - bodyW) / 2;
 
-    const cards = [
-      { label: 'ACTIVE STREAK', val: `${streakDays} Days`, sub: 'Unbroken Focus', color: '#f59e0b' },
-      { label: 'TOTAL EXECUTED', val: `${totalExecuted} Days`, sub: 'Lifetime Output', color: '#f59e0b' },
-      { label: 'MASTERY TIER', val: `Stage ${stageNum} / 7`, sub: 'Pinnacle Rank', color: '#f59e0b' },
-      { label: 'GLOBAL STANDING', val: 'Top 2% Builder', sub: 'Verified Discipline', color: '#34d399' },
-    ];
-
-    cards.forEach((c, idx) => {
-      const colIdx = idx % 2;
-      const rowIdx = Math.floor(idx / 2);
-      const cx = startX + colIdx * (capW + 16);
-      const cy = gridY + rowIdx * (capH + rowGap);
-
-      // Glass Card
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
-      ctx.lineWidth = 1;
-      drawRoundedRect(ctx, cx, cy, capW, capH, 20);
-      ctx.fill();
-      ctx.stroke();
-
-      // Top Accent Line
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(cx + 20, cy);
-      ctx.lineTo(cx + capW - 20, cy);
-      ctx.stroke();
-
-      // Label
-      ctx.fillStyle = c.color;
-      ctx.font = '900 10px sans-serif';
-      ctx.letterSpacing = '1px';
-      ctx.textAlign = 'left';
-      ctx.fillText(c.label, cx + 22, cy + 28);
-      ctx.letterSpacing = '0px';
-
-      // Value
-      ctx.fillStyle = c.color === '#34d399' ? '#34d399' : '#FFFFFF';
-      ctx.font = '900 24px sans-serif';
-      ctx.fillText(c.val, cx + 22, cy + 58);
-
-      // Sub
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.fillText(c.sub, cx + 22, cy + 78);
-    });
-
-    // 8. Inspiring Golden Creed / Quote Box
-    const quoteY = 865;
-    const quoteW = gridW;
-    const quoteH = 115;
-    const quoteX = startX;
-
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.04)';
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
-    ctx.lineWidth = 1;
-    drawRoundedRect(ctx, quoteX, quoteY, quoteW, quoteH, 20);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.font = 'italic bold 15px sans-serif';
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
+    ctx.font = '900 10px sans-serif';
+    ctx.letterSpacing = '3px';
     ctx.textAlign = 'center';
-    wrapText(ctx, `“${description}”`, width / 2, quoteY + 45, quoteW - 40, 24);
+    ctx.fillText('AWARDED TO', width / 2, 642);
+    ctx.letterSpacing = '0px';
 
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.75)';
-    ctx.font = '900 11px sans-serif';
+    ctx.fillStyle = '#FFFFFF';
+    fitText(ctx, recipient, bodyW, 36, 900);
+    ctx.fillText(recipient, width / 2, 684);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = 'italic bold 15px sans-serif';
+    wrapText(ctx, behavior, width / 2, 722, bodyW - 40, 22);
+
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
+    ctx.font = '900 10px sans-serif';
+    ctx.letterSpacing = '3px';
+    ctx.textAlign = 'center';
+    ctx.fillText('STANDARDS CHECKED', width / 2, 792);
+    ctx.letterSpacing = '0px';
+
+    standards.slice(0, 5).forEach((row, i) => drawStandardRow(ctx, row.label, row.value, bodyX, 812 + i * 40, bodyW));
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.font = '900 10px sans-serif';
     ctx.letterSpacing = '2px';
-    ctx.fillText('— LEGACY LIFE BUILDER CREED', width / 2, quoteY + 92);
+    ctx.textAlign = 'left';
+    ctx.fillText(issuedLine, bodyX, 1056);
+    ctx.textAlign = 'right';
+    ctx.fillText(idLine, bodyX + bodyW, 1056);
+    ctx.textAlign = 'center';
     ctx.letterSpacing = '0px';
 
     // 9. Verified Footer & Branding
@@ -1012,7 +979,7 @@ function renderMilestoneShareCard(
     ctx.font = '900 11px sans-serif';
     ctx.letterSpacing = '3px';
     ctx.textAlign = 'center';
-    ctx.fillText('DAYS UNBROKEN', emblemX, centerY + 46);
+    ctx.fillText('DAYS EXECUTED', emblemX, centerY + 46);
     ctx.letterSpacing = '0px';
 
     if (isWide) {
@@ -1027,50 +994,29 @@ function renderMilestoneShareCard(
       ctx.font = 'bold 14px sans-serif';
       ctx.fillText(stageSubtitle, infoX, 258);
 
-      // 3 Mini Stat Pills
-      const pW = 160;
-      const pH = 70;
-      const statsList = [
-        { label: 'ACTIVE STREAK', val: `${streakDays} Days` },
-        { label: 'TOTAL EXECUTED', val: `${totalExecuted} Days` },
-        { label: 'GLOBAL RANK', val: 'Top 2%' },
-      ];
-
-      statsList.forEach((st, idx) => {
-        const sx = infoX + idx * (pW + 12);
-        const sy = 285;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 1;
-        drawRoundedRect(ctx, sx, sy, pW, pH, 16);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = '#f59e0b';
-        ctx.font = '900 9px sans-serif';
-        ctx.letterSpacing = '1px';
-        ctx.textAlign = 'left';
-        ctx.fillText(st.label, sx + 14, sy + 24);
-        ctx.letterSpacing = '0px';
-
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '900 20px sans-serif';
-        ctx.fillText(st.val, sx + 14, sy + 52);
-      });
-
-      // Quote Box
-      const qW = width * 0.44;
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.04)';
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
-      ctx.lineWidth = 1;
-      drawRoundedRect(ctx, infoX, 375, qW, 80, 16);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      ctx.font = 'italic bold 13px sans-serif';
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
+      ctx.font = '900 9px sans-serif';
+      ctx.letterSpacing = '3px';
       ctx.textAlign = 'left';
-      wrapText(ctx, `“${description}”`, infoX + 18, 410, qW - 36, 20);
+      ctx.fillText('AWARDED TO', infoX, 290);
+      ctx.letterSpacing = '0px';
+
+      ctx.fillStyle = '#FFFFFF';
+      fitText(ctx, recipient, width * 0.44, 24, 900);
+      ctx.fillText(recipient, infoX, 318);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.font = 'italic bold 13px sans-serif';
+      wrapText(ctx, behavior, infoX, 342, width * 0.44, 18);
+
+      standards.slice(0, 3).forEach((row, i) => drawStandardRow(ctx, row.label, row.value, infoX, 388 + i * 34, width * 0.44, true));
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.font = '900 9px sans-serif';
+      ctx.letterSpacing = '2px';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${issuedLine}   ${idLine}`, infoX, 506);
+      ctx.letterSpacing = '0px';
 
     } else {
       // 1:1 Square Post Layout
@@ -1083,60 +1029,30 @@ function renderMilestoneShareCard(
       ctx.font = 'bold 13px sans-serif';
       ctx.fillText(stageSubtitle, width / 2, 435);
 
-      // 2 Stat Pills side-by-side
-      const pW = 280;
-      const pH = 70;
-      const pY = 465;
-
-      // Box 1
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 1;
-      drawRoundedRect(ctx, width / 2 - pW - 8, pY, pW, pH, 16);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#f59e0b';
-      ctx.font = '900 10px sans-serif';
-      ctx.letterSpacing = '1px';
-      ctx.textAlign = 'left';
-      ctx.fillText('ACTIVE STREAK', width / 2 - pW + 10, pY + 26);
-      ctx.letterSpacing = '0px';
-
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '900 22px sans-serif';
-      ctx.fillText(`${streakDays} Days Unbroken`, width / 2 - pW + 10, pY + 54);
-
-      // Box 2
-      drawRoundedRect(ctx, width / 2 + 8, pY, pW, pH, 16);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#f59e0b';
-      ctx.font = '900 10px sans-serif';
-      ctx.letterSpacing = '1px';
-      ctx.textAlign = 'left';
-      ctx.fillText('TOTAL EXECUTED', width / 2 + 26, pY + 26);
-      ctx.letterSpacing = '0px';
-
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '900 22px sans-serif';
-      ctx.fillText(`${totalExecuted} Days Logged`, width / 2 + 26, pY + 54);
-
-      // Quote box
-      const qW = width * 0.82;
-      const qX = (width - qW) / 2;
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.04)';
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
-      ctx.lineWidth = 1;
-      drawRoundedRect(ctx, qX, 555, qW, 65, 14);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      ctx.font = 'italic bold 12px sans-serif';
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
+      ctx.font = '900 9px sans-serif';
+      ctx.letterSpacing = '3px';
       ctx.textAlign = 'center';
-      wrapText(ctx, `“${description}”`, width / 2, 592, qW - 30, 18);
+      ctx.fillText('AWARDED TO', width / 2, 462);
+      ctx.letterSpacing = '0px';
+
+      ctx.fillStyle = '#FFFFFF';
+      fitText(ctx, recipient, width * 0.8, 28, 900);
+      ctx.fillText(recipient, width / 2, 494);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.font = 'italic bold 12px sans-serif';
+      wrapText(ctx, behavior, width / 2, 518, width * 0.8, 17);
+
+      const sqW = width * 0.78;
+      standards.slice(0, 3).forEach((row, i) => drawStandardRow(ctx, row.label, row.value, (width - sqW) / 2, 552 + i * 32, sqW, true));
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.font = '900 9px sans-serif';
+      ctx.letterSpacing = '2px';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${issuedLine}   ${idLine}`, width / 2, 668);
+      ctx.letterSpacing = '0px';
     }
 
     // Footer
@@ -1146,6 +1062,34 @@ function renderMilestoneShareCard(
     ctx.textAlign = 'center';
     ctx.fillText('VERIFIED ON LEGACY LIFE BUILDER • WWW.LEGACYLIFEBUILDER.XYZ', width / 2, height - 30);
     ctx.letterSpacing = '0px';
+  }
+}
+
+/** One check on the certificate: what was checked on the left, the recorded result on the right, a hairline under it. */
+function drawStandardRow(ctx: CanvasRenderingContext2D, label: string, value: string, x: number, y: number, w: number, compact = false) {
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.font = `bold ${compact ? 11 : 13}px sans-serif`;
+  ctx.fillText(label, x + 4, y);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `900 ${compact ? 11 : 13}px sans-serif`;
+  ctx.fillText(value, x + w - 4, y);
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y + (compact ? 10 : 13));
+  ctx.lineTo(x + w, y + (compact ? 10 : 13));
+  ctx.stroke();
+}
+
+/** Shrinks the font until the text fits the width (used for names of any length). */
+function fitText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, startSize: number, weight: number) {
+  let size = startSize;
+  ctx.font = `${weight} ${size}px sans-serif`;
+  while (size > 12 && ctx.measureText(text).width > maxWidth) {
+    size -= 1;
+    ctx.font = `${weight} ${size}px sans-serif`;
   }
 }
 

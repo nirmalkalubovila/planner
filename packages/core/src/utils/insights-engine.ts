@@ -78,6 +78,16 @@ export interface InsightCardData {
     stageTitle: string;
     stageSubtitle: string;
     stageDescription: string;
+    /** Set when the card is an Execution Certificate. */
+    certificate?: {
+      recipientName: string;
+      /** What this stage says about how the person works. */
+      behavior: string;
+      /** The checks that were run, each with the recorded result. */
+      standards: { label: string; value: string }[];
+      issuedOn: string;
+      certificateId: string;
+    };
   };
   summaryData?: {
     dailyActive: boolean[];
@@ -883,18 +893,36 @@ export function generateMonthlyWins(
   return wins;
 }
 
+/** What each stage says about how the person works, written for the certificate. */
+const CERTIFICATE_BEHAVIOR: Record<number, string> = {
+  1: 'Turns a plan into action without being pushed.',
+  2: 'Keeps executing after the novelty wears off.',
+  3: 'Runs on habit and identity instead of motivation.',
+  4: 'Builds systems and stays on them for months.',
+  5: 'Sustains steady output across a full quarter.',
+  6: 'Holds a level of discipline very few people keep.',
+  7: 'Has executed for a full year.',
+};
+
 /**
- * Generates a dedicated Milestone celebration card for Insights deck & Social sharing
+ * Generates the Execution Certificate card for a milestone stage. Every line on it comes from recorded data:
+ * a day counts when at least one planned task was completed, exactly as the stage unlock rule does.
  */
 export function generateMilestoneInsightCard(
   stage: MilestoneStage,
   totalDaysExecuted: number,
-  currentStreak: number
+  currentStreak: number,
+  options: { recipientName?: string; longestStreak?: number; issuedOn?: Date } = {}
 ): InsightCardData {
+  const issued = options.issuedOn ?? new Date();
+  const issuedOn = issued.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const stamp = `${issued.getFullYear()}${String(issued.getMonth() + 1).padStart(2, '0')}${String(issued.getDate()).padStart(2, '0')}`;
+  const longest = Math.max(options.longestStreak ?? 0, currentStreak);
+
   return {
     type: 'milestone',
     title: `Stage ${stage.stageNumber}: ${stage.title}`,
-    subtitle: `${stage.days}-Day Consistent Milestone`,
+    subtitle: `${stage.days}-Day Execution Certificate`,
     highlightText: stage.description,
     milestoneData: {
       stageNumber: stage.stageNumber,
@@ -903,9 +931,22 @@ export function generateMilestoneInsightCard(
       stageTitle: stage.title,
       stageSubtitle: stage.subtitle,
       stageDescription: stage.description,
+      certificate: {
+        recipientName: (options.recipientName ?? '').trim() || 'A Legacy Builder',
+        behavior: CERTIFICATE_BEHAVIOR[stage.stageNumber] ?? stage.description,
+        standards: [
+          { label: 'Days of execution logged', value: `${totalDaysExecuted} (required ${stage.days})` },
+          { label: 'Completion rule', value: '1+ planned task done per day' },
+          { label: 'Longest unbroken streak', value: `${longest} days` },
+          { label: 'Current streak', value: `${currentStreak} days` },
+          { label: 'Source of record', value: 'Planner data, not self-reported' },
+        ],
+        issuedOn,
+        certificateId: `LLB-S${stage.stageNumber}-${stamp}`,
+      },
     },
     metrics: [
-      { label: 'Milestone Streak', value: `${stage.days} Days` },
+      { label: 'Days Required', value: `${stage.days} Days` },
       { label: 'Current Streak', value: `${currentStreak} Days` },
       { label: 'Total Executed', value: `${totalDaysExecuted} Days` },
     ],

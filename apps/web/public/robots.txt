@@ -12,6 +12,7 @@ Disallow: /planner
 Disallow: /profile
 Disallow: /statistics
 Disallow: /vault
+Disallow: /reset
 Disallow: /simulator
 Disallow: /admin
 Disallow: /*?*

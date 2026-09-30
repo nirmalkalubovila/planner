@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ListTodo, Target, CalendarDays, BarChart2, PanelLeftClose, PanelLeftOpen, LogOut, Vault, Shield } from 'lucide-react';
+import { Home, ListTodo, Target, CalendarDays, BarChart2, PanelLeftClose, PanelLeftOpen, LogOut, RotateCcw, Shield } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
@@ -11,7 +11,7 @@ const navigation = [
     { name: 'Habits', href: '/habits', icon: ListTodo, label: 'Consistency' },
     { name: 'Goals', href: '/goals', icon: Target, label: 'Vision' },
     { name: 'Planner', href: '/planner', icon: CalendarDays, label: 'Strategy' },
-    { name: 'The Vault', href: '/vault', icon: Vault, label: 'Notes' },
+    { name: 'Reset', href: '/reset', icon: RotateCcw, label: 'Replan' },
     { name: 'Statistics', href: '/statistics', icon: BarChart2, label: 'Insights' },
 ];
 

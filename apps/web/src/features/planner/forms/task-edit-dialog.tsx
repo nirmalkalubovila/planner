@@ -24,6 +24,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
     const [isReminder, setIsReminder] = useState(false);
     const [time, setTime] = useState('09:00');
     const [bucket, setBucket] = useState<LifeBucket | null>(null);
+    const [bucketError, setBucketError] = useState(false);
     const { data: goals } = useGetGoals();
 
     useEffect(() => {
@@ -38,6 +39,8 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
     }, [isOpen, initialData]);
 
     const handleSave = () => {
+        // Every task belongs to one life bucket
+        if (!bucket) { setBucketError(true); return; }
         onSave({
             ...initialData,
             name,
@@ -45,7 +48,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
             goalId: initialData.type === 'goal' ? goalId : undefined,
             isReminder,
             time,
-            bucket: bucket || null,
+            bucket,
         });
         onClose();
     };
@@ -96,7 +99,7 @@ export const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose,
 
                 {(!isGoalType && !isHabitType) && (
                     <div className="space-y-2">
-                        <BucketSelector value={bucket} onChange={setBucket} />
+                        <BucketSelector required value={bucket} onChange={(b) => { setBucket(b); if (b) setBucketError(false); }} error={bucketError ? 'Choose a life bucket for this task.' : undefined} />
                     </div>
                 )}
 

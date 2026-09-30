@@ -95,6 +95,7 @@ const DURATION_RANGE: Record<FormValues['goalType'], [number, number]> = {
  * dropped — no clipboard module in this build yet. */
 export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialValues, onSubmit, isEditing }) => {
   const [bucket, setBucket] = useState<LifeBucket | null>(initialValues?.bucket || null);
+  const [bucketError, setBucketError] = useState(false);
   const templateText = `I am [your age] and currently [your situation, e.g., a student / working at / freelancing].\nI want to [your goal, e.g., build a clothing brand / start a YouTube channel / get fit].\nMy limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginner].`;
 
   const parsedName = parseLegacyName(initialValues?.name || '');
@@ -119,6 +120,8 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
   const handleFormSubmit = (formValues: FormValues, mode: 'save' | 'replan' = 'replan') => {
     const name = `Current State:\n${formValues.currentState}\n\nUltimate Goal:\n${formValues.ultimateGoal}`;
     const purpose = `Strict Constraints:\n${formValues.constraints}`;
+    // Every goal belongs to one life bucket
+    if (!bucket) { setBucketError(true); return; }
     onSubmit(
       {
         title: formValues.title,
@@ -185,7 +188,7 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
         error={form.formState.errors.constraints?.message}
       />
 
-      <BucketSelector value={bucket} onChange={setBucket} />
+      <BucketSelector required value={bucket} onChange={(b) => { setBucket(b); if (b) setBucketError(false); }} error={bucketError ? 'Choose a life bucket for this goal.' : undefined} />
 
       <View className="gap-2">
         <View className="flex-row items-center gap-2">

@@ -5,11 +5,12 @@ import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@llb/api';
 import { ProfileInfo } from './components/profile-info';
 import { ProfilePreferences } from './components/profile-preferences';
+import { ExecutionProfileSection } from './components/execution-profile-section';
+import { AppearanceSection } from './components/appearance-section';
 import { ProfileSecurity } from './components/profile-security';
 import { NotificationPreferencesSection } from './notification-preferences';
 import { ClaudeConnectorSection } from './claude-connector-section';
 import { FeedbackSection } from './feedback-section';
-import { AppUpdaterSimulator } from './components/app-updater-simulator';
 import { cn } from '@/lib/utils';
 
 export const ProfilePage: React.FC = () => {
@@ -102,7 +103,7 @@ export const ProfilePage: React.FC = () => {
 
     const [searchParams] = useSearchParams();
     const tabParam = searchParams.get('tab');
-    const validTabs = ['profile', 'preferences', 'notifications', 'ai', 'contact', 'updater'] as const;
+    const validTabs = ['profile', 'preferences', 'notifications', 'ai', 'contact'] as const;
     type TabId = typeof validTabs[number];
     const initialTab: TabId = tabParam && validTabs.includes(tabParam as TabId) ? (tabParam as TabId) : 'profile';
     const [activeTab, setActiveTab] = useState<TabId>(initialTab);
@@ -130,8 +131,7 @@ export const ProfilePage: React.FC = () => {
         { id: 'preferences', label: 'Planner Preferences' },
         { id: 'notifications', label: 'Notifications' },
         { id: 'ai', label: 'AI Assistant' },
-        { id: 'updater', label: 'Info' },
-        { id: 'contact', label: 'Contact Us' },
+        { id: 'contact', label: 'Rate Us' },
     ];
 
     return (
@@ -200,6 +200,12 @@ export const ProfilePage: React.FC = () => {
                             onSave={handleSavePrefs}
                             formData={formData}
                         />
+                        <div className="mt-4">
+                            <AppearanceSection />
+                        </div>
+                        <div className="mt-4">
+                            <ExecutionProfileSection />
+                        </div>
                     </div>
                 )}
 
@@ -221,11 +227,6 @@ export const ProfilePage: React.FC = () => {
                     </div>
                 )}
 
-                {activeTab === 'updater' && (
-                    <div className="w-full animate-in fade-in duration-200">
-                        <AppUpdaterSimulator />
-                    </div>
-                )}
             </div>
         </div>
     );

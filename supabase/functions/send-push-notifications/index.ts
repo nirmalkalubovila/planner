@@ -8,8 +8,6 @@
 
 // @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-// @ts-ignore
-import nodemailer from "https://esm.sh/nodemailer@6.9.13";
 
 // Ambient declaration for Deno in editor environments
 declare const Deno: {
@@ -867,13 +865,6 @@ function getPlanDayNumber(planDay: string): number {
 // ─── Main Handler ─────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
-  const debugLogs: string[] = [];
-  const logDebug = (msg: string, ...args: any[]) => {
-    const formatted = msg + (args.length > 0 ? " " + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(" ") : "");
-    console.log(formatted);
-    debugLogs.push(formatted);
-  };
-
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -884,16 +875,52 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-    // 1. Fetch all user profiles
-    const { data: allProfiles, error: profilesErr } = await supabase
+    // Cleanup old sent log entries (older than 24h). Hourly, not every
+    // tick: the retention window is 24h, so pruning 60x a day changes
+    // nothing but the request/log volume. Runs before any early return.
+    if (now.getUTCMinutes() === 0) {
+      await supabase.rpc("clean_old_notification_logs");
+    }
+
+    // This runs every minute, and every PostgREST call writes its own API
+    // Gateway + PostgREST log lines — which is what blew through the log
+    // ingestion quota. So each tick narrows the user set before loading
+    // anything else, then loads the rest in a single RPC round trip.
+
+    // 1. Fetch user profiles — only the columns the blocks below read.
+    const { data: profileRows, error: profilesErr } = await supabase
       .from("user_profiles")
-      .select("*");
+      .select("user_id, notification_prefs, sleep_start, sleep_duration, plan_day, plan_start_time");
 
     if (profilesErr) throw profilesErr;
-    if (!allProfiles || allProfiles.length === 0) {
-      return new Response(JSON.stringify({ message: "No user profiles found" }), {
+
+    // Users with notifications disabled are skipped by every block below,
+    // so there's no reason to fetch their plans, goals or habits.
+    const enabledProfiles = (profileRows || []).filter((p: any) => p.notification_prefs?.enabled);
+
+    // 2. Push subscriptions. Every block delivers through push only, so a
+    // user with no registered device can't receive anything this tick.
+    const userSubs = new Map<string, UserSubscription[]>();
+    if (enabledProfiles.length > 0) {
+      const { data: subRows, error: subsErr } = await supabase
+        .from("push_subscriptions")
+        .select("*")
+        .in("user_id", enabledProfiles.map((p: any) => p.user_id));
+      if (subsErr) throw subsErr;
+
+      for (const sub of subRows || []) {
+        const existing = userSubs.get(sub.user_id) || [];
+        existing.push(sub);
+        userSubs.set(sub.user_id, existing);
+      }
+    }
+
+    const allProfiles = enabledProfiles.filter((p: any) => userSubs.has(p.user_id));
+    const totalSkipped = (profileRows || []).length - allProfiles.length;
+
+    if (allProfiles.length === 0) {
+      return new Response(JSON.stringify({ success: true, pushSent: 0, skipped: totalSkipped, timestamp: now.toISOString() }), {
         headers: { "Content-Type": "application/json" },
       });
     }
@@ -932,108 +959,80 @@ Deno.serve(async (req: Request) => {
       uniqueWeekKeys.add(week);
     }
 
-    // 2. Fetch push subscriptions, week plans, completed tasks, goals, habits, custom tasks, logs, SMTP settings, templates & auth emails
-    const [subscriptionsRes, weekPlansRes, completedRes, goalsRes, habitsRes, customTasksRes, sentLogRes, smtpSettingsRes, templatesRes, authUsersRes] =
-      await Promise.all([
-        supabase.from("push_subscriptions").select("*").in("user_id", userIds),
-        supabase.from("week_plans").select("*").in("user_id", userIds).in("week", Array.from(uniqueWeekKeys)),
-        supabase
-          .from("completed_tasks")
-          .select("*")
-          .in("dayStr", Array.from(uniqueDayStrs))
-          .in("user_id", userIds),
+    // 3. Week plans, completed tasks, goals, habits, custom tasks & sent log.
+    // (SMTP settings, email templates and auth.admin.listUsers() used to be
+    // fetched here every minute too, but no email was ever sent from this
+    // function — they fed nothing, so they are no longer loaded.)
+    const weekKeys = Array.from(uniqueWeekKeys);
+    const dayStrs = Array.from(uniqueDayStrs);
+    const sentLogSince = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
+
+    let context: {
+      week_plans: any[];
+      completed_tasks: any[];
+      goals: any[];
+      habits: any[];
+      custom_tasks: any[];
+      sent_log: any[];
+    };
+
+    const { data: rpcContext, error: rpcErr } = await supabase.rpc("get_push_notification_context", {
+      p_user_ids: userIds,
+      p_week_keys: weekKeys,
+      p_day_strs: dayStrs,
+      p_since: sentLogSince,
+    });
+
+    if (!rpcErr && rpcContext) {
+      context = rpcContext;
+    } else {
+      // Migration 20260930030000 not applied yet — fall back to the
+      // per-table queries so notifications keep flowing either way.
+      console.warn("get_push_notification_context unavailable, using per-table queries:", rpcErr?.message);
+      const [weekPlansRes, completedRes, goalsRes, habitsRes, customTasksRes, sentLogRes] = await Promise.all([
+        supabase.from("week_plans").select("*").in("user_id", userIds).in("week", weekKeys),
+        supabase.from("completed_tasks").select("*").in("dayStr", dayStrs).in("user_id", userIds),
         supabase.from("goals").select("*").in("user_id", userIds),
         supabase.from("habits").select("*").in("user_id", userIds),
         supabase.from("custom_tasks").select("*").in("user_id", userIds),
-        supabase.from("notification_sent_log").select("*").in("user_id", userIds).gte("sent_at", new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString()),
-        supabase.from("global_smtp_settings").select("*").eq("id", 1).maybeSingle(),
-        supabase.from("global_email_templates").select("*"),
-        supabase.auth.admin.listUsers(),
+        supabase.from("notification_sent_log").select("*").in("user_id", userIds).gte("sent_at", sentLogSince),
       ]);
-
-    if (authUsersRes.error) throw authUsersRes.error;
-
-    // Map user IDs to auth emails
-    const userEmails = new Map<string, string>();
-    for (const u of authUsersRes.data.users || []) {
-      userEmails.set(u.id, u.email || "");
-    }
-
-    const smtpSettings = smtpSettingsRes.data;
-    const templates = templatesRes.data || [];
-
-    const briefingTemplate = templates.find((t: any) => t.type === "daily-briefing");
-    const reminderTemplate = templates.find((t: any) => t.type === "task-reminder");
-    const deadlineTemplate = templates.find((t: any) => t.type === "goal-deadline");
-
-    // Decrypt SMTP password and create transporter if enabled
-    let smtpTransporter: any = null;
-    let senderEmail = "";
-    let senderName = "";
-    let minIntervalPerUser = 60;
-
-    if (smtpSettings && smtpSettings.enabled) {
-      const encryptionKey = "llb_smtp_encryption_key_2026";
-      const { data: decryptedPass, error: decErr } = await supabase
-        .rpc("get_decrypted_smtp_password", { p_encryption_key: encryptionKey });
-
-      if (decErr) {
-        console.error("Failed to decrypt SMTP password:", decErr);
-      } else {
-        senderEmail = smtpSettings.sender_email;
-        senderName = smtpSettings.sender_name;
-        minIntervalPerUser = smtpSettings.min_interval || 60;
-
-        try {
-          smtpTransporter = nodemailer.createTransport({
-            host: smtpSettings.host,
-            port: smtpSettings.port || 587,
-            secure: smtpSettings.port === 465,
-            auth: {
-              user: smtpSettings.username,
-              pass: decryptedPass,
-            },
-          });
-        } catch (err) {
-          console.error("Failed to create nodemailer transporter:", err);
-        }
-      }
-    }
-
-    // Group subscriptions by user
-    const userSubs = new Map<string, UserSubscription[]>();
-    for (const sub of subscriptionsRes.data || []) {
-      const existing = userSubs.get(sub.user_id) || [];
-      existing.push(sub);
-      userSubs.set(sub.user_id, existing);
+      context = {
+        week_plans: weekPlansRes.data || [],
+        completed_tasks: completedRes.data || [],
+        goals: goalsRes.data || [],
+        habits: habitsRes.data || [],
+        custom_tasks: customTasksRes.data || [],
+        sent_log: sentLogRes.data || [],
+      };
     }
 
     const weekPlans = new Map<string, WeekPlan>();
-    for (const wp of weekPlansRes.data || []) {
+    for (const wp of context.week_plans || []) {
       weekPlans.set(`${wp.user_id}-${wp.week}`, wp);
     }
 
     const completed = new Map<string, string[]>();
-    for (const ct of completedRes.data || []) {
+    for (const ct of context.completed_tasks || []) {
       completed.set(`${ct.user_id}-${ct.dayStr}`, ct.taskIds || []);
     }
 
     const goalsByUser = new Map<string, Goal[]>();
-    for (const g of goalsRes.data || []) {
+    for (const g of context.goals || []) {
       const existing = goalsByUser.get(g.user_id) || [];
       existing.push(g);
       goalsByUser.set(g.user_id, existing);
     }
 
     const habitsByUser = new Map<string, Habit[]>();
-    for (const h of habitsRes.data || []) {
+    for (const h of context.habits || []) {
       const existing = habitsByUser.get(h.user_id) || [];
       existing.push(h);
       habitsByUser.set(h.user_id, existing);
     }
 
     const customTasksByUser = new Map<string, CustomTask[]>();
-    for (const ct of customTasksRes.data || []) {
+    for (const ct of context.custom_tasks || []) {
       const existing = customTasksByUser.get(ct.user_id) || [];
       existing.push(ct);
       customTasksByUser.set(ct.user_id, existing);
@@ -1041,22 +1040,20 @@ Deno.serve(async (req: Request) => {
 
     // Build sent log lookup: userId -> Set of tags
     const sentTags = new Map<string, Set<string>>();
-    for (const log of sentLogRes.data || []) {
+    for (const log of context.sent_log || []) {
       const existing = sentTags.get(log.user_id) || new Set();
       existing.add(log.notification_tag);
       sentTags.set(log.user_id, existing);
     }
 
     let totalPushSent = 0;
-    let totalEmailsSent = 0;
-    let totalSkipped = 0;
     const staleSubscriptions: string[] = [];
 
     // How much of today's Tier 2 ceiling each user has already spent,
     // reconstructed from the sent log so the cap survives across cron
     // ticks rather than resetting every invocation.
     const tier2SpentToday = new Map<string, number>();
-    for (const log of sentLogRes.data || []) {
+    for (const log of context.sent_log || []) {
       const tag: string = log.notification_tag || "";
       // Tier 1 tags never count against the ceiling.
       if (tag.startsWith("task-start-") || tag.startsWith("vault-reminder-")) continue;
@@ -1070,11 +1067,8 @@ Deno.serve(async (req: Request) => {
       const userId = profile.user_id;
       const prefs = profile.notification_prefs;
 
-      // Skip if notifications globally disabled
-      if (!prefs?.enabled) {
-        totalSkipped++;
-        continue;
-      }
+      // Already filtered above; kept as a guard.
+      if (!prefs?.enabled) continue;
 
       const userLocalTime = userLocalTimes.get(userId) || now;
       const userCurrentMinutes = userLocalTime.getUTCHours() * 60 + userLocalTime.getUTCMinutes();
@@ -1089,8 +1083,6 @@ Deno.serve(async (req: Request) => {
       // was therefore unreachable under the old blanket check.
 
       const userSentTags = sentTags.get(userId) || new Set();
-      const userEmail = userEmails.get(userId);
-      const userName = profile.full_name || userEmail?.split("@")[0] || "User";
 
       // ── A. Task Reminders (15 min before start) + Overdue ──
       const normalizedWeek = getWeekFromDate(userLocalTime);
@@ -1109,7 +1101,6 @@ Deno.serve(async (req: Request) => {
       );
 
       const completedIds = completed.get(`${userId}-${userDayStr}`) || [];
-      logDebug(`[DEBUG] User ${userId} (${userName}) allTasks count: ${allTasks.length} ${JSON.stringify(allTasks.map(t => ({ id: t.id, name: t.name, start: t.startTime })))}`);
 
       // Tier 1 — the 15-minute warning before every habit, goal task and
       // custom block. Uncapped and quiet-hours exempt by policy: these are
@@ -1125,7 +1116,6 @@ Deno.serve(async (req: Request) => {
         const taskStartMinutes = startH * 60 + startM;
         const diffMinutes = taskStartMinutes - userCurrentMinutes;
 
-        logDebug(`[DEBUG] Task ${task.id} (${task.name}) starting check: diffMinutes=${diffMinutes}, threshold=${TASK_REMINDER_MINUTES}`);
         if (diffMinutes > 0 && diffMinutes <= TASK_REMINDER_MINUTES) {
           const datePart = userLocalTime.toISOString().slice(0, 10);
           // `task.identity` collapses the same reminder arriving from both
@@ -1249,7 +1239,7 @@ Deno.serve(async (req: Request) => {
               };
 
               if (!canSend("goal_deadline", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
-                logDebug(`[DEBUG] User ${userId} out of Tier 2 budget. Skipping goal deadline.`);
+                // Out of Tier 2 budget — skip goal deadline quietly (re-checked every minute, so no log line).
               } else {
                 let pushSent = false;
                 for (const sub of subs) {
@@ -1283,7 +1273,7 @@ Deno.serve(async (req: Request) => {
             };
 
             if (!canSend("goal_completed", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
-              logDebug(`[DEBUG] User ${userId} out of Tier 2 budget. Skipping goal completion.`);
+              // Out of Tier 2 budget — skip goal completion quietly (re-checked every minute, so no log line).
             } else {
               let pushSent = false;
               for (const sub of subs) {
@@ -1373,7 +1363,7 @@ Deno.serve(async (req: Request) => {
             };
 
             if (!canSend("weekly_summary", userId, prefs, userCurrentMinutes, tier2SpentToday)) {
-              logDebug(`[DEBUG] User ${userId} out of Tier 2 budget. Skipping weekly summary.`);
+              // Out of Tier 2 budget — skip weekly summary quietly (re-checked every minute, so no log line).
             } else {
               let pushSent = false;
               for (const sub of subs) {
@@ -1555,18 +1545,19 @@ Deno.serve(async (req: Request) => {
       await supabase.from("push_subscriptions").delete().in("id", staleSubscriptions);
     }
 
-    // 6. Cleanup old sent log entries (older than 24h)
-    await supabase.rpc("clean_old_notification_logs");
+    // One line only when something actually happened, instead of a line
+    // per task per user every minute.
+    if (totalPushSent > 0 || staleSubscriptions.length > 0) {
+      console.log(`Notifications: ${totalPushSent} sent, ${staleSubscriptions.length} stale subscriptions removed`);
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         pushSent: totalPushSent,
-        emailsSent: totalEmailsSent,
         skipped: totalSkipped,
         staleRemoved: staleSubscriptions.length,
         timestamp: now.toISOString(),
-        logs: debugLogs,
       }),
       { headers: { "Content-Type": "application/json" } }
     );

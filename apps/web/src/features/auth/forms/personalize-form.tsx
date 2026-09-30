@@ -11,11 +11,11 @@ import { Text } from '@/components/ui/typography';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 import { format } from 'date-fns';
 import { SimpleTimePicker } from '@/components/ui/simple-time-picker';
-import { Sparkles, Clock, Target, Briefcase, Zap, CalendarDays, Moon, AlertTriangle, SkipForward } from 'lucide-react';
+import { User, Sparkles, Clock, Target, Briefcase, Zap, CalendarDays, Moon, AlertTriangle } from 'lucide-react';
 
 interface PersonalizeFormProps {
     onSuccess: () => void;
-    onSkip: () => void;
+    onSkip?: () => void;
 }
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -24,11 +24,18 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     </h4>
 );
 
-export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onSkip }) => {
+export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess }) => {
     const { user } = useAuth();
     const { saveProfile } = useUserProfile(user);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Google sign-ins arrive with name/photo in user_metadata; prefill and persist them
+    // so OAuth users end up with the same user_profiles row as email sign-ups.
+    const meta = user?.user_metadata ?? {};
+    const [fullName, setFullName] = useState<string>(meta.full_name || meta.name || '');
+    const [marketingOptIn, setMarketingOptIn] = useState(false);
+    const oauthAvatar: string = meta.avatar_url || meta.picture || '';
 
     const [sleepStart, setSleepStart] = useState('');
     const [sleepDuration, setSleepDuration] = useState('');
@@ -57,10 +64,24 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
         const finalPlanEndTime = planEndTime || '22:00';
         const finalPrimaryFocus = primaryLifeFocus || 'Career';
         const finalProfession = currentProfession || 'Software Engineer';
-        const finalDob = dob || (user?.user_metadata?.dob ? new Date(user.user_metadata.dob) : new Date(2002, 11, 23));
+        if (!fullName.trim()) {
+            setError('Please enter your full name.');
+            setLoading(false);
+            return;
+        }
+        if (!dob) {
+            setError('Please enter your date of birth.');
+            setLoading(false);
+            return;
+        }
+        const finalDob = dob;
 
         if (user) {
             await saveProfile({
+                fullName: fullName.trim(),
+                ...(user.email ? { email: user.email } : {}),
+                marketingOptIn,
+                ...(oauthAvatar ? { avatarUrl: oauthAvatar } : {}),
                 sleepStart: finalSleepStart,
                 sleepDuration: finalSleepDuration,
                 weekStart,
@@ -88,24 +109,6 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
         onSuccess();
     };
 
-    const handleSkipClick = async () => {
-        setLoading(true);
-        if (user) {
-            await saveProfile({
-                isPersonalized: true,
-                sleepStart: sleepStart || '22:00',
-                sleepDuration: sleepDuration || '8',
-                planDay: planDay || 'Sunday',
-                planStartTime: planStartTime || '21:00',
-                planEndTime: planEndTime || '22:00',
-                dob: user.user_metadata?.dob || '2002-11-23'
-            });
-            await supabase.auth.updateUser({ data: { isPersonalized: true } });
-        }
-        setLoading(false);
-        onSkip();
-    };
-
     return (
         <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/15 shrink-0">
@@ -120,6 +123,11 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
 
                 <form onSubmit={handleSave} className="space-y-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                        <SectionLabel>About you</SectionLabel>
+                        <FormField label="Full name" required icon={<User className="w-3 h-3" />}>
+                            <Input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" className="h-9 text-sm" />
+                        </FormField>
+
                         <SectionLabel>Sleep & Rest</SectionLabel>
                         <FormField label="Sleep start" icon={<Moon className="w-3 h-3" />}>
                             <SimpleTimePicker value={sleepStart} onChange={setSleepStart} />
@@ -127,7 +135,7 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                         <FormField label="Duration (hrs)" icon={<Clock className="w-3 h-3" />}>
                             <Input type="number" min="1" max="24" value={sleepDuration} onChange={(e) => setSleepDuration(e.target.value)} placeholder="8" className="h-9 text-sm" />
                         </FormField>
-                        <FormField label="Date of birth" icon={<CalendarDays className="w-3 h-3" />}>
+                        <FormField label="Date of birth" required icon={<CalendarDays className="w-3 h-3" />}>
                             <CustomDatePicker selected={dob} onChange={(date) => setDob(date)} placeholderText="Select" />
                         </FormField>
                         <FormField label="Week starts" icon={<CalendarDays className="w-3 h-3" />}>
@@ -201,15 +209,13 @@ export const PersonalizeForm: React.FC<PersonalizeFormProps> = ({ onSuccess, onS
                         </FormField>
                     </div>
 
+                    <label className="flex items-start gap-2 text-xs text-muted-foreground pt-2 cursor-pointer">
+                        <input type="checkbox" checked={marketingOptIn} onChange={(e) => setMarketingOptIn(e.target.checked)} className="mt-0.5" />
+                        <span>Email me planning tips, product updates and offers. You can unsubscribe anytime.</span>
+                    </label>
+
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-border mt-3">
-                        <button
-                            type="button"
-                            onClick={handleSkipClick}
-                            disabled={loading}
-                            className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors order-2 sm:order-1 disabled:opacity-50"
-                        >
-                            <SkipForward className="w-3 h-3" /> Skip for now
-                        </button>
+                        <span className="order-2 sm:order-1" />
                         <Button type="submit" className="w-full sm:w-auto sm:min-w-[200px] h-9 text-sm font-semibold order-1 sm:order-2" disabled={loading}>
                             {loading ? (
                                 <span className="flex items-center gap-2">

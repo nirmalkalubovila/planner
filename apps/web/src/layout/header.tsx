@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { Settings, LogOut, Sparkles } from 'lucide-react';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { NotificationBell } from '@/components/common/notification-bell';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@llb/api';
@@ -67,7 +66,7 @@ export const Header: React.FC = () => {
                                 <div className="h-[1.5px] w-0 group-hover:w-full bg-gradient-to-r from-primary/80 to-transparent transition-all duration-500 ease-out" />
                             </div>
                             <span className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 uppercase font-mono select-none whitespace-nowrap leading-none">
-                                Public Beta
+                                Beta
                             </span>
                         </div>
                     </Link>
@@ -89,7 +88,6 @@ export const Header: React.FC = () => {
 
                 {/* Right: Age + Name + Avatar Dropdown */}
                 <div className="flex justify-end items-center gap-2 sm:gap-3 md:gap-4">
-                    <ThemeToggle />
                     <NotificationBell />
                     {/* Live Age Display */}
                     {duration && (

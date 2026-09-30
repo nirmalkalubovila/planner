@@ -52,6 +52,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
     const [saveToLibrary, setSaveToLibrary] = useState(false);
     const [isReminder, setIsReminder] = useState(false);
     const [bucket, setBucket] = useState<LifeBucket | null>(null);
+    const [bucketError, setBucketError] = useState(false);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -98,6 +99,8 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
 
     const handleConfirm = () => {
         if (!name) return;
+        // Every task belongs to one life bucket
+        if (!bucket) { setBucketError(true); return; }
 
         const resolvedEndTime = isReminder ? getEndTimeOfReminder(startTime) : endTime;
 
@@ -132,6 +135,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
         setSaveToLibrary(false);
         setIsReminder(false);
         setBucket(null);
+        setBucketError(false);
         onClose();
     };
 
@@ -179,7 +183,7 @@ export const CustomTaskDialog: React.FC<CustomTaskDialogProps> = ({ isOpen, onCl
                     <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief details..." className="h-10" />
                 </div>
 
-                <BucketSelector value={bucket} onChange={setBucket} />
+                <BucketSelector required value={bucket} onChange={(b) => { setBucket(b); if (b) setBucketError(false); }} error={bucketError ? 'Choose a life bucket for this task.' : undefined} />
 
                 <div
                     className="flex items-center gap-3 p-3 bg-rose-500/5 rounded-xl cursor-pointer select-none group border border-transparent hover:border-rose-500/20 transition-all mb-1"

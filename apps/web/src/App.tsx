@@ -22,6 +22,7 @@ const SignupPage = lazyRetry(() => import('./features/auth/signup-page').then(m 
 const ProfilePage = lazyRetry(() => import('./features/profile/profile-page').then(m => ({ default: m.ProfilePage })));
 const StatisticsPage = lazyRetry(() => import('./features/statistics/statistics-page').then(m => ({ default: m.StatisticsPage })));
 const StatsCalculationsPage = lazyRetry(() => import('./features/statistics/calculations-page').then(m => ({ default: m.StatsCalculationsPage })));
+const ResetPage = lazyRetry(() => import('./features/reset/reset-page').then(m => ({ default: m.ResetPage })));
 const VaultPage = lazyRetry(() => import('./features/vault/vault-page').then(m => ({ default: m.VaultPage })));
 const ForgotPasswordPage = lazyRetry(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = lazyRetry(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
@@ -154,6 +155,32 @@ const MaintenanceGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     };
   }, []); // Only fetch once on mount, not on every pathname change
 
+  // Keep the flag fresh for users already in the app, so toggling maintenance from the admin panel
+  // reaches them within a minute (and immediately when they return to the tab).
+  React.useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("landing_page_settings")
+          .select("maintenance_mode")
+          .eq("id", 1)
+          .maybeSingle();
+        if (!active || error || !data) return;
+        const mode = data.maintenance_mode ?? false;
+        sessionStorage.setItem('llb-maintenance-mode', String(mode));
+        setMaintenanceMode(mode);
+      } catch { /* non-blocking */ }
+    };
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener('focus', refresh);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+    };
+  }, []);
+
   const isAdmin = user?.email === 'legacylifebuilder.konik@email.com';
   const isAdminPath = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');
 
@@ -223,6 +250,7 @@ const router = createBrowserRouter(
           <Route path="/profile" element={<SuspenseWrapper><ProfilePage /></SuspenseWrapper>} />
           <Route path="/statistics" element={<SuspenseWrapper><StatisticsPage /></SuspenseWrapper>} />
           <Route path="/statistics/calculations" element={<SuspenseWrapper><StatsCalculationsPage /></SuspenseWrapper>} />
+          <Route path="/reset" element={<SuspenseWrapper><ResetPage /></SuspenseWrapper>} />
           <Route path="/vault" element={<SuspenseWrapper><VaultPage /></SuspenseWrapper>} />
           <Route path="/simulator" element={<SuspenseWrapper><SimulatorPage /></SuspenseWrapper>} />
         </Route>

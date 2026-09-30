@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 
-import { AuthLayout } from '@/components/ui/auth-layout';
+import { usePageMeta } from '@/hooks/use-page-meta';
+import { AuthLayout, WhyLink } from '@/components/ui/auth-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { SignupForm } from './forms/signup-form';
 import { OtpVerification } from './components/otp-verification';
 
 export const SignupPage: React.FC = () => {
+    usePageMeta({ title: 'Sign Up | Legacy Life Builder', description: 'Create your account and build a weekly plan that turns goals into daily tasks.', path: '/signup' });
     const [showOtp, setShowOtp] = useState(false);
     const [otpEmail, setOtpEmail] = useState('');
 
@@ -41,6 +43,7 @@ export const SignupPage: React.FC = () => {
                     />
                 </CardContent>
             </Card>
+            <WhyLink />
         </AuthLayout>
     );
 };

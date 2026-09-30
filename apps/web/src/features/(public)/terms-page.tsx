@@ -1,3 +1,4 @@
+import { usePageMeta } from '@/hooks/use-page-meta';
 import Navbar from './components/Navbar';
 
 import Footer from './components/Footer';
@@ -5,6 +6,7 @@ import Footer from './components/Footer';
 import { Link } from 'react-router-dom';
 
 export function TermsPage() {
+  usePageMeta({ title: 'Terms of Service | Legacy Life Builder', description: 'The terms for using Legacy Life Builder.', path: '/terms' });
   return (
     <main className="min-h-screen bg-black text-white selection:bg-white selection:text-black antialiased">
       <Navbar />

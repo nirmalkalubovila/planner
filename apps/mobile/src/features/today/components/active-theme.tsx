@@ -7,7 +7,6 @@ import {
   DisciplineBattery,
   EngineDashboard,
   ForgeSystem,
-  HeartbeatSystem,
   TerritoryExpansion,
   XpBurst,
 } from './daily-themes';
@@ -16,15 +15,18 @@ interface ActiveThemeProps extends DailyThemeProps {
   currentDayStr: string;
 }
 
-const THEMES = [ComboChain, DisciplineBattery, ForgeSystem, TerritoryExpansion, HeartbeatSystem, XpBurst, EngineDashboard, DailyBossFight];
+const THEMES = [ComboChain, DisciplineBattery, ForgeSystem, TerritoryExpansion, XpBurst, EngineDashboard, DailyBossFight];
 
-/** Verbatim port of apps/web/src/features/today/components/active-theme.tsx
- * — same day-string hash so the theme picked for a given date matches web. */
+/** Same rotation as apps/web/src/features/today/components/active-theme.tsx: the day number of the
+ * "YYYY-WW-D" string modulo the theme count, so every theme appears in turn and web and mobile agree. */
+const dayOrdinal = (dayStr: string): number => {
+  const [year, week, day] = dayStr.split('-').map((n) => parseInt(n, 10));
+  if ([year, week, day].some(Number.isNaN)) return 0;
+  return year * 364 + (week - 1) * 7 + (day - 1);
+};
+
 export const ActiveTheme: React.FC<ActiveThemeProps> = ({ currentDayStr, ...props }) => {
-  const themeIndex = useMemo(() => {
-    const hash = currentDayStr.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
-    return Math.abs(hash) % THEMES.length;
-  }, [currentDayStr]);
+  const themeIndex = useMemo(() => dayOrdinal(currentDayStr) % THEMES.length, [currentDayStr]);
 
   const SelectedTheme = THEMES[themeIndex];
 

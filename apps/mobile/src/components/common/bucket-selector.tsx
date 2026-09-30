@@ -10,6 +10,10 @@ import { cn } from '@/lib/cn';
 interface BucketSelectorProps {
   value?: LifeBucket | null;
   onChange: (value: LifeBucket | null) => void;
+  /** Mandatory: the choice cannot be cleared and the label shows a star. */
+  required?: boolean;
+  /** Message shown under the options (e.g. after a submit without a choice). */
+  error?: string;
 }
 
 const BUCKET_ICONS: Record<LifeBucket, React.ComponentType<{ size?: number; color?: string }>> = {
@@ -19,14 +23,14 @@ const BUCKET_ICONS: Record<LifeBucket, React.ComponentType<{ size?: number; colo
   relational: Users,
 };
 
-export const BucketSelector: React.FC<BucketSelectorProps> = ({ value, onChange }) => {
+export const BucketSelector: React.FC<BucketSelectorProps> = ({ value, onChange, required, error }) => {
   return (
     <View className="gap-2">
       <View className="flex-row items-center justify-between">
         <Text className="text-sm font-medium text-foreground">
-          Life Bucket <Text variant="small">(Optional)</Text>
+          Life Bucket {required ? <Text className="text-primary">*</Text> : <Text variant="small">(Optional)</Text>}
         </Text>
-        {value && (
+        {value && !required && (
           <Pressable onPress={() => onChange(null)}>
             <Text variant="tiny" className="uppercase font-bold">
               Clear
@@ -44,7 +48,7 @@ export const BucketSelector: React.FC<BucketSelectorProps> = ({ value, onChange 
           return (
             <Pressable
               key={bucketKey}
-              onPress={() => onChange(isSelected ? null : bucketKey)}
+              onPress={() => onChange(isSelected && !required ? null : bucketKey)}
               className={cn(
                 'flex-row items-start gap-2 p-2.5 rounded-xl border basis-[47%] grow',
                 isSelected ? 'bg-accent border-foreground/30' : 'bg-card/60 border-border'
@@ -73,6 +77,7 @@ export const BucketSelector: React.FC<BucketSelectorProps> = ({ value, onChange 
           );
         })}
       </View>
+      {error ? <Text className="text-xs text-destructive">{error}</Text> : null}
     </View>
   );
 };

@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@llb/api';
 import { useDetailedAnalytics } from '@/features/statistics/hooks/use-detailed-stats';
 import { 
   getPendingMilestoneToCelebrate, 
   type MilestoneStage 
 } from '@/utils/milestone-engine';
 import { StageCelebrationModal } from '@/features/statistics/components/milestones/stage-celebration-modal';
-import { generateMilestoneInsightCard } from '@llb/core';
-import { INSIGHT_THEMES } from '@/features/statistics/components/insights/insight-themes';
-import { renderShareCardToCanvas } from '@/features/statistics/components/insights/share-card-renderer';
-import { shareToSocial, downloadShareImage, copyToClipboard } from '@/utils/share-utils';
-import { toast } from '@llb/core';
+import { useReportActions } from '@/features/statistics/hooks/use-report-actions';
+import { LegacyInsightPopup } from '@/features/insights/legacy-insight-popup';
 
 export const StageCelebrationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const { profile } = useUserProfile(user);
   const { data: detailed } = useDetailedAnalytics(!!user?.id);
   const [celebratingStage, setCelebratingStage] = useState<MilestoneStage | null>(null);
 
@@ -31,42 +30,25 @@ export const StageCelebrationProvider: React.FC<{ children: React.ReactNode }> =
     }
   }, [user?.id, detailed?.completedMap, celebratingStage]);
 
-  const handleShare = async (stage: MilestoneStage) => {
-    try {
-      const totalDays = detailed?.milestoneProgress?.totalDaysExecuted ?? 0;
-      const streak = detailed?.milestoneProgress?.currentStreak ?? 0;
-      const cardData = generateMilestoneInsightCard(stage, totalDays, streak);
-      const theme = INSIGHT_THEMES[3]; // Midnight Gold
-      const blob = await renderShareCardToCanvas(cardData, theme, 'story');
-      const shared = await shareToSocial(blob, `I just reached ${stage.title} (${stage.days} days consistent) on Legacy Life Builder!`);
-      
-      if (shared) {
-        toast.success('Shared milestone card!');
-      } else {
-        const copied = await copyToClipboard(blob);
-        downloadShareImage(blob, `legacy-milestone-stage-${stage.stageNumber}.png`);
-        if (copied) {
-          toast.success('Card copied to clipboard & downloaded!');
-        } else {
-          toast.success('Downloaded milestone share card!');
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Could not generate milestone share card');
-    }
-  };
+  const { downloadPdf, shareImage } = useReportActions(profile?.fullName, detailed);
 
   return (
     <>
       {children}
+
+      <LegacyInsightPopup
+        suppress={!!celebratingStage}
+        ready={!!detailed}
+        consistent={(detailed?.milestoneProgress?.currentStreak ?? 0) >= 7}
+      />
 
       {celebratingStage && (
         <StageCelebrationModal
           stage={celebratingStage}
           isOpen={true}
           onClose={() => setCelebratingStage(null)}
-          onShare={handleShare}
+          onDownloadReport={downloadPdf}
+          onShareImage={shareImage}
         />
       )}
     </>

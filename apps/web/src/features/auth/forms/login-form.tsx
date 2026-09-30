@@ -123,7 +123,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, onRequireOtp })
                     </Link>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full llb-btn" disabled={loading}>
                     {loading ? 'Logging in...' : 'Log in'}
                 </Button>
             </form>

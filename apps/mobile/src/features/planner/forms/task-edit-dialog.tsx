@@ -49,9 +49,12 @@ const TaskEditDialogBody: React.FC<TaskEditDialogProps> = ({ isOpen, onClose, on
   const isReminder = !!initialData.isReminder;
   const [time, setTime] = useState(() => initialData.time || initialData.startTime || '09:00');
   const [bucket, setBucket] = useState<LifeBucket | null>(() => initialData.bucket || null);
+  const [bucketError, setBucketError] = useState(false);
   const { data: goals } = useGetGoals();
 
   const handleSave = () => {
+    // Custom tasks need a bucket; goal and habit blocks inherit theirs
+    if (!isGoalType && !isHabitType && !bucket) { setBucketError(true); return; }
     onSave({
       ...initialData,
       name,
@@ -108,7 +111,7 @@ const TaskEditDialogBody: React.FC<TaskEditDialogProps> = ({ isOpen, onClose, on
           <Input value={name} onChangeText={setName} placeholder="Working on..." editable={!isHabitType} className="text-base h-11" />
         </View>
 
-        {!isGoalType && !isHabitType && <BucketSelector value={bucket} onChange={setBucket} />}
+        {!isGoalType && !isHabitType && <BucketSelector required value={bucket} onChange={(b) => { setBucket(b); if (b) setBucketError(false); }} error={bucketError ? 'Choose a life bucket for this task.' : undefined} />}
 
         {isGoalType && !isReminder && (
           <View className="gap-2">

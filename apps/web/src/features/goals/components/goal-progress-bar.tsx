@@ -45,10 +45,10 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({ milestones, pr
                 <div className="flex items-center min-w-max gap-0.5 px-0.5">
                     {/* Starting point */}
                     <div className="flex flex-col items-center gap-1 min-w-[48px]">
-                        <div className="w-6 h-6 rounded-full border-[1.5px] border-intent-goal bg-intent-goal-muted flex items-center justify-center shadow-[0_0_8px_hsl(var(--intent-goal)/0.25)]">
-                            <Play size={9} className="text-intent-goal ml-0.5" />
+                        <div className="w-6 h-6 rounded-full border-[1.5px] border-primary/70 bg-primary/10 flex items-center justify-center">
+                            <Play size={9} className="text-primary ml-0.5" />
                         </div>
-                        <span className="text-[8px] font-bold text-intent-goal">Start</span>
+                        <span className="text-[8px] font-bold text-primary">Start</span>
                         <span className="text-[7px] text-muted-foreground">{startLabel}</span>
                     </div>
 
@@ -61,7 +61,7 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({ milestones, pr
                                 {/* Connector line */}
                                 <div className={cn(
                                     "h-[2px] flex-1 min-w-[20px] sm:min-w-[32px]",
-                                    isCompleted ? "bg-intent-goal/60" : "bg-muted"
+                                    isCompleted ? "bg-primary/60" : "bg-muted"
                                 )} />
 
                                 {/* Milestone node */}
@@ -69,7 +69,7 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({ milestones, pr
                                     <div className={cn(
                                         "w-6 h-6 rounded-full border-[1.5px] flex items-center justify-center transition-all",
                                         isCompleted
-                                            ? "bg-intent-goal-muted border-intent-goal text-intent-goal"
+                                            ? "bg-primary/10 border-primary/70 text-primary"
                                             : "bg-muted border-border text-muted-foreground"
                                     )}>
                                         {isCompleted
@@ -79,7 +79,7 @@ export const GoalProgressBar: React.FC<GoalProgressBarProps> = ({ milestones, pr
                                     </div>
                                     <span className={cn(
                                         "text-[8px] font-bold truncate max-w-[64px] text-center leading-tight",
-                                        isCompleted ? "text-intent-goal" : "text-muted-foreground"
+                                        isCompleted ? "text-primary" : "text-muted-foreground"
                                     )}>
                                         {m.title}
                                     </span>

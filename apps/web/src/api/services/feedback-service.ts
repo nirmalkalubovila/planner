@@ -24,6 +24,9 @@ export interface Feedback {
     author_name?: string | null;
     author_position?: string | null;
     consent_to_show?: boolean;
+    tag?: string | null;
+    avatar_url?: string | null;
+    is_verified?: boolean;
     // Joined from user_profiles (admin only)
     user_email?: string;
     user_name?: string;
@@ -83,6 +86,64 @@ export function useAdminUsers() {
         },
         staleTime: 60_000, // 1min cache
     });
+}
+
+// ── Admin: export every user's profile details to an Excel sheet ────
+export async function exportUsersToExcel(): Promise<number> {
+    const { data, error } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const ageOf = (dob?: string | null) => {
+        if (!dob) return "";
+        const d = new Date(dob);
+        if (isNaN(d.getTime())) return "";
+        const now = new Date();
+        let age = now.getFullYear() - d.getFullYear();
+        if (now < new Date(now.getFullYear(), d.getMonth(), d.getDate())) age--;
+        return age;
+    };
+
+    const rows = (data ?? []).map((u: Record<string, any>) => ({
+        "Full Name": u.full_name ?? "",
+        "Email": u.email ?? "",
+        "Date of Birth": u.dob ?? "",
+        "Age": ageOf(u.dob),
+        "Marketing Opt-in": u.marketing_opt_in ? "Yes" : "No",
+        "Profession": u.current_profession ?? "",
+        "Situation": u.execution_profile?.situation?.status ?? "",
+        "Free Hours / Day": u.daily_free_hours ?? "",
+        "Biggest Challenge": u.biggest_challenge ?? "",
+        "Deep Work": u.execution_profile?.capacity?.deepWorkMin ?? "",
+        "Switch Recovery": u.execution_profile?.capacity?.switchRecovery ?? "",
+        "Failure Patterns": (u.execution_profile?.risks?.patterns ?? []).join(", "),
+        "Assessment Done": u.execution_profile?.completedAt ? "Yes" : "No",
+        "Primary Life Focus": u.primary_life_focus ?? "",
+        "Energy Peak": u.energy_peak_time ?? "",
+        "Focus Ability": u.focus_ability ?? "",
+        "Task Shifting": u.task_shifting_ability ?? "",
+        "Sleep Start": u.sleep_start ?? "",
+        "Sleep Duration (h)": u.sleep_duration ?? "",
+        "Week Starts": u.week_start ?? "",
+        "Plan Day": u.plan_day ?? "",
+        "Plan Start": u.plan_start_time ?? "",
+        "Plan End": u.plan_end_time ?? "",
+        "Personalized": u.is_personalized ? "Yes" : "No",
+        "Avatar URL": u.avatar_url ?? "",
+        "Signed Up": u.created_at ?? "",
+        "User ID": u.user_id ?? "",
+    }));
+
+    // Lazy-load so the xlsx library isn't part of the main bundle
+    const XLSX = await import("xlsx");
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = Object.keys(rows[0] ?? {}).map((k) => ({ wch: Math.max(k.length + 2, 16) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Users");
+    XLSX.writeFile(wb, `users-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    return rows.length;
 }
 
 export interface UserActivity {
@@ -342,6 +403,11 @@ export function useAdminUpdateFeedback() {
             status?: FeedbackStatus;
             category?: FeedbackCategory;
             consent_to_show?: boolean;
+            subject?: string;
+            message?: string;
+            tag?: string | null;
+            avatar_url?: string | null;
+            is_verified?: boolean;
         }) => {
             const { id, ...fields } = data;
             const { error } = await supabase
@@ -416,7 +482,7 @@ export function usePublicFeedbacks() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from(TABLE_NAME)
-                .select("id, category, subject, message, created_at, rating, author_name, author_position")
+                .select("id, category, subject, message, created_at, rating, author_name, author_position, tag, avatar_url, is_verified")
                 .eq("show_on_landing", true)
                 .order("created_at", { ascending: false });
 
@@ -424,5 +490,123 @@ export function usePublicFeedbacks() {
             return data as Omit<Feedback, "user_id" | "user_email" | "user_name" | "status" | "show_on_landing">[];
         },
         staleTime: 60_000,
+    });
+}
+
+// ── Admin: create a testimonial (feedback row owned by the admin) ───
+export interface TestimonialInput {
+    subject: string;
+    message: string;
+    rating: number;
+    author_name: string;
+    author_position: string;
+    tag?: string | null;
+    avatar_url?: string | null;
+    is_verified?: boolean;
+    show_on_landing?: boolean;
+}
+
+export function useAdminCreateTestimonial() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (input: TestimonialInput) => {
+            const { data: auth } = await supabase.auth.getUser();
+            const userId = auth.user?.id;
+            if (!userId) throw new Error("Not signed in");
+            const { error } = await supabase.from(TABLE_NAME).insert({
+                user_id: userId,
+                category: "About Legacy Life Builder",
+                status: "reviewed",
+                consent_to_show: true,
+                show_on_landing: input.show_on_landing ?? true,
+                subject: input.subject,
+                message: input.message,
+                rating: input.rating,
+                author_name: input.author_name,
+                author_position: input.author_position,
+                tag: input.tag || null,
+                avatar_url: input.avatar_url || null,
+                is_verified: input.is_verified ?? true,
+            });
+            if (error) throw new Error(error.message);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
+            toast.success("Testimonial added");
+        },
+        onError: (err) => {
+            toast.error("Failed to add testimonial: " + err.message);
+        },
+    });
+}
+
+// ── Admin: delete a feedback ────────────────────────────────────────
+export function useAdminDeleteFeedback() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from(TABLE_NAME).delete().eq("id", id);
+            if (error) throw new Error(error.message);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [TABLE_NAME] });
+            toast.success("Feedback deleted");
+        },
+        onError: (err) => {
+            toast.error("Failed to delete: " + err.message);
+        },
+    });
+}
+
+// ── Admin: full drill-down for one user ─────────────────────────────
+export interface AdminUserDetail {
+    profile: Record<string, any> | null;
+    account: { email: string | null; created_at: string; last_sign_in_at: string | null; provider: string | null } | null;
+    goals: Record<string, any>[];
+    habits: Record<string, any>[];
+    week_plans: { week: string; created_at: string; slots: number; bucket_actions: Record<string, any> | null }[];
+    completed_days: { day: string; count: number }[];
+    custom_tasks: Record<string, any>[];
+    missed_tasks: Record<string, any>[];
+    feedbacks: Record<string, any>[];
+    counts: { vault_notes: number; push_devices: number; completed_days_total: number; week_plans_total: number };
+}
+
+export function useAdminUserDetail(userId: string | null) {
+    return useQuery({
+        queryKey: ["admin-user-detail", userId],
+        enabled: !!userId,
+        queryFn: async () => {
+            const { data, error } = await supabase.rpc("get_admin_user_detail", { p_user_id: userId! });
+            if (error) throw new Error(error.message);
+            return data as unknown as AdminUserDetail;
+        },
+        staleTime: 60_000,
+    });
+}
+
+// ── Admin: marketing / profile extras per user (admin-readable table) ─
+export interface UserProfileExtra {
+    user_id: string;
+    avatar_url: string | null;
+    current_profession: string | null;
+    marketing_opt_in: boolean;
+    is_personalized: boolean;
+    execution_profile: { completedAt?: string } | null;
+}
+
+export function useAdminUserProfileExtras() {
+    return useQuery({
+        queryKey: ["user_profiles", "admin-extras"],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("user_profiles")
+                .select("user_id, avatar_url, current_profession, marketing_opt_in, is_personalized, execution_profile");
+            if (error) throw new Error(error.message);
+            return (data ?? []) as unknown as UserProfileExtra[];
+        },
+        staleTime: 2 * 60 * 1000,
     });
 }

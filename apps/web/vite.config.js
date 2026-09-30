@@ -51,10 +51,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // jsPDF's optional SVG renderer, never used by the reports
+      "canvg": path.resolve(__dirname, "./src/lib/empty-module.ts"),
     },
     dedupe: ['react', 'react-dom', 'react-router', 'react-router-dom', '@tanstack/react-query'],
   },
   optimizeDeps: {
+    exclude: ['canvg'],
     include: [
       'react',
       'react-dom',
