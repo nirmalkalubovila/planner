@@ -270,6 +270,7 @@ export type Database = {
       goals: {
         Row: {
           bucket: string | null
+          goalContext: Json | null
           code: string | null
           createdAt: string
           durationValue: number | null
@@ -287,6 +288,7 @@ export type Database = {
         }
         Insert: {
           bucket?: string | null
+          goalContext?: Json | null
           code?: string | null
           createdAt?: string
           durationValue?: number | null
@@ -304,6 +306,7 @@ export type Database = {
         }
         Update: {
           bucket?: string | null
+          goalContext?: Json | null
           code?: string | null
           createdAt?: string
           durationValue?: number | null
@@ -534,6 +537,11 @@ export type Database = {
       user_profiles: {
         Row: {
           avatar_url: string | null
+          biggest_challenge: string | null
+          daily_free_hours: string | null
+          email: string | null
+          execution_profile: Json
+          marketing_opt_in: boolean
           created_at: string
           current_profession: string | null
           dob: string | null
@@ -561,6 +569,11 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          biggest_challenge?: string | null
+          daily_free_hours?: string | null
+          email?: string | null
+          execution_profile?: Json
+          marketing_opt_in?: boolean
           created_at?: string
           current_profession?: string | null
           dob?: string | null
@@ -588,6 +601,11 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          biggest_challenge?: string | null
+          daily_free_hours?: string | null
+          email?: string | null
+          execution_profile?: Json
+          marketing_opt_in?: boolean
           created_at?: string
           current_profession?: string | null
           dob?: string | null

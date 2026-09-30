@@ -1,3 +1,4 @@
+import type { GoalContext } from './execution-profile';
 import { LifeBucket } from './time';
 
 export enum Status {
@@ -51,6 +52,8 @@ export interface Goal extends GlobalRecords {
     plans?: AIGeneratedPlanSlot[];
     milestones?: Milestone[];
     bucket?: LifeBucket;
+    /** Optional per-goal context that sharpens AI plans (why, success measure, resources, past attempts). */
+    goalContext?: GoalContext | null;
 }
 
 export interface CustomTask extends GlobalRecords {

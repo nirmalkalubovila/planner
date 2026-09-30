@@ -3,6 +3,7 @@ import { supabase } from '../supabase-client';
 import { getCurrentUserId } from '../helpers/auth-helpers';
 import type { User } from "@supabase/supabase-js";
 import { handleFriendlyError } from '@llb/core';
+import type { ExecutionProfile } from '@llb/core';
 
 const TABLE_NAME = "user_profiles";
 
@@ -22,6 +23,11 @@ export interface UserProfile {
     taskShiftingAbility: string;
     isPersonalized: boolean;
     avatarUrl: string;
+    email?: string;
+    biggestChallenge?: string;
+    executionProfile?: ExecutionProfile;
+    dailyFreeHours?: string;
+    marketingOptIn?: boolean;
     notificationPrefs?: any;
     notifications?: any;
 }
@@ -49,6 +55,9 @@ const DEFAULTS: UserProfile = {
 function metaToProfile(meta: Record<string, unknown> | null): Partial<UserProfile> {
     if (!meta) return {};
     const res: Partial<UserProfile> = {};
+    // Google OAuth supplies `name`/`picture`; Supabase usually mirrors them to full_name/avatar_url
+    if (meta.name !== null && meta.name !== undefined) res.fullName = meta.name as string;
+    if (meta.picture !== null && meta.picture !== undefined) res.avatarUrl = meta.picture as string;
     if (meta.full_name !== null && meta.full_name !== undefined) res.fullName = meta.full_name as string;
     if (meta.fullName !== null && meta.fullName !== undefined) res.fullName = meta.fullName as string;
     if (meta.dob !== null && meta.dob !== undefined) res.dob = meta.dob as string;
@@ -103,6 +112,13 @@ function dbRowToProfile(row: Record<string, unknown> | null): Partial<UserProfil
     
     if (row.is_personalized !== null && row.is_personalized !== undefined) res.isPersonalized = row.is_personalized as boolean;
     if (row.avatar_url !== null && row.avatar_url !== undefined) res.avatarUrl = row.avatar_url as string;
+    if (row.biggest_challenge) res.biggestChallenge = row.biggest_challenge as string;
+    if (row.daily_free_hours) res.dailyFreeHours = row.daily_free_hours as string;
+    if (row.execution_profile && typeof row.execution_profile === 'object' && Object.keys(row.execution_profile as object).length > 0) {
+        res.executionProfile = row.execution_profile as ExecutionProfile;
+    }
+    if (row.email) res.email = row.email as string;
+    if (row.marketing_opt_in !== null && row.marketing_opt_in !== undefined) res.marketingOptIn = row.marketing_opt_in as boolean;
     if (row.notification_prefs !== null && row.notification_prefs !== undefined) res.notificationPrefs = row.notification_prefs;
     if (row.notifications !== null && row.notifications !== undefined) res.notifications = row.notifications;
     return res;
@@ -170,6 +186,11 @@ export function useUserProfile(user: User | null) {
             if (updates.taskShiftingAbility !== undefined) row.task_shifting_ability = updates.taskShiftingAbility;
             if (updates.isPersonalized !== undefined) row.is_personalized = updates.isPersonalized;
             if (updates.avatarUrl !== undefined) row.avatar_url = updates.avatarUrl;
+            if (updates.biggestChallenge !== undefined) row.biggest_challenge = updates.biggestChallenge;
+            if (updates.dailyFreeHours !== undefined) row.daily_free_hours = updates.dailyFreeHours;
+            if (updates.executionProfile !== undefined) row.execution_profile = updates.executionProfile;
+            if (updates.email !== undefined) row.email = updates.email;
+            if (updates.marketingOptIn !== undefined) row.marketing_opt_in = updates.marketingOptIn;
             if (updates.notificationPrefs !== undefined) row.notification_prefs = updates.notificationPrefs;
             if (updates.notifications !== undefined) row.notifications = updates.notifications;
 

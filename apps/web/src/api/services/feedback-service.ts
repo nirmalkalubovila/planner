@@ -85,6 +85,64 @@ export function useAdminUsers() {
     });
 }
 
+// ── Admin: export every user's profile details to an Excel sheet ────
+export async function exportUsersToExcel(): Promise<number> {
+    const { data, error } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const ageOf = (dob?: string | null) => {
+        if (!dob) return "";
+        const d = new Date(dob);
+        if (isNaN(d.getTime())) return "";
+        const now = new Date();
+        let age = now.getFullYear() - d.getFullYear();
+        if (now < new Date(now.getFullYear(), d.getMonth(), d.getDate())) age--;
+        return age;
+    };
+
+    const rows = (data ?? []).map((u: Record<string, any>) => ({
+        "Full Name": u.full_name ?? "",
+        "Email": u.email ?? "",
+        "Date of Birth": u.dob ?? "",
+        "Age": ageOf(u.dob),
+        "Marketing Opt-in": u.marketing_opt_in ? "Yes" : "No",
+        "Profession": u.current_profession ?? "",
+        "Situation": u.execution_profile?.situation?.status ?? "",
+        "Free Hours / Day": u.daily_free_hours ?? "",
+        "Biggest Challenge": u.biggest_challenge ?? "",
+        "Deep Work": u.execution_profile?.capacity?.deepWorkMin ?? "",
+        "Switch Recovery": u.execution_profile?.capacity?.switchRecovery ?? "",
+        "Failure Patterns": (u.execution_profile?.risks?.patterns ?? []).join(", "),
+        "Assessment Done": u.execution_profile?.completedAt ? "Yes" : "No",
+        "Primary Life Focus": u.primary_life_focus ?? "",
+        "Energy Peak": u.energy_peak_time ?? "",
+        "Focus Ability": u.focus_ability ?? "",
+        "Task Shifting": u.task_shifting_ability ?? "",
+        "Sleep Start": u.sleep_start ?? "",
+        "Sleep Duration (h)": u.sleep_duration ?? "",
+        "Week Starts": u.week_start ?? "",
+        "Plan Day": u.plan_day ?? "",
+        "Plan Start": u.plan_start_time ?? "",
+        "Plan End": u.plan_end_time ?? "",
+        "Personalized": u.is_personalized ? "Yes" : "No",
+        "Avatar URL": u.avatar_url ?? "",
+        "Signed Up": u.created_at ?? "",
+        "User ID": u.user_id ?? "",
+    }));
+
+    // Lazy-load so the xlsx library isn't part of the main bundle
+    const XLSX = await import("xlsx");
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = Object.keys(rows[0] ?? {}).map((k) => ({ wch: Math.max(k.length + 2, 16) }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Users");
+    XLSX.writeFile(wb, `users-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    return rows.length;
+}
+
 export interface UserActivity {
     user_id: string;
     email: string;

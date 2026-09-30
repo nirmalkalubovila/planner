@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { AILoadingPopup, recordGenTime } from '@/components/common/ai-loading-popup';
-import { Goal, AIGeneratedPlanSlot } from '@llb/core';
+import { Goal, AIGeneratedPlanSlot, buildPersonaPromptBlock, getDailyHourBudget, type PromptProfile } from '@llb/core';
 import { format, parseISO, addDays, addMonths, differenceInCalendarDays, min as minDate, parse as dateParse } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Check, Save, X, Edit3, ChevronRight, ChevronDown, BrainCircuit, UserCog, Trash2, Clock, Play, CalendarDays } from 'lucide-react';
@@ -154,7 +154,7 @@ const SubPlanRow = ({
     onUpdateSubPlans: (p: number[], sp: AIGeneratedPlanSlot[] | undefined) => void;
     onSaveEdit: (p: number[], e: { title: string; task: string; desc: string }, d: string) => void;
     user: any;
-    profile?: { focusAbility?: string; taskShiftingAbility?: string; primaryLifeFocus?: string; currentProfession?: string; energyPeakTime?: string } | null;
+    profile?: PromptProfile | null;
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [expanded, setExpanded] = useState(false);
@@ -265,7 +265,7 @@ const BreakdownSection = ({
     expansionType: 'Weeks' | 'Months';
     onUpdateSubPlans: (p: number[], sp: AIGeneratedPlanSlot[] | undefined) => void;
     onSaveEdit: (p: number[], e: { title: string; task: string; desc: string }, d: string) => void;
-    user: any; profile?: { focusAbility?: string; taskShiftingAbility?: string; primaryLifeFocus?: string; currentProfession?: string; energyPeakTime?: string } | null; nested?: boolean;
+    user: any; profile?: PromptProfile | null; nested?: boolean;
     overridePeriodStart?: Date; overridePeriodEnd?: Date;
 }) => {
     const [expanded, setExpanded] = useState(false);
@@ -296,6 +296,7 @@ const BreakdownSection = ({
                 dateRangesDescription = ranges.map((m, i) => `Month ${i + 1}: ${format(m.start, 'yyyy-MM-dd')} to ${format(m.end, 'yyyy-MM-dd')} (${m.label})`).join('\n');
             }
 
+            const budget = getDailyHourBudget(profile);
             const prompt = `Generate a detailed hierarchical action plan breakdown for the following phase of the overall goal.
 Goal Title: ${goal.title || ''}
 Goal Description/Mission: ${goal.name}
@@ -305,8 +306,7 @@ Phase Target Task (with parent target count): ${slot.dayTask}
 Phase Strategy/Description: ${slot.description}
 Phase Timeline Date/Range: ${slot.date}
 System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
-User Preferences: Focus Ability: ${profile?.focusAbility || user?.user_metadata?.focusAbility || 'normal'}, Task Shifting: ${profile?.taskShiftingAbility || user?.user_metadata?.taskShiftingAbility || 'normal'}
-User Persona: Primary Focus: ${profile?.primaryLifeFocus || user?.user_metadata?.primaryLifeFocus || 'Not set'}, Profession: ${profile?.currentProfession || user?.user_metadata?.currentProfession || 'Not set'}, Peak Energy: ${profile?.energyPeakTime || user?.user_metadata?.energyPeakTime || 'Morning'}
+${buildPersonaPromptBlock(profile, goal.goalContext)}
 Tailor tasks specifically to fit this person's profession, life focus, and energy cycles when possible.
 Context - The surrounding sibling phases in the overall plan are: ${parentLevelTasks}. Ensure this new breakdown strictly stays within the current phase's boundaries.
 
@@ -323,10 +323,10 @@ If the Goal Title, Description, Purpose, or the Phase Target Task contains a spe
 
 REALISTIC ESTIMATED HOURS:
 - The "estimatedHours" MUST be a highly realistic, non-generic estimation of the cumulative hours required to execute that specific sub-milestone task.
-- PRACTICAL HOURLY LIMITS: Do not estimate impractical hours. For any individual, the absolute maximum quality work hours they can spend is 5 hours a day (35 hours a week, 140 hours a month).
-- Unless user preferences explicitly specify a different time availability, assume a standard average budget of 3 hours a day, which means exactly 21 hours a week (84 hours a month).
-- DYNAMIC ALLOCATION (NEVER HARDCODE): Do NOT assign the exact same constant hours (like 84h or 16h) to every month or week. The estimated hours must dynamically expand or contract based on the complexity, scale, and specific tasks of that period (e.g., some lighter weeks might be 5h or 8h, while heavier action weeks might be 15h or 20h, as long as they stay strictly below the weekly budget cap of 21 hours).
-- Ensure all estimated hours at the Year, Month, or Week level are mathematically scaled to stay strictly within these bounds (e.g. a 4-week Month phase must not exceed 84 hours total; a Week phase must not exceed 21 hours total).
+- PRACTICAL HOURLY LIMITS: Do not estimate impractical hours. For this person, the absolute maximum quality work hours is ${budget.max} hours a day (${budget.max * 7} hours a week, ${budget.max * 30} hours a month).
+- Their standard budget is ${budget.target} hours a day, which means exactly ${budget.target * 7} hours a week (${budget.target * 30} hours a month).
+- DYNAMIC ALLOCATION (NEVER HARDCODE): Do NOT assign the exact same constant hours (like 84h or 16h) to every month or week. The estimated hours must dynamically expand or contract based on the complexity, scale, and specific tasks of that period (e.g., some lighter weeks might be 5h or 8h, while heavier action weeks might be 15h or 20h, as long as they stay strictly below the weekly budget cap of ${budget.target * 7} hours).
+- Ensure all estimated hours at the Year, Month, or Week level are mathematically scaled to stay strictly within these bounds (e.g. a 4-week Month phase must not exceed ${budget.target * 28} hours total; a Week phase must not exceed ${budget.target * 7} hours total).
 
 Please break this specific phase down into EXACTLY ${dynamicCount} sequential sub-milestones (representing ${expansionType}).
 TIMELINE SYNC CRITICAL: You must use the "System Current Date" as your reality baseline.

@@ -25,7 +25,8 @@ CREATE TABLE goals (
   "durationValue" numeric,
   plans jsonb,
   milestones jsonb,
-  bucket text
+  bucket text,
+  "goalContext" jsonb
 );
 
 -- Create habits table
@@ -92,7 +93,12 @@ CREATE TABLE user_profiles (
   is_personalized boolean DEFAULT false,
   avatar_url text,
   notification_prefs jsonb DEFAULT '{}'::jsonb,
-  notifications jsonb DEFAULT '[]'::jsonb
+  notifications jsonb DEFAULT '[]'::jsonb,
+  email text,
+  marketing_opt_in boolean NOT NULL DEFAULT false,
+  biggest_challenge text,
+  daily_free_hours text,
+  execution_profile jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 
 -- Create vault_notes table (The Vault - lightning-fast notes)

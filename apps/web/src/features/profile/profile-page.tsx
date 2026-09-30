@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@llb/api';
 import { ProfileInfo } from './components/profile-info';
 import { ProfilePreferences } from './components/profile-preferences';
+import { ExecutionProfileSection } from './components/execution-profile-section';
 import { ProfileSecurity } from './components/profile-security';
 import { NotificationPreferencesSection } from './notification-preferences';
 import { ClaudeConnectorSection } from './claude-connector-section';
@@ -200,6 +201,9 @@ export const ProfilePage: React.FC = () => {
                             onSave={handleSavePrefs}
                             formData={formData}
                         />
+                        <div className="mt-4">
+                            <ExecutionProfileSection />
+                        </div>
                     </div>
                 )}
 

@@ -5,7 +5,7 @@ import {
     Clock, CheckCircle2, Eye, EyeOff, UserPlus,
     ChevronDown, Search, Mail, Settings, FileText, Check, Save, Info, Loader2, KeyRound,
     Zap, Calendar, Target, Activity, Sparkles, AlertTriangle, Percent, Trash2,
-    Flame, Star, Lightbulb
+    Flame, Star, Lightbulb, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import { AppUpdateService, type AppUpdate } from '@llb/api';
 import { 
     useAdminFeedbacks, useAdminStats, useAdminUpdateFeedbackStatus,
     useLandingSettings, useUpdateLandingSettings, useAdminUpdateFeedback,
-    useAdminUsersActivity, getUserEngagementTier, TIER_META, type EngagementTier
+    useAdminUsersActivity, exportUsersToExcel, getUserEngagementTier, TIER_META, type EngagementTier
 } from '@/api/services/feedback-service';
 import { STATUS_COLORS, FEEDBACK_STATUSES, type FeedbackStatus } from './admin-constants';
 import { AdminGuard } from './admin-guard';
@@ -894,6 +894,19 @@ const UsersTab: React.FC = () => {
     const [search, setSearch] = useState('');
     const [filterTier, setFilterTier] = useState<'all' | EngagementTier | 'new'>('all');
     const [sortMode, setSortMode] = useState<'engaged' | 'attention'>('engaged');
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            const count = await exportUsersToExcel();
+            toast.success(`Exported ${count} users`);
+        } catch (err) {
+            toast.error('Export failed: ' + (err instanceof Error ? err.message : 'unknown error'));
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const getRelativeTime = (dateStr: string | null) => {
         if (!dateStr) return 'No activity yet';
@@ -987,6 +1000,10 @@ const UsersTab: React.FC = () => {
                 </div>
 
                 <div className="flex gap-2">
+                    <Button onClick={handleExport} disabled={isExporting} variant="outline" className="h-10 rounded-xl gap-1.5">
+                        {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        Export Excel
+                    </Button>
                     <button
                         onClick={() => setSortMode('engaged')}
                         className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${

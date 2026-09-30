@@ -4,6 +4,8 @@ import { Header } from './header';
 import { DashboardSidebar } from './dashboard-sidebar';
 import { MobileNav } from './mobile-nav';
 import { PersonalizeModal } from '@/features/auth/personalize-page';
+import { CompleteProfileModal } from '@/features/auth/complete-profile-modal';
+import { ExecutionProfilePrompt } from '@/features/profile/components/execution-profile-prompt';
 import { NotificationProvider } from '@/components/common/notification-provider';
 import { AnnouncementBanner } from '@/components/common/announcement-banner';
 import { StageCelebrationProvider } from '@/components/common/stage-celebration-provider';
@@ -25,6 +27,8 @@ export const DashboardLayout: React.FC = () => {
                         <MobileNav />
                     </div>
                     <PersonalizeModal />
+                    <CompleteProfileModal />
+                    <ExecutionProfilePrompt />
                 </div>
             </StageCelebrationProvider>
         </NotificationProvider>

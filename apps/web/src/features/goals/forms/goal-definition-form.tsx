@@ -3,13 +3,43 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, ChevronRight, Copy, Check } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronRight, ChevronDown, Copy, Check, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 
 import { BucketSelector } from '@/components/common/bucket-selector';
-import { LifeBucket } from '@llb/core';
+import { OptionChips } from '@/components/common/option-chips';
+import { LifeBucket, type GoalContext } from '@llb/core';
+
+const TEXTAREA_CLASS = "flex min-h-[70px] w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none";
+
+const hasText = (v?: string) => !!v && v.trim().length > 0;
+
+/** Drops empty answers so goals without context never write a goalContext value. */
+function cleanGoalContext(c: GoalContext): GoalContext | undefined {
+    const out: GoalContext = {};
+    if (hasText(c.why)) out.why = c.why!.trim();
+    if (hasText(c.successMeasure)) out.successMeasure = c.successMeasure!.trim();
+    if (c.deadlineFlex) out.deadlineFlex = c.deadlineFlex;
+    if (hasText(c.weeklyHours)) out.weeklyHours = c.weeklyHours!.trim();
+    const r = c.resources ?? {};
+    const resources = {
+        ...(r.budget ? { budget: r.budget } : {}),
+        ...(hasText(r.skills) ? { skills: r.skills!.trim() } : {}),
+        ...(hasText(r.tools) ? { tools: r.tools!.trim() } : {}),
+        ...(hasText(r.network) ? { network: r.network!.trim() } : {}),
+    };
+    if (Object.keys(resources).length) out.resources = resources;
+    if (c.priorAttempt?.attempted) {
+        out.priorAttempt = {
+            attempted: true,
+            ...(hasText(c.priorAttempt.whatTried) ? { whatTried: c.priorAttempt.whatTried!.trim() } : {}),
+            ...(hasText(c.priorAttempt.whyStopped) ? { whyStopped: c.priorAttempt.whyStopped!.trim() } : {}),
+        };
+    }
+    return Object.keys(out).length ? out : undefined;
+}
 
 function parseLegacyName(text: string): { currentState: string; ultimateGoal: string } {
     if (!text) return { currentState: '', ultimateGoal: '' };
@@ -69,6 +99,7 @@ export interface GoalFormValues {
     goalType: 'Week' | 'Month' | 'Year';
     durationValue?: number;
     bucket?: LifeBucket;
+    goalContext?: GoalContext;
 }
 
 interface GoalDefinitionFormProps {
@@ -80,6 +111,11 @@ interface GoalDefinitionFormProps {
 export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialValues, onSubmit, isEditing }) => {
     const [copied, setCopied] = useState(false);
     const [bucket, setBucket] = useState<LifeBucket | null>(initialValues?.bucket || null);
+    const [goalContext, setGoalContext] = useState<GoalContext>(initialValues?.goalContext ?? {});
+    const [contextOpen, setContextOpen] = useState(!!initialValues?.goalContext);
+    const patchContext = (patch: Partial<GoalContext>) => setGoalContext((prev) => ({ ...prev, ...patch }));
+    const patchResources = (patch: NonNullable<GoalContext['resources']>) => setGoalContext((prev) => ({ ...prev, resources: { ...prev.resources, ...patch } }));
+    const patchAttempt = (patch: NonNullable<GoalContext['priorAttempt']>) => setGoalContext((prev) => ({ ...prev, priorAttempt: { ...prev.priorAttempt, ...patch } }));
     const templateText = `I am [your age] and currently [your situation, e.g., a student / working at / freelancing].
 I want to [your goal, e.g., build a clothing brand / start a YouTube channel / get fit].
 My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginner].`;
@@ -111,6 +147,7 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
     const handleFormSubmit = (formValues: FormValues, mode: 'save' | 'replan' = 'replan') => {
         const name = `Current State:\n${formValues.currentState}\n\nUltimate Goal:\n${formValues.ultimateGoal}`;
         const purpose = `Strict Constraints:\n${formValues.constraints}`;
+        const cleanedContext = cleanGoalContext(goalContext);
         onSubmit({
             title: formValues.title,
             name,
@@ -119,6 +156,7 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
             goalType: formValues.goalType,
             durationValue: formValues.durationValue,
             bucket: bucket || undefined,
+            ...(cleanedContext ? { goalContext: cleanedContext } : {}),
         }, mode);
     };
 
@@ -172,6 +210,109 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
 
                 <div className="space-y-2 md:col-span-2">
                     <BucketSelector value={bucket} onChange={setBucket} />
+                </div>
+
+                <div className="md:col-span-2 rounded-xl border border-border/60 bg-card/30">
+                    <button
+                        type="button"
+                        onClick={() => setContextOpen((o) => !o)}
+                        className="w-full flex items-center justify-between gap-2 p-3 text-left cursor-pointer"
+                        aria-expanded={contextOpen}
+                    >
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                            <Sparkles size={14} className="text-primary" />
+                            Goal context
+                            <span className="text-xs text-muted-foreground font-normal">(Optional - makes your AI plan more accurate)</span>
+                        </span>
+                        <ChevronDown size={16} className={`text-muted-foreground transition-transform ${contextOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {contextOpen && (
+                        <div className="p-3 pt-0 grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-sm font-medium flex flex-col">
+                                    <span>Why does this matter to you?</span>
+                                    <span className="text-muted-foreground font-normal text-[11px]">The reason that keeps you going when it gets hard</span>
+                                </label>
+                                <textarea value={goalContext.why ?? ''} onChange={(e) => patchContext({ why: e.target.value })} placeholder="e.g., I want financial independence so I can support my family." className={TEXTAREA_CLASS} />
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-sm font-medium flex flex-col">
+                                    <span>How will you measure success?</span>
+                                    <span className="text-muted-foreground font-normal text-[11px]">A number or a clear finish line</span>
+                                </label>
+                                <Input value={goalContext.successMeasure ?? ''} onChange={(e) => patchContext({ successMeasure: e.target.value })} placeholder="e.g., 1,000 USD/month from freelancing" className="bg-muted/50" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Is the deadline fixed?</label>
+                                <OptionChips
+                                    className="grid-cols-2 sm:grid-cols-2"
+                                    value={goalContext.deadlineFlex}
+                                    onChange={(v) => patchContext({ deadlineFlex: goalContext.deadlineFlex === v ? undefined : v })}
+                                    options={[
+                                        { value: 'fixed', label: 'Fixed', hint: 'Cannot move' },
+                                        { value: 'flexible', label: 'Flexible', hint: 'Can slip if needed' },
+                                    ]}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Hours per week for this goal</label>
+                                <Input type="number" min="0" max="80" step="0.5" value={goalContext.weeklyHours ?? ''} onChange={(e) => patchContext({ weeklyHours: e.target.value })} placeholder="e.g., 10" className="bg-muted/50" />
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-sm font-medium">Budget you can put in</label>
+                                <OptionChips
+                                    value={goalContext.resources?.budget}
+                                    onChange={(v) => patchResources({ budget: goalContext.resources?.budget === v ? undefined : v })}
+                                    options={[
+                                        { value: 'none', label: 'None', hint: 'Free only' },
+                                        { value: 'low', label: 'Low', hint: 'Small spend' },
+                                        { value: 'medium', label: 'Medium' },
+                                        { value: 'high', label: 'High' },
+                                    ]}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Skills you already have</label>
+                                <Input value={goalContext.resources?.skills ?? ''} onChange={(e) => patchResources({ skills: e.target.value })} placeholder="e.g., basic design, Photoshop" className="bg-muted/50" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Tools / equipment</label>
+                                <Input value={goalContext.resources?.tools ?? ''} onChange={(e) => patchResources({ tools: e.target.value })} placeholder="e.g., laptop, camera" className="bg-muted/50" />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-sm font-medium">People who can help</label>
+                                <Input value={goalContext.resources?.network ?? ''} onChange={(e) => patchResources({ network: e.target.value })} placeholder="e.g., a mentor, friends in the industry" className="bg-muted/50" />
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-sm font-medium">Have you tried this goal before?</label>
+                                <OptionChips
+                                    className="grid-cols-2 sm:grid-cols-2"
+                                    value={goalContext.priorAttempt?.attempted ? 'yes' : goalContext.priorAttempt ? 'no' : undefined}
+                                    onChange={(v) => patchAttempt({ attempted: v === 'yes' })}
+                                    options={[{ value: 'no', label: 'First time' }, { value: 'yes', label: 'Yes, I have tried' }]}
+                                />
+                            </div>
+                            {goalContext.priorAttempt?.attempted && (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">What did you try?</label>
+                                        <Input value={goalContext.priorAttempt.whatTried ?? ''} onChange={(e) => patchAttempt({ whatTried: e.target.value })} placeholder="e.g., posted daily for 2 weeks" className="bg-muted/50" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Why did you stop?</label>
+                                        <Input value={goalContext.priorAttempt.whyStopped ?? ''} onChange={(e) => patchAttempt({ whyStopped: e.target.value })} placeholder="e.g., missed two days and gave up" className="bg-muted/50" />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-2">

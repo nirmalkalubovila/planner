@@ -352,6 +352,7 @@ export const GoalsPage: React.FC = () => {
                                 startDate: activeGoal.startDate,
                                 durationValue: activeGoal.milestones?.length || 1,
                                 bucket: activeGoal.bucket,
+                                goalContext: activeGoal.goalContext ?? undefined,
                             } : {}}
                             onSubmit={onDefinitionSubmit}
                         />
