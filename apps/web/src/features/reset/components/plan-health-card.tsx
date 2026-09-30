@@ -1,7 +1,8 @@
 import React from 'react';
 import { formatMinutes, type ResetHealth } from '@llb/core';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { ResetCard, ResetLabel, captionClass, primaryButton } from './reset-ui';
 
 interface PlanHealthCardProps {
     health: ResetHealth;
@@ -9,60 +10,57 @@ interface PlanHealthCardProps {
     onOpenPlanner: () => void;
 }
 
-const eyebrow = 'text-[10px] font-black uppercase tracking-widest text-muted-foreground';
-
 export const PlanHealthCard: React.FC<PlanHealthCardProps> = ({ health, onStart, onOpenPlanner }) => {
     if (!health.hasWork) {
         return (
-            <Card className="p-5 sm:p-6 space-y-4">
-                <p className={eyebrow}>This week</p>
-                <div className="space-y-1">
-                    <h3 className="text-lg font-bold tracking-tight">Nothing left to reset this week.</h3>
-                    <p className="text-sm text-muted-foreground">No planned work is waiting. Plan the next stretch in the Planner.</p>
-                </div>
-                <Button variant="outline" onClick={onOpenPlanner}>Open Planner</Button>
-            </Card>
+            <ResetCard className="items-center text-center">
+                <ResetLabel text="This week" className="mb-4" />
+                <p className="text-sm font-bold tracking-tight">Nothing left to reset this week.</p>
+                <p className="text-xs text-muted-foreground mt-1.5 max-w-xs">No planned work is waiting. Plan the next stretch in the Planner.</p>
+                <Button variant="outline" onClick={onOpenPlanner} className={cn(primaryButton, 'mt-6')}>Open Planner</Button>
+            </ResetCard>
         );
     }
 
     const over = health.overloadMin > 0;
     const atRisk = health.prioritiesAtRisk.length;
+    const needsAttention = over || atRisk > 0;
 
     return (
-        <Card className="p-5 sm:p-6 space-y-5">
-            <p className={eyebrow}>This week</p>
-            <h3 className="text-lg font-bold tracking-tight">{over || atRisk > 0 ? 'Your plan needs attention.' : "You're on track."}</h3>
+        <ResetCard className="items-center text-center">
+            <ResetLabel text="This week" className="mb-4" />
+            <p className="text-sm font-bold tracking-tight">{needsAttention ? 'Your plan needs attention.' : "You're on track."}</p>
 
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <p className="text-2xl font-bold tabular-nums">{formatMinutes(health.plannedMin)}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Planned</p>
+            <div className="mt-6 grid w-full max-w-xs grid-cols-2 gap-6">
+                <div className="flex flex-col items-center gap-1">
+                    <span className="text-3xl font-black tabular-nums">{formatMinutes(health.plannedMin)}</span>
+                    <span className={captionClass}>Planned</span>
                 </div>
-                <div>
-                    <p className="text-2xl font-bold tabular-nums">{formatMinutes(health.availableMin)}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Available</p>
+                <div className="flex flex-col items-center gap-1">
+                    <span className="text-3xl font-black tabular-nums">{formatMinutes(health.availableMin)}</span>
+                    <span className={captionClass}>Available</span>
                 </div>
             </div>
 
-            <div className="space-y-1 border-t border-border pt-4">
+            <div className="mt-6 flex flex-col items-center gap-0.5">
                 {over ? (
-                    <p className="text-sm font-semibold text-primary">{formatMinutes(health.overloadMin)} over capacity</p>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-primary">{formatMinutes(health.overloadMin)} over capacity</span>
                 ) : (
-                    <p className="text-sm font-semibold">{formatMinutes(health.bufferMin)} buffer remaining</p>
+                    <span className={captionClass}>{formatMinutes(health.bufferMin)} buffer remaining</span>
                 )}
                 {atRisk > 0 && (
-                    <p className="text-sm text-muted-foreground">
+                    <span className="text-[10px] font-bold text-muted-foreground/80 mt-0.5">
                         {atRisk} {atRisk === 1 ? 'priority' : 'priorities'} at risk
-                    </p>
+                    </span>
                 )}
-                {!over && atRisk === 0 && <p className="text-sm text-muted-foreground">No reset needed.</p>}
+                {!needsAttention && <span className="text-[10px] font-bold text-muted-foreground/80 mt-0.5">No reset needed</span>}
             </div>
 
-            {over || atRisk > 0 ? (
-                <Button size="lg" className="w-full sm:w-auto" onClick={onStart}>Make This Realistic</Button>
+            {needsAttention ? (
+                <Button onClick={onStart} className={cn(primaryButton, 'mt-6 w-full sm:w-auto sm:px-10')}>Make This Realistic</Button>
             ) : (
-                <Button variant="outline" onClick={onStart}>Review Anyway</Button>
+                <Button variant="outline" onClick={onStart} className={cn(primaryButton, 'mt-6 w-full sm:w-auto sm:px-10')}>Review Anyway</Button>
             )}
-        </Card>
+        </ResetCard>
     );
 };

@@ -3,34 +3,33 @@ import {
     formatMinutes, type ResetGoalImpact, type ResetHabitNote, type ResetSummary,
 } from '@llb/core';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-
-const eyebrow = 'text-[10px] font-black uppercase tracking-widest text-muted-foreground';
+import { cn } from '@/lib/utils';
+import { ResetCard, ResetLabel, buttonText, captionClass } from './reset-ui';
 
 export const BeforeAfter: React.FC<{ summary: ResetSummary }> = ({ summary }) => {
     const { counts } = summary;
     return (
         <section className="space-y-3" aria-labelledby="reset-before-after">
-            <h3 id="reset-before-after" className={eyebrow}>Before and after</h3>
-            <Card className="p-4 sm:p-5 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                        <p className={eyebrow}>Before</p>
-                        <p className="text-2xl font-bold tabular-nums mt-1">{formatMinutes(summary.beforeMin)} <span className="text-sm font-medium text-muted-foreground">planned</span></p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+            <ResetLabel id="reset-before-after" text="Before and after" />
+            <ResetCard>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+                    <div className="flex flex-col gap-1">
+                        <span className={captionClass}>Before</span>
+                        <span className="text-2xl font-black tabular-nums">{formatMinutes(summary.beforeMin)}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground/80">
                             {summary.beforeOverloadMin > 0 ? `+${formatMinutes(summary.beforeOverloadMin)} overloaded` : 'Within capacity'}
-                        </p>
+                        </span>
                     </div>
-                    <div>
-                        <p className={eyebrow}>After</p>
-                        <p className="text-2xl font-bold tabular-nums mt-1">{formatMinutes(summary.afterMin)} <span className="text-sm font-medium text-muted-foreground">planned</span></p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatMinutes(summary.afterBufferMin)} buffer</p>
+                    <div className="flex flex-col gap-1">
+                        <span className={captionClass}>After</span>
+                        <span className="text-2xl font-black tabular-nums text-primary">{formatMinutes(summary.afterMin)}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground/80">{formatMinutes(summary.afterBufferMin)} buffer</span>
                     </div>
                 </div>
-                <p className="text-xs text-muted-foreground border-t border-border pt-3">
+                <p className="mt-5 border-t border-border pt-4 text-[10px] font-bold text-muted-foreground/80">
                     {counts.keep} protected · {counts.move} moved · {counts.reduce} reduced · {counts.remove} removed from this week's plan
                 </p>
-            </Card>
+            </ResetCard>
         </section>
     );
 };
@@ -47,40 +46,39 @@ export const GoalImpact: React.FC<GoalImpactProps> = ({ impacts, protectedGoalId
     if (shown.length === 0) return null;
     return (
         <section className="space-y-3" aria-labelledby="reset-goal-impact">
-            <h3 id="reset-goal-impact" className={eyebrow}>Goal impact</h3>
+            <ResetLabel id="reset-goal-impact" text="Goal impact" />
             <div className="space-y-3">
                 {shown.map((g) => (
-                    <Card key={g.goalId ?? g.name} className="p-4 sm:p-5 space-y-3">
+                    <ResetCard key={g.goalId ?? g.name} className="gap-3">
                         <div className="flex items-start justify-between gap-3">
-                            <p className="text-sm font-semibold leading-snug break-words min-w-0">{g.name}</p>
-                            <span className="shrink-0 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                {g.status === 'on_track' ? 'Still on track' : 'Goal at risk'}
+                            <p className="font-bold text-sm sm:text-base tracking-tight leading-tight break-words min-w-0">{g.name}</p>
+                            <span className={cn('shrink-0 text-[10px] font-black uppercase tracking-wider', g.status === 'at_risk' ? 'text-primary' : 'text-muted-foreground')}>
+                                {g.status === 'on_track' ? 'Still on track' : 'At risk'}
                             </span>
                         </div>
                         {g.protectedNames.length > 0 && (
                             <div className="space-y-1">
-                                <p className={eyebrow}>Protected</p>
-                                <p className="text-sm text-muted-foreground leading-snug">{g.protectedNames.join(', ')}</p>
+                                <span className={captionClass}>Protected</span>
+                                <p className="text-xs text-muted-foreground leading-snug">{g.protectedNames.join(', ')}</p>
                             </div>
                         )}
                         {g.status === 'at_risk' && (
-                            <div className="space-y-2">
-                                <p className="text-sm text-muted-foreground leading-snug">
-                                    Trimmed to fit: {g.trimmedNames.join(', ')}.
-                                </p>
+                            <div className="space-y-3">
+                                <p className="text-xs text-muted-foreground leading-snug">Trimmed to fit: {g.trimmedNames.join(', ')}.</p>
                                 {g.goalId && (
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         disabled={protectedGoalId === g.goalId}
                                         onClick={() => onProtect(g.goalId!)}
+                                        className={cn('h-9 rounded-xl px-4', buttonText)}
                                     >
                                         {protectedGoalId === g.goalId ? 'Protecting this goal' : 'Protect This Goal'}
                                     </Button>
                                 )}
                             </div>
                         )}
-                    </Card>
+                    </ResetCard>
                 ))}
             </div>
         </section>
@@ -91,18 +89,18 @@ export const HabitNotes: React.FC<{ notes: ResetHabitNote[] }> = ({ notes }) => 
     if (notes.length === 0) return null;
     return (
         <section className="space-y-3" aria-labelledby="reset-habits">
-            <h3 id="reset-habits" className={eyebrow}>Habits</h3>
-            <Card className="p-4 sm:p-5 space-y-4">
+            <ResetLabel id="reset-habits" text="Habits" />
+            <ResetCard className="gap-4">
                 {notes.map((h) => (
-                    <div key={h.name} className="space-y-1">
-                        <p className="text-sm font-semibold">{h.name}</p>
+                    <div key={h.name} className="space-y-0.5">
+                        <p className="font-bold text-sm sm:text-base tracking-tight leading-tight">{h.name}</p>
                         <p className="text-xs text-muted-foreground">
                             Target {h.target}× · Done {h.completed}× · Realistic this week {h.realistic}×
                         </p>
                     </div>
                 ))}
-                <p className="text-xs text-muted-foreground border-t border-border pt-3">Your habit schedule stays as it is. This is only what fits this week.</p>
-            </Card>
+                <p className="border-t border-border pt-4 text-[10px] font-bold text-muted-foreground/80">Your habit schedule stays as it is. This is only what fits this week.</p>
+            </ResetCard>
         </section>
     );
 };

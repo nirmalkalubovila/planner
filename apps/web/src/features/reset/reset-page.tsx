@@ -6,12 +6,13 @@ import {
 } from '@llb/core';
 import { useDeferToMissedLibrary, useRestoreFromMissedLibrary, useSaveWeekPlan } from '@llb/api';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { useResetData } from './hooks/use-reset-data';
 import { PlanHealthCard } from './components/plan-health-card';
 import { WhatChanged } from './components/what-changed';
 import { ProposalList } from './components/proposal-list';
 import { BeforeAfter, GoalImpact, HabitNotes } from './components/impact-sections';
+import { ResetCard, ResetLabel, buttonText, primaryButton } from './components/reset-ui';
 
 type Phase = 'health' | 'proposal' | 'complete';
 
@@ -149,46 +150,42 @@ export const ResetPage: React.FC = () => {
 
     return (
         <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
-            <div className="flex justify-between items-end border-b border-border pb-6">
+            <div className="flex justify-between items-end mb-4 border-b border-border pb-6">
                 <div className="flex flex-col gap-2">
                     <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground leading-none">Reset</h2>
                     <div className="flex items-center gap-2">
                         <div className="h-1 w-12 bg-primary/40 rounded-full" />
-                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">This week</span>
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Get your week back under control</span>
                     </div>
                 </div>
             </div>
 
             <div className="w-full max-w-3xl space-y-6">
-                <div className="space-y-1">
-                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Get your week back under control.</h1>
-                    <p className="text-sm text-muted-foreground">When reality changes, fix the plan without rebuilding everything.</p>
-                </div>
+                <p className="text-sm text-muted-foreground">When reality changes, fix the plan without rebuilding everything.</p>
 
                 {data.isLoading ? (
-                    <Card className="p-5 sm:p-6 space-y-4" aria-busy="true">
-                        <div className="h-3 w-20 rounded bg-muted animate-pulse" />
-                        <div className="h-6 w-2/3 rounded bg-muted animate-pulse" />
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="h-10 rounded bg-muted animate-pulse" />
-                            <div className="h-10 rounded bg-muted animate-pulse" />
+                    <ResetCard className="items-center gap-4" aria-busy="true">
+                        <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                        <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+                        <div className="grid w-full max-w-xs grid-cols-2 gap-6">
+                            <div className="h-12 rounded-xl bg-muted animate-pulse" />
+                            <div className="h-12 rounded-xl bg-muted animate-pulse" />
                         </div>
-                    </Card>
+                    </ResetCard>
                 ) : data.isError ? (
-                    <Card className="p-5 sm:p-6 space-y-3">
-                        <h3 className="text-lg font-bold tracking-tight">Could not load your week.</h3>
-                        <p className="text-sm text-muted-foreground">Check your connection and try again.</p>
-                        <Button variant="outline" onClick={data.retry}>Try again</Button>
-                    </Card>
+                    <ResetCard className="items-center text-center">
+                        <ResetLabel text="This week" className="mb-4" />
+                        <p className="text-sm font-bold tracking-tight">Could not load your week.</p>
+                        <p className="text-xs text-muted-foreground mt-1.5">Check your connection and try again.</p>
+                        <Button variant="outline" onClick={data.retry} className={cn(primaryButton, 'mt-6')}>Try again</Button>
+                    </ResetCard>
                 ) : !hasPlan ? (
-                    <Card className="p-5 sm:p-6 space-y-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">This week</p>
-                        <div className="space-y-1">
-                            <h3 className="text-lg font-bold tracking-tight">There is no plan to reset yet.</h3>
-                            <p className="text-sm text-muted-foreground">Build your week in the Planner first. Reset steps in when it changes.</p>
-                        </div>
-                        <Button variant="outline" onClick={() => navigate('/planner')}>Open Planner</Button>
-                    </Card>
+                    <ResetCard className="items-center text-center">
+                        <ResetLabel text="This week" className="mb-4" />
+                        <p className="text-sm font-bold tracking-tight">There is no plan to reset yet.</p>
+                        <p className="text-xs text-muted-foreground mt-1.5 max-w-xs">Build your week in the Planner first. Reset steps in when it changes.</p>
+                        <Button variant="outline" onClick={() => navigate('/planner')} className={cn(primaryButton, 'mt-6')}>Open Planner</Button>
+                    </ResetCard>
                 ) : phase === 'health' ? (
                     <PlanHealthCard health={health} onStart={start} onOpenPlanner={() => navigate('/planner')} />
                 ) : phase === 'proposal' ? (
@@ -200,20 +197,19 @@ export const ResetPage: React.FC = () => {
                         <HabitNotes notes={habits} />
 
                         {nothingToChange && (
-                            <p className="text-sm text-muted-foreground">Your week already fits. There is nothing to change.</p>
+                            <p className="text-[10px] font-bold text-muted-foreground/80">Your week already fits. There is nothing to change.</p>
                         )}
                         {summary.overlaps.length > 0 && (
-                            <p role="alert" className="text-sm text-destructive">{summary.overlaps[0]}. Adjust it to continue.</p>
+                            <p role="alert" className="text-xs font-bold text-destructive">{summary.overlaps[0]}. Adjust it to continue.</p>
                         )}
 
                         <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 pt-2">
-                            <Button variant="ghost" onClick={cancel} disabled={applying}>Cancel</Button>
-                            <Button variant="outline" onClick={() => setAdjusting((v) => !v)} disabled={applying}>
+                            <Button variant="ghost" onClick={cancel} disabled={applying} className={cn('h-11 rounded-2xl px-6', buttonText)}>Cancel</Button>
+                            <Button variant="outline" onClick={() => setAdjusting((v) => !v)} disabled={applying} className={primaryButton}>
                                 {adjusting ? 'Done Adjusting' : 'Adjust Changes'}
                             </Button>
                             <Button
-                                size="lg"
-                                className="sm:ml-auto w-full sm:w-auto"
+                                className={cn(primaryButton, 'sm:ml-auto w-full sm:w-auto sm:px-10')}
                                 onClick={apply}
                                 disabled={applying || nothingToChange || summary.overlaps.length > 0}
                             >
@@ -222,16 +218,16 @@ export const ResetPage: React.FC = () => {
                         </div>
                     </div>
                 ) : (
-                    <Card className="p-5 sm:p-6 space-y-5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Reset complete</p>
-                        <h3 className="text-lg font-bold tracking-tight">Your week is realistic again.</h3>
+                    <ResetCard className="items-center text-center">
+                        <ResetLabel text="Reset complete" className="mb-4" />
+                        <p className="text-sm font-bold tracking-tight">Your week is realistic again.</p>
                         {doneCounts && (
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-[10px] font-bold text-muted-foreground/80 mt-3">
                                 {doneCounts.keep} protected · {doneCounts.move} moved · {doneCounts.reduce} reduced · {doneCounts.remove} deferred
                             </p>
                         )}
-                        <Button size="lg" className="w-full sm:w-auto" onClick={() => navigate('/today')}>Back to Today</Button>
-                    </Card>
+                        <Button onClick={() => navigate('/today')} className={cn(primaryButton, 'mt-6 w-full sm:w-auto sm:px-10')}>Back to Today</Button>
+                    </ResetCard>
                 )}
             </div>
         </div>
