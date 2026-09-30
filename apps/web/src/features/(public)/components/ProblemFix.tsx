@@ -11,7 +11,7 @@ const PAINS = [
     image: "/landing/pain-restart-gold.jpg",
     title: "Starting over again",
     pain: "You start strong, miss a few days, quit, then start over.",
-    fix: "Missed tasks roll into this week in three clicks. No guilt.",
+    fix: "Fell behind? Reset shows what to keep, move or drop. No guilt.",
   },
   {
     image: "/landing/pain-direction-gold.jpg",

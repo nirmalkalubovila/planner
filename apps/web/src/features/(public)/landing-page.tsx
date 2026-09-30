@@ -9,10 +9,20 @@ import UniversalAccess from "./components/UniversalAccess";
 import ProblemFix from "./components/ProblemFix";
 import StartNow from "./components/StartNow";
 import Footer from "./components/Footer";
+import ResetSection from "./components/ResetSection";
+import LegacyLife from "./components/LegacyLife";
+import Faq from "./components/Faq";
+import { usePageMeta } from "@/hooks/use-page-meta";
 import { useLandingSettings, usePublicFeedbacks } from "@/api/services/feedback-service";
 
 export function LandingPage() {
   const { hash } = useLocation();
+
+  usePageMeta({
+    title: "AI Weekly Planner & Goal Tracker | Legacy Life Builder",
+    description: "Turn big goals into daily tasks. Time-block your week, track habits, and reset your plan in one tap when life changes.",
+    path: "/",
+  });
 
   // Deep links such as /#how-it-works: the sections render after the route loads, so scroll once they exist
   useEffect(() => {
@@ -37,10 +47,16 @@ export function LandingPage() {
       <Hero desktopVideoUrl={desktopVideoUrl} mobileVideoUrl={mobileVideoUrl} />
 
       <div className="border-t border-zinc-900/40">
+        <LegacyLife />
+      </div>
+      <div className="border-t border-zinc-900/40">
         <ProblemFix />
       </div>
       <div className="border-t border-zinc-900/40">
         <HowItWorks />
+      </div>
+      <div className="border-t border-zinc-900/40">
+        <ResetSection />
       </div>
       <div className="border-t border-zinc-900/40">
         <ProductGallery desktopImages={desktopGallery} mobileImages={mobileGallery} />
@@ -50,6 +66,9 @@ export function LandingPage() {
       </div>
       <div className="border-t border-zinc-900/40">
         <UniversalAccess desktopVideoUrl={desktopVideoUrl} mobileVideoUrl={mobileVideoUrl} />
+      </div>
+      <div className="border-t border-zinc-900/40">
+        <Faq />
       </div>
       <div className="border-t border-zinc-900/40">
         <StartNow />

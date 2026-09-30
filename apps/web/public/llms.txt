@@ -1,22 +1,22 @@
 # Legacy Life Builder
 
-A digitized personal operating system for multi-year goal management, habit formation, and weekly planning. It replaces traditional books, spreadsheets, and manual progress checking by using AI to synchronize objectives with real-life timelines.
+An AI weekly planner and goal tracker. It turns big goals into daily tasks, time-blocks the week, tracks habits, and resets the plan in one tap when life changes.
 
-## Core Mechanics and Capabilities
+## What it does
 
-- [Routines](https://www.legacylifebuilder.xyz/routines): Establishes permanent sleep schedules and habits to eliminate manual weekly re-entry.
-- [Capture Space](https://www.legacylifebuilder.xyz/capture): Provides a dedicated capture space for instant knowledge storage, allowing later integration to reduce daily brain drain.
-- [Scheduling](https://www.legacylifebuilder.xyz/scheduling): AI calculates the required hours for weekly targets and automatically allocates time to empty calendar slots.
-- [Time-Boxing](https://www.legacylifebuilder.xyz/time-boxing): Enforces a minimum 30-minute block for deep work, strictly preventing unrealistic overlapping tasks.
-- [Goals](https://www.legacylifebuilder.xyz/goals): Automatically breaks down massive 10-year goals into actionable weekly sub-goals.
+- Goal breakdown: AI splits a goal into years, months, weeks and daily tasks and places the work in the week.
+- Time blocking: goals, habits and tasks sit in 30-minute slots. Overlaps are prevented.
+- Weekly reset: when the user falls behind, Reset compares planned time with available time and suggests what to keep, move, reduce or remove. Nothing changes until the user approves it, and removed work is saved, not deleted.
+- Habits and routines: set once, they appear in the planner every week.
+- Priorities: weekly and daily outcomes keep the focus on what matters.
+- Life balance: work is tagged to income, assets, recovery and relationships.
+- Insights: consistency, execution and milestone tracking.
 
-## System Analytics
+## Pages
 
-- [Analytics](https://www.legacylifebuilder.xyz/analytics): Monitors user consistency, working capacity, and habit adherence with empirical data.
-- [Personalization](https://www.legacylifebuilder.xyz/personalization): Constructs plans based exclusively on the user's focus capacity, task-shifting ability, and learning speed.
-
-## Legal and Policy Information
-
-- [Privacy Policy](https://www.legacylifebuilder.xyz/privacy): Details on data handling and user privacy.
-- [Terms](https://www.legacylifebuilder.xyz/terms): Legal parameters of software use.
-- [Refund](https://www.legacylifebuilder.xyz/refund): Subscription and payment refund conditions.
+- [Home](https://www.legacylifebuilder.xyz/): overview, how it works, weekly reset and FAQ.
+- [Sign up](https://www.legacylifebuilder.xyz/signup)
+- [Log in](https://www.legacylifebuilder.xyz/login)
+- [Privacy Policy](https://www.legacylifebuilder.xyz/privacy)
+- [Terms of Service](https://www.legacylifebuilder.xyz/terms)
+- [Return Policy](https://www.legacylifebuilder.xyz/refund)

@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePageMeta } from '@/hooks/use-page-meta';
 import { Outlet } from 'react-router-dom';
 import { Header } from './header';
 import { DashboardSidebar } from './dashboard-sidebar';
@@ -12,6 +13,8 @@ import { AnnouncementBanner } from '@/components/common/announcement-banner';
 import { StageCelebrationProvider } from '@/components/common/stage-celebration-provider';
 
 export const DashboardLayout: React.FC = () => {
+    // Private app pages should never appear in search results
+    usePageMeta({ title: 'Legacy Life Builder', description: 'Your plan, habits and goals.', index: false });
     return (
         <NotificationProvider>
             <StageCelebrationProvider>

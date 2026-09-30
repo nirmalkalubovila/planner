@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 
+import { usePageMeta } from '@/hooks/use-page-meta';
 import { AuthLayout, WhyLink } from '@/components/ui/auth-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { LoginForm } from './forms/login-form';
 import { OtpVerification } from './components/otp-verification';
 
 export const LoginPage: React.FC = () => {
+    usePageMeta({ title: 'Log In | Legacy Life Builder', description: 'Log in to your AI weekly planner and pick up where you left off.', path: '/login' });
     const [showOtp, setShowOtp] = useState(false);
     const [otpEmail, setOtpEmail] = useState('');
 

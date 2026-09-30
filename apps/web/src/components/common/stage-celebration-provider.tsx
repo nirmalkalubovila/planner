@@ -8,6 +8,7 @@ import {
 } from '@/utils/milestone-engine';
 import { StageCelebrationModal } from '@/features/statistics/components/milestones/stage-celebration-modal';
 import { useReportActions } from '@/features/statistics/hooks/use-report-actions';
+import { LegacyInsightPopup } from '@/features/insights/legacy-insight-popup';
 
 export const StageCelebrationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -34,6 +35,12 @@ export const StageCelebrationProvider: React.FC<{ children: React.ReactNode }> =
   return (
     <>
       {children}
+
+      <LegacyInsightPopup
+        suppress={!!celebratingStage}
+        ready={!!detailed}
+        consistent={(detailed?.milestoneProgress?.currentStreak ?? 0) >= 7}
+      />
 
       {celebratingStage && (
         <StageCelebrationModal

@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 
 const NAV_LINKS = [
+  { label: "Legacy Life", id: "legacy-life" },
   { label: "The problem", id: "problem" },
   { label: "How it works", id: "how-it-works" },
+  { label: "Weekly reset", id: "reset" },
   { label: "Reviews", id: "testimonials" },
-  { label: "Start now", id: "start" },
+  { label: "FAQ", id: "faq" },
 ];
 
 const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {

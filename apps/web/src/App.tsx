@@ -22,6 +22,7 @@ const SignupPage = lazyRetry(() => import('./features/auth/signup-page').then(m 
 const ProfilePage = lazyRetry(() => import('./features/profile/profile-page').then(m => ({ default: m.ProfilePage })));
 const StatisticsPage = lazyRetry(() => import('./features/statistics/statistics-page').then(m => ({ default: m.StatisticsPage })));
 const StatsCalculationsPage = lazyRetry(() => import('./features/statistics/calculations-page').then(m => ({ default: m.StatsCalculationsPage })));
+const ResetPage = lazyRetry(() => import('./features/reset/reset-page').then(m => ({ default: m.ResetPage })));
 const VaultPage = lazyRetry(() => import('./features/vault/vault-page').then(m => ({ default: m.VaultPage })));
 const ForgotPasswordPage = lazyRetry(() => import('./features/auth/forgot-password-page').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = lazyRetry(() => import('./features/auth/reset-password-page').then(m => ({ default: m.ResetPasswordPage })));
@@ -249,6 +250,7 @@ const router = createBrowserRouter(
           <Route path="/profile" element={<SuspenseWrapper><ProfilePage /></SuspenseWrapper>} />
           <Route path="/statistics" element={<SuspenseWrapper><StatisticsPage /></SuspenseWrapper>} />
           <Route path="/statistics/calculations" element={<SuspenseWrapper><StatsCalculationsPage /></SuspenseWrapper>} />
+          <Route path="/reset" element={<SuspenseWrapper><ResetPage /></SuspenseWrapper>} />
           <Route path="/vault" element={<SuspenseWrapper><VaultPage /></SuspenseWrapper>} />
           <Route path="/simulator" element={<SuspenseWrapper><SimulatorPage /></SuspenseWrapper>} />
         </Route>

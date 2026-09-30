@@ -33,6 +33,12 @@ export function getDailyHourBudget(profile?: PromptProfile | null): { target: nu
     return { target, max: Math.max(target, Math.ceil(target * 1.5)) };
 }
 
+/** Weekend hour budget for goal work: the weekend band if the user set one, otherwise the same as weekdays. */
+export function getWeekendHourBudget(profile?: PromptProfile | null): number {
+    const band = profile?.executionProfile?.situation?.weekendFree;
+    return band ? FREE_TIME_HOURS[band] : getDailyHourBudget(profile).target;
+}
+
 const v = (s?: string | null, fallback = 'Not set') => (s && s.trim() ? s.trim() : fallback);
 
 /**

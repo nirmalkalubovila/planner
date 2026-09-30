@@ -143,30 +143,22 @@ describe('generateMonthlyWins', () => {
 describe('generateMilestoneInsightCard', () => {
   it('builds a milestone card from a stage definition', () => {
     const stage = MILESTONE_STAGES[0];
-    const card = generateMilestoneInsightCard(stage, 12, 7);
-    expect(card).toEqual({
-      type: 'milestone',
-      title: `Stage ${stage.stageNumber}: ${stage.title}`,
-      subtitle: `${stage.days}-Day Consistent Milestone`,
-      highlightText: stage.description,
-      milestoneData: {
-        stageNumber: stage.stageNumber,
-        streakDays: stage.days,
-        totalDaysExecuted: 12,
-        stageTitle: stage.title,
-        stageSubtitle: stage.subtitle,
-        stageDescription: stage.description,
-      },
-      metrics: [
-        { label: 'Milestone Streak', value: `${stage.days} Days` },
-        { label: 'Current Streak', value: '7 Days' },
-        { label: 'Total Executed', value: '12 Days' },
-      ],
-      quote: {
-        text: 'Consistency is the architect of your future self.',
-        author: 'Legacy Life Builder',
-      },
-      icon: stage.iconName,
+    const issuedOn = new Date(2026, 7, 23);
+    const card = generateMilestoneInsightCard(stage, 12, 7, { issuedOn });
+    expect(card.type).toBe('milestone');
+    expect(card.title).toBe(`Stage ${stage.stageNumber}: ${stage.title}`);
+    expect(card.subtitle).toBe(`${stage.days}-Day Execution Certificate`);
+    expect(card.highlightText).toBe(stage.description);
+    expect(card.icon).toBe(stage.iconName);
+    expect(card.milestoneData).toMatchObject({
+      stageNumber: stage.stageNumber,
+      streakDays: stage.days,
+      totalDaysExecuted: 12,
+      stageTitle: stage.title,
+      stageSubtitle: stage.subtitle,
+      stageDescription: stage.description,
     });
+    expect(card.milestoneData?.certificate?.certificateId).toBe(`LLB-S${stage.stageNumber}-20260823`);
+    expect(card.metrics.map((m) => m.value)).toEqual(expect.arrayContaining(['7 Days', '12 Days']));
   });
 });

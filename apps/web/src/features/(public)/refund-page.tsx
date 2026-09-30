@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePageMeta } from '@/hooks/use-page-meta';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { Link } from 'react-router-dom';
@@ -19,6 +20,7 @@ const INQUIRY_ICONS: Record<InquiryType, React.ReactNode> = {
 };
 
 export function RefundPage() {
+  usePageMeta({ title: 'Return Policy | Legacy Life Builder', description: 'Refund and return conditions for Legacy Life Builder.', path: '/refund' });
   const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [inquiryType, setInquiryType] = useState<InquiryType>('Refund Request');

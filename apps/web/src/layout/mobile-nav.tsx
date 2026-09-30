@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ListTodo, Target, CalendarDays, BarChart2, Vault, Shield } from 'lucide-react';
+import { Home, ListTodo, Target, CalendarDays, BarChart2, RotateCcw, Shield } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useAuth } from '@/contexts/auth-context';
 import { isAdminEmail } from '@/features/admin/admin-constants';
@@ -10,7 +10,7 @@ const navigation = [
     { name: 'Habits', href: '/habits', icon: ListTodo },
     { name: 'Goals', href: '/goals', icon: Target },
     { name: 'Planner', href: '/planner', icon: CalendarDays },
-    { name: 'Vault', href: '/vault', icon: Vault },
+    { name: 'Reset', href: '/reset', icon: RotateCcw },
     { name: 'Perf', href: '/statistics', icon: BarChart2 },
 ];
 
