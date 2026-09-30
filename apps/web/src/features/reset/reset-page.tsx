@@ -26,6 +26,7 @@ export const ResetPage: React.FC = () => {
     const [phase, setPhase] = useState<Phase>('health');
     const [now, setNow] = useState(() => new Date());
     const [reasons, setReasons] = useState<ResetReason[]>([]);
+    const [otherText, setOtherText] = useState('');
     const [protectGoalId, setProtectGoalId] = useState<string | null>(null);
     const [items, setItems] = useState<ResetItem[]>([]);
     const [adjusting, setAdjusting] = useState(false);
@@ -59,6 +60,7 @@ export const ResetPage: React.FC = () => {
     const start = () => {
         setNow(new Date());
         setReasons([]);
+        setOtherText('');
         setProtectGoalId(null);
         setAdjusting(false);
         baseline.current = { updatedAt: data.updatedAt, completed: JSON.stringify(data.completedByDay) };
@@ -160,7 +162,7 @@ export const ResetPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="w-full max-w-3xl space-y-6">
+            <div className="w-full space-y-6">
                 <p className="text-sm text-muted-foreground">When reality changes, fix the plan without rebuilding everything.</p>
 
                 {data.isLoading ? (
@@ -190,7 +192,7 @@ export const ResetPage: React.FC = () => {
                     <PlanHealthCard health={health} onStart={start} onOpenPlanner={() => navigate('/planner')} />
                 ) : phase === 'proposal' ? (
                     <div className="space-y-6">
-                        <WhatChanged value={reasons} onToggle={toggleReason} onSkip={() => setReasons([])} />
+                        <WhatChanged value={reasons} onToggle={toggleReason} onSkip={() => { setReasons([]); setOtherText(''); }} otherText={otherText} onOtherText={setOtherText} />
                         <ProposalList ctx={ctx} items={items} adjusting={adjusting} onChange={setItems} />
                         <BeforeAfter summary={summary} />
                         <GoalImpact impacts={impacts} protectedGoalId={protectGoalId} onProtect={setProtectGoalId} />

@@ -1,5 +1,13 @@
 import { RESET_DAY_NAMES, RESET_DAY_SHORT, formatMinutes, slotLabel, type ResetItem, type ResetPlace } from '@llb/core';
 
+/** Task names are sometimes stored with HTML entities (for example "&amp;"); show the real characters. */
+export const decodeEntities = (text: string) => {
+    if (!text.includes('&')) return text;
+    const el = document.createElement('textarea');
+    el.innerHTML = text;
+    return el.value;
+};
+
 export const dayLabel = (dayIdx: number, todayIdx: number) => {
     if (dayIdx === todayIdx) return 'Today';
     if (todayIdx !== -1 && dayIdx === todayIdx + 1) return 'Tomorrow';

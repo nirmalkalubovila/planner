@@ -1,17 +1,18 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-// The same card, label and button treatment the Performance and Today pages use,
-// so Reset reads as part of the same product.
+// The same card the Goals and Today pages use: solid card surface, hairline border, rounded-2xl and
+// the gold accent bar down the left edge. Reset must read as part of those pages, not a new kind of screen.
 
 export const ResetCard: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
     <div
         className={cn(
-            'relative flex flex-col overflow-hidden rounded-3xl p-4 sm:p-6',
-            'bg-card/80 backdrop-blur-md border border-border animate-in fade-in duration-500',
+            'group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card',
+            'p-4 pl-5 sm:p-5 sm:pl-6 transition-[border-color] duration-150 hover:border-primary/40',
             className,
         )}
     >
+        <div aria-hidden className="absolute top-0 left-0 h-full w-1 rounded-l-2xl bg-primary/70" />
         {children}
     </div>
 );

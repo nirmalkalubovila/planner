@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ResetReason } from '@llb/core';
 import { OptionChips } from '@/components/common/option-chips';
+import { Input } from '@/components/ui/input';
 import { ResetLabel } from './reset-ui';
 
 const OPTIONS: { value: ResetReason; label: string }[] = [
@@ -16,9 +17,11 @@ interface WhatChangedProps {
     value: ResetReason[];
     onToggle: (reason: ResetReason) => void;
     onSkip: () => void;
+    otherText: string;
+    onOtherText: (text: string) => void;
 }
 
-export const WhatChanged: React.FC<WhatChangedProps> = ({ value, onToggle, onSkip }) => (
+export const WhatChanged: React.FC<WhatChangedProps> = ({ value, onToggle, onSkip, otherText, onOtherText }) => (
     <section className="space-y-3" aria-labelledby="reset-what-changed">
         <div className="flex items-center justify-between gap-3">
             <ResetLabel id="reset-what-changed" text="What changed?" />
@@ -30,6 +33,17 @@ export const WhatChanged: React.FC<WhatChangedProps> = ({ value, onToggle, onSki
                 Skip
             </button>
         </div>
-        <OptionChips className="grid-cols-2 sm:grid-cols-3" options={OPTIONS} value={value} onChange={onToggle} />
+        <OptionChips className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" options={OPTIONS} value={value} onChange={onToggle} />
+        {value.includes('other') && (
+            <Input
+                value={otherText}
+                onChange={(e) => onOtherText(e.target.value)}
+                maxLength={120}
+                placeholder="What changed? A few words is enough."
+                aria-label="What changed"
+                autoFocus
+                className="h-11 rounded-xl bg-card text-sm"
+            />
+        )}
     </section>
 );

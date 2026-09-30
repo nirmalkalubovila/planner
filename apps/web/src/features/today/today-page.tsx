@@ -9,7 +9,9 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ActiveTheme } from './components/active-theme';
 import { WeeklyTargetsBanner } from './components/weekly-targets-banner';
-import { useTodayTasks } from './hooks/use-today-tasks';
+import { useTodayTasks, type TaskItem } from './hooks/use-today-tasks';
+import { useLongPress } from './hooks/use-long-press';
+import { TaskDetailDialog } from './components/task-detail-dialog';
 
 export const TodayPage: React.FC = () => {
     const navigate = useNavigate();
@@ -24,6 +26,9 @@ export const TodayPage: React.FC = () => {
     const toggleTask = useToggleCompletedTask();
 
     const { tasks, pointsData } = useTodayTasks(weekPlan, habits, dayIdx, completedTasks);
+
+    const [detailTask, setDetailTask] = React.useState<TaskItem | null>(null);
+    const { bind: bindLongPress, consumeLongPress } = useLongPress<TaskItem>(setDetailTask);
 
     const handleToggle = (taskId: string) => {
         toggleTask.mutate({ dayStr: currentDayStr, taskId });
@@ -97,9 +102,10 @@ export const TodayPage: React.FC = () => {
                             return (
                                 <div
                                     key={task.id}
-                                    onClick={() => handleToggle(task.id)}
+                                    {...bindLongPress(task)}
+                                    onClick={() => { if (!consumeLongPress()) handleToggle(task.id); }}
                                     className={cn(
-                                        "group relative flex items-center justify-between p-4 md:p-5 rounded-2xl border cursor-pointer overflow-hidden",
+                                        "group relative flex items-center justify-between p-4 md:p-5 rounded-2xl border cursor-pointer overflow-hidden select-none [-webkit-touch-callout:none]",
                                         "transition-[border-color,opacity,background-color] duration-100",
                                         completed
                                             ? "bg-muted/30 border-border opacity-50"
@@ -172,6 +178,19 @@ export const TodayPage: React.FC = () => {
                         })}
                     </div>
                 )}
+
+            {tasks.length > 0 && (
+                <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+                    Tap to complete. Hold to read the full task.
+                </p>
+            )}
+
+            <TaskDetailDialog
+                task={detailTask}
+                completed={!!detailTask && isTaskCompleted(detailTask.id)}
+                onToggle={handleToggle}
+                onClose={() => setDetailTask(null)}
+            />
         </div>
     );
 };

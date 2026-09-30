@@ -5,6 +5,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ResetCard, ResetLabel, buttonText, captionClass } from './reset-ui';
+import { decodeEntities } from '../lib/labels';
 
 export const BeforeAfter: React.FC<{ summary: ResetSummary }> = ({ summary }) => {
     const { counts } = summary;
@@ -47,11 +48,11 @@ export const GoalImpact: React.FC<GoalImpactProps> = ({ impacts, protectedGoalId
     return (
         <section className="space-y-3" aria-labelledby="reset-goal-impact">
             <ResetLabel id="reset-goal-impact" text="Goal impact" />
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {shown.map((g) => (
                     <ResetCard key={g.goalId ?? g.name} className="gap-3">
                         <div className="flex items-start justify-between gap-3">
-                            <p className="font-bold text-sm sm:text-base tracking-tight leading-tight break-words min-w-0">{g.name}</p>
+                            <p className="font-bold text-sm sm:text-base tracking-tight leading-tight break-words min-w-0">{decodeEntities(g.name)}</p>
                             <span className={cn('shrink-0 text-[10px] font-black uppercase tracking-wider', g.status === 'at_risk' ? 'text-primary' : 'text-muted-foreground')}>
                                 {g.status === 'on_track' ? 'Still on track' : 'At risk'}
                             </span>
@@ -59,12 +60,12 @@ export const GoalImpact: React.FC<GoalImpactProps> = ({ impacts, protectedGoalId
                         {g.protectedNames.length > 0 && (
                             <div className="space-y-1">
                                 <span className={captionClass}>Protected</span>
-                                <p className="text-xs text-muted-foreground leading-snug">{g.protectedNames.join(', ')}</p>
+                                <p className="text-xs text-muted-foreground leading-snug">{g.protectedNames.map(decodeEntities).join(', ')}</p>
                             </div>
                         )}
                         {g.status === 'at_risk' && (
                             <div className="space-y-3">
-                                <p className="text-xs text-muted-foreground leading-snug">Trimmed to fit: {g.trimmedNames.join(', ')}.</p>
+                                <p className="text-xs text-muted-foreground leading-snug">Trimmed to fit: {g.trimmedNames.map(decodeEntities).join(', ')}.</p>
                                 {g.goalId && (
                                     <Button
                                         variant="outline"
