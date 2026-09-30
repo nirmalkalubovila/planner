@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { AuthLayout } from '@/components/ui/auth-layout';
+import { AuthLayout, WhyLink } from '@/components/ui/auth-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { SignupForm } from './forms/signup-form';
 import { OtpVerification } from './components/otp-verification';
@@ -41,6 +41,7 @@ export const SignupPage: React.FC = () => {
                     />
                 </CardContent>
             </Card>
+            <WhyLink />
         </AuthLayout>
     );
 };

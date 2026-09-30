@@ -140,7 +140,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onRequireOtp 
                     </FormField>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full llb-btn" disabled={loading}>
                     {loading ? 'Creating...' : 'Create account'}
                 </Button>
             </form>

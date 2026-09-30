@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Sparkles, Flame, Zap, Award, Crown, Shield, Share2, X, CheckCircle2, Repeat } from 'lucide-react';
+import { X, Repeat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { FeedbackForm } from '@/components/common/feedback-form';
 import { useAuth } from '@/contexts/auth-context';
+import { useGrantFeedbackConsent, useMyFeedbackStatus, useUserProfile } from '@llb/api';
 import type { MilestoneStage } from '@/utils/milestone-engine';
 import { markMilestoneAsCelebrated } from '@/utils/milestone-engine';
 
@@ -13,29 +14,66 @@ interface StageCelebrationModalProps {
   stage: MilestoneStage | null;
   isOpen: boolean;
   onClose: () => void;
-  onShare?: (stage: MilestoneStage) => void;
+  /** Downloads the personalised progress report. Locked until the user has sent feedback. */
+  onDownloadReport?: (stage: MilestoneStage) => void;
+  /** Makes a share image for social media. Unlocked together with the report. */
+  onShareImage?: (stage: MilestoneStage) => void;
   isReplay?: boolean;
 }
 
-const ICON_MAP = {
-  sparkles: Sparkles,
-  flame: Flame,
-  zap: Zap,
-  award: Award,
-  trophy: Trophy,
-  shield: Shield,
-  crown: Crown,
+// One deeper line per stage, shown in place of a generic icon
+const DEEP_TEXT: Record<number, string> = {
+  1: 'Anyone can start. You proved you can return, and returning is where discipline begins.',
+  2: 'The hard part is behind you. Action no longer needs a mood; it carries you now.',
+  3: 'Thirty days ago this was a goal. Today it is who you are.',
+  4: 'Systems beat motivation. You stopped hoping for results and started building them.',
+  5: 'Ninety days of proof. The version of you who quits is no longer the one in charge.',
+  6: 'Most people plan a life. You have been quietly executing one for half a year.',
+  7: 'A full year, one day at a time. This is not a streak anymore. It is your legacy.',
 };
+
+const reportKey = (userId: string | undefined, stageId: string) => `llb_report_unlocked_${userId ?? 'anon'}_${stageId}`;
 
 export const StageCelebrationModal: React.FC<StageCelebrationModalProps> = ({
   stage,
   isOpen,
   onClose,
-  onShare,
+  onDownloadReport,
+  onShareImage,
   isReplay = false,
 }) => {
   const { user } = useAuth();
+  const { profile } = useUserProfile(user);
+  const { data: myFeedback, isLoading: feedbackLoading } = useMyFeedbackStatus(!!user?.id);
+  const grantConsent = useGrantFeedbackConsent();
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [consentDismissed, setConsentDismissed] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
+
+  // The report stays locked until feedback has been sent for this stage (remembered per user and stage)
+  useEffect(() => {
+    if (!isOpen || !stage) return;
+    try {
+      setFeedbackSubmitted(localStorage.getItem(reportKey(user?.id, stage.id)) === '1');
+      setConsentDismissed(localStorage.getItem(`llb_consent_dismissed_${user?.id}`) === '1');
+    } catch {
+      setFeedbackSubmitted(false);
+    }
+  }, [isOpen, stage, user?.id]);
+
+  // Someone who already sent feedback never has to do it again to get their report
+  const unlocked = feedbackSubmitted || !!myFeedback?.hasFeedback;
+  const askConsent = !!myFeedback?.canAskConsent && !consentDismissed && !consentGiven && !grantConsent.isPending;
+
+  const handleFeedbackSent = () => {
+    setFeedbackSubmitted(true);
+    if (!stage) return;
+    try {
+      localStorage.setItem(reportKey(user?.id, stage.id), '1');
+    } catch {
+      /* the unlock still applies for this session */
+    }
+  };
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -132,8 +170,6 @@ export const StageCelebrationModal: React.FC<StageCelebrationModalProps> = ({
 
   if (!isOpen || !stage) return null;
 
-  const StageIcon = ICON_MAP[stage.iconName] || Trophy;
-
   return createPortal(
     <AnimatePresence>
       <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
@@ -169,25 +205,8 @@ export const StageCelebrationModal: React.FC<StageCelebrationModalProps> = ({
             </div>
           )}
 
-          {/* Glowing Stage Badge */}
-          <div className="relative mx-auto my-2 flex items-center justify-center">
-            <div 
-              className="absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full blur-2xl opacity-30 pointer-events-none"
-              style={{ backgroundColor: stage.accentColor }}
-            />
-            <div 
-              className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center border border-white/20 shadow-xl"
-              style={{
-                background: `radial-gradient(circle at top, ${stage.accentColor}33, #0b0e14)`,
-                boxShadow: `0 0 30px ${stage.accentColor}25`,
-              }}
-            >
-              <StageIcon size={32} className="text-white drop-shadow-md" />
-            </div>
-          </div>
-
           {/* Stage Subtitle & Title */}
-          <div className="space-y-1 mt-3">
+          <div className="space-y-1 mt-8 sm:mt-6">
             <span 
               className="text-[10px] sm:text-xs font-black uppercase tracking-[0.25em]"
               style={{ color: stage.accentColor }}
@@ -202,38 +221,92 @@ export const StageCelebrationModal: React.FC<StageCelebrationModalProps> = ({
             </p>
           </div>
 
-          {/* Inspiring Milestone Message */}
-          <p className="text-xs sm:text-sm text-muted-foreground mt-3 leading-relaxed max-w-md mx-auto">
+          {/* The deeper line for this stage, larger than the supporting copy */}
+          <p
+            className="mt-5 text-base sm:text-lg font-semibold leading-snug max-w-md mx-auto text-white"
+            style={{ textShadow: `0 0 28px ${stage.accentColor}55` }}
+          >
+            {DEEP_TEXT[stage.stageNumber] ?? stage.description}
+          </p>
+          <p className="text-xs text-muted-foreground mt-3 leading-relaxed max-w-md mx-auto">
             {stage.description}
           </p>
 
-          {/* Review collection: the same shared form used everywhere else in the app */}
-          <div className="mt-6 pt-5 border-t border-white/10 text-left bg-white/[0.02] rounded-2xl p-4 sm:p-5 border border-white/10 space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Rate your journey with Legacy Life Builder</p>
-            {!feedbackSubmitted ? (
+          {/* First time: a short review. Already reviewed: straight to the report, with one calm ask if they never agreed to share it. */}
+          {!unlocked && !feedbackLoading && (
+            <div className="mt-6 pt-5 border-t border-white/10 text-left bg-white/[0.02] rounded-2xl p-4 sm:p-5 border border-white/10 space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Your report is ready. How is Legacy Life Builder working for you?</p>
               <FeedbackForm
                 compact
                 defaultConsent
                 defaultSubject={`Stage ${stage.stageNumber} Review: ${stage.title}`}
-                onSubmitted={() => setFeedbackSubmitted(true)}
+                onSubmitted={handleFeedbackSent}
               />
-            ) : (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
-                <CheckCircle2 size={15} />
-                <span>Thank you! Your review has been submitted.</span>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Action Button */}
-          {onShare && (
-            <div className="mt-5">
+          {unlocked && askConsent && (
+            <div className="mt-6 text-left rounded-2xl border border-[#D2A226]/25 bg-[#D2A226]/[0.04] p-4 sm:p-5 space-y-3">
+              <p className="text-sm font-bold text-white">Your story can push someone to start.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Show your review on our landing page with your name, role and photo? You can ask us to remove it any time.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={async () => {
+                    await grantConsent.mutateAsync({
+                      name: profile?.fullName ?? '',
+                      position: profile?.currentProfession ?? '',
+                      avatarUrl: profile?.avatarUrl,
+                    });
+                    setConsentGiven(true);
+                  }}
+                  disabled={grantConsent.isPending}
+                  className="h-9 rounded-xl px-4 text-xs font-bold bg-[#D2A226] text-black hover:bg-[#e9c468]"
+                >
+                  Share my review
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setConsentDismissed(true);
+                    try { localStorage.setItem(`llb_consent_dismissed_${user?.id}`, '1'); } catch { /* per session then */ }
+                  }}
+                  className="h-9 rounded-xl px-4 text-xs text-muted-foreground"
+                >
+                  Keep it private
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Personalised day-by-day report: locked until feedback is sent */}
+          {onDownloadReport && (
+            <div className="mt-5 space-y-2">
               <Button
-                onClick={() => onShare(stage)}
-                className="w-full h-11 rounded-2xl font-black uppercase tracking-wider text-xs flex items-center justify-center gap-2 bg-white text-black hover:bg-white/90 shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
+                onClick={() => onDownloadReport(stage)}
+                disabled={!unlocked}
+                className={cn(
+                  'w-full h-11 rounded-2xl font-black uppercase tracking-wider text-xs shadow-xl',
+                  unlocked
+                    ? 'llb-btn llb-btn-auto bg-[#D2A226] text-black hover:bg-[#e9c468]'
+                    : 'bg-white/5 text-muted-foreground border border-white/10 disabled:opacity-100'
+                )}
               >
-                <Share2 size={14} /> Add to Social Media Profile
+                {unlocked ? 'Download Your Full Report (PDF)' : 'Full Report Locked'}
               </Button>
+              {unlocked && onShareImage && (
+                <Button
+                  variant="outline"
+                  onClick={() => onShareImage(stage)}
+                  className="w-full h-11 rounded-2xl font-black uppercase tracking-wider text-xs border-[#D2A226]/40 text-[#e9c468] hover:bg-[#D2A226]/10"
+                >
+                  Share Image For Social Media
+                </Button>
+              )}
+              {!unlocked && (
+                <p className="text-[11px] text-muted-foreground text-center">Send your feedback above to unlock it.</p>
+              )}
             </div>
           )}
         </motion.div>

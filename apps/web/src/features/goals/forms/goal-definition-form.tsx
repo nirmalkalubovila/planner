@@ -3,13 +3,11 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, ChevronRight, ChevronDown, Copy, Check, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 
 import { BucketSelector } from '@/components/common/bucket-selector';
-import { OptionChips } from '@/components/common/option-chips';
 import { LifeBucket, type GoalContext } from '@llb/core';
 
 const TEXTAREA_CLASS = "flex min-h-[70px] w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none";
@@ -109,23 +107,10 @@ interface GoalDefinitionFormProps {
 }
 
 export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialValues, onSubmit, isEditing }) => {
-    const [copied, setCopied] = useState(false);
     const [bucket, setBucket] = useState<LifeBucket | null>(initialValues?.bucket || null);
-    const [goalContext, setGoalContext] = useState<GoalContext>(initialValues?.goalContext ?? {});
-    const [contextOpen, setContextOpen] = useState(!!initialValues?.goalContext);
-    const patchContext = (patch: Partial<GoalContext>) => setGoalContext((prev) => ({ ...prev, ...patch }));
-    const patchResources = (patch: NonNullable<GoalContext['resources']>) => setGoalContext((prev) => ({ ...prev, resources: { ...prev.resources, ...patch } }));
-    const patchAttempt = (patch: NonNullable<GoalContext['priorAttempt']>) => setGoalContext((prev) => ({ ...prev, priorAttempt: { ...prev.priorAttempt, ...patch } }));
-    const templateText = `I am [your age] and currently [your situation, e.g., a student / working at / freelancing].
-I want to [your goal, e.g., build a clothing brand / start a YouTube channel / get fit].
-My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginner].`;
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(templateText);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
+    const [bucketError, setBucketError] = useState(false);
+    // The one extra question: why this goal matters. Other saved context values are preserved untouched.
+    const [why, setWhy] = useState(initialValues?.goalContext?.why ?? '');
     const parsedName = parseLegacyName(initialValues?.name || '');
     const parsedConstraints = parseLegacyPurpose(initialValues?.purpose || '');
 
@@ -144,10 +129,16 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
 
     const watchedGoalType = form.watch('goalType');
 
+    // Every goal belongs to one life bucket, so submit is blocked until one is chosen
+    const submitWith = (mode: 'save' | 'replan') => form.handleSubmit((v) => {
+        if (!bucket) { setBucketError(true); return; }
+        handleFormSubmit(v, mode);
+    });
+
     const handleFormSubmit = (formValues: FormValues, mode: 'save' | 'replan' = 'replan') => {
         const name = `Current State:\n${formValues.currentState}\n\nUltimate Goal:\n${formValues.ultimateGoal}`;
         const purpose = `Strict Constraints:\n${formValues.constraints}`;
-        const cleanedContext = cleanGoalContext(goalContext);
+        const cleanedContext = cleanGoalContext({ ...initialValues?.goalContext, why });
         onSubmit({
             title: formValues.title,
             name,
@@ -161,20 +152,22 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
     };
 
     return (
-        <form onSubmit={form.handleSubmit((v) => handleFormSubmit(v, 'replan'))} className="space-y-5">
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
-                <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Quick Template</span>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={handleCopy}>
-                        {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                    </Button>
-                </div>
-                <pre className="text-[10px] sm:text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed bg-background/50 p-2.5 rounded-lg border border-border/50">
-                    {templateText}
-                </pre>
-            </div>
-
+        <form onSubmit={submitWith('replan')} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2 rounded-xl border border-primary/25 bg-primary/5 p-4">
+                    <label className="text-sm font-medium flex flex-col">
+                        <span>Why do you want this?</span>
+                        <span className="text-muted-foreground font-normal text-[11px]">We remind you of this when it gets boring or hard, so you keep pushing.</span>
+                    </label>
+                    <textarea
+                        value={why}
+                        onChange={(e) => setWhy(e.target.value)}
+                        maxLength={300}
+                        placeholder="e.g., I want to give my family a better life and never depend on a single paycheck."
+                        className={TEXTAREA_CLASS}
+                    />
+                </div>
+
                 <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-medium">Goal Title <span className="text-muted-foreground font-normal text-xs">(short name)</span></label>
                     <Input {...form.register('title')} placeholder="e.g., Build a clothing brand" className="bg-muted/50" maxLength={60} />
@@ -209,114 +202,11 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                    <BucketSelector value={bucket} onChange={setBucket} />
-                </div>
-
-                <div className="md:col-span-2 rounded-xl border border-border/60 bg-card/30">
-                    <button
-                        type="button"
-                        onClick={() => setContextOpen((o) => !o)}
-                        className="w-full flex items-center justify-between gap-2 p-3 text-left cursor-pointer"
-                        aria-expanded={contextOpen}
-                    >
-                        <span className="flex items-center gap-2 text-sm font-medium">
-                            <Sparkles size={14} className="text-primary" />
-                            Goal context
-                            <span className="text-xs text-muted-foreground font-normal">(Optional - makes your AI plan more accurate)</span>
-                        </span>
-                        <ChevronDown size={16} className={`text-muted-foreground transition-transform ${contextOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {contextOpen && (
-                        <div className="p-3 pt-0 grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2 md:col-span-2">
-                                <label className="text-sm font-medium flex flex-col">
-                                    <span>Why does this matter to you?</span>
-                                    <span className="text-muted-foreground font-normal text-[11px]">The reason that keeps you going when it gets hard</span>
-                                </label>
-                                <textarea value={goalContext.why ?? ''} onChange={(e) => patchContext({ why: e.target.value })} placeholder="e.g., I want financial independence so I can support my family." className={TEXTAREA_CLASS} />
-                            </div>
-
-                            <div className="space-y-2 md:col-span-2">
-                                <label className="text-sm font-medium flex flex-col">
-                                    <span>How will you measure success?</span>
-                                    <span className="text-muted-foreground font-normal text-[11px]">A number or a clear finish line</span>
-                                </label>
-                                <Input value={goalContext.successMeasure ?? ''} onChange={(e) => patchContext({ successMeasure: e.target.value })} placeholder="e.g., 1,000 USD/month from freelancing" className="bg-muted/50" />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Is the deadline fixed?</label>
-                                <OptionChips
-                                    className="grid-cols-2 sm:grid-cols-2"
-                                    value={goalContext.deadlineFlex}
-                                    onChange={(v) => patchContext({ deadlineFlex: goalContext.deadlineFlex === v ? undefined : v })}
-                                    options={[
-                                        { value: 'fixed', label: 'Fixed', hint: 'Cannot move' },
-                                        { value: 'flexible', label: 'Flexible', hint: 'Can slip if needed' },
-                                    ]}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Hours per week for this goal</label>
-                                <Input type="number" min="0" max="80" step="0.5" value={goalContext.weeklyHours ?? ''} onChange={(e) => patchContext({ weeklyHours: e.target.value })} placeholder="e.g., 10" className="bg-muted/50" />
-                            </div>
-
-                            <div className="space-y-2 md:col-span-2">
-                                <label className="text-sm font-medium">Budget you can put in</label>
-                                <OptionChips
-                                    value={goalContext.resources?.budget}
-                                    onChange={(v) => patchResources({ budget: goalContext.resources?.budget === v ? undefined : v })}
-                                    options={[
-                                        { value: 'none', label: 'None', hint: 'Free only' },
-                                        { value: 'low', label: 'Low', hint: 'Small spend' },
-                                        { value: 'medium', label: 'Medium' },
-                                        { value: 'high', label: 'High' },
-                                    ]}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Skills you already have</label>
-                                <Input value={goalContext.resources?.skills ?? ''} onChange={(e) => patchResources({ skills: e.target.value })} placeholder="e.g., basic design, Photoshop" className="bg-muted/50" />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Tools / equipment</label>
-                                <Input value={goalContext.resources?.tools ?? ''} onChange={(e) => patchResources({ tools: e.target.value })} placeholder="e.g., laptop, camera" className="bg-muted/50" />
-                            </div>
-                            <div className="space-y-2 md:col-span-2">
-                                <label className="text-sm font-medium">People who can help</label>
-                                <Input value={goalContext.resources?.network ?? ''} onChange={(e) => patchResources({ network: e.target.value })} placeholder="e.g., a mentor, friends in the industry" className="bg-muted/50" />
-                            </div>
-
-                            <div className="space-y-2 md:col-span-2">
-                                <label className="text-sm font-medium">Have you tried this goal before?</label>
-                                <OptionChips
-                                    className="grid-cols-2 sm:grid-cols-2"
-                                    value={goalContext.priorAttempt?.attempted ? 'yes' : goalContext.priorAttempt ? 'no' : undefined}
-                                    onChange={(v) => patchAttempt({ attempted: v === 'yes' })}
-                                    options={[{ value: 'no', label: 'First time' }, { value: 'yes', label: 'Yes, I have tried' }]}
-                                />
-                            </div>
-                            {goalContext.priorAttempt?.attempted && (
-                                <>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium">What did you try?</label>
-                                        <Input value={goalContext.priorAttempt.whatTried ?? ''} onChange={(e) => patchAttempt({ whatTried: e.target.value })} placeholder="e.g., posted daily for 2 weeks" className="bg-muted/50" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium">Why did you stop?</label>
-                                        <Input value={goalContext.priorAttempt.whyStopped ?? ''} onChange={(e) => patchAttempt({ whyStopped: e.target.value })} placeholder="e.g., missed two days and gave up" className="bg-muted/50" />
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
+                    <BucketSelector required value={bucket} onChange={(b) => { setBucket(b); if (b) setBucketError(false); }} error={bucketError ? 'Choose a life bucket for this goal.' : undefined} />
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2"><CalendarIcon size={14} /> Start Date</label>
+                    <label className="text-sm font-medium">Start Date</label>
                     <Controller
                         control={form.control}
                         name="startDate"
@@ -329,8 +219,8 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                         )}
                     />
                     {form.formState.errors.startDate && <p className="text-xs text-destructive">{form.formState.errors.startDate.message}</p>}
-                    <p className="text-[11px] text-rose-500 font-semibold mt-1">
-                        * Best to start on a Monday for clean weekly planning.
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                        Best to start on a Monday for clean weekly planning.
                     </p>
                 </div>
                 <div className="space-y-2">
@@ -361,7 +251,7 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                             type="button"
                             variant="outline"
                             className="w-full sm:w-auto font-bold h-9 text-xs"
-                            onClick={form.handleSubmit((v) => handleFormSubmit(v, 'save'))}
+                            onClick={submitWith('save')}
                         >
                             Save Goal
                         </Button>
@@ -369,14 +259,14 @@ My limits: [e.g., I can spend 2 hours a day, I have a small budget, I'm a beginn
                             type="button"
                             variant="default"
                             className="w-full sm:w-auto font-bold h-9 text-xs"
-                            onClick={form.handleSubmit((v) => handleFormSubmit(v, 'replan'))}
+                            onClick={submitWith('replan')}
                         >
-                            Re-plan Goal <ChevronRight className="ml-1.5 h-4 w-4" />
+                            Re-plan Goal
                         </Button>
                     </>
                 ) : (
                     <Button type="submit" className="w-full sm:w-auto font-bold h-9 text-xs">
-                        Save & Continue <ChevronRight className="ml-1.5 h-4 w-4" />
+                        Save & Continue
                     </Button>
                 )}
             </div>

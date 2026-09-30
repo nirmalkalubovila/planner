@@ -1,4 +1,5 @@
 import type { ExecutionProfile, GoalContext, DeepWorkBand, SwitchRecoveryBand, FreeTimeBand } from '../types/execution-profile';
+import { BUCKET_META, type LifeBucket } from '../types/time';
 
 /** Subset of the user profile the prompt builder reads (structurally typed to avoid a package cycle). */
 export interface PromptProfile {
@@ -104,4 +105,10 @@ export function buildPersonaPromptBlock(profile?: PromptProfile | null, goalCont
     }
 
     return `User Persona & Preferences:\n${lines.join('\n')}\n\nPERSONALIZATION RULES (follow strictly):\n${rules.map(r => `- ${r}`).join('\n')}`;
+}
+
+/** One prompt line naming the life bucket a goal belongs to (empty when none is set), so every generated task fits it. */
+export function bucketPromptLine(bucket?: LifeBucket | null): string {
+    const meta = bucket ? BUCKET_META[bucket] : undefined;
+    return meta ? `Life Bucket: ${meta.label} (${meta.description}). Every task must clearly belong to this bucket.` : '';
 }

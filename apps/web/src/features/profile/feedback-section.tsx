@@ -9,8 +9,8 @@ export const FeedbackSection: React.FC = () => (
                 <MessageSquarePlus className="h-4 w-4 text-primary" />
             </div>
             <div>
-                <h3 className="text-base font-bold">Share Your Feedback</h3>
-                <p className="text-[11px] text-muted-foreground">Tell us what you think about Legacy Life Builder</p>
+                <h3 className="text-base font-bold">Rate Legacy Life Builder</h3>
+                <p className="text-[11px] text-muted-foreground">Two taps and a sentence. It takes under a minute.</p>
             </div>
         </div>
         <FeedbackForm />

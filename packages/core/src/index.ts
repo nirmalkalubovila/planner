@@ -29,6 +29,7 @@ export * from './utils/insights-engine';
 export * from './utils/error-handler';
 export * from './utils/task-derivation';
 export * from './utils/ai-profile-prompt';
+export * from './utils/plan-breakdown';
 export * from './utils/widget-snapshot';
 export * from './types/widget';
 

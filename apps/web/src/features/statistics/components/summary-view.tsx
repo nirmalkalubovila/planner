@@ -2,18 +2,15 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Briefcase, TrendingUp, Moon, HeartHandshake, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@llb/api';
 import { CircularProgress } from '@/components/ui/circular-progress';
 import { WeekUtils } from '@llb/core';
 import type { UserStatsCache } from '../hooks/use-user-stats';
 import type { DetailedAnalytics } from '../hooks/use-detailed-stats';
 import { LIFE_BUCKETS, BUCKET_META, type LifeBucket } from '@llb/core';
 import { MilestonesShowcase } from './milestones/milestones-showcase';
-import { generateMilestoneInsightCard } from '@llb/core';
-import { INSIGHT_THEMES } from './insights/insight-themes';
-import { renderShareCardToCanvas } from './insights/share-card-renderer';
-import { shareToSocial, downloadShareImage, copyToClipboard } from '@/utils/share-utils';
-import { toast } from '@llb/core';
-import type { MilestoneStage } from '@/utils/milestone-engine';
+import { useReportActions } from '../hooks/use-report-actions';
 
 const BUCKET_VESSEL_CONFIG: Record<LifeBucket, {
   label: string;
@@ -26,34 +23,34 @@ const BUCKET_VESSEL_CONFIG: Record<LifeBucket, {
   income: {
     label: 'Income-Producing',
     icon: Briefcase,
-    accentText: 'text-emerald-400',
-    accentBorder: 'border-emerald-500/20 group-hover:border-emerald-500/40',
-    liquidBg: 'bg-gradient-to-t from-emerald-600/30 via-emerald-500/20 to-emerald-400/30',
-    liquidBorder: 'border-emerald-400/50',
-  },
-  asset: {
-    label: 'Asset-Building',
-    icon: TrendingUp,
-    accentText: 'text-violet-400',
-    accentBorder: 'border-violet-500/20 group-hover:border-violet-500/40',
-    liquidBg: 'bg-gradient-to-t from-violet-600/30 via-violet-500/20 to-violet-400/30',
-    liquidBorder: 'border-violet-400/50',
-  },
-  recovery: {
-    label: 'Recovery',
-    icon: Moon,
     accentText: 'text-sky-400',
     accentBorder: 'border-sky-500/20 group-hover:border-sky-500/40',
     liquidBg: 'bg-gradient-to-t from-sky-600/30 via-sky-500/20 to-sky-400/30',
     liquidBorder: 'border-sky-400/50',
   },
+  asset: {
+    label: 'Asset-Building',
+    icon: TrendingUp,
+    accentText: 'text-fuchsia-400',
+    accentBorder: 'border-fuchsia-500/20 group-hover:border-fuchsia-500/40',
+    liquidBg: 'bg-gradient-to-t from-fuchsia-600/30 via-fuchsia-500/20 to-fuchsia-400/30',
+    liquidBorder: 'border-fuchsia-400/50',
+  },
+  recovery: {
+    label: 'Recovery',
+    icon: Moon,
+    accentText: 'text-teal-400',
+    accentBorder: 'border-teal-500/20 group-hover:border-teal-500/40',
+    liquidBg: 'bg-gradient-to-t from-teal-600/30 via-teal-500/20 to-teal-400/30',
+    liquidBorder: 'border-teal-400/50',
+  },
   relational: {
     label: 'Relational',
     icon: HeartHandshake,
-    accentText: 'text-amber-400',
-    accentBorder: 'border-amber-500/20 group-hover:border-amber-500/40',
-    liquidBg: 'bg-gradient-to-t from-amber-600/30 via-amber-500/20 to-amber-400/30',
-    liquidBorder: 'border-amber-400/50',
+    accentText: 'text-rose-400',
+    accentBorder: 'border-rose-500/20 group-hover:border-rose-500/40',
+    liquidBg: 'bg-gradient-to-t from-rose-600/30 via-rose-500/20 to-rose-400/30',
+    liquidBorder: 'border-rose-400/50',
   },
 };
 
@@ -88,10 +85,13 @@ const truncateText = (text: string, maxLength: number = 70) => {
 interface SummaryViewProps {
   cache: UserStatsCache;
   detailed: DetailedAnalytics | undefined;
-  onSwitchToInsights: () => void;
+  /** Undefined while the Insights tab is switched off: the rank card is then not a link. */
+  onSwitchToInsights?: () => void;
 }
 
 export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwitchToInsights }) => {
+  const { user } = useAuth();
+  const { profile } = useUserProfile(user);
   const trajectory = detailed?.trajectory;
   const milestoneProgress = detailed?.milestoneProgress;
 
@@ -113,30 +113,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
     return 'bg-primary/90';
   };
 
-  const handleShareMilestone = async (stage: MilestoneStage) => {
-    try {
-      const totalDays = milestoneProgress?.totalDaysExecuted ?? 0;
-      const streak = milestoneProgress?.currentStreak ?? 0;
-      const cardData = generateMilestoneInsightCard(stage, totalDays, streak);
-      const theme = INSIGHT_THEMES[3]; // Midnight Gold theme matching LLB
-      const blob = await renderShareCardToCanvas(cardData, theme, 'story');
-      const shared = await shareToSocial(blob, `I reached ${stage.title} (${stage.days} days consistent) on Legacy Life Builder!`);
-      if (shared) {
-        toast.success('Shared milestone card!');
-      } else {
-        const copied = await copyToClipboard(blob);
-        downloadShareImage(blob, `legacy-milestone-stage-${stage.stageNumber}.png`);
-        if (copied) {
-          toast.success('Card copied to clipboard & downloaded!');
-        } else {
-          toast.success('Downloaded milestone share card!');
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Could not generate milestone share card');
-    }
-  };
+  const { downloadPdf, shareImage } = useReportActions(profile?.fullName, detailed);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -170,21 +147,21 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
             value={trajectory?.total ?? 0}
             size={130}
             strokeWidth={10}
-            color="stroke-intent-goal"
+            color="stroke-primary"
             delay={0.2}
           />
           {trajectory && (
             <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap text-[11px] sm:text-xs text-muted-foreground font-medium mt-4 sm:mt-6">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-intent-goal" />
+                <span className="w-2 h-2 rounded-full bg-primary" />
                 Goals {trajectory.goalScore}%
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-intent-habit" />
+                <span className="w-2 h-2 rounded-full bg-zinc-300" />
                 Habits {trajectory.habitScore}%
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-intent-warning" />
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 Execution {trajectory.executionScore}%
               </span>
               <span className="flex items-center gap-1.5">
@@ -197,7 +174,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
 
         {/* Global Rank */}
         <Card 
-          className="items-center justify-center cursor-pointer hover:border-primary/30 hover:bg-card/95 transition-all duration-300 group" 
+          className={cn('items-center justify-center group', onSwitchToInsights && 'cursor-pointer hover:border-primary/30 hover:bg-card/95 transition-all duration-300')} 
           delay={0.2}
         >
           <div onClick={onSwitchToInsights} className="h-full flex flex-col justify-between items-center text-center">
@@ -213,9 +190,11 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
                 You ranked in the <strong className="text-primary">top {rankPct}%</strong> of all Legacy builders this week!
               </p>
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary mt-4 opacity-70 group-hover:opacity-100 transition-opacity">
-              View Insights →
-            </span>
+            {onSwitchToInsights && (
+              <span className="text-[9px] font-black uppercase tracking-widest text-primary mt-4 opacity-70 group-hover:opacity-100 transition-opacity">
+                View Insights
+              </span>
+            )}
           </div>
         </Card>
       </div>
@@ -229,7 +208,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
             value={detailed?.bestGoal?.progress ?? cache.top_goal.progress}
             size={90}
             strokeWidth={7}
-            color="stroke-intent-goal"
+            color="stroke-[#e9c468]"
             label={truncateText(detailed?.bestGoal?.name ?? cache.top_goal.name, 70)}
             sublabel="Top Active Goal"
             delay={0.3}
@@ -237,7 +216,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
           {detailed && (
             <div className="mt-4 pt-3 border-t border-border w-full text-center">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">All Goals Avg</p>
-              <p className="text-lg font-black text-intent-goal/80 mt-1">{detailed.goalAverage}%</p>
+              <p className="text-lg font-black text-[#e9c468] mt-1">{detailed.goalAverage}%</p>
             </div>
           )}
         </Card>
@@ -249,7 +228,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
             value={detailed?.bestHabit?.consistency ?? 0}
             size={90}
             strokeWidth={7}
-            color="stroke-intent-habit"
+            color="stroke-zinc-300"
             label={detailed?.bestHabit?.name ?? '—'}
             sublabel="Strongest Habit"
             delay={0.4}
@@ -257,7 +236,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
           {detailed && (
             <div className="mt-4 pt-3 border-t border-border w-full text-center">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">All Habits Avg</p>
-              <p className="text-lg font-black text-intent-habit/80 mt-1">{detailed.habitAverage}%</p>
+              <p className="text-lg font-black text-zinc-300 mt-1">{detailed.habitAverage}%</p>
             </div>
           )}
         </Card>
@@ -269,7 +248,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
             value={detailed?.bestWeek?.efficiency ?? 0}
             size={90}
             strokeWidth={7}
-            color="stroke-intent-warning"
+            color="stroke-emerald-400"
             label={detailed?.bestWeek?.weekKey ?? '—'}
             sublabel="Best Week"
             delay={0.5}
@@ -277,7 +256,7 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
           {detailed && (
             <div className="mt-4 pt-3 border-t border-border w-full text-center">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">All-Time Avg</p>
-              <p className="text-lg font-black text-intent-warning/80 mt-1">{detailed.weekAverage}%</p>
+              <p className="text-lg font-black text-emerald-400 mt-1">{detailed.weekAverage}%</p>
             </div>
           )}
         </Card>
@@ -407,10 +386,10 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
                     initial={{ height: 0 }}
                     animate={{ height: `${detailed.bucketStats.bucketPercentages.income}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
-                    className="w-full bg-gradient-to-t from-emerald-600/60 to-emerald-400/50 border-t border-emerald-300/40 relative rounded-b-2xl flex items-center justify-center"
+                    className="w-full bg-gradient-to-t from-sky-600/60 to-sky-400/50 border-t border-sky-300/40 relative rounded-b-2xl flex items-center justify-center"
                     title={`Income-Producing: ${detailed.bucketStats.bucketHours.income}h (${detailed.bucketStats.bucketPercentages.income}%)`}
                   >
-                    <span className="text-[10px] font-mono font-black text-emerald-100 drop-shadow-sm">
+                    <span className="text-[10px] font-mono font-black text-sky-100 drop-shadow-sm">
                       {detailed.bucketStats.bucketPercentages.income >= 8 ? `${detailed.bucketStats.bucketHours.income}h` : ''}
                     </span>
                   </motion.div>
@@ -422,10 +401,10 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
                     initial={{ height: 0 }}
                     animate={{ height: `${detailed.bucketStats.bucketPercentages.asset}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-                    className="w-full bg-gradient-to-t from-violet-600/60 to-violet-400/50 border-t border-violet-300/40 relative flex items-center justify-center"
+                    className="w-full bg-gradient-to-t from-fuchsia-600/60 to-fuchsia-400/50 border-t border-fuchsia-300/40 relative flex items-center justify-center"
                     title={`Asset-Building: ${detailed.bucketStats.bucketHours.asset}h (${detailed.bucketStats.bucketPercentages.asset}%)`}
                   >
-                    <span className="text-[10px] font-mono font-black text-violet-100 drop-shadow-sm">
+                    <span className="text-[10px] font-mono font-black text-fuchsia-100 drop-shadow-sm">
                       {detailed.bucketStats.bucketPercentages.asset >= 8 ? `${detailed.bucketStats.bucketHours.asset}h` : ''}
                     </span>
                   </motion.div>
@@ -437,10 +416,10 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
                     initial={{ height: 0 }}
                     animate={{ height: `${detailed.bucketStats.bucketPercentages.recovery}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
-                    className="w-full bg-gradient-to-t from-sky-600/60 to-sky-400/50 border-t border-sky-300/40 relative flex items-center justify-center"
+                    className="w-full bg-gradient-to-t from-teal-600/60 to-teal-400/50 border-t border-teal-300/40 relative flex items-center justify-center"
                     title={`Recovery: ${detailed.bucketStats.bucketHours.recovery}h (${detailed.bucketStats.bucketPercentages.recovery}%)`}
                   >
-                    <span className="text-[10px] font-mono font-black text-sky-100 drop-shadow-sm">
+                    <span className="text-[10px] font-mono font-black text-teal-100 drop-shadow-sm">
                       {detailed.bucketStats.bucketPercentages.recovery >= 8 ? `${detailed.bucketStats.bucketHours.recovery}h` : ''}
                     </span>
                   </motion.div>
@@ -452,10 +431,10 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
                     initial={{ height: 0 }}
                     animate={{ height: `${detailed.bucketStats.bucketPercentages.relational}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
-                    className="w-full bg-gradient-to-t from-amber-600/60 to-amber-400/50 border-t border-amber-300/50 relative flex items-center justify-center"
+                    className="w-full bg-gradient-to-t from-rose-600/60 to-rose-400/50 border-t border-rose-300/50 relative flex items-center justify-center"
                     title={`Relational: ${detailed.bucketStats.bucketHours.relational}h (${detailed.bucketStats.bucketPercentages.relational}%)`}
                   >
-                    <span className="text-[10px] font-mono font-black text-amber-100 drop-shadow-sm">
+                    <span className="text-[10px] font-mono font-black text-rose-100 drop-shadow-sm">
                       {detailed.bucketStats.bucketPercentages.relational >= 8 ? `${detailed.bucketStats.bucketHours.relational}h` : ''}
                     </span>
                   </motion.div>
@@ -515,7 +494,8 @@ export const SummaryView: React.FC<SummaryViewProps> = ({ cache, detailed, onSwi
       {milestoneProgress && (
         <MilestonesShowcase
           progress={milestoneProgress}
-          onShareMilestone={handleShareMilestone}
+          onDownloadReport={downloadPdf}
+          onShareImage={shareImage}
         />
       )}
 

@@ -73,6 +73,7 @@ const CustomTaskDialogBody: React.FC<CustomTaskDialogProps> = ({ isOpen, onClose
   const [saveToLibrary, setSaveToLibrary] = useState(false);
   const [isReminder, setIsReminder] = useState(() => !!seed.isReminder);
   const [bucket, setBucket] = useState<LifeBucket | null>(() => seed.bucket || null);
+  const [bucketError, setBucketError] = useState(false);
   const createLibraryTask = useCreateCustomTask();
 
   const toggleDay = (day: string) => {
@@ -90,6 +91,8 @@ const CustomTaskDialogBody: React.FC<CustomTaskDialogProps> = ({ isOpen, onClose
 
   const handleConfirm = () => {
     if (!name) return;
+    // Every task belongs to one life bucket
+    if (!bucket) { setBucketError(true); return; }
     if (selectedDays.length === 0) {
       toast.error('Select at least one day below to schedule this.');
       return;
@@ -185,7 +188,7 @@ const CustomTaskDialogBody: React.FC<CustomTaskDialogProps> = ({ isOpen, onClose
           <Input value={description} onChangeText={setDescription} placeholder="Brief details..." className="h-10" />
         </View>
 
-        <BucketSelector value={bucket} onChange={setBucket} />
+        <BucketSelector required value={bucket} onChange={(b) => { setBucket(b); if (b) setBucketError(false); }} error={bucketError ? 'Choose a life bucket for this task.' : undefined} />
 
         <Pressable
           onPress={() => setIsReminder(!isReminder)}

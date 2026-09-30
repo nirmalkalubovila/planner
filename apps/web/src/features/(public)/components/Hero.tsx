@@ -40,7 +40,7 @@ export default function Hero({ desktopVideoUrl, mobileVideoUrl }: HeroProps) {
       {/* Content pinned to bottom-left, Carnage style */}
       <div className="absolute inset-0 flex flex-col justify-end pb-12 sm:pb-16 px-5 sm:px-8 z-10">
         {/* Big Bold Headline */}
-        <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black text-white tracking-tight leading-[1.05] mb-3 max-w-3xl uppercase">
+        <h1 className="llb-rise text-3xl sm:text-5xl lg:text-7xl font-black text-white tracking-tight leading-[1.05] mb-3 max-w-3xl uppercase">
           Stop planning.
           <br />
           <span className="text-white/80">
@@ -49,9 +49,8 @@ export default function Hero({ desktopVideoUrl, mobileVideoUrl }: HeroProps) {
         </h1>
 
         {/* Sub-headline */}
-        <p className="text-sm sm:text-base text-white/60 leading-relaxed mb-6 max-w-xl">
-          Turn your 1-week to 10-year goals into a clear daily schedule with
-          AI doing the heavy lifting in under 5 minutes.
+        <p className="llb-rise text-sm sm:text-base text-white/60 leading-relaxed mb-6 max-w-xl" style={{ animationDelay: "0.15s" }}>
+          Turn any goal into today&apos;s schedule. AI does the planning in minutes.
         </p>
 
         {/* Visually hidden semantic text for GEO/AEO/SEO crawler grounding */}
@@ -60,16 +59,16 @@ export default function Hero({ desktopVideoUrl, mobileVideoUrl }: HeroProps) {
         </p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+        <div className="llb-rise flex flex-col sm:flex-row gap-3 w-full sm:w-auto" style={{ animationDelay: "0.3s" }}>
           <Link
             to="/login"
-            className="inline-flex items-center justify-center bg-white text-black text-sm font-extrabold px-7 py-3.5 rounded-xl hover:bg-zinc-200 transition-all hover:scale-[1.02] active:scale-95 duration-200 shadow-xl"
+            className="llb-btn llb-btn-pulse inline-flex items-center justify-center bg-[#D2A226] text-black text-sm font-extrabold px-7 py-3.5 rounded-xl hover:bg-[#e9c468] shadow-xl shadow-[#D2A226]/20"
           >
             Start Building Free
           </Link>
           <a
             href="#how-it-works"
-            className="inline-flex items-center justify-center border border-white/20 bg-white/5 backdrop-blur-sm text-white text-sm font-semibold px-7 py-3.5 rounded-xl hover:bg-white/10 hover:border-white/30 transition-all hover:scale-[1.02] active:scale-95 duration-200"
+            className="inline-flex items-center justify-center border border-[#D2A226]/40 bg-white/5 backdrop-blur-sm text-white text-sm font-semibold px-7 py-3.5 rounded-xl hover:bg-[#D2A226]/10 hover:border-[#D2A226]/70 hover:-translate-y-px active:scale-[0.98] transition-all duration-200"
           >
             See How It Works
           </a>

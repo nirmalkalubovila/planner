@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing } from 'react-native';
 
-/** Shared by combo-chain, forge-system, heartbeat-system, daily-boss-fight —
+/** Shared by combo-chain, forge-system, daily-boss-fight —
  * web's identical `useState(false) + useRef(prev) + setTimeout` "flash when
  * this value increases" pattern, factored out once instead of copy-pasted
  * four times. */

@@ -35,19 +35,19 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ desktopImages, m
   };
 
   return (
-    <section id="gallery" className="py-6 px-5 sm:px-8 bg-zinc-950 overflow-hidden select-none">
+    <section id="gallery" className="py-12 sm:py-16 px-5 sm:px-8 bg-zinc-950 overflow-hidden select-none">
       <div className="w-full">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-4 gap-3">
           <div>
-            <span className="text-[10px] font-bold tracking-[0.25em] text-zinc-500 uppercase">
+            <span className="text-[10px] font-bold tracking-[0.25em] text-[#D2A226] uppercase">
               Product Walkthrough
             </span>
             <h2 className="mt-2 text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-[1.1]">
               Explore the interface.
               {" "}
               <span className="bg-gradient-to-r from-zinc-500 via-zinc-400 to-zinc-300 bg-clip-text text-transparent">
-                Designed for absolute focus.
+                Built for focus.
               </span>
             </h2>
           </div>
@@ -59,7 +59,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ desktopImages, m
                 onClick={() => { setViewMode('desktop'); setCurrentIndex(0); }}
                 className={`flex items-center gap-2 px-4.5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer ${
                   viewMode === 'desktop'
-                    ? 'bg-white text-black shadow-md'
+                    ? 'bg-[#D2A226] text-black shadow-md'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -70,7 +70,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ desktopImages, m
                 onClick={() => { setViewMode('mobile'); setCurrentIndex(0); }}
                 className={`flex items-center gap-2 px-4.5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 cursor-pointer ${
                   viewMode === 'mobile'
-                    ? 'bg-white text-black shadow-md'
+                    ? 'bg-[#D2A226] text-black shadow-md'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -78,8 +78,8 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ desktopImages, m
                 Mobile View
               </button>
             </div>
-            <span className="text-[10px] text-zinc-550 font-mono italic select-none">
-              *This is the actual app. No mockups.*
+            <span className="text-[10px] text-zinc-500 tracking-wide select-none">
+              The actual app. No mockups.
             </span>
           </div>
         </div>
@@ -151,7 +151,7 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ desktopImages, m
                     key={i}
                     onClick={() => setCurrentIndex(i)}
                     className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                      i === currentIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/35 hover:bg-white/60'
+                      i === currentIndex ? 'w-5 bg-[#D2A226]' : 'w-1.5 bg-white/35 hover:bg-white/60'
                     }`}
                   />
                 ))}

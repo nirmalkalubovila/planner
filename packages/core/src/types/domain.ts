@@ -38,6 +38,11 @@ export interface AIGeneratedPlanSlot {
     dayTask: string;
     description: string;
     subPlans?: AIGeneratedPlanSlot[];
+    /** Exact period this phase covers (yyyy-MM-dd). Written by the breakdown so nested levels never have to parse `date`. */
+    periodStart?: string;
+    periodEnd?: string;
+    /** Life bucket, inherited from the goal. */
+    bucket?: LifeBucket;
     estimatedHours?: number;
 }
 

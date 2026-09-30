@@ -50,12 +50,12 @@ export default function Testimonials({ curatedFeedbacks }: TestimonialsProps) {
   const loop = [...testimonials, ...testimonials];
 
   return (
-    <section className="py-12 sm:py-16 bg-black overflow-hidden relative select-none">
+    <section id="testimonials" className="scroll-mt-28 py-12 sm:py-16 bg-black overflow-hidden relative select-none">
       <style dangerouslySetInnerHTML={{ __html: '.scrollbar-none::-webkit-scrollbar{display:none}' }} />
 
-      <div className="px-5 sm:px-8 text-center mb-8">
-        <span className="text-[10px] sm:text-xs font-bold tracking-[0.3em] text-sky-400 uppercase">Testimonials</span>
-        <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">What they say.</h2>
+      <div className="px-5 sm:px-8 text-center mb-6">
+        <span className="text-[10px] font-bold tracking-[0.25em] text-[#D2A226] uppercase">Testimonials</span>
+        <h2 className="mt-2 text-2xl sm:text-3xl font-extrabold text-white tracking-tight">What they say.</h2>
       </div>
 
       <div className="relative w-full">
@@ -71,7 +71,7 @@ export default function Testimonials({ curatedFeedbacks }: TestimonialsProps) {
           onPointerUp={() => setIsHeld(false)}
           onTouchStart={() => setIsHeld(true)}
           onTouchEnd={() => setIsHeld(false)}
-          className="flex gap-4 items-stretch overflow-x-auto py-3 px-5 scrollbar-none"
+          className="flex gap-3 items-stretch overflow-x-auto py-2 px-5 scrollbar-none"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {loop.map((t, i) => (
@@ -80,7 +80,7 @@ export default function Testimonials({ curatedFeedbacks }: TestimonialsProps) {
         </div>
       </div>
 
-      <p className="mt-4 text-center text-xs text-zinc-500">Hold to pause and read.</p>
+      <p className="mt-3 text-center text-[11px] text-zinc-600">Hold to pause and read.</p>
 
       <StandardDialog
         isOpen={!!expanded}

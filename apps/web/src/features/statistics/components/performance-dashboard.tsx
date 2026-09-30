@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
@@ -7,8 +7,16 @@ import { useUserStats } from '../hooks/use-user-stats';
 import { useDetailedAnalytics } from '../hooks/use-detailed-stats';
 import { PageLoader } from '@/components/common/page-loader';
 import { SummaryView } from './summary-view';
-import { DetailedView } from './detailed-view';
-import { InsightsView } from './insights/insights-view';
+
+/**
+ * The Performance page shows the Summary only. The Detailed and Insights tabs are kept in the codebase
+ * but switched off: set this to true to bring them back. While it is false their code is never loaded
+ * (they are lazy imports) and their data hooks never run, so they cost no memory or requests.
+ */
+const SHOW_ADVANCED_TABS = false;
+
+const DetailedView = lazy(() => import('./detailed-view').then((m) => ({ default: m.DetailedView })));
+const InsightsView = lazy(() => import('./insights/insights-view').then((m) => ({ default: m.InsightsView })));
 
 type Tab = 'summary' | 'detailed' | 'insights';
 
@@ -47,13 +55,9 @@ export const PerformanceDashboard: React.FC = () => {
   const { data: cache, isLoading: cacheLoading } = useUserStats();
 
   const [activeTab, setActiveTab] = useState<Tab>('summary');
-  const [detailedEnabled, setDetailedEnabled] = useState(false);
 
-  useEffect(() => {
-    if (!detailedEnabled) setDetailedEnabled(true);
-  }, []);
-
-  const { data: detailed, isLoading: detailedLoading } = useDetailedAnalytics(detailedEnabled);
+  // The Summary itself is built from the detailed analytics, so this query stays on
+  const { data: detailed, isLoading: detailedLoading } = useDetailedAnalytics(true);
 
   if (cacheLoading || !cache) {
     return <PageLoader />;
@@ -93,7 +97,7 @@ export const PerformanceDashboard: React.FC = () => {
         </div>
       </div>
 
-      <TabSwitcher active={activeTab} onChange={setActiveTab} />
+      {SHOW_ADVANCED_TABS && <TabSwitcher active={activeTab} onChange={setActiveTab} />}
 
       <AnimatePresence mode="wait">
         {activeTab === 'summary' && (
@@ -107,12 +111,12 @@ export const PerformanceDashboard: React.FC = () => {
             <SummaryView
               cache={cache}
               detailed={detailed}
-              onSwitchToInsights={() => setActiveTab('insights')}
+              onSwitchToInsights={SHOW_ADVANCED_TABS ? () => setActiveTab('insights') : undefined}
             />
           </motion.div>
         )}
 
-        {activeTab === 'detailed' && (
+        {SHOW_ADVANCED_TABS && activeTab === 'detailed' && (
           <motion.div
             key="detailed"
             initial={{ opacity: 0 }}
@@ -120,15 +124,13 @@ export const PerformanceDashboard: React.FC = () => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            {detailedLoading || !detailed ? (
-              <PageLoader />
-            ) : (
-              <DetailedView data={detailed} />
-            )}
+            <Suspense fallback={<PageLoader />}>
+              {detailedLoading || !detailed ? <PageLoader /> : <DetailedView data={detailed} />}
+            </Suspense>
           </motion.div>
         )}
 
-        {activeTab === 'insights' && (
+        {SHOW_ADVANCED_TABS && activeTab === 'insights' && (
           <motion.div
             key="insights"
             initial={{ opacity: 0 }}
@@ -136,7 +138,9 @@ export const PerformanceDashboard: React.FC = () => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            <InsightsView />
+            <Suspense fallback={<PageLoader />}>
+              <InsightsView />
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { toast } from '@llb/core';
-import { Goal, AIGeneratedPlanSlot, buildPersonaPromptBlock, getDailyHourBudget } from '@llb/core';
+import { Goal, AIGeneratedPlanSlot, buildPersonaPromptBlock, bucketPromptLine, getDailyHourBudget } from '@llb/core';
 import { recordGenTime } from '@/components/common/ai-loading-popup';
 import { useUserProfile } from '@llb/api';
 import { supabase } from '@/lib/supabaseClient';
@@ -60,6 +60,7 @@ System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
 Target Milestone Dates:
 ${milestoneDatesStr}
 
+${bucketPromptLine(goal.bucket)}
 ${buildPersonaPromptBlock(profile, goal.goalContext)}
 
 Based on this, break down the main goal into weighted sub-tasks/sub-goals that need to be accomplished by the end of each milestone period.

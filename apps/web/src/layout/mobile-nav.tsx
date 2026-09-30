@@ -11,7 +11,7 @@ const navigation = [
     { name: 'Goals', href: '/goals', icon: Target },
     { name: 'Planner', href: '/planner', icon: CalendarDays },
     { name: 'Vault', href: '/vault', icon: Vault },
-    { name: 'Stats', href: '/statistics', icon: BarChart2 },
+    { name: 'Perf', href: '/statistics', icon: BarChart2 },
 ];
 
 export const MobileNav: React.FC = () => {

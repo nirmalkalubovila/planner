@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Sparkles, X, Check, ExternalLink, MessageSquareCheck } from 'lucide-react';
+import { AlertTriangle, Sparkles, X, Check, MessageSquareCheck } from 'lucide-react';
 import { useLatestUpdate } from '@/hooks/use-latest-update';
 import { useLandingSettings } from '@/api/services/feedback-service';
 import { FeedbackForm } from '@/components/common/feedback-form';
-import { useNavigate } from 'react-router-dom';
 
 export const AnnouncementBanner: React.FC = () => {
     const { data: latestUpdate } = useLatestUpdate();
@@ -12,7 +11,6 @@ export const AnnouncementBanner: React.FC = () => {
 
     const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
-    const navigate = useNavigate();
 
     const [isFeedbackSubmitted, setIsFeedbackSubmitted] = useState(false);
 
@@ -217,13 +215,6 @@ export const AnnouncementBanner: React.FC = () => {
                                     >
                                         Follow on TikTok for updates
                                     </a>
-                                    <button
-                                        type="button"
-                                        onClick={() => { setModalOpen(false); navigate('/profile?tab=updater'); }}
-                                        className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer font-medium"
-                                    >
-                                        More info <ExternalLink size={9} />
-                                    </button>
                                 </div>
 
                                 {/* Got it, Mark as Read Button */}

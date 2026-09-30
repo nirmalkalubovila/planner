@@ -11,21 +11,21 @@ export const XpBurst: React.FC<DailyThemeProps> = ({ completedPoints, totalPoint
     let levelColor = "text-slate-400";
     let levelNum = 1;
 
-    if (isRelentless) { levelIdentity = "Relentless"; levelColor = "text-purple-300"; levelNum = 10; }
-    else if (progress >= 80) { levelIdentity = "Disciplined"; levelColor = "text-blue-400"; levelNum = 8; }
-    else if (progress >= 50) { levelIdentity = "Consistent"; levelColor = "text-green-400"; levelNum = 5; }
-    else if (progress >= 20) { levelIdentity = "Awakening"; levelColor = "text-yellow-400"; levelNum = 2; }
+    if (isRelentless) { levelIdentity = "Relentless"; levelColor = "text-[#f3d98a]"; levelNum = 10; }
+    else if (progress >= 80) { levelIdentity = "Disciplined"; levelColor = "text-[#e9c468]"; levelNum = 8; }
+    else if (progress >= 50) { levelIdentity = "Consistent"; levelColor = "text-[#e9c468]"; levelNum = 5; }
+    else if (progress >= 20) { levelIdentity = "Awakening"; levelColor = "text-[#e9c468]"; levelNum = 2; }
 
     return (
         <div className="flex flex-col items-center justify-center py-10 w-full max-w-sm mx-auto relative">
-            {isRelentless && <div className="absolute inset-0 bg-purple-500/20 blur-[60px] animate-pulse rounded-full pointer-events-none"></div>}
+            {isRelentless && <div className="absolute inset-0 bg-[#D2A226]/20 blur-[60px] animate-pulse rounded-full pointer-events-none"></div>}
             <div className="flex items-end justify-between w-full mb-4 px-1 z-10">
                 <div className="flex flex-col">
                     {!isRelentless && <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Current Status</span>}
                     <span className={cn(
                         "text-2xl font-black uppercase tracking-widest transition-all duration-700",
                         levelColor,
-                        isRelentless && "text-5xl drop-shadow-[0_0_30px_rgba(192,132,252,1)]"
+                        isRelentless && "text-5xl drop-shadow-[0_0_30px_rgba(210,162,38,1)]"
                     )}>
                         {levelIdentity}
                     </span>
@@ -38,12 +38,12 @@ export const XpBurst: React.FC<DailyThemeProps> = ({ completedPoints, totalPoint
             </div>
             <div className={cn(
                 "w-full bg-slate-900 border-2 rounded-lg overflow-hidden relative shadow-inner skew-x-[-10deg] transition-all duration-1000 z-10",
-                isRelentless ? "h-8 border-purple-400 shadow-[0_0_20px_rgba(192,132,252,0.8)] scale-105" : "h-6 border-slate-700"
+                isRelentless ? "h-8 border-[#e9c468] shadow-[0_0_20px_rgba(210,162,38,0.8)] scale-105" : "h-6 border-slate-700"
             )}>
                 <div
                     className={cn(
                         "h-full bg-gradient-to-r transition-all duration-1000",
-                        isRelentless ? "from-purple-600 via-pink-500 to-purple-600 animate-[pulse_1s_infinite]" : "from-blue-600 to-cyan-400"
+                        isRelentless ? "from-[#b8891c] via-[#D2A226] to-[#b8891c] animate-[pulse_1s_infinite]" : "from-[#b8891c] to-[#e9c468]"
                     )}
                     style={{ width: `${progress}%` }}
                 >
@@ -54,9 +54,9 @@ export const XpBurst: React.FC<DailyThemeProps> = ({ completedPoints, totalPoint
             <div className="mt-4 z-10">
                 {isRelentless ? (
                     <div className="flex gap-1 animate-bounce">
-                        <Star className="text-yellow-400 fill-yellow-400" size={16} />
-                        <Star className="text-yellow-400 fill-yellow-400" size={16} />
-                        <Star className="text-yellow-400 fill-yellow-400" size={16} />
+                        <Star className="text-[#e9c468] fill-[#e9c468]" size={16} />
+                        <Star className="text-[#e9c468] fill-[#e9c468]" size={16} />
+                        <Star className="text-[#e9c468] fill-[#e9c468]" size={16} />
                     </div>
                 ) : (
                     <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">

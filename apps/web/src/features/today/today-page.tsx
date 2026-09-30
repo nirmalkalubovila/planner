@@ -32,9 +32,11 @@ export const TodayPage: React.FC = () => {
     const isTaskCompleted = (taskId: string) => (completedTasks || []).includes(taskId);
 
     return (
-        <div className="flex flex-col space-y-6 pb-20 px-2 md:px-4 pt-8 sm:pt-12">
+        <div className="flex flex-col pb-20 px-2 md:px-4">
 
-            <div className="flex justify-between items-end mb-4 border-b border-border pb-6">
+            {/* Fixed at the top while the task list scrolls beneath it, so completing a task is always seen */}
+            <div className="sticky top-0 z-20 -mx-2 md:-mx-4 px-2 md:px-4 pt-6 sm:pt-8 bg-background space-y-3 pb-3 border-b border-border/40">
+            <div className="flex justify-between items-end border-b border-border pb-4">
                 <div className="flex flex-col gap-2">
                     <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground leading-none">Today's Schedule</h2>
                     <div className="flex items-center gap-2">
@@ -73,6 +75,7 @@ export const TodayPage: React.FC = () => {
                     />
                 </div>
             )}
+            </div>
 
                 {tasks.length === 0 ? (
                     <div className="py-24 text-center">
@@ -88,7 +91,7 @@ export const TodayPage: React.FC = () => {
                         </Button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4 pb-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4 pb-12 pt-3">
                         {tasks.map((task) => {
                             const completed = isTaskCompleted(task.id);
                             return (

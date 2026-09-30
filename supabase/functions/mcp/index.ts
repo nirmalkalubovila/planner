@@ -26,6 +26,11 @@
 // @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+import {
+  breakdownLevels, getMilestoneDates, getMilestonePeriods, getMonthPeriods, getWeekPeriods, parseISODate, pickCurrentIndex, todayISO,
+  type Period,
+} from "./breakdown.ts";
+
 declare const Deno: {
   serve: (handler: (req: Request) => Promise<Response>) => void;
   env: { get: (key: string) => string | undefined };
@@ -38,7 +43,21 @@ const corsHeaders = {
 };
 
 const DEFAULT_PROTOCOL_VERSION = "2025-06-18";
-const SERVER_INFO = { name: "legacy-life-builder-planner", version: "1.0.0" };
+const SERVER_INFO = { name: "legacy-life-builder-planner", version: "1.1.0" };
+
+// Returned to Claude when it connects, so the planning rules apply to every chat without the user repeating them.
+const INSTRUCTIONS = `You plan goals, habits and weeks for the user of Legacy Life Builder. Follow these rules every time.
+
+1. EVERY goal, habit and scheduled task belongs to exactly one life bucket: income (paid work, clients), asset (skills, content, learning, side projects), recovery (sleep, rest, exercise, health) or relational (family, friends, real connection). Always pass "bucket". Never create anything without one. place_task may omit it only when goalId is given, and then inherits the goal's bucket.
+2. Break every goal down by its type, from the top level to weeks:
+   - Year goal: years, then the months of every year, then the weeks of the current month.
+   - Month goal: months, then the weeks of the current month.
+   - Week goal: weeks only.
+   Pass this as "plans" (nested "children"). Counts must match the dates exactly. If create_goal rejects a count, fix it and call again.
+3. Weeks of future months are filled in later, automatically, when those months arrive. Do not invent them now.
+4. Before scheduling, call get_week_plan and never place work over sleep or habits. Keep the user's hour budget realistic.
+5. When you plan a week, set BOTH levels: 1-3 weekly outcomes (set_weekly_outcomes), then exactly one outcome for each day that matters (set_daily_outcomes, or the dailyOutcomes field of set_weekly_outcomes), each linked to the weekly outcome it advances with contributesTo.
+6. Read before you write: call get_goals and get_habits first, reuse existing goals instead of creating duplicates, and keep buckets consistent with what the user already chose.`;
 
 // ─── Date / week / slot helpers ────────────────────────────────
 // These mirror WeekUtils in @llb/core exactly. They're restated here
@@ -112,6 +131,153 @@ function timeToEndSlot(t: string): number {
   return Math.ceil((Number(m[1]) * 60 + Number(m[2])) / 30);
 }
 
+// ─── Buckets ───────────────────────────────────────────────────
+
+const BUCKETS = ["income", "asset", "recovery", "relational"] as const;
+type Bucket = typeof BUCKETS[number];
+const BUCKET_HELP = "income (paid work), asset (skills, content, learning), recovery (sleep, rest, exercise, health) or relational (family, friends)";
+
+function parseBucket(value: unknown, what: string): Bucket {
+  if (typeof value === "string" && (BUCKETS as readonly string[]).includes(value)) return value as Bucket;
+  throw new Error(`Every ${what} needs a life bucket: ${BUCKET_HELP}. Got ${value === undefined ? "nothing" : JSON.stringify(value)}.`);
+}
+
+/** Copies a bucket onto a whole plan tree (used when a goal's bucket changes). */
+function applyBucket(plans: any[], bucket: Bucket): any[] {
+  return (plans || []).map((p) => ({ ...p, bucket, ...(p.subPlans ? { subPlans: applyBucket(p.subPlans, bucket) } : {}) }));
+}
+
+// ─── Goal breakdown: years -> months -> weeks ──────────────────
+
+interface PlanNode { title?: string; description?: string; estimatedHours?: number; children?: PlanNode[] }
+
+function nodeToSlot(node: PlanNode, date: string, period: { start: string; end: string }, bucket: Bucket, where: string) {
+  if (!node || typeof node.title !== "string" || !node.title.trim()) throw new Error(`${where} needs a "title".`);
+  const hours = Number(node.estimatedHours);
+  return {
+    date,
+    dayTask: node.title.trim(),
+    description: String(node.description ?? "").trim(),
+    ...(Number.isFinite(hours) && hours > 0 ? { estimatedHours: hours } : {}),
+    periodStart: period.start,
+    periodEnd: period.end,
+    bucket,
+  };
+}
+
+const describePeriods = (periods: Period[]) => periods.map((p, i) => `${i + 1}. ${p.label} (${p.start} to ${p.end})`).join("; ");
+
+function expectCount(where: string, unit: string, periods: Period[], got: number) {
+  if (got !== periods.length) {
+    throw new Error(`${where} must have exactly ${periods.length} ${unit} but ${got} were given. Expected: ${describePeriods(periods)}.`);
+  }
+}
+
+/**
+ * Validates Claude's nested plan against the goal's real dates and turns it into the stored plans tree.
+ * Rolling rule: every year gets its months; only the current month must get its weeks (others are optional).
+ */
+function buildPlans(goalType: string, startDate: string, milestoneDates: string[], nodes: PlanNode[], bucket: Bucket) {
+  const tops = getMilestonePeriods(startDate, milestoneDates);
+  const unit = goalType === "Year" ? "years" : goalType === "Month" ? "months" : "weeks";
+  if (!Array.isArray(nodes) || nodes.length !== tops.length) {
+    throw new Error(`"plans" must have exactly ${tops.length} ${unit} (one per milestone) but ${Array.isArray(nodes) ? nodes.length : 0} were given. Expected: ${describePeriods(tops.map((t) => ({ ...t, label: t.end })))}.`);
+  }
+
+  const today = todayISO();
+  const curTop = pickCurrentIndex(tops, today);
+  let curMonthIdx = -1;
+
+  // Which month is "current" depends on the current year's month periods
+  if (goalType === "Year") curMonthIdx = pickCurrentIndex(getMonthPeriods(tops[curTop].start, tops[curTop].end), today);
+
+  return nodes.map((node, i) => {
+    const top = nodeToSlot(node, milestoneDates[i], tops[i], bucket, `Phase ${i + 1} ("plans[${i}]")`) as any;
+    const levels = breakdownLevels(goalType as any);
+    if (levels.length === 0) {
+      if (node.children?.length) throw new Error("A Week goal is already at week level: remove the children.");
+      return top;
+    }
+
+    if (goalType === "Year") {
+      const months = getMonthPeriods(tops[i].start, tops[i].end);
+      const kids = node.children || [];
+      expectCount(`Year ${i + 1} ("plans[${i}].children")`, "months", months, kids.length);
+      top.subPlans = kids.map((m, j) => {
+        const slot = nodeToSlot(m, months[j].label, months[j], bucket, `Month ${j + 1} of year ${i + 1}`) as any;
+        const weeks = getWeekPeriods(months[j].start, months[j].end);
+        const isCurrent = i === curTop && j === curMonthIdx;
+        const wk = m.children || [];
+        if (wk.length > 0 || isCurrent) {
+          expectCount(`${months[j].label} ("plans[${i}].children[${j}].children")`, "weeks", weeks, wk.length);
+          slot.subPlans = wk.map((w, k) => nodeToSlot(w, weeks[k].label, weeks[k], bucket, `Week ${k + 1} of ${months[j].label}`));
+        }
+        return slot;
+      });
+    } else {
+      // Month goal: the top phases are months, their children are weeks (required for the current month only)
+      const weeks = getWeekPeriods(tops[i].start, tops[i].end);
+      const isCurrent = i === curTop;
+      const wk = node.children || [];
+      if (wk.length > 0 || isCurrent) {
+        expectCount(`Month ${i + 1} ("plans[${i}].children")`, "weeks", weeks, wk.length);
+        top.subPlans = wk.map((w, k) => nodeToSlot(w, weeks[k].label, weeks[k], bucket, `Week ${k + 1} of month ${i + 1}`));
+      }
+    }
+    return top;
+  });
+}
+
+interface DailyOutcomeInput { date?: string; text?: string; contributesTo?: number }
+
+/**
+ * Writes day outcomes into bucket_actions.dailyWins, keyed the way the app keys them ("<week>-<1..7>").
+ * Anything the app stored on a day (completed, linked item) is kept. One outcome per day.
+ */
+function applyDailyOutcomes(existing: Record<string, any> | undefined, weekStr: string, items: DailyOutcomeInput[], weeklyCount: number) {
+  const dates = getDaysForWeek(weekStr).map(dateStr);
+  const wins: Record<string, any> = { ...(existing || {}) };
+  const seen = new Set<string>();
+  for (const item of items || []) {
+    const text = typeof item?.text === "string" ? item.text.trim() : "";
+    if (!text) throw new Error("Every daily outcome needs text.");
+    const iso = String(item.date ?? "");
+    const idx = dates.indexOf(iso);
+    if (idx === -1) throw new Error(`Daily outcome date "${iso}" is not in this week (${dates[0]} to ${dates[6]}).`);
+    if (seen.has(iso)) throw new Error(`Only one outcome per day: ${iso} was given twice.`);
+    seen.add(iso);
+    let contributesToKey: string | undefined;
+    if (item.contributesTo !== undefined) {
+      const n = Number(item.contributesTo);
+      if (!Number.isInteger(n) || n < 1 || n > 3 || n > weeklyCount) {
+        throw new Error(weeklyCount === 0
+          ? "Set the weekly outcomes first, then link each day to one with contributesTo."
+          : `contributesTo must be a weekly outcome number from 1 to ${weeklyCount}.`);
+      }
+      contributesToKey = `p${n}`;
+    }
+    const key = `${weekStr}-${idx + 1}`;
+    wins[key] = { ...(wins[key] || {}), text, ...(contributesToKey ? { contributesToKey } : {}) };
+  }
+  return wins;
+}
+
+/** A compact outline of a stored plan so Claude can see what exists and what is still missing. */
+function outlinePlans(plans: any[] | null) {
+  return (plans || []).map((p) => ({
+    phase: p.dayTask,
+    period: p.periodStart && p.periodEnd ? `${p.periodStart} to ${p.periodEnd}` : p.date,
+    hours: p.estimatedHours ?? null,
+    breakdown: (p.subPlans || []).length
+      ? (p.subPlans as any[]).map((c) => ({
+          phase: c.dayTask,
+          period: c.periodStart && c.periodEnd ? `${c.periodStart} to ${c.periodEnd}` : c.date,
+          weeks: (c.subPlans || []).length || "not planned yet (filled automatically when the month arrives)",
+        }))
+      : "not broken down yet",
+  }));
+}
+
 // ─── Grid reading / writing ────────────────────────────────────
 
 interface PlanSlot {
@@ -124,7 +290,7 @@ interface PlanSlot {
 
 /** Collapses a day's filled slots into contiguous blocks. */
 function blocksForDay(state: Record<string, any>, dayIdx: number) {
-  const blocks: { start: string; end: string; name: string; type: string; description?: string }[] = [];
+  const blocks: { start: string; end: string; name: string; type: string; description?: string; bucket?: string }[] = [];
   let runStart = -1;
   let run: PlanSlot | null = null;
 
@@ -136,6 +302,7 @@ function blocksForDay(state: Record<string, any>, dayIdx: number) {
         name: run.name,
         type: run.type,
         ...(run.description ? { description: run.description } : {}),
+        ...(run.bucket ? { bucket: run.bucket } : {}),
       });
     }
     runStart = -1;
@@ -253,15 +420,48 @@ function habitsOnDay(habits: any[], dayIdx: number, onDate: string) {
 const DATE_PROP = { type: "string", description: "Calendar date as YYYY-MM-DD" };
 const TIME_PROP = { type: "string", description: "24-hour time as HH:mm, on a 30-minute grid" };
 
+const DAILY_OUTCOMES_PROP = {
+  type: "array",
+  description: "One outcome per day: the single result that makes that day a win. Link each to the weekly outcome it advances.",
+  items: {
+    type: "object",
+    properties: {
+      date: DATE_PROP,
+      text: { type: "string", description: "Concrete and finishable in a day" },
+      contributesTo: { type: "integer", minimum: 1, maximum: 3, description: "Which weekly outcome this advances: 1, 2 or 3 (the order given to set_weekly_outcomes)" },
+    },
+    required: ["date", "text"],
+    additionalProperties: false,
+  },
+};
+
+const BUCKET_PROP = {
+  type: "string",
+  enum: ["income", "asset", "recovery", "relational"],
+  description: "Life bucket: income (paid work, clients), asset (skills, content, learning, side projects), recovery (sleep, rest, exercise, health) or relational (family, friends).",
+};
+
+const PLAN_LEAF = {
+  type: "object",
+  properties: {
+    title: { type: "string", description: "Short, concrete and measurable" },
+    description: { type: "string" },
+    estimatedHours: { type: "number", description: "Realistic hours for this period" },
+  },
+  required: ["title"],
+};
+const PLAN_MID = { ...PLAN_LEAF, properties: { ...PLAN_LEAF.properties, children: { type: "array", items: PLAN_LEAF, description: "The next level down" } } };
+const PLAN_TOP = { ...PLAN_LEAF, properties: { ...PLAN_LEAF.properties, children: { type: "array", items: PLAN_MID, description: "The next level down" } } };
+
 const TOOLS = [
   {
     name: "get_goals",
-    description: "List the user's goals with their milestones, deadlines and completion progress. Call this before planning work or adjusting milestones.",
+    description: "List the user's goals with their life bucket, milestones, deadlines, progress and the current plan outline (years, months, weeks). Call this before planning work or adjusting milestones.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "get_habits",
-    description: "List the user's recurring habits (name, time of day, which weekdays). These occupy time on the calendar even when not explicitly placed on the grid.",
+    description: "List the user's recurring habits (name, bucket, time of day, which weekdays). These occupy time on the calendar even when not explicitly placed on the grid.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
@@ -284,7 +484,7 @@ const TOOLS = [
   },
   {
     name: "place_task",
-    description: "Schedule a block of work on the user's calendar. Refuses rather than overwrite anything already there.",
+    description: "Schedule a block of work on the user's calendar. Every block needs a life bucket: pass \"bucket\", or pass a goalId and it inherits that goal's bucket. Refuses rather than overwrite anything already there.",
     inputSchema: {
       type: "object",
       properties: {
@@ -294,6 +494,7 @@ const TOOLS = [
         name: { type: "string", description: "Short title shown on the grid" },
         description: { type: "string", description: "Optional detail about what to do" },
         goalId: { type: "string", description: "Goal id this advances, from get_goals. Include whenever the block serves a goal." },
+        bucket: { ...BUCKET_PROP, description: BUCKET_PROP.description + " Required unless goalId is given." },
         allowOverlap: { type: "boolean", description: "Set true only to deliberately schedule over a habit or sleep hours." },
       },
       required: ["date", "startTime", "endTime", "name"],
@@ -328,33 +529,25 @@ const TOOLS = [
   },
   {
     name: "create_goal",
-    description: "Create a new goal, optionally with milestones.",
+    description: "Create a goal with its full breakdown. bucket is required. Provide \"plans\" as the breakdown for the goal type: Year goal = years, each with its months (children), and the weeks (grandchildren) of the current month. Month goal = months, with the weeks of the current month. Week goal = weeks. Counts must match the dates; an error tells you the exact periods expected. Later months' weeks are filled in automatically when they arrive. Milestones are created for you, one per year/month/week.",
     inputSchema: {
       type: "object",
       properties: {
         name: { type: "string", description: "What the goal is" },
-        purpose: { type: "string", description: "Why it matters" },
+        purpose: { type: "string", description: "Why it matters to the user" },
         startDate: DATE_PROP,
         endDate: DATE_PROP,
-        goalType: { type: "string", enum: ["Week", "Month", "Year"], description: "Time horizon. Defaults to Month." },
-        milestones: {
-          type: "array",
-          description: "Checkpoints along the way",
-          items: {
-            type: "object",
-            properties: { title: { type: "string" }, targetDate: DATE_PROP },
-            required: ["title", "targetDate"],
-            additionalProperties: false,
-          },
-        },
+        goalType: { type: "string", enum: ["Week", "Month", "Year"], description: "Week: 1-4 weeks. Month: 2-12 months. Year: 2-10 years." },
+        bucket: BUCKET_PROP,
+        plans: { type: "array", description: "Top-level phases, one per year (Year goal), month (Month goal) or week (Week goal), each with nested children", items: PLAN_TOP },
       },
-      required: ["name", "startDate", "endDate"],
+      required: ["name", "startDate", "endDate", "goalType", "bucket", "plans"],
       additionalProperties: false,
     },
   },
   {
     name: "update_goal",
-    description: "Change a goal's name, purpose or deadline.",
+    description: "Change a goal's name, purpose, deadline or life bucket. Changing the bucket also updates every phase of its plan.",
     inputSchema: {
       type: "object",
       properties: {
@@ -362,6 +555,7 @@ const TOOLS = [
         name: { type: "string" },
         purpose: { type: "string" },
         endDate: DATE_PROP,
+        bucket: BUCKET_PROP,
       },
       required: ["goalId"],
       additionalProperties: false,
@@ -384,8 +578,40 @@ const TOOLS = [
     },
   },
   {
+    name: "create_habit",
+    description: "Create a recurring habit. bucket is required. Habits occupy time on the calendar on their days, so check get_habits and get_week_plan first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        purpose: { type: "string", description: "Why the user does this" },
+        startTime: TIME_PROP,
+        endTime: TIME_PROP,
+        days: { type: "array", items: { type: "string", enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] }, description: "Weekdays it repeats on. Leave empty for every day." },
+        startDate: DATE_PROP,
+        endDate: { ...DATE_PROP, description: "Optional last day. Omit to repeat indefinitely." },
+        bucket: BUCKET_PROP,
+      },
+      required: ["name", "purpose", "startTime", "endTime", "startDate", "bucket"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "set_daily_outcomes",
+    description: "Set the outcome for each day of a week (one per day). Set the weekly outcomes first, then link each day to the weekly outcome it advances with contributesTo. Days you do not mention are left alone.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { ...DATE_PROP, description: "Any date inside the week. Defaults to the current week." },
+        outcomes: DAILY_OUTCOMES_PROP,
+      },
+      required: ["outcomes"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "set_weekly_outcomes",
-    description: "Set the 1-3 headline outcomes that define a successful week for the user.",
+    description: "Set the 1-3 headline outcomes that define a successful week. You can also pass dailyOutcomes (one per day, each linked to a weekly outcome) so the week and its days are planned in one call.",
     inputSchema: {
       type: "object",
       properties: {
@@ -396,6 +622,7 @@ const TOOLS = [
           items: { type: "string" },
           maxItems: 3,
         },
+        dailyOutcomes: DAILY_OUTCOMES_PROP,
       },
       required: ["outcomes"],
       additionalProperties: false,
@@ -429,8 +656,10 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
           startDate: g.startDate,
           endDate: g.endDate,
           goalType: g.goalType,
+          bucket: g.bucket ?? "MISSING -- set one with update_goal before planning work for this goal",
           progress: milestones.length ? `${done}/${milestones.length} milestones complete` : "no milestones",
           milestones: milestones.map((m: any) => ({ title: m.title, targetDate: m.targetDate, completed: !!m.completed })),
+          plan: outlinePlans(g.plans),
         };
       });
       return JSON.stringify({ goals }, null, 2);
@@ -440,7 +669,10 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
       const { data, error } = await admin.from("habits").select("*").eq("user_id", userId);
       if (error) throw new Error(error.message);
       const habits = (data || []).map((h: any) => ({
+        habitId: h.id,
         name: h.name,
+        bucket: h.bucket ?? "MISSING",
+        purpose: h.purpose || undefined,
         startTime: h.startTime,
         endTime: h.endTime,
         days: (h.daysOfWeek || []).length ? h.daysOfWeek : "every day",
@@ -468,7 +700,7 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
           weekday: DAY_NAMES[dayIdx],
           scheduled: blocksForDay(state, dayIdx),
           habits: habitsOnDay(habitRows || [], dayIdx, iso).map((h: any) => ({
-            name: h.name, start: h.startTime, end: h.endTime,
+            name: h.name, start: h.startTime, end: h.endTime, bucket: h.bucket || undefined,
           })),
         };
       });
@@ -490,13 +722,25 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
         .eq("user_id", userId).eq("week", formatWeekDisplay(weekStr)).maybeSingle();
       const raw = (data?.bucket_actions || {}) as Record<string, any>;
       const outcomes = ["p1", "p2", "p3"]
-        .map((k, i) => ({ slot: i + 1, text: raw[k]?.text || null }))
+        .map((k, i) => ({ slot: i + 1, text: raw[k]?.text || null, bucket: raw[k]?.bucket || undefined }))
         .filter((o) => o.text);
       return JSON.stringify({
         week: weekStr,
         weekLabel: formatWeekDisplay(weekStr),
         weeklyOutcomes: outcomes,
-        dailyOutcomes: raw.dailyWins || {},
+        dailyOutcomes: Object.entries((raw.dailyWins || {}) as Record<string, any>)
+          .map(([key, v]) => {
+            const n = Number(key.split("-").pop());
+            const day = getDaysForWeek(weekStr)[n - 1];
+            return {
+              date: day ? dateStr(day) : key,
+              text: v?.text || "",
+              contributesTo: v?.contributesToKey ? Number(String(v.contributesToKey).replace("p", "")) : undefined,
+              completed: v?.completed || false,
+            };
+          })
+          .filter((d) => d.text)
+          .sort((a, b) => a.date.localeCompare(b.date)),
       }, null, 2);
     }
 
@@ -508,6 +752,19 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
       const endSlot = Math.max(startSlot + 1, timeToEndSlot(args.endTime));
       if (endSlot > 48) throw new Error("A block cannot run past midnight -- split it across two days.");
       if (!args.name?.trim()) throw new Error("name is required");
+
+      // Every block belongs to a life bucket: explicit, or inherited from the goal it serves
+      let bucket: Bucket;
+      if (args.bucket !== undefined) {
+        bucket = parseBucket(args.bucket, "task");
+      } else if (args.goalId) {
+        const { data: goalRow, error: goalErr } = await admin.from("goals").select("bucket").eq("id", args.goalId).eq("user_id", userId).maybeSingle();
+        if (goalErr) throw new Error(goalErr.message);
+        if (!goalRow) throw new Error(`No goal found with id ${args.goalId}.`);
+        bucket = parseBucket(goalRow.bucket, "goal (this goal has no bucket yet -- set one with update_goal, or pass bucket here)");
+      } else {
+        throw new Error(`Every task needs a life bucket: ${BUCKET_HELP}. Pass "bucket", or pass a goalId so it inherits the goal's bucket.`);
+      }
 
       if (!args.allowOverlap) {
         const [{ data: habitRows }, profile] = await Promise.all([
@@ -542,11 +799,12 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
           name: args.name.trim(),
           ...(args.description ? { description: args.description } : {}),
           ...(args.goalId ? { goalId: args.goalId } : {}),
+          bucket,
         };
         for (let s = startSlot; s < endSlot; s++) state[`${dayIdx}-${s}`] = { ...slot };
       });
 
-      return `Scheduled "${args.name.trim()}" on ${args.date} from ${slotToTime(startSlot)} to ${slotToTime(endSlot)}.`;
+      return `Scheduled "${args.name.trim()}" (${bucket}) on ${args.date} from ${slotToTime(startSlot)} to ${slotToTime(endSlot)}.`;
     }
 
     case "move_task": {
@@ -617,24 +875,49 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
     }
 
     case "create_goal": {
-      const milestones = (args.milestones || []).map((m: any, i: number) => ({
+      const bucket = parseBucket(args.bucket, "goal");
+      if (!args.name?.trim()) throw new Error("name is required");
+      const goalType = args.goalType;
+      if (!["Week", "Month", "Year"].includes(goalType)) throw new Error('goalType must be "Week", "Month" or "Year".');
+      if (!parseISODate(args.startDate) || !parseISODate(args.endDate)) throw new Error("startDate and endDate must be valid YYYY-MM-DD dates.");
+
+      const milestoneDates = getMilestoneDates(goalType, args.startDate, args.endDate);
+      if (milestoneDates.length === 0) throw new Error("endDate must be after startDate.");
+      const limits: Record<string, [number, number]> = { Week: [1, 4], Month: [2, 12], Year: [2, 10] };
+      const [min, max] = limits[goalType];
+      if (milestoneDates.length < min || milestoneDates.length > max) {
+        throw new Error(`A ${goalType} goal must span ${min}-${max} ${goalType.toLowerCase()}s, but these dates span ${milestoneDates.length}. Adjust the dates or the goalType.`);
+      }
+
+      const plans = buildPlans(goalType, args.startDate, milestoneDates, args.plans, bucket);
+      const unit = goalType;
+      const milestones = milestoneDates.map((date: string, i: number) => ({
         id: `m-${Date.now()}-${i}`,
-        title: m.title,
-        targetDate: m.targetDate,
+        title: `End of ${unit} ${i + 1}`,
+        targetDate: date,
         completed: false,
       }));
+
       const { data, error } = await admin.from("goals").insert({
         user_id: userId,
         name: args.name,
         title: args.name,
         purpose: args.purpose || "",
         startDate: args.startDate,
-        endDate: args.endDate,
-        goalType: args.goalType || "Month",
+        endDate: milestoneDates[milestoneDates.length - 1],
+        goalType,
+        bucket,
         milestones,
+        plans,
       }).select("id").single();
       if (error) throw new Error(error.message);
-      return `Created goal "${args.name}" (id ${data.id}) with ${milestones.length} milestone(s).`;
+
+      const monthCount = plans.reduce((n: number, p: any) => n + (goalType === "Year" ? (p.subPlans || []).length : 0), 0);
+      const weekCount = plans.reduce((n: number, p: any) => n + (goalType === "Year"
+        ? (p.subPlans || []).reduce((m: number, c: any) => m + (c.subPlans || []).length, 0)
+        : (p.subPlans || []).length), 0);
+      return `Created ${goalType} goal "${args.name}" (id ${data.id}, bucket ${bucket}) with ${milestones.length} ${unit.toLowerCase()}-level phase(s)` +
+        `${monthCount ? `, ${monthCount} month(s)` : ""}${weekCount ? ` and ${weekCount} week(s)` : ""}. Weeks for later months are planned automatically when those months arrive.`;
     }
 
     case "update_goal": {
@@ -642,6 +925,12 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
       if (args.name) { patch.name = args.name; patch.title = args.name; }
       if (args.purpose !== undefined) patch.purpose = args.purpose;
       if (args.endDate) patch.endDate = args.endDate;
+      if (args.bucket !== undefined) {
+        const bucket = parseBucket(args.bucket, "goal");
+        patch.bucket = bucket;
+        const { data: current } = await admin.from("goals").select("plans").eq("id", args.goalId).eq("user_id", userId).maybeSingle();
+        if (current?.plans) patch.plans = applyBucket(current.plans, bucket);
+      }
 
       const { data, error } = await admin.from("goals")
         .update(patch).eq("id", args.goalId).eq("user_id", userId).select("name");
@@ -679,6 +968,31 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
       return `Updated milestone "${before.title}" on "${goal.name}": ${JSON.stringify(milestones[fuzzy])}`;
     }
 
+    case "create_habit": {
+      const bucket = parseBucket(args.bucket, "habit");
+      if (!args.name?.trim()) throw new Error("name is required");
+      if (!args.purpose?.trim()) throw new Error("purpose is required: say why the user does this habit.");
+      timeToSlot(args.startTime);
+      timeToEndSlot(args.endTime);
+      if (!parseISODate(args.startDate)) throw new Error("startDate must be a valid YYYY-MM-DD date.");
+      if (args.endDate && !parseISODate(args.endDate)) throw new Error("endDate must be a valid YYYY-MM-DD date.");
+      const days: string[] = (args.days || []).filter((d: string) => DAY_NAMES.includes(d));
+
+      const { data, error } = await admin.from("habits").insert({
+        user_id: userId,
+        name: args.name.trim(),
+        purpose: args.purpose.trim(),
+        startTime: args.startTime,
+        endTime: args.endTime,
+        startDate: args.startDate,
+        ...(args.endDate ? { endDate: args.endDate } : {}),
+        daysOfWeek: days,
+        bucket,
+      }).select("id").single();
+      if (error) throw new Error(error.message);
+      return `Created habit "${args.name.trim()}" (id ${data.id}, bucket ${bucket}) ${args.startTime}-${args.endTime} on ${days.length ? days.join(", ") : "every day"}.`;
+    }
+
     case "set_weekly_outcomes": {
       const anchor = args?.date ? parseDate(args.date) : new Date();
       const weekStr = dateToWeekStr(anchor);
@@ -694,6 +1008,9 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
         if (texts[i]) next[key] = { ...(existing[key] || {}), text: texts[i] };
         else delete next[key];
       });
+      if (Array.isArray(args.dailyOutcomes) && args.dailyOutcomes.length > 0) {
+        next.dailyWins = applyDailyOutcomes(existing.dailyWins, weekStr, args.dailyOutcomes, texts.length);
+      }
 
       if (row) {
         const { error } = await admin.from("week_plans")
@@ -705,7 +1022,32 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
         if (error) throw new Error(error.message);
       }
 
-      return `Set ${texts.length} weekly outcome(s) for ${dbWeekKey}: ${texts.map((t) => `"${t}"`).join(", ")}.`;
+      const dailyCount = Array.isArray(args.dailyOutcomes) ? args.dailyOutcomes.length : 0;
+      return `Set ${texts.length} weekly outcome(s) for ${dbWeekKey}: ${texts.map((t) => `"${t}"`).join(", ")}.${dailyCount ? ` Also set ${dailyCount} daily outcome(s).` : ""}`;
+    }
+
+    case "set_daily_outcomes": {
+      const anchor = args?.date ? parseDate(args.date) : new Date();
+      const weekStr = dateToWeekStr(anchor);
+      const dbWeekKey = formatWeekDisplay(weekStr);
+      if (!Array.isArray(args.outcomes) || args.outcomes.length === 0) throw new Error("Provide at least one daily outcome.");
+
+      const { data: row } = await admin.from("week_plans")
+        .select("bucket_actions").eq("user_id", userId).eq("week", dbWeekKey).maybeSingle();
+      const existing = (row?.bucket_actions || {}) as Record<string, any>;
+      const weeklyCount = ["p1", "p2", "p3"].filter((k) => existing[k]?.text).length;
+      const next = { ...existing, dailyWins: applyDailyOutcomes(existing.dailyWins, weekStr, args.outcomes, weeklyCount) };
+
+      if (row) {
+        const { error } = await admin.from("week_plans")
+          .update({ bucket_actions: next }).eq("user_id", userId).eq("week", dbWeekKey);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await admin.from("week_plans")
+          .insert({ user_id: userId, week: dbWeekKey, state: {}, bucket_actions: next });
+        if (error) throw new Error(error.message);
+      }
+      return `Set ${args.outcomes.length} daily outcome(s) for ${dbWeekKey}: ${args.outcomes.map((o: any) => `${o.date} "${String(o.text).trim()}"`).join("; ")}.`;
     }
 
     default:
@@ -744,6 +1086,7 @@ async function handleRpc(admin: any, userId: string, message: any): Promise<any 
         protocolVersion: version,
         capabilities: { tools: { listChanged: false } },
         serverInfo: SERVER_INFO,
+        instructions: INSTRUCTIONS,
       });
     }
 

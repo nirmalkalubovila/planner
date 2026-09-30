@@ -889,6 +889,10 @@ export type Database = {
         }[]
       }
       get_admin_user_detail: { Args: { p_user_id: string }; Returns: Json }
+      grant_feedback_consent: {
+        Args: { p_name: string; p_position: string; p_avatar_url: string }
+        Returns: undefined
+      }
       get_marketing_recipients: {
         Args: { p_audience?: string }
         Returns: { user_id: string; email: string; full_name: string }[]

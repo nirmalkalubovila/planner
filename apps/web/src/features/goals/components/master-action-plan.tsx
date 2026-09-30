@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { AILoadingPopup, recordGenTime } from '@/components/common/ai-loading-popup';
-import { Goal, AIGeneratedPlanSlot, buildPersonaPromptBlock, getDailyHourBudget, type PromptProfile } from '@llb/core';
-import { format, parseISO, addDays, addMonths, differenceInCalendarDays, min as minDate, parse as dateParse } from 'date-fns';
+import { Goal, AIGeneratedPlanSlot, type PromptProfile } from '@llb/core';
+import { format, parseISO, parse as dateParse } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Check, Save, X, Edit3, ChevronRight, ChevronDown, BrainCircuit, UserCog, Trash2, Clock, Play, CalendarDays } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@llb/api';
+import { generateSubPlans, periodsFor } from '../lib/breakdown-ai';
 import { toast } from '@llb/core';
 
 interface MasterActionPlanProps {
@@ -27,38 +28,21 @@ function getExpansionType(goalType: string, depth: number): 'Months' | 'Weeks' |
     return null;
 }
 
-function getWeekRanges(periodStart: Date, periodEnd: Date): { start: Date; end: Date; label: string }[] {
-    const totalDays = differenceInCalendarDays(periodEnd, periodStart);
-    if (totalDays <= 0) return [];
-    const weeks: { start: Date; end: Date; label: string }[] = [];
-    let cursor = periodStart;
-    while (differenceInCalendarDays(periodEnd, cursor) > 0) {
-        const weekEnd = minDate([addDays(cursor, 6), addDays(periodEnd, -1)]);
-        weeks.push({ start: cursor, end: weekEnd, label: `${format(cursor, 'MMMM d')} - ${format(weekEnd, 'MMMM d')}` });
-        cursor = addDays(weekEnd, 1);
-    }
-    return weeks;
-}
-
-function getMonthRanges(periodStart: Date, periodEnd: Date): { start: Date; end: Date; label: string }[] {
-    const months: { start: Date; end: Date; label: string }[] = [];
-    let cursor = new Date(periodStart);
-    while (differenceInCalendarDays(periodEnd, cursor) > 0) {
-        const nextMonth = addMonths(cursor, 1);
-        const monthEnd = minDate([nextMonth, periodEnd]);
-        if (differenceInCalendarDays(monthEnd, cursor) > 0) {
-            months.push({ start: new Date(cursor), end: new Date(monthEnd), label: format(cursor, 'MMMM yyyy') });
-        }
-        cursor = nextMonth;
-    }
-    return months;
-}
-
 function getPeriodStartForSlot(goal: Goal, slotDate: string): Date {
     const sortedMilestones = (goal.milestones || []).slice().sort((a, b) => a.targetDate.localeCompare(b.targetDate));
     const milestoneIdx = sortedMilestones.findIndex(m => m.targetDate === slotDate);
     if (milestoneIdx <= 0) return parseISO(goal.startDate);
     return parseISO(sortedMilestones[milestoneIdx - 1].targetDate);
+}
+
+/** Exact ISO bounds of a phase. Phases written by the new breakdown carry them; older ones are parsed from their label. */
+function resolvePeriod(goal: Goal, slot: AIGeneratedPlanSlot, overrideStart?: Date, overrideEnd?: Date): { start: string; end: string } | null {
+    if (slot.periodStart && slot.periodEnd) return { start: slot.periodStart, end: slot.periodEnd };
+    const range = parseDateRange(slot.date);
+    const start = overrideStart || range?.start || getPeriodStartForSlot(goal, slot.date);
+    const end = overrideEnd || range?.end || parseISO(slot.date);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
+    return { start: format(start, 'yyyy-MM-dd'), end: format(end, 'yyyy-MM-dd') };
 }
 
 function cleanDateString(dateStr: string): string {
@@ -164,10 +148,15 @@ const SubPlanRow = ({
     let nestedPeriodStart: Date | undefined;
     let nestedPeriodEnd: Date | undefined;
     if (deeperType === 'Weeks') {
-        const range = parseDateRange(slot.date);
-        if (range) {
-            nestedPeriodStart = range.start;
-            nestedPeriodEnd = range.end;
+        if (slot.periodStart && slot.periodEnd) {
+            nestedPeriodStart = parseISO(slot.periodStart);
+            nestedPeriodEnd = parseISO(slot.periodEnd);
+        } else {
+            const range = parseDateRange(slot.date);
+            if (range) {
+                nestedPeriodStart = range.start;
+                nestedPeriodEnd = range.end;
+            }
         }
     }
 
@@ -279,67 +268,9 @@ const BreakdownSection = ({
         setGenerating(true);
         const genStart = Date.now();
         try {
-            const parentLevelTasks = goal.plans?.map(p => p.dayTask).join(', ') || '';
-            const range = parseDateRange(slot.date);
-            const periodStart = overridePeriodStart || range?.start || getPeriodStartForSlot(goal, slot.date);
-            const periodEnd = overridePeriodEnd || range?.end || parseISO(slot.date);
-            let dynamicCount: number;
-            let dateRangesDescription: string;
-
-            if (isWeekLevel) {
-                const ranges = getWeekRanges(periodStart, periodEnd);
-                dynamicCount = ranges.length;
-                dateRangesDescription = ranges.map((w, i) => `Week ${i + 1}: ${format(w.start, 'yyyy-MM-dd')} to ${format(w.end, 'yyyy-MM-dd')} (${w.label})`).join('\n');
-            } else {
-                const ranges = getMonthRanges(periodStart, periodEnd);
-                dynamicCount = ranges.length;
-                dateRangesDescription = ranges.map((m, i) => `Month ${i + 1}: ${format(m.start, 'yyyy-MM-dd')} to ${format(m.end, 'yyyy-MM-dd')} (${m.label})`).join('\n');
-            }
-
-            const budget = getDailyHourBudget(profile);
-            const prompt = `Generate a detailed hierarchical action plan breakdown for the following phase of the overall goal.
-Goal Title: ${goal.title || ''}
-Goal Description/Mission: ${goal.name}
-Goal Purpose: ${goal.purpose}
-Goal Start Date: ${goal.startDate}
-Phase Target Task (with parent target count): ${slot.dayTask}
-Phase Strategy/Description: ${slot.description}
-Phase Timeline Date/Range: ${slot.date}
-System Current Date: ${format(new Date(), 'MMMM d, yyyy')}
-${buildPersonaPromptBlock(profile, goal.goalContext)}
-Tailor tasks specifically to fit this person's profession, life focus, and energy cycles when possible.
-Context - The surrounding sibling phases in the overall plan are: ${parentLevelTasks}. Ensure this new breakdown strictly stays within the current phase's boundaries.
-
-PRAGMATIC STRATEGY RULES (ACT AS AN ELITE PERFORMANCE ARCHITECT):
-1. ZERO FLUFF: Do not include motivational quotes, generic encouragement, or vague advice in the title ("dayTask") or details ("description"). Provide only tactical, executable tasks.
-2. RESPECT CONSTRAINTS: Rigorously apply the constraints, starting situation, and resource limitations provided by the user. Early phases must focus on bootstrapping, free validation, or skill acquisition if time/money are limited.
-3. CURRENCY ALIGNMENT: If a specific currency (e.g., LKR) or metric is provided in the goal parameters, use it for all financial estimations, sub-goal targets, and milestones.
-4. METRIC-DRIVEN: Every generated task must have a quantifiable metric or threshold of completion in the title or description that proves the task is complete.
-
-NUMERICAL PROGRESSION & TARGET INTERPOLATION:
-If the Goal Title, Description, Purpose, or the Phase Target Task contains a specific numeric target (e.g., "reach 10k followers", "reach 1k followers"), you MUST mathematically interpolate/scale this target across the ${dynamicCount} sequential sub-milestones (representing ${expansionType}).
-- Proportionally distribute the numeric target progress over these ${dynamicCount} periods.
-- Specify the progressive target numbers clearly in each sub-milestone's title ("dayTask") and details ("description") (e.g. Week 1: Reach 400 followers, Week 2: Reach 600 followers, Week 3: Reach 800 followers, Week 4: Reach 1k followers).
-
-REALISTIC ESTIMATED HOURS:
-- The "estimatedHours" MUST be a highly realistic, non-generic estimation of the cumulative hours required to execute that specific sub-milestone task.
-- PRACTICAL HOURLY LIMITS: Do not estimate impractical hours. For this person, the absolute maximum quality work hours is ${budget.max} hours a day (${budget.max * 7} hours a week, ${budget.max * 30} hours a month).
-- Their standard budget is ${budget.target} hours a day, which means exactly ${budget.target * 7} hours a week (${budget.target * 30} hours a month).
-- DYNAMIC ALLOCATION (NEVER HARDCODE): Do NOT assign the exact same constant hours (like 84h or 16h) to every month or week. The estimated hours must dynamically expand or contract based on the complexity, scale, and specific tasks of that period (e.g., some lighter weeks might be 5h or 8h, while heavier action weeks might be 15h or 20h, as long as they stay strictly below the weekly budget cap of ${budget.target * 7} hours).
-- Ensure all estimated hours at the Year, Month, or Week level are mathematically scaled to stay strictly within these bounds (e.g. a 4-week Month phase must not exceed ${budget.target * 28} hours total; a Week phase must not exceed ${budget.target * 7} hours total).
-
-Please break this specific phase down into EXACTLY ${dynamicCount} sequential sub-milestones (representing ${expansionType}).
-TIMELINE SYNC CRITICAL: You must use the "System Current Date" as your reality baseline.
-${isWeekLevel ? `CRITICAL: Weekly plan. Use these EXACT date ranges. Include 'estimatedHours' integer field.\nPRE-CALCULATED WEEK RANGES:\n${dateRangesDescription}` : `CRITICAL: Monthly plan. Use these EXACT month labels.\nPRE-CALCULATED MONTH RANGES:\n${dateRangesDescription}`}
-Return ONLY a JSON array with exactly ${dynamicCount} objects.
-Each object: { "date": "string", "dayTask": "string - short title including progressive target numbers", "description": "string - 1-2 sentences detailing target progress details", "estimatedHours": number }
-NO MARKDOWN. RAW JSON ONLY.`;
-
-            const { callAI: callAIFn } = await import('@/features/goals/hooks/use-ai-plan-generation');
-            const subPlans = await callAIFn(prompt);
-            if (!subPlans || !Array.isArray(subPlans) || subPlans.length === 0) {
-                throw new Error("AI returned an empty plan");
-            }
+            const period = resolvePeriod(goal, slot, overridePeriodStart, overridePeriodEnd);
+            if (!period) throw new Error('This phase has no usable dates');
+            const subPlans = await generateSubPlans({ goal, parent: slot, level: expansionType, periodStart: period.start, periodEnd: period.end, profile });
             recordGenTime(Date.now() - genStart);
             onUpdateSubPlans(path, subPlans);
             setExpanded(true);
@@ -352,11 +283,16 @@ NO MARKDOWN. RAW JSON ONLY.`;
     };
 
     const handleManualGen = () => {
-        const range = parseDateRange(slot.date);
-        const periodStart = overridePeriodStart || range?.start || getPeriodStartForSlot(goal, slot.date);
-        const periodEnd = overridePeriodEnd || range?.end || parseISO(slot.date);
-        const ranges = isWeekLevel ? getWeekRanges(periodStart, periodEnd) : getMonthRanges(periodStart, periodEnd);
-        const emptySubPlans = ranges.map(r => ({ date: r.label, dayTask: 'Draft Task', description: 'Edit this sub-milestone manually.' }));
+        const period = resolvePeriod(goal, slot, overridePeriodStart, overridePeriodEnd);
+        if (!period) { toast.error('This phase has no usable dates'); return; }
+        const emptySubPlans = periodsFor(expansionType, period.start, period.end).map(r => ({
+            date: r.label,
+            dayTask: 'Draft Task',
+            description: 'Edit this sub-milestone manually.',
+            periodStart: r.start,
+            periodEnd: r.end,
+            ...(goal.bucket ? { bucket: goal.bucket } : {}),
+        }));
         onUpdateSubPlans(path, emptySubPlans);
         setExpanded(true);
         toast.success("Manual sub-plan template ready.");

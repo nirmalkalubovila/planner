@@ -10,6 +10,17 @@
    after the other @import (CSS requires all @import rules to precede
    every other rule, including @config, or they're silently dropped). */
 @import "../../../packages/tokens/tokens.css";
+
+/* Legacy gold (#D2A226) as the web accent. Overrides the shared tokens for web only, so it can be
+   reverted by deleting this block. Semantic colors (goal / habit / warning / destructive) are kept. */
+:root,
+.dark,
+.light {
+  --primary: 43 69% 49%;
+  --primary-foreground: 0 0% 0%;
+  --ring: 43 69% 49%;
+  --primary-rgb: 210 162 38;
+}
 @config "../tailwind.config.js";
 
 @layer base {
@@ -68,4 +79,60 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
+}
+
+/* ─── Landing / auth: gold button + entrance animations ─── */
+@keyframes llb-shine {
+  from { transform: translateX(-130%) skewX(-20deg); }
+  to   { transform: translateX(330%) skewX(-20deg); }
+}
+@keyframes llb-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(210, 162, 38, 0.38); }
+  70%  { box-shadow: 0 0 0 12px rgba(210, 162, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(210, 162, 38, 0); }
+}
+@keyframes llb-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Soft light sweep on hover + a gentle lift */
+.llb-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.2s ease;
+}
+.llb-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: translateX(-130%) skewX(-20deg);
+  pointer-events: none;
+  z-index: -1;
+}
+.llb-btn:hover { transform: translateY(-1px); }
+.llb-btn:active { transform: translateY(0) scale(0.98); }
+.llb-btn:hover::after { animation: llb-shine 0.9s ease; }
+
+/* Automatic shine: a slow sweep every few seconds (add alongside .llb-btn) */
+@keyframes llb-shine-loop {
+  0%, 62%  { transform: translateX(-130%) skewX(-20deg); }
+  100%     { transform: translateX(330%) skewX(-20deg); }
+}
+.llb-btn-auto::after { animation: llb-shine-loop 3.8s ease-in-out infinite; }
+
+/* Calm attention ring for the one primary call to action */
+.llb-btn-pulse { animation: llb-ring 2.8s ease-out infinite; }
+
+/* Staggered entrance for hero / auth content */
+.llb-rise { animation: llb-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .llb-btn, .llb-btn:hover, .llb-btn:active { transition: none; transform: none; }
+  .llb-btn:hover::after, .llb-btn-auto::after, .llb-btn-pulse, .llb-rise { animation: none; }
 }

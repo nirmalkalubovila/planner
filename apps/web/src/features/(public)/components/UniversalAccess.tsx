@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Reveal from "./Reveal";
 
 interface UniversalAccessProps {
   desktopVideoUrl?: string;
@@ -24,25 +25,25 @@ export default function UniversalAccess({
 
   const cards = [
     {
-      title: "Open It Anywhere",
-      desc: "Tap the link and you're in. No downloads, no setup screens.",
+      title: "Open anywhere",
+      desc: "Tap the link and you're in. No downloads.",
     },
     {
-      title: "Your Progress, Instantly Synced",
-      desc: "Update on your laptop, check it on your phone minutes later.",
+      title: "Always in sync",
+      desc: "Update on your laptop, see it on your phone.",
     },
     {
-      title: "Works Like the Apps You Already Use",
-      desc: "Same instant feel as Twitter/X, Pinterest, Starbucks.",
+      title: "Feels like an app",
+      desc: "Fast and smooth on every device.",
     },
     {
-      title: "Always the Newest Version",
-      desc: "No update prompts. You always have today's build.",
+      title: "Always current",
+      desc: "No updates to install. You run the latest build.",
     },
   ];
 
   return (
-    <section className="relative w-full flex items-center py-10 md:py-14 px-5 sm:px-8 bg-black overflow-hidden select-none">
+    <section className="relative w-full flex items-center py-12 sm:py-16 px-5 sm:px-8 bg-black overflow-hidden select-none">
       {/* Background Video */}
       <video
         key={videoSrc}
@@ -66,7 +67,7 @@ export default function UniversalAccess({
       <div className="w-full max-w-7xl mx-auto relative z-10 flex flex-col items-center">
         {/* Centered Typography Header */}
         <div className="max-w-4xl text-center space-y-2 mb-8">
-          <span className="text-[10px] font-bold tracking-[0.25em] text-zinc-500 uppercase">
+          <span className="text-[10px] font-bold tracking-[0.25em] text-[#D2A226] uppercase">
             Instant Access
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-[1.15]">
@@ -84,9 +85,9 @@ export default function UniversalAccess({
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {cards.map((card, idx) => {
             return (
+              <Reveal key={idx} delay={idx * 100} className="h-full">
               <div
-                key={idx}
-                className="bg-zinc-950/65 backdrop-blur-md border border-zinc-900/60 rounded-xl p-5 hover:border-zinc-800/80 hover:bg-zinc-950/85 transition duration-300 flex flex-col gap-2 group text-left w-full"
+                className="h-full bg-zinc-950/65 backdrop-blur-md border border-zinc-900/60 rounded-xl p-5 hover:border-[#D2A226]/30 hover:bg-zinc-950/85 transition duration-300 flex flex-col gap-2 group text-left w-full"
               >
                 <h4 className="text-xs sm:text-sm font-bold text-white tracking-tight leading-snug">
                   {card.title}
@@ -95,6 +96,7 @@ export default function UniversalAccess({
                   {card.desc}
                 </p>
               </div>
+              </Reveal>
             );
           })}
         </div>

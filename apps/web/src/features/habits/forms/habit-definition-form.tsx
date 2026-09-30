@@ -41,6 +41,7 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
     isPending
 }) => {
     const [bucket, setBucket] = React.useState<LifeBucket | null>(initialValues?.bucket || null);
+    const [bucketError, setBucketError] = React.useState(false);
     const form = useForm<z.infer<typeof habitSchema>>({
         resolver: zodResolver(habitSchema),
         defaultValues: {
@@ -55,6 +56,8 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
     });
 
     const handleFormSubmit = (values: z.infer<typeof habitSchema>) => {
+        // Every habit belongs to one life bucket
+        if (!bucket) { setBucketError(true); return; }
         onSubmit({
             ...values,
             bucket: bucket || undefined,
@@ -76,7 +79,7 @@ export const HabitDefinitionForm: React.FC<HabitDefinitionFormProps> = ({
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                    <BucketSelector value={bucket} onChange={setBucket} />
+                    <BucketSelector required value={bucket} onChange={(b) => { setBucket(b); if (b) setBucketError(false); }} error={bucketError ? 'Choose a life bucket for this habit.' : undefined} />
                 </div>
 
                 <div className="space-y-2">

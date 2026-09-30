@@ -8,6 +8,10 @@ interface BucketSelectorProps {
   value?: LifeBucket | null;
   onChange: (value: LifeBucket | null) => void;
   className?: string;
+  /** When set the bucket cannot be cleared, and the label shows it is mandatory. */
+  required?: boolean;
+  /** Message shown under the options, e.g. when submit was attempted without a choice. */
+  error?: string;
 }
 
 const BUCKET_ICONS: Record<LifeBucket, React.ReactNode> = {
@@ -21,14 +25,19 @@ export const BucketSelector: React.FC<BucketSelectorProps> = ({
   value,
   onChange,
   className,
+  required,
+  error,
 }) => {
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-foreground">
-          Life Bucket <span className="text-xs text-muted-foreground font-normal">(Optional)</span>
+          Life Bucket{' '}
+          {required
+            ? <span className="text-primary">*</span>
+            : <span className="text-xs text-muted-foreground font-normal">(Optional)</span>}
         </label>
-        {value && (
+        {value && !required && (
           <button
             type="button"
             onClick={() => onChange(null)}
@@ -48,7 +57,7 @@ export const BucketSelector: React.FC<BucketSelectorProps> = ({
             <button
               key={bucketKey}
               type="button"
-              onClick={() => onChange(isSelected ? null : bucketKey)}
+              onClick={() => onChange(isSelected && !required ? null : bucketKey)}
               title={meta.description}
               className={cn(
                 "flex items-start gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 text-left cursor-pointer",
@@ -73,6 +82,7 @@ export const BucketSelector: React.FC<BucketSelectorProps> = ({
           );
         })}
       </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 };
