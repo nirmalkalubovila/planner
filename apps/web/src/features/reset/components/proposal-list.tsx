@@ -3,9 +3,9 @@ import {
     formatMinutes, getMoveOptions, itemKey, overrideItem, slotLabel,
     type ResetAction, type ResetContext, type ResetItem,
 } from '@llb/core';
-import { Card } from '@/components/ui/card';
 import { OptionChips } from '@/components/common/option-chips';
 import { ACTION_LABEL, itemDetail, shortDayLabel } from '../lib/labels';
+import { ResetCard, ResetLabel, captionClass } from './reset-ui';
 
 const GROUPS: ResetAction[] = ['keep', 'move', 'reduce', 'remove'];
 
@@ -21,18 +21,18 @@ export const ProposalList: React.FC<ProposalListProps> = ({ ctx, items, adjustin
 
     return (
         <section className="space-y-3" aria-labelledby="reset-recommended">
-            <h3 id="reset-recommended" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Recommended reset</h3>
-            <Card className="divide-y divide-border">
+            <ResetLabel id="reset-recommended" text="Recommended reset" />
+            <ResetCard className="p-0 sm:p-0 divide-y divide-border">
                 {GROUPS.map((action) => {
                     const list = items.filter((i) => i.action === action);
                     if (list.length === 0) return null;
                     return (
-                        <div key={action} className="p-4 sm:p-5 space-y-3">
-                            <div className="flex items-baseline justify-between">
-                                <h4 className="text-xs font-bold uppercase tracking-widest">{ACTION_LABEL[action]}</h4>
-                                <span className="text-xs font-bold tabular-nums text-muted-foreground">{list.length}</span>
+                        <div key={action} className="p-4 sm:p-6 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-xs font-black uppercase tracking-widest text-foreground">{ACTION_LABEL[action]}</h4>
+                                <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-xl bg-primary/10 text-primary border border-primary/20">{list.length}</span>
                             </div>
-                            <ul className="space-y-3">
+                            <ul className="space-y-4">
                                 {list.map((item) => {
                                     const key = itemKey(item);
                                     const open = adjusting && openKey === key;
@@ -40,7 +40,7 @@ export const ProposalList: React.FC<ProposalListProps> = ({ ctx, items, adjustin
                                         <li key={key} className="space-y-2">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="min-w-0">
-                                                    <p className="text-sm font-semibold leading-snug break-words">{item.name}</p>
+                                                    <p className="font-bold text-sm sm:text-base tracking-tight leading-tight break-words">{item.name}</p>
                                                     <p className="text-xs text-muted-foreground mt-0.5">{itemDetail(item, ctx.todayIdx)}</p>
                                                 </div>
                                                 {adjusting && (
@@ -48,13 +48,13 @@ export const ProposalList: React.FC<ProposalListProps> = ({ ctx, items, adjustin
                                                         type="button"
                                                         onClick={() => setOpenKey(open ? null : key)}
                                                         aria-expanded={open}
-                                                        className="shrink-0 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors min-h-8 px-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
+                                                        className="shrink-0 min-h-8 px-1 text-[10px] font-black uppercase tracking-widest text-primary opacity-80 hover:opacity-100 transition-opacity focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
                                                     >
                                                         {open ? 'Close' : 'Edit'}
                                                     </button>
                                                 )}
                                             </div>
-                                            {!adjusting && <p className="text-[11px] text-muted-foreground/80 leading-snug">{item.reason}</p>}
+                                            {!adjusting && <p className="text-[10px] font-bold text-muted-foreground/80 leading-snug">{item.reason}</p>}
                                             {open && <ItemEditor ctx={ctx} items={items} item={item} onChange={onChange} />}
                                         </li>
                                     );
@@ -63,7 +63,7 @@ export const ProposalList: React.FC<ProposalListProps> = ({ ctx, items, adjustin
                         </div>
                     );
                 })}
-            </Card>
+            </ResetCard>
         </section>
     );
 };
@@ -92,12 +92,12 @@ const ItemEditor: React.FC<{ ctx: ResetContext; items: ResetItem[]; item: ResetI
         .map((a) => ({ value: a, label: ACTION_LABEL[a] }));
 
     return (
-        <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-3">
+        <div className="rounded-2xl border border-border bg-muted/30 p-3 space-y-3">
             <OptionChips className="grid-cols-2 sm:grid-cols-4" options={actionOptions} value={item.action} onChange={setAction} />
 
             {item.action === 'move' && options.length > 0 && (
                 <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Move to</p>
+                    <p className={captionClass}>Move to</p>
                     <OptionChips
                         className="grid-cols-2 sm:grid-cols-3"
                         value={item.to ? `${item.to.dayIdx}` : undefined}
@@ -112,7 +112,7 @@ const ItemEditor: React.FC<{ ctx: ResetContext; items: ResetItem[]; item: ResetI
 
             {item.action === 'reduce' && canReduce && (
                 <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">New length</p>
+                    <p className={captionClass}>New length</p>
                     <OptionChips
                         className="grid-cols-3 sm:grid-cols-4"
                         value={`${item.newMinutes ?? item.minutes}`}

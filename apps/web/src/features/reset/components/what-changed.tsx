@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ResetReason } from '@llb/core';
 import { OptionChips } from '@/components/common/option-chips';
+import { ResetLabel } from './reset-ui';
 
 const OPTIONS: { value: ResetReason; label: string }[] = [
     { value: 'unexpected', label: 'Unexpected work' },
@@ -20,13 +21,13 @@ interface WhatChangedProps {
 export const WhatChanged: React.FC<WhatChangedProps> = ({ value, onToggle, onSkip }) => (
     <section className="space-y-3" aria-labelledby="reset-what-changed">
         <div className="flex items-center justify-between gap-3">
-            <h3 id="reset-what-changed" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">What changed?</h3>
+            <ResetLabel id="reset-what-changed" text="What changed?" />
             <button
                 type="button"
                 onClick={onSkip}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
+                className="text-[10px] font-black uppercase tracking-widest text-primary opacity-80 hover:opacity-100 transition-opacity focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
             >
-                Skip, detect automatically
+                Skip
             </button>
         </div>
         <OptionChips className="grid-cols-2 sm:grid-cols-3" options={OPTIONS} value={value} onChange={onToggle} />
