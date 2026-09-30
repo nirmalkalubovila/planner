@@ -4,7 +4,8 @@ import {
     type ResetAction, type ResetContext, type ResetItem,
 } from '@llb/core';
 import { OptionChips } from '@/components/common/option-chips';
-import { ACTION_LABEL, itemDetail, shortDayLabel } from '../lib/labels';
+import { cn } from '@/lib/utils';
+import { ACTION_LABEL, decodeEntities, itemDetail, shortDayLabel } from '../lib/labels';
 import { ResetCard, ResetLabel, captionClass } from './reset-ui';
 
 const GROUPS: ResetAction[] = ['keep', 'move', 'reduce', 'remove'];
@@ -22,25 +23,25 @@ export const ProposalList: React.FC<ProposalListProps> = ({ ctx, items, adjustin
     return (
         <section className="space-y-3" aria-labelledby="reset-recommended">
             <ResetLabel id="reset-recommended" text="Recommended reset" />
-            <ResetCard className="p-0 sm:p-0 divide-y divide-border">
+            <div className="space-y-4">
                 {GROUPS.map((action) => {
                     const list = items.filter((i) => i.action === action);
                     if (list.length === 0) return null;
                     return (
-                        <div key={action} className="p-4 sm:p-6 space-y-4">
+                        <ResetCard key={action} className="gap-4">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-black uppercase tracking-widest text-foreground">{ACTION_LABEL[action]}</h4>
                                 <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-xl bg-primary/10 text-primary border border-primary/20">{list.length}</span>
                             </div>
-                            <ul className="space-y-4">
+                            <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                                 {list.map((item) => {
                                     const key = itemKey(item);
                                     const open = adjusting && openKey === key;
                                     return (
-                                        <li key={key} className="space-y-2">
+                                        <li key={key} className={cn('space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3', open && 'md:col-span-2 xl:col-span-3')}>
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="min-w-0">
-                                                    <p className="font-bold text-sm sm:text-base tracking-tight leading-tight break-words">{item.name}</p>
+                                                    <p className="font-bold text-sm tracking-tight leading-snug break-words line-clamp-2" title={decodeEntities(item.name)}>{decodeEntities(item.name)}</p>
                                                     <p className="text-xs text-muted-foreground mt-0.5">{itemDetail(item, ctx.todayIdx)}</p>
                                                 </div>
                                                 {adjusting && (
@@ -54,16 +55,16 @@ export const ProposalList: React.FC<ProposalListProps> = ({ ctx, items, adjustin
                                                     </button>
                                                 )}
                                             </div>
-                                            {!adjusting && <p className="text-[10px] font-bold text-muted-foreground/80 leading-snug">{item.reason}</p>}
+                                            {!adjusting && item.action !== 'keep' && <p className="text-[10px] font-bold text-muted-foreground/80 leading-snug">{item.reason}</p>}
                                             {open && <ItemEditor ctx={ctx} items={items} item={item} onChange={onChange} />}
                                         </li>
                                     );
                                 })}
                             </ul>
-                        </div>
+                        </ResetCard>
                     );
                 })}
-            </ResetCard>
+            </div>
         </section>
     );
 };
