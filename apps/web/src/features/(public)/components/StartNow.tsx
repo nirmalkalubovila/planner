@@ -3,17 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { savePendingGoal } from "@/features/goals/pending-goal";
-
-const EXAMPLES = [
-  "Lose 10 kg and build a workout habit",
-  "Get a better job within 3 months",
-  "Save a 1,000 USD emergency fund",
-  "Learn to code and build my first app",
-  "Start a side business and get my first 10 customers",
-  "Graduate with a first class",
-  "Speak English fluently",
-  "Read 12 books this year",
-];
+import { PRIMARY_GOAL_CHIPS, MORE_GOAL_CHIPS, findGoalChip } from "@llb/core";
 
 /**
  * "Start now" block. The visitor types a goal, we keep it, and after signup the New Goal form opens
@@ -21,12 +11,17 @@ const EXAMPLES = [
  */
 export default function StartNow() {
   const [goal, setGoal] = useState("");
+  // 0 shows the four main examples; each tap on "More ideas" moves to the next four
+  const [group, setGroup] = useState(0);
+  const groups = Math.ceil(MORE_GOAL_CHIPS.length / 4);
+  const chips = group === 0 ? PRIMARY_GOAL_CHIPS : MORE_GOAL_CHIPS.slice((group - 1) * 4, group * 4);
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const start = (e: React.FormEvent) => {
     e.preventDefault();
-    if (goal.trim()) savePendingGoal(goal);
+    // A goal that is one of the examples carries its realistic timeline with it
+    if (goal.trim()) savePendingGoal(goal, findGoalChip(goal)?.months);
     navigate(user ? "/goals" : "/signup");
   };
 
@@ -60,23 +55,30 @@ export default function StartNow() {
               className="w-full h-11 rounded-xl border border-zinc-800 bg-black/60 px-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D2A226]/60"
             />
             <div className="flex flex-wrap gap-1.5">
-              {EXAMPLES.map((ex, i) => (
+              {chips.map((chip) => (
                 <button
-                  key={ex}
+                  key={chip.text}
                   type="button"
-                  onClick={() => setGoal(ex)}
-                  className={`${i >= 4 ? "hidden sm:inline-block " : ""}rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-[11px] text-zinc-400 hover:text-white hover:border-[#D2A226]/40 hover:-translate-y-0.5 active:scale-95 transition cursor-pointer`}
+                  onClick={() => setGoal(chip.text)}
+                  className="rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-[11px] text-zinc-400 hover:text-white hover:border-[#D2A226]/40 hover:-translate-y-0.5 active:scale-95 transition cursor-pointer"
                 >
-                  {ex}
+                  {chip.text}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setGroup((g) => (g + 1) % (groups + 1))}
+                className="rounded-full px-3 py-1 text-[11px] font-semibold text-[#D2A226] underline underline-offset-4 hover:text-[#e9c468] cursor-pointer"
+              >
+                {group === groups ? "Back to the first ideas" : "More ideas"}
+              </button>
             </div>
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
                 type="submit"
                 className="llb-btn llb-btn-auto group inline-flex items-center gap-2 rounded-xl bg-[#D2A226] px-5 h-11 text-sm font-bold text-black hover:bg-[#e9c468] cursor-pointer"
               >
-                Build my plan <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                Plan my goal <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
               <span className="text-[11px] text-zinc-500">Free in public beta. No card needed.</span>
             </div>

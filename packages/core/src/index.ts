@@ -31,6 +31,9 @@ export * from './utils/task-derivation';
 export * from './utils/ai-profile-prompt';
 export * from './utils/plan-breakdown';
 export * from './utils/reset-engine';
+export * from './utils/goal-realism';
+export * from './utils/landing-goals';
+export * from './utils/plan-prompts';
 export * from './utils/widget-snapshot';
 export * from './types/widget';
 

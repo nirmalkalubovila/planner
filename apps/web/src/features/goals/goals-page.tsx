@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, Plus } from 'lucide-react';
 import { calculateGoalProgress } from '@llb/core';
-import { toast } from '@llb/core';
+import { toast, monthsToGoalDuration } from '@llb/core';
 import { useGetGoals, useCreateGoal, useDeleteGoal, useUpdateGoal } from '@llb/api';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ export const GoalsPage: React.FC = () => {
     const [showAiLoader, setShowAiLoader] = useState(false);
     // A goal typed on the landing page before signup pre-fills the New Goal form once
     const [prefillGoal, setPrefillGoal] = useState<string | null>(null);
+    const [prefillMonths, setPrefillMonths] = useState<number | null>(null);
 
     const { generating, tempPlan, generatePlan, clearTempPlan } = useAiPlanGeneration(user);
     const { profile } = useUserProfile(user);
@@ -87,7 +88,8 @@ export const GoalsPage: React.FC = () => {
         if (isLoading) return;
         const pending = takePendingGoal();
         if (pending) {
-            setPrefillGoal(pending);
+            setPrefillGoal(pending.text);
+            setPrefillMonths(pending.months ?? null);
             openNewGoal();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -372,6 +374,8 @@ export const GoalsPage: React.FC = () => {
                             } : prefillGoal ? {
                                 title: prefillGoal.slice(0, 60),
                                 name: `Current State:\n\n\nUltimate Goal:\n${prefillGoal}`,
+                                // A landing example brings its own realistic length, instead of the one-week default
+                                ...(prefillMonths ? { ...monthsToGoalDuration(prefillMonths), startDate: format(new Date(), 'yyyy-MM-dd') } : {}),
                             } : {}}
                             onSubmit={onDefinitionSubmit}
                         />

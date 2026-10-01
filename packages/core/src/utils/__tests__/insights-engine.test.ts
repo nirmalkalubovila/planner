@@ -159,6 +159,6 @@ describe('generateMilestoneInsightCard', () => {
       stageDescription: stage.description,
     });
     expect(card.milestoneData?.certificate?.certificateId).toBe(`LLB-S${stage.stageNumber}-20260823`);
-    expect(card.metrics.map((m) => m.value)).toEqual(expect.arrayContaining(['7 Days', '12 Days']));
+    expect(card.metrics?.map((m) => m.value)).toEqual(expect.arrayContaining(['7 Days', '12 Days']));
   });
 });

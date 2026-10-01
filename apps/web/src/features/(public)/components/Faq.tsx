@@ -4,10 +4,6 @@ import Reveal from "./Reveal";
 // The questions people actually type into search. Each answer describes what the product really does.
 export const FAQ_ITEMS = [
   {
-    q: "What is a Legacy Life?",
-    a: "A life of freedom, ownership, purpose, health, deep relationships and lasting impact, built on purpose so your best years compound instead of running out. Legacy Life Builder turns it into weekly plans and daily tasks.",
-  },
-  {
     q: "How do I reset my week when I fall behind?",
     a: "Open Reset in Legacy Life Builder. It compares the time you planned with the time you have, then suggests what to keep, move, reduce or remove. Nothing changes until you approve it.",
   },
@@ -54,14 +50,14 @@ export default function Faq() {
 
   return (
     <section id="faq" className="scroll-mt-28 bg-black py-12 sm:py-16 px-5 sm:px-8">
-      <Reveal>
+      <Reveal className="text-center">
         <span className="text-[10px] font-bold tracking-[0.25em] text-[#D2A226] uppercase">Questions</span>
         <h2 className="mt-2 text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
           Answers <span className="text-zinc-500">in plain words.</span>
         </h2>
       </Reveal>
 
-      <div className="mt-8 max-w-3xl divide-y divide-zinc-900 rounded-2xl border border-zinc-900 bg-zinc-950/60">
+      <div className="mx-auto mt-8 max-w-3xl divide-y divide-zinc-900 rounded-2xl border border-zinc-900 bg-zinc-950/60">
         {FAQ_ITEMS.map((item) => (
           <details key={item.q} className="group px-5 py-4">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm sm:text-base font-bold text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#D2A226] rounded">
