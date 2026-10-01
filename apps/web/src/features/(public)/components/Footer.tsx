@@ -46,7 +46,7 @@ export default function Footer() {
                 <Instagram size={14} />
               </a>
               <a
-                href="https://tiktok.com/@nirmal_kalubovila"
+                href="https://www.tiktok.com/@nirmalkalubovila"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="TikTok Profile"

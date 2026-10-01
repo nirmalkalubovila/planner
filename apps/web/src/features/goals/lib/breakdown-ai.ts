@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import {
-    bucketPromptLine, buildPersonaPromptBlock, getDailyHourBudget, getMilestonePeriods, getMonthPeriods, getWeekPeriods,
+    PLAN_REALISM_RULES, bucketPromptLine, buildPersonaPromptBlock, getDailyHourBudget, getMilestonePeriods, getMonthPeriods, getWeekPeriods,
     breakdownLevels, pickCurrentIndex, todayISO,
     type AIGeneratedPlanSlot, type Goal, type Period, type PromptProfile,
 } from '@llb/core';
@@ -48,6 +48,8 @@ PRAGMATIC STRATEGY RULES (ACT AS AN ELITE PERFORMANCE ARCHITECT):
 2. RESPECT CONSTRAINTS: Rigorously apply the constraints, starting situation, and resource limitations provided by the user. Early phases must focus on bootstrapping, free validation, or skill acquisition if time/money are limited.
 3. CURRENCY ALIGNMENT: If a specific currency (e.g., LKR) or metric is provided in the goal parameters, use it for all financial estimations, sub-goal targets, and milestones.
 4. METRIC-DRIVEN: Every generated task must have a quantifiable metric or threshold of completion in the title or description that proves the task is complete.
+
+${PLAN_REALISM_RULES}
 
 NUMERICAL PROGRESSION & TARGET INTERPOLATION:
 If the Goal Title, Description, Purpose, or the Phase Target Task contains a specific numeric target (e.g., "reach 10k followers", "reach 1k followers"), you MUST mathematically interpolate/scale this target across the ${count} sequential sub-milestones (representing ${level}).

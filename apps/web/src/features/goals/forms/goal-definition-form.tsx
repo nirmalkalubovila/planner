@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 
 import { BucketSelector } from '@/components/common/bucket-selector';
-import { LifeBucket, type GoalContext } from '@llb/core';
+import { LifeBucket, assessGoalRealism, goalDurationMonths, monthsToGoalDuration, type GoalContext } from '@llb/core';
+import { GoalRealityNote } from '../components/goal-reality-note';
 
 const TEXTAREA_CLASS = "flex min-h-[70px] w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none";
 
@@ -128,6 +129,24 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
     });
 
     const watchedGoalType = form.watch('goalType');
+    const watchedDuration = form.watch('durationValue');
+    const watchedTitle = form.watch('title');
+    const watchedUltimate = form.watch('ultimateGoal');
+
+    // Is the goal reachable in the chosen time? Checked as the person types, before any plan is generated
+    const realism = useMemo(
+        () => assessGoalRealism({
+            text: `${watchedTitle ?? ''} ${watchedUltimate ?? ''}`,
+            months: goalDurationMonths(watchedGoalType, Number(watchedDuration) || 1),
+        }),
+        [watchedTitle, watchedUltimate, watchedGoalType, watchedDuration],
+    );
+
+    const useSuggestedLength = (months: number) => {
+        const next = monthsToGoalDuration(months);
+        form.setValue('goalType', next.goalType, { shouldValidate: true });
+        form.setValue('durationValue', next.durationValue, { shouldValidate: true });
+    };
 
     // Every goal belongs to one life bucket, so submit is blocked until one is chosen
     const submitWith = (mode: 'save' | 'replan') => form.handleSubmit((v) => {
@@ -242,6 +261,8 @@ export const GoalDefinitionForm: React.FC<GoalDefinitionFormProps> = ({ initialV
                     />
                     {form.formState.errors.durationValue && <p className="text-xs text-destructive">{form.formState.errors.durationValue.message}</p>}
                 </div>
+
+                <GoalRealityNote note={realism} onUseSuggestion={useSuggestedLength} />
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2">

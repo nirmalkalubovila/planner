@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { peekPendingGoal } from '@/features/goals/pending-goal';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { AuthHeader, AuthDivider, AuthError, GoogleButton } from '@/components/ui/auth-layout';
@@ -45,6 +46,9 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onRequireOtp 
             options: {
                 data: {
                     full_name: name,
+                    // Also carried in the account itself, so the goal still arrives if the confirmation
+                    // opens in another browser where the saved copy does not exist
+                    ...(peekPendingGoal() ? { pending_goal: peekPendingGoal()!.text, pending_goal_months: peekPendingGoal()!.months ?? null } : {}),
                 },
             },
         });

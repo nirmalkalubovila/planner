@@ -1,10 +1,9 @@
 import { Link } from "react-router-dom";
 
 const NAV_LINKS = [
-  { label: "Legacy Life", id: "legacy-life" },
   { label: "The problem", id: "problem" },
+  { label: "Why us", id: "why" },
   { label: "How it works", id: "how-it-works" },
-  { label: "Weekly reset", id: "reset" },
   { label: "Reviews", id: "testimonials" },
   { label: "FAQ", id: "faq" },
 ];

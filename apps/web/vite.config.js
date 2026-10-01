@@ -25,7 +25,7 @@ function precacheManifestPlugin() {
           } else {
             const relativePath = path.relative(distDir, fullPath).replace(/\\/g, '/');
             // Skip map files, sw.js itself, and the manifest output file
-            if (!relativePath.endsWith('.map') && relativePath !== 'sw.js' && relativePath !== 'precache-manifest.json') {
+            if (!relativePath.endsWith('.map') && !relativePath.endsWith('.mp4') && relativePath !== 'sw.js' && relativePath !== 'precache-manifest.json') {
               files.push('/' + relativePath);
             }
           }
