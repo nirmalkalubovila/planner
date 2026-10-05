@@ -15,6 +15,7 @@ import { toast } from '@llb/core';
 interface MasterActionPlanProps {
     goal: Goal;
     onUpdate?: (updatedGoal: Goal) => void;
+    onBuildPlan?: (goal: Goal) => void;
 }
 
 function getExpansionType(goalType: string, depth: number): 'Months' | 'Weeks' | null {
@@ -443,14 +444,19 @@ const MilestoneCard = ({
 };
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpdate }) => {
+export const MasterActionPlan: React.FC<MasterActionPlanProps> = ({ goal, onUpdate, onBuildPlan }) => {
     const { user } = useAuth();
     const { profile } = useUserProfile(user);
 
     if (!goal.plans || goal.plans.length === 0) {
         return (
-            <div className="p-6 text-center text-[11px] text-muted-foreground">
-                No plan generated yet. Edit the goal to create one.
+            <div className="p-6 flex flex-col items-center gap-3 text-center">
+                <p className="text-[11px] text-muted-foreground">No plan yet. Build the years, months and weeks.</p>
+                {onBuildPlan && (
+                    <Button size="sm" onClick={() => onBuildPlan(goal)} className="h-9 px-4 text-xs font-bold">
+                        Build Plan
+                    </Button>
+                )}
             </div>
         );
     }

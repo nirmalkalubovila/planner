@@ -67,7 +67,7 @@ export const TodayPage: React.FC = () => {
                 )}
             </div>
 
-            <WeeklyTargetsBanner bucketActions={bucketActions} currentDayStr={currentDayStr} />
+            <WeeklyTargetsBanner bucketActions={bucketActions} />
 
             {tasks.length > 0 && (
                 <div className="w-full shrink-0">

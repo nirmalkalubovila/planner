@@ -263,6 +263,33 @@ export const GoalsPage: React.FC = () => {
         });
     };
 
+    // For goals that have milestones but no plan yet (for example ones created by an assistant):
+    // build the top-level phases, then every year's months and the current month's weeks, in one go.
+    const handleBuildPlan = async (goal: Goal) => {
+        const slots = await generatePlan(goal);
+        clearTempPlan();
+        if (!slots) return;
+
+        const goalWithPlan: Goal = { ...goal, plans: annotateTopLevel(goal, slots) };
+        try {
+            await updateGoal.mutateAsync(goalWithPlan);
+        } catch (err: any) {
+            toast.error('DB Error: ' + err.message);
+            return;
+        }
+
+        try {
+            setBreakdownStep('Building your months and weeks');
+            const { plans, generated } = await ensureRollingBreakdown(goalWithPlan, profile, (msg) => setBreakdownStep(msg));
+            if (generated.length > 0) await updateGoal.mutateAsync({ ...goalWithPlan, plans });
+            toast.success('Plan built', { description: 'Years, months and weeks are ready.' });
+        } catch {
+            toast.info('Plan saved. The months and weeks will be filled in automatically the next time you open Goals.');
+        } finally {
+            setBreakdownStep(null);
+        }
+    };
+
     const dialogTitle = step === 1
         ? (isEditing ? 'Edit Goal' : 'New Goal')
         : step === 2 ? 'AI Plan Preview' : 'Manual Plan';
@@ -339,6 +366,7 @@ export const GoalsPage: React.FC = () => {
                             completedDays={completedDays || {}}
                             currentWeek={currentWeek}
                             onUpdateGoal={(updatedGoal) => updateGoal.mutate(updatedGoal)}
+                            onBuildPlan={handleBuildPlan}
                         />
                     ))}
 

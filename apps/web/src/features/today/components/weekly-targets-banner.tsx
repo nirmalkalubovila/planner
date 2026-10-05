@@ -1,30 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Pencil, Plus } from 'lucide-react';
-import { WeeklyBucketActions, WeeklyPriorityItem, DailyOutcomeItem } from '@llb/core';
-import { cn } from '@/lib/utils';
+import { WeeklyBucketActions, WeeklyPriorityItem } from '@llb/core';
 
 interface WeeklyTargetsBannerProps {
   bucketActions: WeeklyBucketActions;
-  currentDayStr?: string;
 }
 
 const OUTCOME_SLOTS = [
-  { id: 'p1', num: '01', label: 'Outcome 01' },
-  { id: 'p2', num: '02', label: 'Outcome 02' },
-  { id: 'p3', num: '03', label: 'Outcome 03' },
+  { id: 'p1', num: '01' },
+  { id: 'p2', num: '02' },
+  { id: 'p3', num: '03' },
 ] as const;
 
-const formatLinkedTitle = (name?: string, maxLen: number = 28) => {
-  if (!name) return '';
-  const cleaned = name.replace(/^(Current State|Goal|Habit|Task):\s*/i, '').trim();
-  return cleaned.length > maxLen ? cleaned.slice(0, maxLen) + '...' : cleaned;
-};
+const formatLinkedTitle = (name?: string) =>
+  name ? name.replace(/^(Current State|Goal|Habit|Task):\s*/i, '').trim() : '';
 
-export const WeeklyTargetsBanner: React.FC<WeeklyTargetsBannerProps> = ({
-  bucketActions,
-  currentDayStr,
-}) => {
+export const WeeklyTargetsBanner: React.FC<WeeklyTargetsBannerProps> = ({ bucketActions }) => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -40,118 +31,77 @@ export const WeeklyTargetsBanner: React.FC<WeeklyTargetsBannerProps> = ({
     return migrated;
   }, [raw]);
 
-  const totalWeeklySet = OUTCOME_SLOTS.filter(s => !!actions[s.id]?.text?.trim()).length;
+  const setSlots = OUTCOME_SLOTS.filter(s => !!actions[s.id]?.text?.trim());
 
-  // Extract Today's Day Outcome
-  const todayWin: DailyOutcomeItem | undefined = currentDayStr && raw.dailyWins
-    ? raw.dailyWins[currentDayStr]
-    : undefined;
-  const hasTodayWin = !!todayWin?.text?.trim();
-
-  const handleOpenPlanner = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleOpenPlanner = () => {
     navigate('/planner', { state: { openOutcomes: true } });
   };
 
   return (
-    <div className="rounded-xl bg-card/60 backdrop-blur-md border border-border/60 transition-all mb-4 overflow-hidden shadow-sm">
-      {/* 1. Compressed Single-Line Bar (Always Visible) */}
-      <div
+    <div className="rounded-xl bg-card/60 backdrop-blur-md border border-border/60 mb-4 overflow-hidden shadow-sm">
+      <button
+        type="button"
         onClick={() => setIsExpanded(prev => !prev)}
-        className="px-3.5 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-white/[0.02] transition-colors select-none"
+        aria-expanded={isExpanded}
+        className="w-full px-3.5 py-3 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors"
       >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground shrink-0">
-            TODAY'S OUTCOME:
+        <span className="flex items-center gap-2.5">
+          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">
+            This Week's Priorities
           </span>
+          <span className="text-[10px] font-mono font-bold text-foreground">{setSlots.length}/3</span>
+        </span>
+        <span className="text-[11px] font-bold text-primary">{isExpanded ? 'Hide' : 'Show'}</span>
+      </button>
 
-          {hasTodayWin && todayWin ? (
-            <span className="text-base sm:text-lg font-black text-foreground tracking-tight truncate min-w-0">
-              {todayWin.text}
-            </span>
-          ) : (
-            <span className="text-xs text-muted-foreground/70 italic truncate">
-              No outcome defined for today
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border bg-white/5 border-white/10 text-foreground hidden xs:inline">
-            Week: {totalWeeklySet}/3
-          </span>
-
-          <button
-            type="button"
-            onClick={handleOpenPlanner}
-            title={hasTodayWin ? "Edit Outcomes" : "Set Outcomes"}
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
-          >
-            {hasTodayWin ? <Pencil size={13} /> : <Plus size={14} />}
-          </button>
-
-          <ChevronDown
-            size={14}
-            className={cn(
-              "text-muted-foreground transition-transform duration-200",
-              isExpanded && "rotate-180"
-            )}
-          />
-        </div>
-      </div>
-
-      {/* 2. Expandable Details (Only shown when user opens) */}
       {isExpanded && (
-        <div className="px-3.5 py-3 border-t border-white/10 space-y-2.5 bg-black/20">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">
-              This Week's Outcomes ({totalWeeklySet}/3)
-            </span>
-          </div>
-
-          {totalWeeklySet > 0 ? (
-            <div className={cn(
-              "grid gap-2",
-              totalWeeklySet === 1 ? "grid-cols-1" : totalWeeklySet === 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-3"
-            )}>
-              {OUTCOME_SLOTS.filter(s => !!actions[s.id]?.text?.trim()).map(slot => {
+        <div className="px-3.5 pb-3.5 pt-0.5 space-y-2 border-t border-white/10 bg-black/20">
+          {setSlots.length > 0 ? (
+            <>
+              {setSlots.map(slot => {
                 const action = actions[slot.id];
 
                 return (
                   <div
                     key={slot.id}
-                    onClick={handleOpenPlanner}
-                    className="px-3 py-2 rounded-lg border border-border/70 hover:border-border transition-all flex flex-col justify-center space-y-1 bg-card/50 cursor-pointer"
+                    className="px-3 py-2.5 rounded-lg border border-border/70 bg-card/50 space-y-1 first:mt-3"
                   >
-                    {/* Line 1: 01 + Outcome focal text */}
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border bg-white/5 border-white/10 text-foreground shrink-0">
-                        {slot.num}
-                      </span>
-                      <span className="text-base font-extrabold text-foreground leading-snug tracking-tight truncate flex-1">
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <span className="text-[10px] font-mono font-bold text-primary shrink-0 pt-1">{slot.num}</span>
+                      <span className="text-sm font-bold text-foreground leading-snug tracking-tight break-words min-w-0 flex-1">
                         {action?.text}
                       </span>
                     </div>
 
-                    {/* Line 2: Linked Goal: [Text] */}
                     {action?.linkedItemName && (
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono truncate pl-0.5">
-                        <span className="capitalize opacity-80 shrink-0">Linked {action.linkedItemType || 'item'}:</span>
-                        <span className="text-foreground/90 font-medium truncate">
-                          {formatLinkedTitle(action.linkedItemName, 26)}
-                        </span>
+                      <div className="text-[10px] text-muted-foreground font-mono pl-[26px] break-words">
+                        <span className="capitalize">{action.linkedItemType || 'item'}:</span>{' '}
+                        <span className="text-foreground/80">{formatLinkedTitle(action.linkedItemName)}</span>
                       </div>
                     )}
                   </div>
                 );
               })}
-            </div>
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleOpenPlanner}
+                  className="text-[11px] font-bold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Edit
+                </button>
+              </div>
+            </>
           ) : (
-            <div
-              onClick={handleOpenPlanner}
-              className="px-3 py-2 rounded-lg border border-dashed border-border/50 text-center text-xs italic text-muted-foreground hover:text-foreground cursor-pointer transition-all bg-background/20"
-            >
-              No weekly outcomes defined yet. <span className="text-primary font-bold not-italic hover:underline">+ Define in Planner</span>
+            <div className="pt-3 flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">Choose up to three outcomes that define this week.</p>
+              <button
+                type="button"
+                onClick={handleOpenPlanner}
+                className="text-[11px] font-bold text-primary hover:text-primary/80 transition-colors shrink-0"
+              >
+                Set Outcomes
+              </button>
             </div>
           )}
         </div>
