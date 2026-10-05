@@ -43,7 +43,18 @@ const corsHeaders = {
 };
 
 const DEFAULT_PROTOCOL_VERSION = "2025-06-18";
-const SERVER_INFO = { name: "legacy-life-builder-planner", version: "1.2.0" };
+const SERVER_INFO = {
+  name: "legacy-life-builder-planner",
+  version: "1.2.0",
+  // Branding for clients that read it (MCP 2025-11-25). Claude.ai currently ignores these and uses the favicon of the
+  // connector URL's domain instead, which is why the link is served from our own domain (see vercel.json).
+  title: "Legacy Life Builder",
+  websiteUrl: "https://www.legacylifebuilder.xyz",
+  icons: [
+    { src: "https://www.legacylifebuilder.xyz/icon-512.png", mimeType: "image/png", sizes: ["512x512"] },
+    { src: "https://www.legacylifebuilder.xyz/icon-192.png", mimeType: "image/png", sizes: ["192x192"] },
+  ],
+};
 
 // Returned to Claude when it connects, so the planning rules apply to every chat without the user repeating them.
 const INSTRUCTIONS = `You plan goals, habits and weeks for the user of Legacy Life Builder. Follow these rules every time.

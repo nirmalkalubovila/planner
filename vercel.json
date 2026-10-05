@@ -26,6 +26,10 @@
   ],
   "rewrites": [
     {
+      "source": "/mcp/:path*",
+      "destination": "https://lcfnygdbgseqwrfwteyu.supabase.co/functions/v1/mcp/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

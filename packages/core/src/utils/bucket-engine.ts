@@ -4,6 +4,8 @@ import { LIFE_BUCKETS, LifeBucket } from '../types/time';
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 export const TOTAL_WEEK_HOURS = 168; // 7 days x 24 hours
+/** A bucket scores a full 10 once it holds this share of the week (25% of 168h = 42h). */
+export const BUCKET_FULL_SCORE_SHARE = 0.25;
 
 export interface BucketStats {
   bucketHours: Record<LifeBucket, number>;
@@ -377,7 +379,7 @@ export function calculateBucketBalanceScores(
   LIFE_BUCKETS.forEach((bucket) => {
     const hours = bucketStats.bucketHours[bucket] || 0;
     // Score out of 10 based on hours relative to 168h week target
-    scores[bucket] = Math.min(10, Math.round((hours / (TOTAL_WEEK_HOURS * 0.25)) * 10));
+    scores[bucket] = Math.min(10, Math.round((hours / (TOTAL_WEEK_HOURS * BUCKET_FULL_SCORE_SHARE)) * 10));
   });
 
   return scores;
