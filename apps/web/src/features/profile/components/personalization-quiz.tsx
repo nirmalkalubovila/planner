@@ -74,6 +74,9 @@ export const PersonalizationQuiz: React.FC<PersonalizationQuizProps> = ({ isOpen
 
     const [fullName, setFullName] = useState('');
     const [dob, setDob] = useState<Date | null>(null);
+    // Name and birth date are edited in the Profile tab, so the quiz only asks for one that is still missing
+    const [askName, setAskName] = useState(false);
+    const [askDob, setAskDob] = useState(false);
     const [statuses, setStatuses] = useState<SituationStatus[]>([]);
     const [focus, setFocus] = useState('');
     const [freeHours, setFreeHours] = useState('');
@@ -93,8 +96,12 @@ export const PersonalizationQuiz: React.FC<PersonalizationQuizProps> = ({ isOpen
     if (isOpen && !loaded && profile) {
         setLoaded(true);
         const meta = user?.user_metadata ?? {};
-        setFullName(profile.fullName || meta.full_name || meta.name || '');
-        setDob(profile.dob && profile.dob !== PLACEHOLDER_DOB ? new Date(profile.dob) : null);
+        const knownName = profile.fullName || meta.full_name || meta.name || '';
+        const knownDob = profile.dob && profile.dob !== PLACEHOLDER_DOB ? new Date(profile.dob) : null;
+        setFullName(knownName);
+        setDob(knownDob);
+        setAskName(!profile.fullName?.trim());
+        setAskDob(!knownDob);
         setStatuses(getSituationStatuses(profile.executionProfile));
         setFocus(profile.primaryLifeFocus || '');
         setFreeHours(profile.dailyFreeHours || '');
@@ -121,8 +128,8 @@ export const PersonalizationQuiz: React.FC<PersonalizationQuizProps> = ({ isOpen
     /** What must be answered before leaving each step. */
     const problem = (s: number): string => {
         if (s === 0) {
-            if (!fullName.trim()) return 'Please enter your name.';
-            if (!dob) return 'Please enter your date of birth.';
+            if (askName && !fullName.trim()) return 'Please enter your name.';
+            if (askDob && !dob) return 'Please enter your date of birth.';
             if (!statuses.length) return 'Please choose at least one situation.';
             if (!focus.trim()) return 'Please tell us your main focus right now.';
         }
@@ -225,14 +232,20 @@ export const PersonalizationQuiz: React.FC<PersonalizationQuizProps> = ({ isOpen
                                     : 'A few honest answers shape every plan, time block and target. The more it knows, the more practical it becomes.'}
                             </p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormField label="Full name" required>
-                                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" className="h-9 text-sm" />
-                            </FormField>
-                            <FormField label="Date of birth" required hint="Used to set realistic life-balance targets">
-                                <CustomDatePicker selected={dob} onChange={(d) => setDob(d)} placeholderText="Select" />
-                            </FormField>
-                        </div>
+                        {(askName || askDob) && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {askName && (
+                                    <FormField label="Full name" required>
+                                        <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" className="h-9 text-sm" />
+                                    </FormField>
+                                )}
+                                {askDob && (
+                                    <FormField label="Date of birth" required hint="Used to set realistic life-balance targets">
+                                        <CustomDatePicker selected={dob} onChange={(d) => setDob(d)} placeholderText="Select" />
+                                    </FormField>
+                                )}
+                            </div>
+                        )}
                         <SituationPicker value={statuses} onChange={setStatuses} />
                         <FormField label="Your main focus right now" required>
                             <Input value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="e.g. Become an entrepreneur" className="h-9 text-sm" />
