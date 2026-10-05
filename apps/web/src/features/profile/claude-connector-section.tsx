@@ -38,11 +38,9 @@ export const ClaudeConnectorSection: React.FC = () => {
     const baseUrl = import.meta.env.PROD
         ? 'https://www.legacylifebuilder.xyz/mcp'
         : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp`;
-    // Authorization rather than a custom name: Claude requires custom header
-    // names to be approved by Anthropic first, while Authorization is standard
-    // and offered in its dropdown. Verified to survive Supabase's gateway
-    // (the function is deployed with --no-verify-jwt, so nothing intercepts it).
-    const HEADER_NAME = 'Authorization';
+    // Claude only offers a fixed list of header names (and reserves Authorization for OAuth), so use one from that
+    // list. The function accepts it directly; it is deployed with --no-verify-jwt, so nothing intercepts it.
+    const HEADER_NAME = 'x-api-key';
 
     const handleGenerate = () => {
         createToken.mutate(undefined, {
@@ -170,14 +168,14 @@ export const ClaudeConnectorSection: React.FC = () => {
                         </div>
                         <CopyField id="url" label="Server URL" value={baseUrl} />
                         <CopyField id="hname" label="Header name" value={HEADER_NAME} />
-                        <CopyField id="hvalue" label="Header value" value={`Bearer ${freshToken}`} />
+                        <CopyField id="hvalue" label="Header value" value={freshToken} />
                         <ol className="space-y-1.5 text-[11px] text-muted-foreground leading-snug list-none pt-1">
                             {[
                                 'In Claude: Settings → Connectors → "Add custom connector".',
                                 'Name it (e.g. "Legacy Life Builder") and paste the Server URL. Continue.',
                                 'On step 2, leave Authentication set to "None".',
-                                'Under "Request headers", pick "Authorization" from the dropdown — do not type a custom name, those need Anthropic approval.',
-                                'Paste the header value above (including the word Bearer), tick Required, then click Add.',
+                                'Under "Request headers", pick "x-api-key" from the dropdown — do not type a custom name, those need Anthropic approval.',
+                                'Paste the header value above, tick Required, then click Add.',
                             ].map((step, i) => (
                                 <li key={step} className="flex items-start gap-2">
                                     <span className="font-mono text-[10px] font-bold text-emerald-500 shrink-0 mt-px">
