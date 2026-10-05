@@ -3,12 +3,11 @@ import { useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import Testimonials from "./components/Testimonials";
-import HowItWorks from "./components/HowItWorks";
 import UniversalAccess from "./components/UniversalAccess";
 import ProblemFix from "./components/ProblemFix";
 import StartNow from "./components/StartNow";
 import Footer from "./components/Footer";
-import WhyLifeBuilder from "./components/WhyLifeBuilder";
+import SystemsOverGoals from "./components/SystemsOverGoals";
 import Faq from "./components/Faq";
 import { usePageMeta } from "@/hooks/use-page-meta";
 import { usePublicFeedbacks } from "@/api/services/feedback-service";
@@ -22,7 +21,7 @@ export function LandingPage() {
     path: "/",
   });
 
-  // Deep links such as /#how-it-works: the sections render after the route loads, so scroll once they exist
+  // Deep links such as /#systems: the sections render after the route loads, so scroll once they exist
   useEffect(() => {
     if (!hash) return;
     const timer = window.setTimeout(() => {
@@ -43,10 +42,7 @@ export function LandingPage() {
         <ProblemFix />
       </div>
       <div className="border-t border-zinc-900/40">
-        <WhyLifeBuilder />
-      </div>
-      <div className="border-t border-zinc-900/40">
-        <HowItWorks />
+        <SystemsOverGoals />
       </div>
       <div className="border-t border-zinc-900/40">
         <Testimonials curatedFeedbacks={curatedFeedbacks} />

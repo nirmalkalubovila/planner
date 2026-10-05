@@ -40,10 +40,10 @@ export default function Hero() {
             Start Building Free
           </Link>
           <a
-            href="#how-it-works"
+            href="#systems"
             className="inline-flex flex-1 sm:flex-none items-center justify-center border border-[#D2A226]/40 bg-black/40 backdrop-blur-sm text-white text-[13px] sm:text-sm font-semibold px-3 sm:px-7 py-3 sm:py-3.5 rounded-xl hover:bg-[#D2A226]/10 hover:border-[#D2A226]/70 hover:-translate-y-px active:scale-[0.98] transition-all duration-200"
           >
-            See How It Works
+            See The System
           </a>
         </div>
       </div>

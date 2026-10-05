@@ -8,13 +8,13 @@ An AI weekly planner and goal tracker. It turns big goals into daily tasks, time
 - Time blocking: goals, habits and tasks sit in 30-minute slots. Overlaps are prevented.
 - Weekly reset: when the user falls behind, Reset compares planned time with available time and suggests what to keep, move, reduce or remove. Nothing changes until the user approves it, and removed work is saved, not deleted.
 - Habits and routines: set once, they appear in the planner every week.
-- Priorities: weekly and daily outcomes keep the focus on what matters.
+- Priorities: up to three weekly outcomes keep the focus on what matters.
 - Life balance: work is tagged to income, assets, recovery and relationships.
 - Insights: consistency, execution and milestone tracking.
 
 ## Pages
 
-- [Home](https://www.legacylifebuilder.xyz/): overview, how it works, weekly reset and FAQ.
+- [Home](https://www.legacylifebuilder.xyz/): overview, the system behind it, weekly reset and FAQ.
 - [Sign up](https://www.legacylifebuilder.xyz/signup)
 - [Log in](https://www.legacylifebuilder.xyz/login)
 - [Privacy Policy](https://www.legacylifebuilder.xyz/privacy)
