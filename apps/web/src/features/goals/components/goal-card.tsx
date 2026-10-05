@@ -20,6 +20,7 @@ interface GoalCardProps {
     completedDays?: Record<string, string[]>;
     currentWeek?: string;
     onUpdateGoal?: (goal: Goal) => void;
+    onBuildPlan?: (goal: Goal) => void;
 }
 
 export const GoalCard: React.FC<GoalCardProps> = ({
@@ -31,7 +32,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     weekPlan,
     completedDays,
     currentWeek,
-    onUpdateGoal
+    onUpdateGoal,
+    onBuildPlan
 }) => {
     const hasPlan = goal.plans && goal.plans.length > 0;
     const milestones = goal.milestones || [];
@@ -256,7 +258,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                         </div>
                     )}
 
-                    <MasterActionPlan goal={goal} onUpdate={onUpdateGoal} />
+                    <MasterActionPlan goal={goal} onUpdate={onUpdateGoal} onBuildPlan={onBuildPlan} />
                 </div>
             )}
         </div>

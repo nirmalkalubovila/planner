@@ -132,7 +132,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* Staggered entrance for hero / auth content */
 .llb-rise { animation: llb-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+/* Looping highlights on the landing page. They only run once their block is on screen (data-play), and rest under reduced motion. */
+.llb-loop[data-play="false"], .llb-loop[data-play="false"] * { animation-play-state: paused; }
+.llb-pick-ring { opacity: 0; animation: llb-pick 9s ease-in-out infinite; animation-delay: var(--d, 0s); }
+.llb-pick-zoom { animation: llb-pick-zoom 9s ease-in-out infinite; animation-delay: var(--d, 0s); }
+.llb-chip-lit { opacity: 0; animation: llb-chip-lit var(--t, 5s) ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes llb-pick { 0% { opacity: 0; } 6% { opacity: 1; } 30% { opacity: 1; } 38% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes llb-pick-zoom { 0% { transform: scale(1); } 34% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@keyframes llb-chip-lit { 0% { opacity: 0; } 8% { opacity: 1; } 16% { opacity: 1; } 24% { opacity: 0; } 100% { opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   .llb-btn, .llb-btn:hover, .llb-btn:active { transition: none; transform: none; }
-  .llb-btn:hover::after, .llb-btn-auto::after, .llb-btn-pulse, .llb-rise { animation: none; }
+  .llb-btn:hover::after, .llb-btn-auto::after, .llb-btn-pulse, .llb-rise, .llb-pick-ring, .llb-pick-zoom, .llb-chip-lit { animation: none; }
 }

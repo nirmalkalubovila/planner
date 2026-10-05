@@ -43,7 +43,7 @@ const corsHeaders = {
 };
 
 const DEFAULT_PROTOCOL_VERSION = "2025-06-18";
-const SERVER_INFO = { name: "legacy-life-builder-planner", version: "1.1.0" };
+const SERVER_INFO = { name: "legacy-life-builder-planner", version: "1.2.0" };
 
 // Returned to Claude when it connects, so the planning rules apply to every chat without the user repeating them.
 const INSTRUCTIONS = `You plan goals, habits and weeks for the user of Legacy Life Builder. Follow these rules every time.
@@ -53,11 +53,16 @@ const INSTRUCTIONS = `You plan goals, habits and weeks for the user of Legacy Li
    - Year goal: years, then the months of every year, then the weeks of the current month.
    - Month goal: months, then the weeks of the current month.
    - Week goal: weeks only.
-   Pass this as "plans" (nested "children"). Counts must match the dates exactly. If create_goal rejects a count, fix it and call again.
-3. Weeks of future months are filled in later, automatically, when those months arrive. Do not invent them now.
-4. Before scheduling, call get_week_plan and never place work over sleep or habits. Keep the user's hour budget realistic.
-5. When you plan a week, set BOTH levels: 1-3 weekly outcomes (set_weekly_outcomes), then exactly one outcome for each day that matters (set_daily_outcomes, or the dailyOutcomes field of set_weekly_outcomes), each linked to the weekly outcome it advances with contributesTo.
-6. Read before you write: call get_goals and get_habits first, reuse existing goals instead of creating duplicates, and keep buckets consistent with what the user already chose.`;
+   Pass this as "plans" (nested "children"). Counts must match the dates exactly. If create_goal rejects a count, fix it and call again. A goal that shows "No plan yet" needs set_goal_plan. When a new month arrives, fill its weeks with plan_goal_weeks.
+3. Weeks of future months are filled in later. Do not invent them now.
+4. Before scheduling, call get_profile and get_week_plan. Never place work over sleep or habits, and keep each week inside the user's daily hour budget.
+5. When you plan a week, set 1-3 weekly outcomes with set_weekly_outcomes. The app has no daily outcomes.
+6. Every goal needs ALL of these fields, exactly as the app's goal form asks: title (short name, 60 characters max), currentState (where the user is today), ultimateGoal (what they want to achieve), constraints (their real limits), why (why it matters to them), plus dates, goalType and bucket. Write them as plain text: never HTML entities such as &amp;, and never the labels "Current State:", "Ultimate Goal:" or "Strict Constraints:" inside the values. Ask the user for anything you do not know rather than guessing or leaving it blank.
+7. Never judge what was done from the schedule alone. Use get_day and get_completions: a block is done only when it is ticked. Tick blocks the user says they finished with complete_task.
+8. Work that did not happen or does not fit goes to the Missed Library (add_missed_task, then remove_task for a scheduled block), never into a task name such as "MISSED: ...". Put it back with restore_missed_task. Check get_missed_tasks before inventing new tasks.
+9. Times are the user's local clock. "Today" means the user's today, which get_day reports as userToday.
+10. Never delete goals, habits or notes unless the user asks. Prefer ending a habit with update_habit and an endDate.
+11. Read before you write: call get_goals and get_habits first, reuse existing goals instead of creating duplicates, and keep buckets consistent with what the user already chose.`;
 
 // ─── Date / week / slot helpers ────────────────────────────────
 // These mirror WeekUtils in @llb/core exactly. They're restated here
@@ -140,6 +145,25 @@ const BUCKET_HELP = "income (paid work), asset (skills, content, learning), reco
 function parseBucket(value: unknown, what: string): Bucket {
   if (typeof value === "string" && (BUCKETS as readonly string[]).includes(value)) return value as Bucket;
   throw new Error(`Every ${what} needs a life bucket: ${BUCKET_HELP}. Got ${value === undefined ? "nothing" : JSON.stringify(value)}.`);
+}
+
+/** Models sometimes send HTML-escaped text ("&amp;"); the app stores and shows plain characters. */
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/** A required free-text field: trimmed, decoded, stripped of the form's own labels, and never empty. */
+function requireText(value: unknown, field: string, hint: string): string {
+  const text = typeof value === "string"
+    ? decodeEntities(value).replace(/^\s*(Current State|Ultimate Goal|Strict Constraints):\s*/i, "").trim()
+    : "";
+  if (!text) throw new Error(`${field} is required: ${hint}`);
+  return text;
 }
 
 /** Copies a bucket onto a whole plan tree (used when a goal's bucket changes). */
@@ -226,40 +250,6 @@ function buildPlans(goalType: string, startDate: string, milestoneDates: string[
     }
     return top;
   });
-}
-
-interface DailyOutcomeInput { date?: string; text?: string; contributesTo?: number }
-
-/**
- * Writes day outcomes into bucket_actions.dailyWins, keyed the way the app keys them ("<week>-<1..7>").
- * Anything the app stored on a day (completed, linked item) is kept. One outcome per day.
- */
-function applyDailyOutcomes(existing: Record<string, any> | undefined, weekStr: string, items: DailyOutcomeInput[], weeklyCount: number) {
-  const dates = getDaysForWeek(weekStr).map(dateStr);
-  const wins: Record<string, any> = { ...(existing || {}) };
-  const seen = new Set<string>();
-  for (const item of items || []) {
-    const text = typeof item?.text === "string" ? item.text.trim() : "";
-    if (!text) throw new Error("Every daily outcome needs text.");
-    const iso = String(item.date ?? "");
-    const idx = dates.indexOf(iso);
-    if (idx === -1) throw new Error(`Daily outcome date "${iso}" is not in this week (${dates[0]} to ${dates[6]}).`);
-    if (seen.has(iso)) throw new Error(`Only one outcome per day: ${iso} was given twice.`);
-    seen.add(iso);
-    let contributesToKey: string | undefined;
-    if (item.contributesTo !== undefined) {
-      const n = Number(item.contributesTo);
-      if (!Number.isInteger(n) || n < 1 || n > 3 || n > weeklyCount) {
-        throw new Error(weeklyCount === 0
-          ? "Set the weekly outcomes first, then link each day to one with contributesTo."
-          : `contributesTo must be a weekly outcome number from 1 to ${weeklyCount}.`);
-      }
-      contributesToKey = `p${n}`;
-    }
-    const key = `${weekStr}-${idx + 1}`;
-    wins[key] = { ...(wins[key] || {}), text, ...(contributesToKey ? { contributesToKey } : {}) };
-  }
-  return wins;
 }
 
 /** A compact outline of a stored plan so Claude can see what exists and what is still missing. */
@@ -415,25 +405,216 @@ function habitsOnDay(habits: any[], dayIdx: number, onDate: string) {
   });
 }
 
+const VAULT_CATEGORY_LIST = ["ideas", "problems", "future", "nextweek", "quotes", "reading", "resources"];
+
+// ─── Local time, day derivation and completions ────────────────
+// The app stores times as the user's wall clock and tells the server their offset
+// (user_profiles.notification_prefs.timezoneOffset = JS getTimezoneOffset(), minutes WEST of UTC).
+
+/** "Now" shifted so the UTC getters read the user's wall clock. */
+function localNow(tzOffset: number): Date {
+  return new Date(Date.now() - tzOffset * 60000);
+}
+
+function localTodayISO(tzOffset: number): string {
+  return dateStr(localNow(tzOffset));
+}
+
+function localMinutesNow(tzOffset: number): number {
+  const n = localNow(tzOffset);
+  return n.getUTCHours() * 60 + n.getUTCMinutes();
+}
+
+/** The date a tool should act on: the one given, or the user's today. */
+function anchorDate(given: unknown, tzOffset: number): Date {
+  return given ? parseDate(String(given)) : parseDate(localTodayISO(tzOffset));
+}
+
+/** The key completed_tasks uses for a day: "<YYYY-WW>-<1..7>". */
+function dayStrFor(d: Date): string {
+  return `${dateToWeekStr(d)}-${dateToDayIdx(d) + 1}`;
+}
+
+function addDays(d: Date, n: number): Date {
+  return new Date(d.getTime() + n * 86400000);
+}
+
+interface DayTask {
+  id: string;
+  name: string;
+  type: string;
+  startSlot: number;
+  endSlot: number;
+  goalId?: string;
+  bucket?: string;
+  description?: string;
+}
+
+/**
+ * Mirrors deriveDayTasks in @llb/core: a day's blocks from the week grid, with habits filling any
+ * slot the grid leaves untouched. The id format ("<type>-<name>-<startSlot>") is what completed_tasks stores.
+ */
+function deriveDay(state: Record<string, any>, habits: any[], dayIdx: number, iso: string): DayTask[] {
+  const out: DayTask[] = [];
+  const todaysHabits = habitsOnDay(habits, dayIdx, iso).map((h: any) => {
+    let startSlot = -1;
+    let endSlot = -1;
+    try {
+      startSlot = timeToSlot(h.startTime);
+      endSlot = timeToSlot(h.endTime);
+    } catch { /* a habit with unreadable times never matches */ }
+    return { h, startSlot, endSlot };
+  });
+
+  let current: DayTask | null = null;
+  for (let s = 0; s < 48; s++) {
+    const cell = state?.[`${dayIdx}-${s}`] as PlanSlot | undefined;
+    let content: { type: string; name: string; goalId?: string; bucket?: string; description?: string } | undefined;
+    if (cell) {
+      if (cell.type !== "cleared" && cell.name) content = cell;
+    } else {
+      const hit = todaysHabits.find((x) => s >= x.startSlot && s < x.endSlot);
+      if (hit) content = { type: "habit", name: hit.h.name, description: hit.h.description || undefined, bucket: hit.h.bucket || undefined };
+    }
+
+    if (content) {
+      if (current && current.name === content.name && current.type === content.type) {
+        current.endSlot = s + 1;
+      } else {
+        if (current) out.push(current);
+        current = {
+          id: `${content.type}-${content.name}-${s}`,
+          name: content.name,
+          type: content.type,
+          startSlot: s,
+          endSlot: s + 1,
+          ...(content.goalId ? { goalId: content.goalId } : {}),
+          ...(content.bucket ? { bucket: content.bucket } : {}),
+          ...(content.description ? { description: content.description } : {}),
+        };
+      }
+    } else if (current) {
+      out.push(current);
+      current = null;
+    }
+  }
+  if (current) out.push(current);
+
+  for (const r of ((state?.reminders || []) as any[]).filter((r) => r?.dayIdx === dayIdx)) {
+    let slot = 0;
+    try { slot = timeToSlot(r.time); } catch { /* keep 0 */ }
+    out.push({ id: r.id, name: r.name, type: "reminder", startSlot: slot, endSlot: slot, ...(r.description ? { description: r.description } : {}) });
+  }
+  return out.sort((a, b) => a.startSlot - b.startSlot);
+}
+
+/** week_plans rows for several weeks at once, keyed by the "YYYY-WW" week string. */
+async function loadWeekStates(admin: any, userId: string, weekStrs: string[]) {
+  const unique = [...new Set(weekStrs)];
+  const keyToWeek = new Map(unique.map((w) => [formatWeekDisplay(w), w]));
+  const { data, error } = await admin.from("week_plans").select("week, state").eq("user_id", userId).in("week", [...keyToWeek.keys()]);
+  if (error) throw new Error(error.message);
+  const out = new Map<string, Record<string, any>>();
+  for (const w of unique) out.set(w, {});
+  for (const row of data || []) {
+    const w = keyToWeek.get(row.week);
+    if (w) out.set(w, (row.state as Record<string, any>) || {});
+  }
+  return out;
+}
+
+async function loadCompleted(admin: any, userId: string, dayStrs: string[]): Promise<Map<string, string[]>> {
+  const { data, error } = await admin.from("completed_tasks").select("dayStr, taskIds").eq("user_id", userId).in("dayStr", dayStrs);
+  if (error) throw new Error(error.message);
+  return new Map((data || []).map((r: any) => [r.dayStr, (r.taskIds as string[]) || []]));
+}
+
+type TaskStatus = "done" | "missed" | "pending" | "upcoming";
+
+/** done / missed (day over, or today's block ended, and not ticked) / pending (today, still ahead or running) / upcoming (future day). */
+function taskStatus(task: DayTask, done: boolean, iso: string, todayIso: string, nowMinutes: number): TaskStatus {
+  if (done) return "done";
+  if (iso < todayIso) return "missed";
+  if (iso > todayIso) return "upcoming";
+  const endMinutes = (task.type === "reminder" ? task.startSlot + 1 : task.endSlot) * 30;
+  return nowMinutes >= endMinutes ? "missed" : "pending";
+}
+
+const hoursOf = (t: DayTask) => (t.type === "reminder" ? 0 : (t.endSlot - t.startSlot) * 0.5);
+
+/** A run of days in one pass: every task with its status. Used by get_day, get_completions and get_stats. */
+async function loadDays(admin: any, userId: string, from: Date, to: Date, tzOffset: number) {
+  const dates: Date[] = [];
+  for (let d = from; d.getTime() <= to.getTime(); d = addDays(d, 1)) dates.push(d);
+  const [states, completed, habitsRes] = await Promise.all([
+    loadWeekStates(admin, userId, dates.map(dateToWeekStr)),
+    loadCompleted(admin, userId, dates.map(dayStrFor)),
+    admin.from("habits").select("*").eq("user_id", userId),
+  ]);
+  if (habitsRes.error) throw new Error(habitsRes.error.message);
+  const todayIso = localTodayISO(tzOffset);
+  const nowMinutes = localMinutesNow(tzOffset);
+
+  return dates.map((d) => {
+    const iso = dateStr(d);
+    const dayIdx = dateToDayIdx(d);
+    const ids = completed.get(dayStrFor(d)) || [];
+    const tasks = deriveDay(states.get(dateToWeekStr(d)) || {}, habitsRes.data || [], dayIdx, iso).map((t) => ({
+      ...t,
+      status: taskStatus(t, ids.includes(t.id), iso, todayIso, nowMinutes),
+    }));
+    return { iso, weekday: DAY_NAMES[dayIdx], dayStr: dayStrFor(d), tasks };
+  });
+}
+
+const fmtTask = (t: DayTask & { status?: TaskStatus }) => ({
+  taskId: t.id,
+  name: t.name,
+  type: t.type,
+  start: slotToTime(t.startSlot),
+  end: slotToTime(t.type === "reminder" ? t.startSlot : t.endSlot),
+  ...(t.status ? { status: t.status } : {}),
+  ...(t.goalId ? { goalId: t.goalId } : {}),
+  ...(t.bucket ? { bucket: t.bucket } : {}),
+  ...(t.description ? { description: t.description } : {}),
+});
+
+// ─── Reminders ─────────────────────────────────────────────────
+
+const REPEAT_TYPES = ["daily", "every_2_days", "weekly", "random", "once"];
+
+/** Next fire time as a UTC instant, for a "HH:mm" on the user's wall clock (mirrors calculateNextFire in @llb/api). */
+function nextFireFor(repeat: string, remindAt: string | undefined, onDate: string | undefined, tzOffset: number): Date {
+  const shift = tzOffset * 60000;
+  const nowLocal = localNow(tzOffset);
+  const atLocal = (base: Date, hh: number, mm: number) =>
+    new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), hh, mm) + shift);
+
+  if (repeat === "random") {
+    const base = addDays(nowLocal, 2 + Math.floor(Math.random() * 3));
+    return atLocal(base, 9 + Math.floor(Math.random() * 12), Math.floor(Math.random() * 60));
+  }
+  if (!remindAt) throw new Error(`time (HH:mm) is required for a ${repeat} reminder.`);
+  const m = /^(\d{1,2}):(\d{2})$/.exec(remindAt.trim());
+  if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) throw new Error(`Invalid time "${remindAt}" -- expected HH:mm`);
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+
+  if (repeat === "once") {
+    if (!onDate) throw new Error("date (YYYY-MM-DD) is required for a one-time reminder.");
+    const fire = atLocal(parseDate(onDate), hh, mm);
+    if (fire.getTime() <= Date.now()) throw new Error("That date and time is already in the past.");
+    return fire;
+  }
+  let fire = atLocal(nowLocal, hh, mm);
+  if (fire.getTime() <= Date.now()) fire = new Date(fire.getTime() + (repeat === "weekly" ? 7 : repeat === "every_2_days" ? 2 : 1) * 86400000);
+  return fire;
+}
+
 // ─── Tool definitions ──────────────────────────────────────────
 
 const DATE_PROP = { type: "string", description: "Calendar date as YYYY-MM-DD" };
 const TIME_PROP = { type: "string", description: "24-hour time as HH:mm, on a 30-minute grid" };
-
-const DAILY_OUTCOMES_PROP = {
-  type: "array",
-  description: "One outcome per day: the single result that makes that day a win. Link each to the weekly outcome it advances.",
-  items: {
-    type: "object",
-    properties: {
-      date: DATE_PROP,
-      text: { type: "string", description: "Concrete and finishable in a day" },
-      contributesTo: { type: "integer", minimum: 1, maximum: 3, description: "Which weekly outcome this advances: 1, 2 or 3 (the order given to set_weekly_outcomes)" },
-    },
-    required: ["date", "text"],
-    additionalProperties: false,
-  },
-};
 
 const BUCKET_PROP = {
   type: "string",
@@ -475,7 +656,7 @@ const TOOLS = [
   },
   {
     name: "get_weekly_outcomes",
-    description: "Read the 1-3 headline outcomes the user set for a week, plus any per-day outcomes.",
+    description: "Read the 1-3 headline outcomes the user set for a week.",
     inputSchema: {
       type: "object",
       properties: { date: { ...DATE_PROP, description: "Any date inside the week. Defaults to the current week." } },
@@ -533,31 +714,50 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        name: { type: "string", description: "What the goal is" },
-        purpose: { type: "string", description: "Why it matters to the user" },
+        title: { type: "string", maxLength: 60, description: "Short name for the goal, 60 characters max" },
+        currentState: { type: "string", description: "Where the user is right now, in plain text" },
+        ultimateGoal: { type: "string", description: "What the user wants to achieve, in plain text" },
+        constraints: { type: "string", description: "The user's real limits: time, money, energy, rules" },
+        why: { type: "string", description: "Why this matters to the user. Shown back to them when it gets hard." },
         startDate: DATE_PROP,
         endDate: DATE_PROP,
         goalType: { type: "string", enum: ["Week", "Month", "Year"], description: "Week: 1-4 weeks. Month: 2-12 months. Year: 2-10 years." },
         bucket: BUCKET_PROP,
         plans: { type: "array", description: "Top-level phases, one per year (Year goal), month (Month goal) or week (Week goal), each with nested children", items: PLAN_TOP },
       },
-      required: ["name", "startDate", "endDate", "goalType", "bucket", "plans"],
+      required: ["title", "currentState", "ultimateGoal", "constraints", "why", "startDate", "endDate", "goalType", "bucket", "plans"],
       additionalProperties: false,
     },
   },
   {
     name: "update_goal",
-    description: "Change a goal's name, purpose, deadline or life bucket. Changing the bucket also updates every phase of its plan.",
+    description: "Change a goal's title, current state, ultimate goal, constraints, why, deadline or life bucket. Only the fields you pass change. Changing the bucket also updates every phase of its plan. Plain text only, no HTML entities.",
     inputSchema: {
       type: "object",
       properties: {
         goalId: { type: "string", description: "From get_goals" },
-        name: { type: "string" },
-        purpose: { type: "string" },
+        title: { type: "string", maxLength: 60, description: "Short name, 60 characters max" },
+        currentState: { type: "string" },
+        ultimateGoal: { type: "string" },
+        constraints: { type: "string" },
+        why: { type: "string" },
         endDate: DATE_PROP,
         bucket: BUCKET_PROP,
       },
       required: ["goalId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "set_goal_plan",
+    description: "Attach (or replace) the full breakdown of a goal that already exists, for example one that shows 'No plan yet'. Provide \"plans\" exactly as for create_goal: Year goal = years, each with its months (children), and the weeks (grandchildren) of the current month. Month goal = months, with the weeks of the current month. Week goal = weeks. Counts must match the goal's milestone dates; an error tells you the exact periods expected. Milestones, dates and bucket are kept as they are.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        goalId: { type: "string", description: "From get_goals" },
+        plans: { type: "array", description: "Top-level phases, one per milestone, each with nested children", items: PLAN_TOP },
+      },
+      required: ["goalId", "plans"],
       additionalProperties: false,
     },
   },
@@ -597,21 +797,8 @@ const TOOLS = [
     },
   },
   {
-    name: "set_daily_outcomes",
-    description: "Set the outcome for each day of a week (one per day). Set the weekly outcomes first, then link each day to the weekly outcome it advances with contributesTo. Days you do not mention are left alone.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        date: { ...DATE_PROP, description: "Any date inside the week. Defaults to the current week." },
-        outcomes: DAILY_OUTCOMES_PROP,
-      },
-      required: ["outcomes"],
-      additionalProperties: false,
-    },
-  },
-  {
     name: "set_weekly_outcomes",
-    description: "Set the 1-3 headline outcomes that define a successful week. You can also pass dailyOutcomes (one per day, each linked to a weekly outcome) so the week and its days are planned in one call.",
+    description: "Set the 1-3 headline outcomes that define a successful week, in priority order. Daily outcomes are no longer part of the app.",
     inputSchema: {
       type: "object",
       properties: {
@@ -622,9 +809,268 @@ const TOOLS = [
           items: { type: "string" },
           maxItems: 3,
         },
-        dailyOutcomes: DAILY_OUTCOMES_PROP,
       },
       required: ["outcomes"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "plan_goal_weeks",
+    description: "Fill in the weeks of one month of an existing goal without touching anything else in its plan. Use it when a new month arrives (Year and Month goals). Provide one entry per week of that month; if the count is wrong the error lists the exact weeks expected.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        goalId: { type: "string", description: "From get_goals" },
+        date: { ...DATE_PROP, description: "Any date inside the month to plan. Defaults to the user's today." },
+        weeks: { type: "array", items: PLAN_LEAF, description: "One per week of the month, in order" },
+      },
+      required: ["goalId", "weeks"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_day",
+    description: "One day as the app shows it on Today: every block (goal work, habits, custom tasks, reminders) with its taskId and whether it is done, missed, pending (today, still ahead) or upcoming. Defaults to the user's today. Use it for a morning brief or an evening check-in.",
+    inputSchema: {
+      type: "object",
+      properties: { date: { ...DATE_PROP, description: "Defaults to the user's today." } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_completions",
+    description: "What was done and what was missed over a date range (max 42 days): per day counts, the missed blocks, and rollups per goal and per habit. This is the data behind a weekly review. A block counts as missed when its day is over, or today's block has ended, and it was not ticked.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        from: DATE_PROP,
+        to: { ...DATE_PROP, description: "Defaults to the user's today." },
+      },
+      required: ["from"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "complete_task",
+    description: "Tick a block as done, exactly as tapping it on Today does. Identify it by date plus either a time inside the block or its name. Safe to repeat.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: DATE_PROP,
+        time: { ...TIME_PROP, description: "Any time inside the block" },
+        name: { type: "string", description: "The block's name (use when you do not know the time)" },
+      },
+      required: ["date"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "uncomplete_task",
+    description: "Untick a block that was marked done. Identify it like complete_task.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: DATE_PROP,
+        time: { ...TIME_PROP, description: "Any time inside the block" },
+        name: { type: "string", description: "The block's name (use when you do not know the time)" },
+      },
+      required: ["date"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_missed_tasks",
+    description: "The Missed Library: work that was deferred and not lost. It shows as the Backlog in the planner. Check it before creating new tasks.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "add_missed_task",
+    description: "Put work into the Missed Library instead of deleting it (for example when it did not fit this week). Use this rather than renaming a task with a MISSED prefix. To defer a scheduled block, call this and then remove_task.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        description: { type: "string", description: "Optional detail, such as the goal it belongs to or the date it was first planned" },
+        startTime: { ...TIME_PROP, description: "Preferred start when it is rescheduled" },
+        endTime: { ...TIME_PROP, description: "Preferred end when it is rescheduled" },
+      },
+      required: ["name", "startTime", "endTime"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "restore_missed_task",
+    description: "Move a Missed Library item onto the calendar and remove it from the library. Same rules as place_task (bucket or goalId required, never over sleep or habits). Nothing changes if the placement fails.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "From get_missed_tasks" },
+        date: DATE_PROP,
+        startTime: { ...TIME_PROP, description: "Defaults to the item's own start time" },
+        endTime: { ...TIME_PROP, description: "Defaults to the item's own end time" },
+        goalId: { type: "string", description: "Goal id this advances, from get_goals" },
+        bucket: { ...BUCKET_PROP, description: BUCKET_PROP.description + " Required unless goalId is given." },
+      },
+      required: ["id", "date"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "delete_missed_task",
+    description: "Remove an item from the Missed Library. Only when the user says the work is no longer needed.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string", description: "From get_missed_tasks" } },
+      required: ["id"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_custom_tasks",
+    description: "The user's Task Library: reusable tasks they can drop onto the week.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "create_custom_task",
+    description: "Add a reusable task to the Task Library. bucket is required.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        description: { type: "string" },
+        startTime: TIME_PROP,
+        endTime: TIME_PROP,
+        days: { type: "array", items: { type: "string", enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] }, description: "Weekdays it usually happens on. Leave empty for none." },
+        bucket: BUCKET_PROP,
+      },
+      required: ["name", "startTime", "endTime", "bucket"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_vault_notes",
+    description: "Read the user's Vault notes (ideas, problems, future, nextweek, quotes, reading, resources). Notes in the nextweek category show up in the planner Backlog.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        category: { type: "string", enum: [...VAULT_CATEGORY_LIST] },
+        query: { type: "string", description: "Only notes whose title, content or tags contain this text" },
+        limit: { type: "integer", minimum: 1, maximum: 100, description: "Default 30" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "add_vault_note",
+    description: "Save a note to the Vault. Use it to capture ideas, problems and things to do next week from a conversation. #tags in the content are picked up automatically.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        content: { type: "string" },
+        category: { type: "string", enum: [...VAULT_CATEGORY_LIST], description: "Default ideas" },
+        pinned: { type: "boolean" },
+      },
+      required: ["content"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "set_vault_reminder",
+    description: "Attach a reminder notification to a Vault note. repeat is daily, every_2_days, weekly, random (every 2-4 days at a random daytime hour) or once. Times are the user's local clock.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        noteId: { type: "string", description: "From get_vault_notes or add_vault_note" },
+        title: { type: "string", description: "Shown in the notification. Defaults to the note's title." },
+        body: { type: "string" },
+        repeat: { type: "string", enum: [...REPEAT_TYPES] },
+        time: { ...TIME_PROP, description: "Not needed for random" },
+        date: { ...DATE_PROP, description: "Required for once" },
+      },
+      required: ["noteId", "repeat"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_profile",
+    description: "How the user works: sleep, planning day, free hours, energy peak, focus, profession and the execution profile, plus the daily hour budget to plan within. Read this before building a week.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "get_stats",
+    description: "Trends over the last N days (default 28, max 90): execution rate per week, per-habit consistency, per-goal planned vs done hours, and goals that are behind pace.",
+    inputSchema: {
+      type: "object",
+      properties: { days: { type: "integer", minimum: 7, maximum: 90 } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "update_habit",
+    description: "Change a habit. Only the fields you pass change. Changing times or days moves where it appears on the calendar.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        habitId: { type: "string", description: "From get_habits" },
+        name: { type: "string" },
+        purpose: { type: "string" },
+        startTime: TIME_PROP,
+        endTime: TIME_PROP,
+        days: { type: "array", items: { type: "string", enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] }, description: "Weekdays it repeats on. An empty list means every day." },
+        endDate: { ...DATE_PROP, description: "Last day it repeats. Use it to retire a habit without deleting its history." },
+        bucket: BUCKET_PROP,
+      },
+      required: ["habitId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "delete_habit",
+    description: "Permanently delete a habit. Prefer update_habit with an endDate. Only delete when the user asks for it.",
+    inputSchema: {
+      type: "object",
+      properties: { habitId: { type: "string", description: "From get_habits" } },
+      required: ["habitId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "delete_goal",
+    description: "Permanently delete a goal and its plan. Scheduled blocks that point to it stay on the calendar. Only delete when the user asks for it.",
+    inputSchema: {
+      type: "object",
+      properties: { goalId: { type: "string", description: "From get_goals" } },
+      required: ["goalId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "place_tasks",
+    description: "Schedule several blocks in one call. Each follows the rules of place_task. Blocks are placed in order and each is reported separately: one failing does not undo the others.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tasks: {
+          type: "array",
+          maxItems: 40,
+          items: {
+            type: "object",
+            properties: {
+              date: DATE_PROP,
+              startTime: TIME_PROP,
+              endTime: TIME_PROP,
+              name: { type: "string" },
+              description: { type: "string" },
+              goalId: { type: "string" },
+              bucket: BUCKET_PROP,
+            },
+            required: ["date", "startTime", "endTime", "name"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["tasks"],
       additionalProperties: false,
     },
   },
@@ -635,10 +1081,14 @@ const TOOLS = [
 async function loadProfile(admin: any, userId: string) {
   const { data } = await admin
     .from("user_profiles")
-    .select("sleep_start, sleep_duration")
+    .select("sleep_start, sleep_duration, notification_prefs")
     .eq("user_id", userId)
     .maybeSingle();
-  return { sleepStart: data?.sleep_start || "22:00", sleepDuration: data?.sleep_duration || "8" };
+  return {
+    sleepStart: data?.sleep_start || "22:00",
+    sleepDuration: data?.sleep_duration || "8",
+    tzOffset: Number(data?.notification_prefs?.timezoneOffset ?? 0) || 0,
+  };
 }
 
 async function runTool(admin: any, userId: string, name: string, args: any): Promise<string> {
@@ -683,7 +1133,7 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
     }
 
     case "get_week_plan": {
-      const anchor = args?.date ? parseDate(args.date) : new Date();
+      const anchor = anchorDate(args?.date, (await loadProfile(admin, userId)).tzOffset);
       const weekStr = dateToWeekStr(anchor);
       const dates = getDaysForWeek(weekStr);
       const [{ data: planRow }, { data: habitRows }, profile] = await Promise.all([
@@ -715,7 +1165,7 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
     }
 
     case "get_weekly_outcomes": {
-      const anchor = args?.date ? parseDate(args.date) : new Date();
+      const anchor = anchorDate(args?.date, (await loadProfile(admin, userId)).tzOffset);
       const weekStr = dateToWeekStr(anchor);
       const { data } = await admin
         .from("week_plans").select("bucket_actions")
@@ -728,19 +1178,6 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
         week: weekStr,
         weekLabel: formatWeekDisplay(weekStr),
         weeklyOutcomes: outcomes,
-        dailyOutcomes: Object.entries((raw.dailyWins || {}) as Record<string, any>)
-          .map(([key, v]) => {
-            const n = Number(key.split("-").pop());
-            const day = getDaysForWeek(weekStr)[n - 1];
-            return {
-              date: day ? dateStr(day) : key,
-              text: v?.text || "",
-              contributesTo: v?.contributesToKey ? Number(String(v.contributesToKey).replace("p", "")) : undefined,
-              completed: v?.completed || false,
-            };
-          })
-          .filter((d) => d.text)
-          .sort((a, b) => a.date.localeCompare(b.date)),
       }, null, 2);
     }
 
@@ -876,7 +1313,15 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
 
     case "create_goal": {
       const bucket = parseBucket(args.bucket, "goal");
-      if (!args.name?.trim()) throw new Error("name is required");
+      const title = requireText(args.title, "title", "a short name for the goal, 60 characters max.");
+      if (title.length > 60) throw new Error("title must be 60 characters or fewer.");
+      const currentState = requireText(args.currentState, "currentState", "describe where the user is right now.");
+      const ultimateGoal = requireText(args.ultimateGoal, "ultimateGoal", "describe what the user wants to achieve.");
+      const constraints = requireText(args.constraints, "constraints", "state the user's real limits (time, money, energy). Ask them if unknown.");
+      const why = requireText(args.why, "why", "say why this matters to the user. Ask them if unknown.");
+      // Same packing the app's goal form uses, so these goals open and edit like any other
+      const goalName = `Current State:\n${currentState}\n\nUltimate Goal:\n${ultimateGoal}`;
+      const goalPurpose = `Strict Constraints:\n${constraints}`;
       const goalType = args.goalType;
       if (!["Week", "Month", "Year"].includes(goalType)) throw new Error('goalType must be "Week", "Month" or "Year".');
       if (!parseISODate(args.startDate) || !parseISODate(args.endDate)) throw new Error("startDate and endDate must be valid YYYY-MM-DD dates.");
@@ -900,9 +1345,10 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
 
       const { data, error } = await admin.from("goals").insert({
         user_id: userId,
-        name: args.name,
-        title: args.name,
-        purpose: args.purpose || "",
+        name: goalName,
+        title,
+        purpose: goalPurpose,
+        goalContext: { why },
         startDate: args.startDate,
         endDate: milestoneDates[milestoneDates.length - 1],
         goalType,
@@ -916,27 +1362,77 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
       const weekCount = plans.reduce((n: number, p: any) => n + (goalType === "Year"
         ? (p.subPlans || []).reduce((m: number, c: any) => m + (c.subPlans || []).length, 0)
         : (p.subPlans || []).length), 0);
-      return `Created ${goalType} goal "${args.name}" (id ${data.id}, bucket ${bucket}) with ${milestones.length} ${unit.toLowerCase()}-level phase(s)` +
+      return `Created ${goalType} goal "${title}" (id ${data.id}, bucket ${bucket}) with ${milestones.length} ${unit.toLowerCase()}-level phase(s)` +
         `${monthCount ? `, ${monthCount} month(s)` : ""}${weekCount ? ` and ${weekCount} week(s)` : ""}. Weeks for later months are planned automatically when those months arrive.`;
     }
 
     case "update_goal": {
       const patch: Record<string, any> = { updatedAt: new Date().toISOString() };
-      if (args.name) { patch.name = args.name; patch.title = args.name; }
-      if (args.purpose !== undefined) patch.purpose = args.purpose;
-      if (args.endDate) patch.endDate = args.endDate;
-      if (args.bucket !== undefined) {
-        const bucket = parseBucket(args.bucket, "goal");
-        patch.bucket = bucket;
-        const { data: current } = await admin.from("goals").select("plans").eq("id", args.goalId).eq("user_id", userId).maybeSingle();
-        if (current?.plans) patch.plans = applyBucket(current.plans, bucket);
+      const text = (v: unknown, field: string) => {
+        const t = typeof v === "string" ? decodeEntities(v).trim() : "";
+        if (!t) throw new Error(`${field} cannot be empty.`);
+        return t;
+      };
+      const touchesText = ["title", "currentState", "ultimateGoal", "constraints", "why"].some((k) => args[k] !== undefined);
+      if (touchesText || args.bucket !== undefined) {
+        const { data: current } = await admin.from("goals").select("name, purpose, plans, goalContext")
+          .eq("id", args.goalId).eq("user_id", userId).maybeSingle();
+        if (!current) throw new Error(`No goal found with id ${args.goalId}.`);
+
+        if (touchesText) {
+          // Goals pack current state + ultimate goal into name, and constraints into purpose (see create_goal)
+          const nameMatch = /^Current State:\n([\s\S]*?)\n\nUltimate Goal:\n([\s\S]*)$/.exec(current.name || "");
+          if (args.title !== undefined) {
+            const title = text(args.title, "title");
+            if (title.length > 60) throw new Error("title must be 60 characters or fewer.");
+            patch.title = title;
+          }
+          if (args.currentState !== undefined || args.ultimateGoal !== undefined) {
+            const cs = args.currentState !== undefined ? text(args.currentState, "currentState") : (nameMatch?.[1] ?? "").trim();
+            const ug = args.ultimateGoal !== undefined ? text(args.ultimateGoal, "ultimateGoal") : (nameMatch?.[2] ?? "").trim();
+            patch.name = `Current State:\n${cs}\n\nUltimate Goal:\n${ug}`;
+          }
+          if (args.constraints !== undefined) {
+            patch.purpose = `Strict Constraints:\n${text(args.constraints, "constraints")}`;
+          }
+          if (args.why !== undefined) patch.goalContext = { ...(current.goalContext || {}), why: text(args.why, "why") };
+        }
+
+        if (args.bucket !== undefined) {
+          const bucket = parseBucket(args.bucket, "goal");
+          patch.bucket = bucket;
+          if (current.plans) patch.plans = applyBucket(current.plans, bucket);
+        }
       }
+      if (args.endDate) patch.endDate = args.endDate;
 
       const { data, error } = await admin.from("goals")
-        .update(patch).eq("id", args.goalId).eq("user_id", userId).select("name");
+        .update(patch).eq("id", args.goalId).eq("user_id", userId).select("name, title");
       if (error) throw new Error(error.message);
       if (!data || data.length === 0) throw new Error(`No goal found with id ${args.goalId}.`);
-      return `Updated goal "${data[0].name}".`;
+      return `Updated goal "${data[0].title || data[0].name}".`;
+    }
+
+    case "set_goal_plan": {
+      const { data: goal, error } = await admin.from("goals")
+        .select("id, name, title, goalType, startDate, bucket, milestones").eq("id", args.goalId).eq("user_id", userId).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!goal) throw new Error(`No goal found with id ${args.goalId}.`);
+
+      const milestoneDates = ((goal.milestones || []) as any[]).map((m) => m.targetDate).filter(Boolean).sort();
+      if (milestoneDates.length === 0) throw new Error("This goal has no milestones to plan against.");
+      const bucket = parseBucket(goal.bucket, "goal");
+      const plans = buildPlans(goal.goalType, goal.startDate, milestoneDates, args.plans, bucket);
+
+      const { error: saveErr } = await admin.from("goals")
+        .update({ plans, updatedAt: new Date().toISOString() }).eq("id", goal.id).eq("user_id", userId);
+      if (saveErr) throw new Error(saveErr.message);
+
+      const monthCount = plans.reduce((n: number, p: any) => n + (goal.goalType === "Year" ? (p.subPlans || []).length : 0), 0);
+      const weekCount = plans.reduce((n: number, p: any) => n + (goal.goalType === "Year"
+        ? (p.subPlans || []).reduce((m: number, c: any) => m + (c.subPlans || []).length, 0)
+        : (p.subPlans || []).length), 0);
+      return `Planned "${goal.title || goal.name}": ${plans.length} phase(s)${monthCount ? `, ${monthCount} month(s)` : ""}${weekCount ? ` and ${weekCount} week(s)` : ""}. Weeks for later months are planned automatically when those months arrive.`;
     }
 
     case "update_milestone": {
@@ -994,7 +1490,7 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
     }
 
     case "set_weekly_outcomes": {
-      const anchor = args?.date ? parseDate(args.date) : new Date();
+      const anchor = anchorDate(args?.date, (await loadProfile(admin, userId)).tzOffset);
       const weekStr = dateToWeekStr(anchor);
       const dbWeekKey = formatWeekDisplay(weekStr);
       const texts: string[] = (args.outcomes || []).filter((t: any) => typeof t === "string" && t.trim()).slice(0, 3);
@@ -1008,9 +1504,6 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
         if (texts[i]) next[key] = { ...(existing[key] || {}), text: texts[i] };
         else delete next[key];
       });
-      if (Array.isArray(args.dailyOutcomes) && args.dailyOutcomes.length > 0) {
-        next.dailyWins = applyDailyOutcomes(existing.dailyWins, weekStr, args.dailyOutcomes, texts.length);
-      }
 
       if (row) {
         const { error } = await admin.from("week_plans")
@@ -1022,32 +1515,457 @@ async function runTool(admin: any, userId: string, name: string, args: any): Pro
         if (error) throw new Error(error.message);
       }
 
-      const dailyCount = Array.isArray(args.dailyOutcomes) ? args.dailyOutcomes.length : 0;
-      return `Set ${texts.length} weekly outcome(s) for ${dbWeekKey}: ${texts.map((t) => `"${t}"`).join(", ")}.${dailyCount ? ` Also set ${dailyCount} daily outcome(s).` : ""}`;
+      return `Set ${texts.length} weekly outcome(s) for ${dbWeekKey}: ${texts.map((t) => `"${t}"`).join(", ")}.`;
     }
 
-    case "set_daily_outcomes": {
-      const anchor = args?.date ? parseDate(args.date) : new Date();
-      const weekStr = dateToWeekStr(anchor);
-      const dbWeekKey = formatWeekDisplay(weekStr);
-      if (!Array.isArray(args.outcomes) || args.outcomes.length === 0) throw new Error("Provide at least one daily outcome.");
+    case "plan_goal_weeks": {
+      const { data: goal, error } = await admin.from("goals")
+        .select("id, name, title, goalType, startDate, bucket, milestones, plans").eq("id", args.goalId).eq("user_id", userId).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!goal) throw new Error(`No goal found with id ${args.goalId}.`);
+      if (goal.goalType === "Week") throw new Error("A Week goal is already planned in weeks: there is nothing below them to add.");
+      if (!Array.isArray(goal.plans) || goal.plans.length === 0) throw new Error("This goal has no plan yet: call set_goal_plan first.");
+      if (!Array.isArray(args.weeks) || args.weeks.length === 0) throw new Error("Provide the weeks of the month.");
 
-      const { data: row } = await admin.from("week_plans")
-        .select("bucket_actions").eq("user_id", userId).eq("week", dbWeekKey).maybeSingle();
-      const existing = (row?.bucket_actions || {}) as Record<string, any>;
-      const weeklyCount = ["p1", "p2", "p3"].filter((k) => existing[k]?.text).length;
-      const next = { ...existing, dailyWins: applyDailyOutcomes(existing.dailyWins, weekStr, args.outcomes, weeklyCount) };
+      const { tzOffset } = await loadProfile(admin, userId);
+      const iso = dateStr(anchorDate(args.date, tzOffset));
+      const bucket = parseBucket(goal.bucket, "goal");
+      const milestoneDates = ((goal.milestones || []) as any[]).map((m) => m.targetDate).filter(Boolean).sort();
+      const tops = getMilestonePeriods(goal.startDate, milestoneDates);
+      const topIdx = tops.findIndex((p) => p.start <= iso && iso <= p.end);
+      if (topIdx === -1) throw new Error(`${iso} is outside this goal (${tops[0]?.start} to ${tops[tops.length - 1]?.end}).`);
 
-      if (row) {
-        const { error } = await admin.from("week_plans")
-          .update({ bucket_actions: next }).eq("user_id", userId).eq("week", dbWeekKey);
-        if (error) throw new Error(error.message);
+      const plans = JSON.parse(JSON.stringify(goal.plans)) as any[];
+      let slot: any;
+      let period: { start: string; end: string; label?: string };
+      if (goal.goalType === "Year") {
+        const months = getMonthPeriods(tops[topIdx].start, tops[topIdx].end);
+        const mIdx = months.findIndex((p) => p.start <= iso && iso <= p.end);
+        slot = plans[topIdx]?.subPlans?.[mIdx];
+        if (mIdx === -1 || !slot) throw new Error("That year has no months yet: call set_goal_plan with the months first.");
+        period = months[mIdx];
       } else {
-        const { error } = await admin.from("week_plans")
-          .insert({ user_id: userId, week: dbWeekKey, state: {}, bucket_actions: next });
-        if (error) throw new Error(error.message);
+        slot = plans[topIdx];
+        period = tops[topIdx];
       }
-      return `Set ${args.outcomes.length} daily outcome(s) for ${dbWeekKey}: ${args.outcomes.map((o: any) => `${o.date} "${String(o.text).trim()}"`).join("; ")}.`;
+      if (!slot) throw new Error("This goal's plan does not cover that date: call set_goal_plan first.");
+
+      const weeks = getWeekPeriods(period.start, period.end);
+      const periodLabel = period.label ?? `${period.start} to ${period.end}`;
+      expectCount(`${periodLabel} ("weeks")`, "weeks", weeks, args.weeks.length);
+      slot.periodStart = slot.periodStart ?? period.start;
+      slot.periodEnd = slot.periodEnd ?? period.end;
+      slot.subPlans = args.weeks.map((w: PlanNode, k: number) => nodeToSlot(w, weeks[k].label, weeks[k], bucket, `Week ${k + 1} of ${periodLabel}`));
+
+      const { error: saveErr } = await admin.from("goals")
+        .update({ plans, updatedAt: new Date().toISOString() }).eq("id", goal.id).eq("user_id", userId);
+      if (saveErr) throw new Error(saveErr.message);
+      return `Planned ${weeks.length} week(s) of ${periodLabel} for "${goal.title || String(goal.name).slice(0, 60)}". The rest of the plan is unchanged.`;
+    }
+
+    case "get_day": {
+      const { tzOffset } = await loadProfile(admin, userId);
+      const d = anchorDate(args?.date, tzOffset);
+      const [day] = await loadDays(admin, userId, d, d, tzOffset);
+      const real = day.tasks.filter((t) => t.type !== "reminder");
+      const count = (s: TaskStatus) => real.filter((t) => t.status === s).length;
+      return JSON.stringify({
+        date: day.iso,
+        weekday: day.weekday,
+        userToday: localTodayISO(tzOffset),
+        summary: { done: count("done"), missed: count("missed"), pending: count("pending"), upcoming: count("upcoming") },
+        tasks: day.tasks.map(fmtTask),
+      }, null, 2);
+    }
+
+    case "get_completions": {
+      const { tzOffset } = await loadProfile(admin, userId);
+      const from = parseDate(args.from);
+      const to = anchorDate(args.to, tzOffset);
+      const span = Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
+      if (span < 1) throw new Error("to must not be before from.");
+      if (span > 42) throw new Error("Ask for at most 42 days at a time.");
+
+      const [days, { data: goalRows }] = await Promise.all([
+        loadDays(admin, userId, from, to, tzOffset),
+        admin.from("goals").select("id, name, title").eq("user_id", userId),
+      ]);
+      const goalName = new Map<string, string>((goalRows || []).map((g: any) => [g.id, g.title || g.name]));
+
+      const byGoal = new Map<string, { goal: string; plannedHours: number; doneHours: number; done: number; missed: number }>();
+      const byHabit = new Map<string, { habit: string; done: number; missed: number }>();
+      let done = 0;
+      let missed = 0;
+
+      const perDay = days.map((day) => {
+        const real = day.tasks.filter((t) => t.type !== "reminder");
+        const dDone = real.filter((t) => t.status === "done");
+        const dMissed = real.filter((t) => t.status === "missed");
+        done += dDone.length;
+        missed += dMissed.length;
+        for (const t of [...dDone, ...dMissed]) {
+          if (t.type === "goal" && t.goalId) {
+            const row = byGoal.get(t.goalId) || { goal: goalName.get(t.goalId) || t.name, plannedHours: 0, doneHours: 0, done: 0, missed: 0 };
+            row.plannedHours += hoursOf(t);
+            if (t.status === "done") { row.doneHours += hoursOf(t); row.done++; } else row.missed++;
+            byGoal.set(t.goalId, row);
+          } else if (t.type === "habit") {
+            const row = byHabit.get(t.name) || { habit: t.name, done: 0, missed: 0 };
+            if (t.status === "done") row.done++; else row.missed++;
+            byHabit.set(t.name, row);
+          }
+        }
+        return {
+          date: day.iso,
+          weekday: day.weekday,
+          done: dDone.length,
+          missed: dMissed.length,
+          ahead: real.length - dDone.length - dMissed.length,
+          missedBlocks: dMissed.map(fmtTask),
+        };
+      });
+
+      const rate = (d: number, m: number) => (d + m > 0 ? Math.round((d / (d + m)) * 100) : null);
+      return JSON.stringify({
+        from: dateStr(from),
+        to: dateStr(to),
+        userToday: localTodayISO(tzOffset),
+        overall: { done, missed, executionRatePercent: rate(done, missed) },
+        goals: [...byGoal.entries()].map(([goalId, g]) => ({ goalId, ...g, executionRatePercent: rate(g.done, g.missed) })),
+        habits: [...byHabit.values()].map((h) => ({ ...h, consistencyPercent: rate(h.done, h.missed) })),
+        days: perDay,
+      }, null, 2);
+    }
+
+    case "complete_task":
+    case "uncomplete_task": {
+      const markDone = name === "complete_task";
+      if (args.time === undefined && !args.name) throw new Error("Pass the block's time or its name.");
+      const { tzOffset } = await loadProfile(admin, userId);
+      const d = parseDate(args.date);
+      const [day] = await loadDays(admin, userId, d, d, tzOffset);
+
+      let matches = day.tasks;
+      if (args.name) {
+        const wanted = String(args.name).trim().toLowerCase();
+        const exact = matches.filter((t) => t.name.trim().toLowerCase() === wanted);
+        matches = exact.length ? exact : matches.filter((t) => t.name.toLowerCase().includes(wanted));
+      }
+      if (args.time !== undefined) {
+        const slot = timeToSlot(args.time);
+        matches = matches.filter((t) => (t.type === "reminder" ? t.startSlot === slot : slot >= t.startSlot && slot < t.endSlot));
+      }
+      if (matches.length === 0) {
+        const have = day.tasks.map((t) => `"${t.name}" ${slotToTime(t.startSlot)}`).join(", ") || "nothing scheduled";
+        throw new Error(`No matching block on ${args.date}. That day has: ${have}.`);
+      }
+      if (matches.length > 1) {
+        throw new Error(`More than one block matches on ${args.date}: ${matches.map((t) => `"${t.name}" ${slotToTime(t.startSlot)}`).join(", ")}. Add the time to pick one.`);
+      }
+
+      const task = matches[0];
+      const existing = (await loadCompleted(admin, userId, [day.dayStr])).get(day.dayStr) || [];
+      const next = markDone ? [...new Set([...existing, task.id])] : existing.filter((id) => id !== task.id);
+      const { error } = await admin.from("completed_tasks")
+        .upsert({ user_id: userId, dayStr: day.dayStr, taskIds: next }, { onConflict: 'user_id,"dayStr"' });
+      if (error) throw new Error(error.message);
+      return `${markDone ? "Marked done" : "Marked not done"}: "${task.name}" on ${args.date} (${slotToTime(task.startSlot)}).`;
+    }
+
+    case "get_missed_tasks": {
+      const { data, error } = await admin.from("missed_tasks").select("*").eq("user_id", userId).order("createdAt", { ascending: true });
+      if (error) throw new Error(error.message);
+      return JSON.stringify({
+        missedTasks: (data || []).map((m: any) => ({
+          id: m.id, name: m.name, description: m.description || undefined, startTime: m.startTime, endTime: m.endTime, addedOn: String(m.createdAt || "").slice(0, 10),
+        })),
+      }, null, 2);
+    }
+
+    case "add_missed_task": {
+      if (!args.name?.trim()) throw new Error("name is required");
+      timeToSlot(args.startTime);
+      timeToEndSlot(args.endTime);
+      const { data, error } = await admin.from("missed_tasks").insert({
+        user_id: userId,
+        name: args.name.trim(),
+        description: args.description?.trim() || null,
+        startTime: args.startTime,
+        endTime: args.endTime,
+        daysOfWeek: [],
+      }).select("id").single();
+      if (error) throw new Error(error.message);
+      return `Added "${args.name.trim()}" to the Missed Library (id ${data.id}).`;
+    }
+
+    case "restore_missed_task": {
+      const { data: row, error } = await admin.from("missed_tasks").select("*").eq("id", args.id).eq("user_id", userId).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!row) throw new Error(`No Missed Library item with id ${args.id}.`);
+      const placed = await runTool(admin, userId, "place_task", {
+        date: args.date,
+        startTime: args.startTime || row.startTime,
+        endTime: args.endTime || row.endTime,
+        name: row.name,
+        ...(row.description ? { description: row.description } : {}),
+        ...(args.goalId ? { goalId: args.goalId } : {}),
+        ...(args.bucket ? { bucket: args.bucket } : {}),
+      });
+      const { error: delErr } = await admin.from("missed_tasks").delete().eq("id", args.id).eq("user_id", userId);
+      if (delErr) throw new Error(`${placed} But it could not be removed from the Missed Library: ${delErr.message}`);
+      return `${placed} Removed from the Missed Library.`;
+    }
+
+    case "delete_missed_task": {
+      const { data, error } = await admin.from("missed_tasks").delete().eq("id", args.id).eq("user_id", userId).select("name");
+      if (error) throw new Error(error.message);
+      if (!data || data.length === 0) throw new Error(`No Missed Library item with id ${args.id}.`);
+      return `Removed "${data[0].name}" from the Missed Library.`;
+    }
+
+    case "get_custom_tasks": {
+      const { data, error } = await admin.from("custom_tasks").select("*").eq("user_id", userId).order("createdAt", { ascending: true });
+      if (error) throw new Error(error.message);
+      return JSON.stringify({
+        customTasks: (data || []).map((t: any) => ({
+          id: t.id, name: t.name, description: t.description || undefined, startTime: t.startTime, endTime: t.endTime,
+          days: (t.daysOfWeek || []).length ? t.daysOfWeek : undefined, bucket: t.bucket ?? "MISSING",
+        })),
+      }, null, 2);
+    }
+
+    case "create_custom_task": {
+      const bucket = parseBucket(args.bucket, "task");
+      if (!args.name?.trim()) throw new Error("name is required");
+      timeToSlot(args.startTime);
+      timeToEndSlot(args.endTime);
+      const days: string[] = (args.days || []).filter((x: string) => DAY_NAMES.includes(x));
+      const { data, error } = await admin.from("custom_tasks").insert({
+        user_id: userId,
+        name: args.name.trim(),
+        description: args.description?.trim() || null,
+        startTime: args.startTime,
+        endTime: args.endTime,
+        daysOfWeek: days,
+        bucket,
+      }).select("id").single();
+      if (error) throw new Error(error.message);
+      return `Added "${args.name.trim()}" (${bucket}) to the Task Library (id ${data.id}).`;
+    }
+
+    case "get_vault_notes": {
+      if (args.category !== undefined && !VAULT_CATEGORY_LIST.includes(args.category)) throw new Error(`category must be one of: ${VAULT_CATEGORY_LIST.join(", ")}.`);
+      let q = admin.from("vault_notes").select("*").eq("user_id", userId);
+      if (args.category) q = q.eq("category", args.category);
+      const { data, error } = await q.order("is_pinned", { ascending: false }).order("createdAt", { ascending: false });
+      if (error) throw new Error(error.message);
+      const needle = String(args.query || "").trim().toLowerCase();
+      const notes = (data || [])
+        .filter((n: any) => !needle || `${n.title} ${n.content} ${JSON.stringify(n.tags || [])}`.toLowerCase().includes(needle))
+        .slice(0, Math.min(Number(args.limit) || 30, 100))
+        .map((n: any) => ({
+          id: n.id, title: n.title || undefined, content: n.content, category: n.category, tags: n.tags || [], pinned: !!n.is_pinned,
+          created: String(n.createdAt || "").slice(0, 10),
+        }));
+      return JSON.stringify({ notes }, null, 2);
+    }
+
+    case "add_vault_note": {
+      const content = typeof args.content === "string" ? args.content.trim() : "";
+      if (!content) throw new Error("content is required");
+      const category = args.category ?? "ideas";
+      if (!VAULT_CATEGORY_LIST.includes(category)) throw new Error(`category must be one of: ${VAULT_CATEGORY_LIST.join(", ")}.`);
+      const tags = [...new Set((content.match(/#[\w-]+/g) ?? []).map((t: string) => t.slice(1).toLowerCase()))];
+      const { data, error } = await admin.from("vault_notes").insert({
+        user_id: userId,
+        title: (args.title || "").trim(),
+        content,
+        category,
+        tags,
+        is_pinned: !!args.pinned,
+        source_page: "assistant",
+      }).select("id").single();
+      if (error) throw new Error(error.message);
+      return `Saved to the Vault under ${category} (id ${data.id})${tags.length ? `, tags: ${tags.join(", ")}` : ""}.`;
+    }
+
+    case "set_vault_reminder": {
+      if (!REPEAT_TYPES.includes(args.repeat)) throw new Error(`repeat must be one of: ${REPEAT_TYPES.join(", ")}.`);
+      const { data: note, error } = await admin.from("vault_notes").select("id, title, content").eq("id", args.noteId).eq("user_id", userId).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!note) throw new Error(`No Vault note with id ${args.noteId}.`);
+      const { tzOffset } = await loadProfile(admin, userId);
+      const fire = nextFireFor(args.repeat, args.time, args.date, tzOffset);
+      const title = (args.title || note.title || String(note.content).slice(0, 60)).trim();
+      const { error: insErr } = await admin.from("vault_reminders").insert({
+        user_id: userId,
+        note_id: note.id,
+        title,
+        body: args.body?.trim() || null,
+        repeat_type: args.repeat,
+        remind_at: args.repeat === "random" ? null : args.time,
+        next_fire: fire.toISOString(),
+        is_active: true,
+        snooze_count: 0,
+      });
+      if (insErr) throw new Error(insErr.message);
+      const local = new Date(fire.getTime() - tzOffset * 60000).toISOString().slice(0, 16).replace("T", " ");
+      return `Reminder "${title}" (${args.repeat}) set. First notification: ${local} local time.`;
+    }
+
+    case "get_profile": {
+      const { data, error } = await admin.from("user_profiles").select("*").eq("user_id", userId).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) return JSON.stringify({ profile: null, note: "The user has not set up a profile yet; plan with a 3 hour daily budget." });
+      const ep = (data.execution_profile || {}) as any;
+      const stated = parseFloat(data.daily_free_hours ?? "");
+      const FREE: Record<string, number> = { lt1: 1, "1to2": 2, "2to4": 4, "4plus": 5 };
+      const weekdayBand = ep?.situation?.weekdayFree;
+      const target = stated > 0 ? stated : weekdayBand ? FREE[weekdayBand] ?? 3 : 3;
+      const weekendBand = ep?.situation?.weekendFree;
+      return JSON.stringify({
+        name: data.full_name || undefined,
+        sleep: { start: data.sleep_start, hours: data.sleep_duration },
+        weekStartsOn: data.week_start,
+        planningSession: { day: data.plan_day, from: data.plan_start_time, to: data.plan_end_time },
+        profession: data.current_profession || undefined,
+        primaryLifeFocus: data.primary_life_focus || undefined,
+        biggestChallenge: data.biggest_challenge || undefined,
+        energyPeak: data.energy_peak_time,
+        focusAbility: data.focus_ability,
+        taskSwitching: data.task_shifting_ability,
+        executionProfile: ep && Object.keys(ep).length ? ep : undefined,
+        dailyHourBudget: {
+          weekdayTargetHours: target,
+          weekdayMaxHours: Math.max(target, Math.ceil(target * 1.5)),
+          weekendTargetHours: weekendBand ? FREE[weekendBand] ?? target : target,
+          note: "Goal work per day. Keep a week's goal blocks at or under the weekday target x 5 plus the weekend target x 2.",
+        },
+        timezoneOffsetMinutes: Number(data.notification_prefs?.timezoneOffset ?? 0),
+      }, null, 2);
+    }
+
+    case "get_stats": {
+      const { tzOffset } = await loadProfile(admin, userId);
+      const span = Math.min(Math.max(Math.round(Number(args?.days) || 28), 7), 90);
+      const today = parseDate(localTodayISO(tzOffset));
+      const from = addDays(today, -(span - 1));
+      const [days, { data: goalRows }] = await Promise.all([
+        loadDays(admin, userId, from, today, tzOffset),
+        admin.from("goals").select("id, name, title, endDate, milestones, plans").eq("user_id", userId),
+      ]);
+      const todayIso = dateStr(today);
+      const rate = (d: number, m: number) => (d + m > 0 ? Math.round((d / (d + m)) * 100) : null);
+
+      const weeks = new Map<string, { done: number; missed: number }>();
+      const habits = new Map<string, { done: number; missed: number }>();
+      const goals = new Map<string, { plannedHours: number; doneHours: number; done: number; missed: number }>();
+      let streak = 0;
+      let streakOpen = true;
+
+      for (const day of [...days].reverse()) {
+        const real = day.tasks.filter((t) => t.type !== "reminder");
+        const decided = real.filter((t) => t.status === "done" || t.status === "missed");
+        const anyDone = real.some((t) => t.status === "done");
+        if (streakOpen) {
+          if (anyDone) streak++;
+          else if (day.iso !== todayIso) streakOpen = false;
+        }
+        const wk = weeks.get(dateToWeekStr(parseDate(day.iso))) || { done: 0, missed: 0 };
+        for (const t of decided) {
+          const isDone = t.status === "done";
+          if (isDone) wk.done++; else wk.missed++;
+          if (t.type === "habit") {
+            const h = habits.get(t.name) || { done: 0, missed: 0 };
+            if (isDone) h.done++; else h.missed++;
+            habits.set(t.name, h);
+          } else if (t.type === "goal" && t.goalId) {
+            const g = goals.get(t.goalId) || { plannedHours: 0, doneHours: 0, done: 0, missed: 0 };
+            g.plannedHours += hoursOf(t);
+            if (isDone) { g.doneHours += hoursOf(t); g.done++; } else g.missed++;
+            goals.set(t.goalId, g);
+          }
+        }
+        weeks.set(dateToWeekStr(parseDate(day.iso)), wk);
+      }
+
+      return JSON.stringify({
+        from: dateStr(from),
+        to: todayIso,
+        activeStreakDays: streak,
+        weeks: [...weeks.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([week, w]) => ({ week, ...w, executionRatePercent: rate(w.done, w.missed) })),
+        habits: [...habits.entries()].map(([habit, h]) => ({ habit, ...h, consistencyPercent: rate(h.done, h.missed) })).sort((a, b) => (a.consistencyPercent ?? 0) - (b.consistencyPercent ?? 0)),
+        goals: (goalRows || []).map((g: any) => {
+          const s = goals.get(g.id) || { plannedHours: 0, doneHours: 0, done: 0, missed: 0 };
+          const overdue = ((g.milestones || []) as any[]).filter((m) => !m.completed && m.targetDate && m.targetDate < todayIso);
+          return {
+            goalId: g.id,
+            goal: g.title || g.name,
+            hasPlan: Array.isArray(g.plans) && g.plans.length > 0,
+            overdueMilestones: overdue.map((m) => `${m.title} (due ${m.targetDate})`),
+            plannedHours: s.plannedHours,
+            doneHours: s.doneHours,
+            executionRatePercent: rate(s.done, s.missed),
+            attention: !(Array.isArray(g.plans) && g.plans.length > 0) ? "No plan yet: call set_goal_plan."
+              : overdue.length ? "A milestone is overdue: re-baseline it with update_milestone or catch up."
+              : s.plannedHours === 0 ? "No work scheduled for this goal in this period."
+              : undefined,
+          };
+        }),
+      }, null, 2);
+    }
+
+    case "update_habit": {
+      const patch: Record<string, any> = { updatedAt: new Date().toISOString() };
+      if (args.name !== undefined) {
+        if (!String(args.name).trim()) throw new Error("name cannot be empty.");
+        patch.name = String(args.name).trim();
+      }
+      if (args.purpose !== undefined) patch.purpose = String(args.purpose).trim();
+      if (args.startTime !== undefined) { timeToSlot(args.startTime); patch.startTime = args.startTime; }
+      if (args.endTime !== undefined) { timeToEndSlot(args.endTime); patch.endTime = args.endTime; }
+      if (args.days !== undefined) patch.daysOfWeek = (args.days as string[]).filter((x) => DAY_NAMES.includes(x));
+      if (args.endDate !== undefined) {
+        if (!parseISODate(args.endDate)) throw new Error("endDate must be a valid YYYY-MM-DD date.");
+        patch.endDate = args.endDate;
+      }
+      if (args.bucket !== undefined) patch.bucket = parseBucket(args.bucket, "habit");
+      if (Object.keys(patch).length === 1) throw new Error("Nothing to change: pass at least one field.");
+
+      const { data, error } = await admin.from("habits").update(patch).eq("id", args.habitId).eq("user_id", userId).select("name");
+      if (error) throw new Error(error.message);
+      if (!data || data.length === 0) throw new Error(`No habit found with id ${args.habitId}.`);
+      return `Updated habit "${data[0].name}".`;
+    }
+
+    case "delete_habit": {
+      const { data, error } = await admin.from("habits").delete().eq("id", args.habitId).eq("user_id", userId).select("name");
+      if (error) throw new Error(error.message);
+      if (!data || data.length === 0) throw new Error(`No habit found with id ${args.habitId}.`);
+      return `Deleted habit "${data[0].name}".`;
+    }
+
+    case "delete_goal": {
+      const { data, error } = await admin.from("goals").delete().eq("id", args.goalId).eq("user_id", userId).select("name, title");
+      if (error) throw new Error(error.message);
+      if (!data || data.length === 0) throw new Error(`No goal found with id ${args.goalId}.`);
+      return `Deleted goal "${data[0].title || String(data[0].name).slice(0, 60)}".`;
+    }
+
+    case "place_tasks": {
+      if (!Array.isArray(args.tasks) || args.tasks.length === 0) throw new Error("Provide at least one task.");
+      if (args.tasks.length > 40) throw new Error("At most 40 tasks per call.");
+      const lines: string[] = [];
+      let ok = 0;
+      for (let i = 0; i < args.tasks.length; i++) {
+        try {
+          lines.push(`${i + 1}. ${await runTool(admin, userId, "place_task", args.tasks[i])}`);
+          ok++;
+        } catch (err: any) {
+          lines.push(`${i + 1}. FAILED "${args.tasks[i]?.name ?? ""}": ${err?.message || err}`);
+        }
+      }
+      return `Placed ${ok} of ${args.tasks.length}.\n${lines.join("\n")}`;
     }
 
     default:

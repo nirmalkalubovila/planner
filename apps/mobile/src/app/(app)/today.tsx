@@ -82,7 +82,7 @@ export default function TodayScreen() {
               )}
             </View>
 
-            <WeeklyTargetsBanner bucketActions={bucketActions} currentDayStr={currentDayStr} />
+            <WeeklyTargetsBanner bucketActions={bucketActions} />
 
             {tasks.length > 0 && (
               <ActiveTheme

@@ -1,31 +1,31 @@
 import { useEffect } from "react";
 import Reveal from "./Reveal";
 
-// The questions people actually type into search. Each answer describes what the product really does.
+// The frustrations people have with planners, answered from what the product really does.
 export const FAQ_ITEMS = [
   {
-    q: "How do I reset my week when I fall behind?",
-    a: "Open Reset in Legacy Life Builder. It compares the time you planned with the time you have, then suggests what to keep, move, reduce or remove. Nothing changes until you approve it.",
+    q: "I have too many tasks. Where do I start?",
+    a: "Pick up to three outcomes for the week. Everything else goes into time blocks, so Today only shows what is next.",
   },
   {
-    q: "What is time blocking?",
-    a: "Time blocking gives every task its own slot in your calendar instead of leaving an open to-do list. Legacy Life Builder places your goals and habits in 30-minute blocks and prevents overlaps.",
+    q: "What should I work on today?",
+    a: "Open Today. Your list is already built from your week, in time order, under your weekly priorities. Nothing to decide.",
   },
   {
-    q: "How do I turn a big goal into daily tasks?",
+    q: "What happens when I fall behind?",
+    a: "Open Reset. It compares your plan with the time you really have, then suggests what to keep, move, shrink or drop. You approve it, and you can undo it.",
+  },
+  {
+    q: "How do I stop planning and start doing?",
     a: "Write the goal and its deadline. AI splits it into years, months, weeks and daily tasks, then places the work in your week.",
   },
   {
-    q: "Does the AI planner know how much free time I have?",
-    a: "Yes. It uses the free hours, energy and focus style you share, so the plan fits your real week instead of an ideal one.",
+    q: "Can it create a realistic plan around my actual life?",
+    a: "Yes. It uses your sleep, free hours and energy, and keeps clear of your habits. Life buckets show when rest or people are being left out.",
   },
   {
-    q: "Can I track habits and goals in one place?",
-    a: "Yes. Habits, goals and weekly priorities share one planner, so today's list is already built when you open the app.",
-  },
-  {
-    q: "What happens to tasks I miss?",
-    a: "Missed tasks are saved. Roll them into the current week yourself, or let Reset place them for you.",
+    q: "What happens to tasks I do not complete?",
+    a: "They are never deleted. Work that does not fit moves to your Backlog, and you place it again in any week when you are ready.",
   },
 ];
 

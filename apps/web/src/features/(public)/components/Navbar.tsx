@@ -2,8 +2,7 @@ import { Link } from "react-router-dom";
 
 const NAV_LINKS = [
   { label: "The problem", id: "problem" },
-  { label: "Why us", id: "why" },
-  { label: "How it works", id: "how-it-works" },
+  { label: "The system", id: "systems" },
   { label: "Reviews", id: "testimonials" },
   { label: "FAQ", id: "faq" },
 ];
