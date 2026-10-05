@@ -1,0 +1,10 @@
+# Per-function settings that `supabase functions deploy` reads, so deploying everything cannot switch them back.
+project_id = "legacy-life-builder"
+
+# Called by Claude (no Supabase login) and from the unsubscribe link in an email: neither can send a Supabase JWT.
+# mcp is protected by its own connector token; unsubscribe by its signed link.
+[functions.mcp]
+verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false

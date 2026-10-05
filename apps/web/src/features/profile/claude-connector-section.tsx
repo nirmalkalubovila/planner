@@ -33,7 +33,11 @@ export const ClaudeConnectorSection: React.FC = () => {
 
     const isConnected = !!status?.hasToken;
 
-    const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp`;
+    // In production the link lives on our own domain (vercel.json forwards /mcp to the edge function). Claude shows the
+    // favicon of the link's domain, so a supabase.co link would show Supabase's logo instead of ours.
+    const baseUrl = import.meta.env.PROD
+        ? 'https://www.legacylifebuilder.xyz/mcp'
+        : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mcp`;
     // Authorization rather than a custom name: Claude requires custom header
     // names to be approved by Anthropic first, while Authorization is standard
     // and offered in its dropdown. Verified to survive Supabase's gateway

@@ -135,7 +135,7 @@ function computeVelocityMultiplier(goal: Goal, progressRatio?: number): number {
 
   if (timeRatio === 0) return 1;
   const velocity = actualProgressRatio / timeRatio;
-  return Math.min(velocity, 2);
+  return Math.min(velocity, GOAL_VELOCITY_CAP);
 }
 
 export function analyzeGoal(
@@ -198,6 +198,12 @@ export function analyzeAllGoals(
 // Habit helpers
 // ---------------------------------------------------------------------------
 
+/** How many days back habit consistency looks. */
+export const HABIT_WINDOW_DAYS = 30;
+
+/** A goal's velocity (milestones reached vs time elapsed) never counts for more than this. */
+export const GOAL_VELOCITY_CAP = 2;
+
 function computeHabitConsistency(
   habit: Habit,
   completedMap: Record<string, string[]>,
@@ -213,7 +219,7 @@ function computeHabitConsistency(
   const activeDayIndices = new Set(daysOfWeek.map(d => dayNameToIndex[d]).filter(v => v !== undefined));
 
   const today = new Date();
-  const windowDays = 30;
+  const windowDays = HABIT_WINDOW_DAYS;
   let expectedDays = 0;
   let completedDays = 0;
   let currentStreak = 0;
@@ -446,6 +452,14 @@ const GOAL_WEIGHT = 0.30;
 const HABIT_WEIGHT = 0.30;
 const EXECUTION_WEIGHT = 0.25;
 const BALANCE_WEIGHT = 0.15;
+
+/** The shares of the Life Trajectory Score. Exported so the Calculations Guide reads the real numbers. */
+export const LIFE_TRAJECTORY_WEIGHTS = {
+  goal: GOAL_WEIGHT,
+  habit: HABIT_WEIGHT,
+  execution: EXECUTION_WEIGHT,
+  balance: BALANCE_WEIGHT,
+} as const;
 
 export function computeLifeTrajectory(
   goalAvg: number,
