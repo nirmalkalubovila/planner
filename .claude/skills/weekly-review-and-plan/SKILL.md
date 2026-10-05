@@ -8,6 +8,7 @@ description: Review last week from real completion data and plan next week in Le
 Weeks run Monday to Sunday and times are the user's local clock. Unattended runs make safe choices and report them at the end.
 
 ## 1. Read (write nothing yet)
+0. `get_overview`: today, the week's outcomes, every goal in brief and what is waiting in the Missed Library.
 1. `get_profile`: daily hour budget, sleep, energy peak.
 2. `get_goals` and `get_habits`.
 3. `get_completions` for last Monday through last Sunday: what was done and missed, per goal and per habit.
@@ -22,7 +23,8 @@ Weeks run Monday to Sunday and times are the user's local clock. Unattended runs
 - Do not judge from the schedule. A block is done only if `get_completions` says so.
 
 ## 3. Plan next week
-1. `set_weekly_outcomes`: 1 to 3 outcomes, in priority order, each tied to a real goal and finishable in a week. The most behind or deadline-critical goal first.
+1. `set_weekly_outcomes`: 1 to 3 outcomes, in priority order, each tied to a real goal and finishable in a week. The most behind or deadline-critical goal first. Pass `links` so each outcome is linked to its goal or habit, as the app's outcomes dialog does.
+   If last week was a good week, `copy_week` can repeat it as a starting point. It skips anything that would clash and reports it.
 2. Bring back unfinished work first. For each missed goal block and each Missed Library item that still matters, schedule it with `place_tasks`. Use `restore_missed_task` for library items.
 3. Rules for every block:
    - linked to an existing goal with `goalId`, or given a `bucket`;

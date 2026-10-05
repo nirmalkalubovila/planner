@@ -4,9 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { Header } from './header';
 import { DashboardSidebar } from './dashboard-sidebar';
 import { MobileNav } from './mobile-nav';
-import { PersonalizeModal } from '@/features/auth/personalize-page';
-import { CompleteProfileModal } from '@/features/auth/complete-profile-modal';
-import { ExecutionProfilePrompt } from '@/features/profile/components/execution-profile-prompt';
+import { PersonalizationGate } from '@/features/profile/components/personalization-gate';
 import { PendingGoalRedirect } from '@/features/goals/pending-goal-redirect';
 import { NotificationProvider } from '@/components/common/notification-provider';
 import { AnnouncementBanner } from '@/components/common/announcement-banner';
@@ -30,10 +28,8 @@ export const DashboardLayout: React.FC = () => {
                         </main>
                         <MobileNav />
                     </div>
-                    <PersonalizeModal />
-                    <CompleteProfileModal />
+                    <PersonalizationGate />
                     <PendingGoalRedirect />
-                    <ExecutionProfilePrompt />
                 </div>
             </StageCelebrationProvider>
         </NotificationProvider>

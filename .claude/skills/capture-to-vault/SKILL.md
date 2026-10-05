@@ -20,7 +20,8 @@ Notes in `nextweek` appear in the planner Backlog, so use that category for thin
    - `category`: pick the best fit. When unsure, `ideas`.
 3. **Save** with `add_vault_note`. Check `get_vault_notes` with a `query` first when it might already exist, and do not create a duplicate.
 4. **Reminders.** Only when the user asks to be reminded. Use `set_vault_reminder` with `repeat`: `once` (needs a date), `daily`, `every_2_days`, `weekly`, or `random` for a gentle resurface. Times are the user's local clock.
-5. **Work for the calendar.** If a note is clearly a task with a time, offer to put it on the week with `place_task` or the Task Library with `create_custom_task`. Do not do it unasked.
+5. **Edit or tidy.** `update_vault_note` changes a note's wording, category or pin. `get_vault_reminders` lists what will ping, and `delete_vault_reminder` stops one without deleting the note. Delete a note only when asked.
+6. **Work for the calendar.** If a note is clearly a task with a time, offer to put it on the week with `place_task` or the Task Library with `create_custom_task`. Do not do it unasked.
 
 ## Reply
 One line per note saved: category and the first few words. No summary of what they already told you.

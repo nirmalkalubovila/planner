@@ -18,6 +18,8 @@ import {
   calculateWeekBucketHours,
   detectEmptyBucketStreaks,
   calculateBucketBalanceScores,
+  bucketTargetsFor,
+  type BucketTargets,
   type BucketStats,
   type WeeklyBucketHistory,
 } from '@llb/core';
@@ -46,6 +48,8 @@ export interface DetailedAnalytics {
   bucketHistory: WeeklyBucketHistory[];
   emptyBucketStreaks: Record<LifeBucket, number>;
   bucketBalanceScores: Record<LifeBucket, number>;
+  /** The week split this user should aim for, from their situation and age. Balance scores are measured against it. */
+  bucketTargets: BucketTargets;
   rawGoals: Goal[];
   rawHabits: Habit[];
   rawCustomTasks: CustomTask[];
@@ -203,7 +207,8 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
   });
 
   const emptyBucketStreaks = detectEmptyBucketStreaks(bucketHistory);
-  const bucketBalanceScores = calculateBucketBalanceScores(bucketStats);
+  const bucketTargets = bucketTargetsFor(profile);
+  const bucketBalanceScores = calculateBucketBalanceScores(bucketStats, bucketTargets.shares);
 
   const avgBalanceScore = (Object.values(bucketBalanceScores).reduce((a, b) => a + b, 0) / 4) * 10;
   const trajectory = computeLifeTrajectory(goalAverage, habitAverage, weekAverage, avgBalanceScore);
@@ -224,6 +229,7 @@ const fetchDetailedAnalytics = async (): Promise<DetailedAnalytics> => {
     bucketHistory,
     emptyBucketStreaks,
     bucketBalanceScores,
+    bucketTargets,
     rawGoals: goals,
     rawHabits: habits,
     rawCustomTasks: customTasks,

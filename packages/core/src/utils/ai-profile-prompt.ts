@@ -1,4 +1,5 @@
 import type { ExecutionProfile, GoalContext, DeepWorkBand, SwitchRecoveryBand, FreeTimeBand } from '../types/execution-profile';
+import { getSituationStatuses, situationSummary } from './situation';
 import { BUCKET_META, type LifeBucket } from '../types/time';
 
 /** Subset of the user profile the prompt builder reads (structurally typed to avoid a package cycle). */
@@ -59,7 +60,8 @@ export function buildPersonaPromptBlock(profile?: PromptProfile | null, goalCont
     const rules: string[] = [];
 
     if (ep) {
-        if (ep.situation?.status) lines.push(`- Life Situation: ${ep.situation.status.replace('_', ' ')}`);
+        const statuses = getSituationStatuses(ep);
+        if (statuses.length) lines.push(`- Life Situation: ${situationSummary(statuses)}`);
         if (ep.situation?.weekendFree) lines.push(`- Weekend Free Time: ${FREE_TIME_LABELS[ep.situation.weekendFree]}`);
         if (ep.capacity?.deepWorkMin) lines.push(`- Deep-Work Capacity: ${DEEP_WORK_LABELS[ep.capacity.deepWorkMin]}`);
         if (ep.capacity?.switchRecovery) lines.push(`- Context-Switch Recovery: ${SWITCH_LABELS[ep.capacity.switchRecovery]}`);

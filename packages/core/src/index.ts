@@ -23,6 +23,8 @@ export * from './utils/week';
 export * from './utils/time';
 export * from './utils/color';
 export * from './utils/bucket-engine';
+export * from './utils/balance-targets';
+export * from './utils/situation';
 export * from './utils/analytics-engine';
 export * from './utils/milestone-engine';
 export * from './utils/insights-engine';

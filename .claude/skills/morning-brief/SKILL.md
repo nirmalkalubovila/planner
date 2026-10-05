@@ -8,7 +8,7 @@ description: A short brief for today in Legacy Life Builder. Use for "brief me",
 Keep it short enough to read in thirty seconds. This skill reads and advises; it changes nothing unless the user asks.
 
 ## 1. Read
-1. `get_day` for today (it reports the user's own date as `userToday`).
+1. `get_overview`: today's blocks with status, the week's outcomes and the goal list in one call. Use `get_day` when you need the full detail (it reports the user's own date as `userToday`).
 2. `get_weekly_outcomes` for this week.
 3. `get_completions` for yesterday: what was left undone.
 4. `get_missed_tasks`: the backlog.

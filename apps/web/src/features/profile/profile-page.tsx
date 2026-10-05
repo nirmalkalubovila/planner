@@ -4,8 +4,7 @@ import { toast } from '@llb/core';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@llb/api';
 import { ProfileInfo } from './components/profile-info';
-import { ProfilePreferences } from './components/profile-preferences';
-import { ExecutionProfileSection } from './components/execution-profile-section';
+import { PlannerProfileCard } from './components/planner-profile-card';
 import { AppearanceSection } from './components/appearance-section';
 import { ProfileSecurity } from './components/profile-security';
 import { NotificationPreferencesSection } from './notification-preferences';
@@ -17,85 +16,24 @@ export const ProfilePage: React.FC = () => {
     const { user } = useAuth();
     const { profile, saveProfile, isSaving } = useUserProfile(user);
 
-    const [isEditingPrefs, setIsEditingPrefs] = useState(false);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
 
-    // Form state
+    // Form state: name and birth date only. Everything personal is collected by the quiz.
     const [fullName, setFullName] = useState('');
     const [dob, setDob] = useState('');
-    const [sleepStart, setSleepStart] = useState('');
-    const [sleepDuration, setSleepDuration] = useState('');
-    const [weekStart, setWeekStart] = useState('');
-    const [planDay, setPlanDay] = useState('');
-    const [planStartTime, setPlanStartTime] = useState('');
-    const [planEndTime, setPlanEndTime] = useState('');
-    const [primaryLifeFocus, setPrimaryLifeFocus] = useState('');
-    const [currentProfession, setCurrentProfession] = useState('');
-    const [energyPeakTime, setEnergyPeakTime] = useState('');
-    const [focusAbility, setFocusAbility] = useState('');
-    const [taskShiftingAbility, setTaskShiftingAbility] = useState('');
 
     useEffect(() => {
-        if (profile && !isEditingPrefs && !isEditingProfile) {
+        if (profile && !isEditingProfile) {
             setFullName(profile.fullName || '');
             setDob(profile.dob || '');
-            setSleepStart(profile.sleepStart || '22:00');
-            setSleepDuration(profile.sleepDuration || '8');
-            setWeekStart(profile.weekStart || 'Monday');
-            setPlanDay(profile.planDay || 'Sunday');
-            setPlanStartTime(profile.planStartTime || '21:00');
-            setPlanEndTime(profile.planEndTime || '22:00');
-            setPrimaryLifeFocus(profile.primaryLifeFocus || '');
-            setCurrentProfession(profile.currentProfession || '');
-            setEnergyPeakTime(profile.energyPeakTime || 'Morning');
-            setFocusAbility(profile.focusAbility || 'normal');
-            setTaskShiftingAbility(profile.taskShiftingAbility || 'normal');
         }
-    }, [profile, isEditingPrefs, isEditingProfile]);
+    }, [profile, isEditingProfile]);
 
     const handleSaveProfile = async () => {
         try {
-            await saveProfile({
-                fullName,
-                dob,
-                sleepStart,
-                sleepDuration,
-                weekStart,
-                planDay,
-                planStartTime,
-                planEndTime,
-                primaryLifeFocus,
-                currentProfession,
-                energyPeakTime,
-                focusAbility,
-                taskShiftingAbility,
-            });
+            await saveProfile({ fullName, dob });
             setIsEditingProfile(false);
             toast.success('Profile updated successfully!');
-        } catch {
-            // Error handled by mutation
-        }
-    };
-
-    const handleSavePrefs = async () => {
-        try {
-            await saveProfile({
-                fullName,
-                dob,
-                sleepStart,
-                sleepDuration,
-                weekStart,
-                planDay,
-                planStartTime,
-                planEndTime,
-                primaryLifeFocus,
-                currentProfession,
-                energyPeakTime,
-                focusAbility,
-                taskShiftingAbility,
-            });
-            setIsEditingPrefs(false);
-            toast.success('Preferences updated successfully!');
         } catch {
             // Error handled by mutation
         }
@@ -110,25 +48,9 @@ export const ProfilePage: React.FC = () => {
 
     if (!user) return null;
 
-    const formData = {
-        fullName, setFullName,
-        dob, setDob,
-        sleepStart, setSleepStart,
-        sleepDuration, setSleepDuration,
-        weekStart, setWeekStart,
-        planDay, setPlanDay,
-        planStartTime, setPlanStartTime,
-        planEndTime, setPlanEndTime,
-        primaryLifeFocus, setPrimaryLifeFocus,
-        currentProfession, setCurrentProfession,
-        energyPeakTime, setEnergyPeakTime,
-        focusAbility, setFocusAbility,
-        taskShiftingAbility, setTaskShiftingAbility,
-    };
-
     const tabs = [
         { id: 'profile', label: 'Profile & Security' },
-        { id: 'preferences', label: 'Planner Preferences' },
+        { id: 'preferences', label: 'Preferences' },
         { id: 'notifications', label: 'Notifications' },
         { id: 'ai', label: 'AI Assistant' },
         { id: 'contact', label: 'Rate Us' },
@@ -191,20 +113,9 @@ export const ProfilePage: React.FC = () => {
 
                 {activeTab === 'preferences' && (
                     <div className="w-full animate-in fade-in duration-200">
-                        <ProfilePreferences
-                            user={user}
-                            profile={profile}
-                            isEditing={isEditingPrefs}
-                            setIsEditing={setIsEditingPrefs}
-                            loading={isSaving}
-                            onSave={handleSavePrefs}
-                            formData={formData}
-                        />
+                        <AppearanceSection />
                         <div className="mt-4">
-                            <AppearanceSection />
-                        </div>
-                        <div className="mt-4">
-                            <ExecutionProfileSection />
+                            <PlannerProfileCard />
                         </div>
                     </div>
                 )}

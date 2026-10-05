@@ -3,19 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import {
-  BUCKET_FULL_SCORE_SHARE,
+  BALANCE_GUARDRAILS,
   GOAL_VELOCITY_CAP,
   HABIT_WINDOW_DAYS,
   LIFE_TRAJECTORY_WEIGHTS,
   MILESTONE_STAGES,
   TOTAL_WEEK_HOURS,
+  bucketTargetsFor,
+  getSituationStatuses,
+  situationSummary,
 } from '@llb/core';
+import { useAuth } from '@/contexts/auth-context';
+import { useUserProfile } from '@llb/api';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 // Every number below comes from the same constants the analytics engine uses, so this guide cannot drift from the app.
 const pct = (n: number) => `${Math.round(n * 100)}%`;
-const FULL_BUCKET_HOURS = Math.round(TOTAL_WEEK_HOURS * BUCKET_FULL_SCORE_SHARE);
 const STAGE_DAYS = MILESTONE_STAGES.map((s) => s.days);
 
 interface Accent {
@@ -81,6 +85,13 @@ const CalcCard: React.FC<CardProps> = ({ num, title, summary, accent, formulaTit
 export const StatsCalculationsPage: React.FC = () => {
   const navigate = useNavigate();
   const w = LIFE_TRAJECTORY_WEIGHTS;
+
+  // The reader's own balance targets, so the guide shows the numbers their score is measured against
+  const { user } = useAuth();
+  const { profile } = useUserProfile(user);
+  const targets = bucketTargetsFor({ execution_profile: profile?.executionProfile, dob: profile?.dob });
+  const statuses = getSituationStatuses(profile?.executionProfile);
+  const split = `Income ${pct(targets.shares.income)}, Asset ${pct(targets.shares.asset)}, Recovery ${pct(targets.shares.recovery)}, Relational ${pct(targets.shares.relational)}`;
 
   return (
     <div className="flex flex-col w-full max-w-[1000px] mx-auto px-4 py-8 sm:py-12 space-y-8 pb-20 select-none">
@@ -198,14 +209,15 @@ export const StatsCalculationsPage: React.FC = () => {
           num="05"
           title="Life Balance"
           accent={ACCENTS.primary}
-          summary="Whether your week is spread across income, assets, recovery and relationships."
+          summary="Whether your week matches the split that suits your situation and age."
           formulaTitle="Balance formula"
           rows={[
-            { label: 'Bucket score', value: `(Bucket hours ÷ ${FULL_BUCKET_HOURS}h) × 10, up to 10` },
+            { label: 'Bucket score', value: '(Bucket hours ÷ Your target hours) × 10, up to 10' },
+            { label: 'Your target', value: split },
             { label: 'Balance', value: 'Average of the four bucket scores × 10', result: true },
             { label: 'Hours', value: "This week's plan, grouped by life bucket" },
           ]}
-          note={`${FULL_BUCKET_HOURS}h is ${pct(BUCKET_FULL_SCORE_SHARE)} of the ${TOTAL_WEEK_HOURS}-hour week. Sleep and your planning session count as Recovery. Tasks with no bucket are left out and shown as unassigned.`}
+          note={`Your four targets cover ${pct(targets.plannedShare)} of the ${TOTAL_WEEK_HOURS}-hour week. The other ${pct(targets.flexShare)} is left for meals, travel, chores and surprises. They start from your situation (${statuses.length ? situationSummary(statuses) : 'not set yet'}), shift with your age, and recovery never drops below ${BALANCE_GUARDRAILS.minRecovery}%. Several statuses are averaged. Sleep and your planning session count as Recovery. Tasks with no bucket are left out.`}
         />
 
         <CalcCard

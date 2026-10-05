@@ -18,6 +18,7 @@ Find what is broken or drifting, fix what is safe, ask about the rest.
 | Missing context | goal has no clear title, or a name full of `&amp;` or label text | `update_goal` with `title`, `currentState`, `ultimateGoal`, `constraints`, `why` (ask the user for facts you do not have) |
 | No bucket | bucket shows MISSING | ask, then `update_goal` |
 | Overdue milestone | `overdueMilestones` not empty | propose a new date, then `update_milestone` |
+| A phase reads wrong | a year, month or week has a vague title or the wrong hours | `update_goal_plan_item` (find it by title or a date inside it) |
 | No work scheduled | `plannedHours` is 0 for the period | offer to schedule it (`weekly-review-and-plan`) |
 | Low follow-through | `executionRatePercent` under 50 | name the likely cause (too much, wrong time of day) and propose one change |
 
