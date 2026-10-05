@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@llb/api';
-import { isProfileIncomplete } from '@/features/auth/complete-profile-modal';
+import { isProfileIncomplete } from '@/features/profile/lib/personalization';
 import { supabase } from '@/lib/supabaseClient';
 import { hasPendingGoal, savePendingGoal } from './pending-goal';
 

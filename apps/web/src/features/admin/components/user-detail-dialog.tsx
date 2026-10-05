@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserRound, Star } from 'lucide-react';
-import { DEEP_WORK_LABELS, SWITCH_LABELS, FREE_TIME_LABELS, type ExecutionProfile } from '@llb/core';
+import { DEEP_WORK_LABELS, SWITCH_LABELS, FREE_TIME_LABELS, getSituationStatuses, situationSummary, type ExecutionProfile } from '@llb/core';
 import { StandardDialog } from '@/components/common/standard-dialog';
 import { useAdminUserDetail, type AdminUserDetail } from '@/api/services/feedback-service';
 
@@ -91,7 +91,7 @@ const OverviewSection: React.FC<{ d: AdminUserDetail }> = ({ d }) => {
             <Card title="Execution Profile">
                 {ep.completedAt ? (
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label="Situation" value={ep.situation?.status?.replace('_', ' ')} />
+                        <Field label="Situation" value={situationSummary(getSituationStatuses(ep)) || undefined} />
                         <Field label="Deep work" value={ep.capacity?.deepWorkMin ? DEEP_WORK_LABELS[ep.capacity.deepWorkMin] : undefined} />
                         <Field label="Switch recovery" value={ep.capacity?.switchRecovery ? SWITCH_LABELS[ep.capacity.switchRecovery] : undefined} />
                         <Field label="Weekday free" value={ep.situation?.weekdayFree ? FREE_TIME_LABELS[ep.situation.weekdayFree] : undefined} />

@@ -28,6 +28,7 @@ Show a short plan: **Keep** (with new times if they moved), **Move** (from, to) 
 - Keep and move: `move_task`.
 - Defer: `add_missed_task` first (original date and goal in the description), then `remove_task`. Never remove before the library entry exists.
 - Past blocks that were never done: `add_missed_task`, nothing to remove.
+- To wipe a whole day and start it again, use `clear_day`. It saves every removed block to the Missed Library first, so nothing is lost.
 - Re-check with `get_week_plan` that nothing overlaps.
 
 ## 5. Close

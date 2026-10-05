@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import { toast } from '@llb/core';
+import { toast, getSituationStatuses, situationSummary } from '@llb/core';
 import { handleFriendlyError } from '@llb/core';
 import type { FeedbackCategory, FeedbackStatus } from "@llb/core";
 
@@ -113,7 +113,7 @@ export async function exportUsersToExcel(): Promise<number> {
         "Age": ageOf(u.dob),
         "Marketing Opt-in": u.marketing_opt_in ? "Yes" : "No",
         "Profession": u.current_profession ?? "",
-        "Situation": u.execution_profile?.situation?.status ?? "",
+        "Situation": situationSummary(getSituationStatuses(u.execution_profile)),
         "Free Hours / Day": u.daily_free_hours ?? "",
         "Biggest Challenge": u.biggest_challenge ?? "",
         "Deep Work": u.execution_profile?.capacity?.deepWorkMin ?? "",

@@ -366,8 +366,14 @@ export function detectEmptyBucketStreaks(
   return streaks;
 }
 
+/**
+ * Score out of 10 for each bucket: its hours against the hours it should hold. `targetShares` is the user's own
+ * target split (see computeBucketTargets); without it every bucket is held to an equal quarter of the week.
+ * Reaching the target scores 10, and going over it does not score higher.
+ */
 export function calculateBucketBalanceScores(
-  bucketStats: BucketStats
+  bucketStats: BucketStats,
+  targetShares?: Record<LifeBucket, number>
 ): Record<LifeBucket, number> {
   const scores: Record<LifeBucket, number> = {
     income: 0,
@@ -378,8 +384,8 @@ export function calculateBucketBalanceScores(
 
   LIFE_BUCKETS.forEach((bucket) => {
     const hours = bucketStats.bucketHours[bucket] || 0;
-    // Score out of 10 based on hours relative to 168h week target
-    scores[bucket] = Math.min(10, Math.round((hours / (TOTAL_WEEK_HOURS * BUCKET_FULL_SCORE_SHARE)) * 10));
+    const share = targetShares?.[bucket] ?? BUCKET_FULL_SCORE_SHARE;
+    scores[bucket] = share > 0 ? Math.min(10, Math.round((hours / (TOTAL_WEEK_HOURS * share)) * 10)) : 10;
   });
 
   return scores;
