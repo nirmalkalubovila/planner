@@ -38,7 +38,7 @@ declare const Deno: {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, mcp-protocol-version, mcp-session-id, x-connector-token",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, mcp-protocol-version, mcp-session-id, x-connector-token, x-api-key, x-api-token, api-key, api-token, x-auth-token, x-access-token",
   "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
 };
 
@@ -2050,6 +2050,18 @@ async function handleRpc(admin: any, userId: string, message: any): Promise<any 
   }
 }
 
+// Claude's custom-connector form only offers a fixed list of header names, and reserves Authorization for OAuth, so the
+// secret can arrive in any of these. A "Bearer " prefix is tolerated everywhere.
+const TOKEN_HEADERS = ["x-connector-token", "x-api-key", "x-api-token", "api-key", "api-token", "x-auth-token", "x-access-token", "authorization"];
+
+function tokenFromHeaders(headers: Headers): string {
+  for (const name of TOKEN_HEADERS) {
+    const value = (headers.get(name) || "").replace(/^Bearer\s+/i, "").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
 // @ts-ignore
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -2061,8 +2073,7 @@ Deno.serve(async (req: Request) => {
   try {
     // Prefer the header; fall back to the last path segment so links issued
     // before header support keep working.
-    const headerToken = req.headers.get("x-connector-token")
-      || (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+    const headerToken = tokenFromHeaders(req.headers);
     const pathTail = new URL(req.url).pathname.split("/").filter(Boolean).pop() || "";
     const token = headerToken.trim() || (pathTail === "mcp" ? "" : pathTail);
 
