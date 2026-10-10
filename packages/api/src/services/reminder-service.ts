@@ -146,10 +146,18 @@ interface UpdateReminderInput {
   snooze_count?: number;
 }
 
-export function useUpdateReminder() {
+interface UpdateReminderOptions {
+  /** For background housekeeping (rolling a passed `next_fire` forward). A
+   * failure here is almost always the network not being ready yet at app
+   * launch, so it retries quietly instead of toasting once per reminder. */
+  silent?: boolean;
+}
+
+export function useUpdateReminder({ silent = false }: UpdateReminderOptions = {}) {
   const queryClient = useQueryClient();
 
   return useMutation({
+    retry: silent ? 3 : 0,
     mutationFn: async (input: UpdateReminderInput) => {
       const userId = await getCurrentUserId();
       const { id, ...rest } = input;
@@ -182,6 +190,7 @@ export function useUpdateReminder() {
       queryClient.invalidateQueries({ queryKey: ['vault_notes'] });
     },
     onError: (err) => {
+      if (silent) return;
       toast.error('Failed to update reminder: ' + err.message);
     }
   });
