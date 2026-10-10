@@ -21,12 +21,14 @@ import { sendNotification } from '@/lib/notification-service';
  */
 export function useVaultReminders() {
   const { data: reminders = [] } = useReminders();
-  const updateReminder = useUpdateReminder();
+  const updateReminder = useUpdateReminder({ silent: true });
   const addNotification = useNotificationStore((s) => s.addNotification);
   const preferences = useNotificationStore((s) => s.preferences);
 
   // Guards against re-firing the same reminder inside one polling cycle.
   const triggeredRef = useRef<Record<string, number>>({});
+  // Roll-forwards already in flight, so the 30s poll doesn't re-send them.
+  const inFlight = useRef(new Set<string>());
 
   useEffect(() => {
     const checkReminders = () => {
@@ -40,14 +42,15 @@ export function useVaultReminders() {
         if (fireTime.getTime() > currentMs) return;
 
         const rollForward = () => {
-          if (reminder.repeat_type === 'once') {
-            updateReminder.mutate({ id: reminder.id, is_active: false });
-          } else {
-            updateReminder.mutate({
-              id: reminder.id,
-              next_fire: calculateNextFire(reminder.repeat_type, reminder.remind_at).toISOString(),
-            });
-          }
+          if (inFlight.current.has(reminder.id)) return;
+          inFlight.current.add(reminder.id);
+          const patch = reminder.repeat_type === 'once'
+            ? { is_active: false }
+            : { next_fire: calculateNextFire(reminder.repeat_type, reminder.remind_at).toISOString() };
+          updateReminder.mutate(
+            { id: reminder.id, ...patch },
+            { onSettled: () => inFlight.current.delete(reminder.id) },
+          );
         };
 
         // Its moment has passed by more than the freshness window — move

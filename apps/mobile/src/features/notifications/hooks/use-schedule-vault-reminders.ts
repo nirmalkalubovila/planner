@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { calculateNextFire, useReminders, useUpdateReminder } from '@llb/api';
 import { useNotificationStore } from '@llb/notifications';
 import { isStale } from '@llb/core';
@@ -19,8 +19,17 @@ const SOURCE = 'vault-reminder';
  * `next_fire` has already passed, then schedules the one after that. */
 export function useScheduleVaultReminders() {
   const { data: reminders = [] } = useReminders();
-  const updateReminder = useUpdateReminder();
+  const updateReminder = useUpdateReminder({ silent: true });
   const preferences = useNotificationStore(s => s.preferences);
+  // Reminders with a roll-forward already in flight (or retrying), so a
+  // re-run of the effect doesn't queue a second identical update.
+  const inFlight = useRef(new Set<string>());
+
+  const rollForward = (id: string, patch: { next_fire?: string; is_active?: boolean }) => {
+    if (inFlight.current.has(id)) return;
+    inFlight.current.add(id);
+    updateReminder.mutate({ id, ...patch }, { onSettled: () => inFlight.current.delete(id) });
+  };
 
   useEffect(() => {
     (async () => {
@@ -37,11 +46,11 @@ export function useScheduleVaultReminders() {
         // this system had.
         if (fireDate.getTime() <= Date.now() || isStale('vault_reminder', fireDate)) {
           if (reminder.repeat_type === 'once') {
-            updateReminder.mutate({ id: reminder.id, is_active: false });
+            rollForward(reminder.id, { is_active: false });
             continue;
           }
           fireDate = calculateNextFire(reminder.repeat_type, reminder.remind_at);
-          updateReminder.mutate({ id: reminder.id, next_fire: fireDate.toISOString() });
+          rollForward(reminder.id, { next_fire: fireDate.toISOString() });
         }
 
         const rawBody = reminder.body || reminder.vault_notes?.content || '';
